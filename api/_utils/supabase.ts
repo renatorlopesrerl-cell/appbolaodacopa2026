@@ -8,11 +8,11 @@ export { supabase };
  */
 export function getUserClient(req: Request) {
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) return supabase; // Fallback to anon, RLS will likely limit access
+    if (!authHeader) return supabase;
 
     return createClient(
-        process.env.SUPABASE_URL!,
-        process.env.SUPABASE_ANON_KEY!,
+        process.env.SUPABASE_URL || '',
+        process.env.SUPABASE_ANON_KEY || '',
         {
             global: {
                 headers: { 'Authorization': authHeader }
@@ -20,6 +20,7 @@ export function getUserClient(req: Request) {
         }
     );
 }
+
 
 /**
  * Execute a Supabase query with automatic retry logic.
