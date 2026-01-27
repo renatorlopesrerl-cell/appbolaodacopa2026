@@ -1,4 +1,4 @@
-import { supabase, withRetry, jsonResponse, errorResponse } from '../../_utils/supabase';
+import { supabase, withRetry, jsonResponse, errorResponse } from '../_utils/supabase';
 
 export const config = {
     runtime: 'edge',
