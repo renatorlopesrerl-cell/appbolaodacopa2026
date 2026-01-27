@@ -5,8 +5,17 @@
     "framework": "vite",
     "rewrites": [
         {
+            "source": "/api/(.*)",
+            "destination": "/api/$1"
+        },
+        {
             "source": "/(.*)",
-            "destination": "/"
+            "destination": "/index.html"
         }
-    ]
+    ],
+    "functions": {
+        "api/**/*.{js,ts}": {
+            "runtime": "nodejs18.x"
+        }
+    }
 }
