@@ -4,6 +4,7 @@ import { useParams, useNavigate, Link, Navigate } from 'react-router-dom';
 import { useStore, getLeagueLimit } from '../App';
 import { MatchStatus, Phase, Match, User, LeaguePlan } from '../types';
 import { getTeamFlag, isPredictionLocked, calculatePoints, GROUPS_CONFIG, processImageForUpload } from '../services/dataService';
+import { uploadBase64Image } from '../services/storageService';
 import {
     Trophy, Users, ArrowLeft, Search, Lock, Globe,
     UserPlus, LogOut, Trash2, Check, X, MousePointerClick,
@@ -255,7 +256,26 @@ export const LeagueDetails: React.FC = () => {
     const triggerFileInput = () => { fileInputRef.current?.click(); };
     const handleUpdateLeague = async () => {
         setIsSavingSettings(true);
-        await updateLeague(league.id, { image: editImage, description: editDescription, settings: league.settings, isPrivate: editIsPrivate });
+        let finalImage = editImage;
+
+        // Check if image is new (Base64) and needs upload
+        if (editImage && !editImage.startsWith('http')) {
+            try {
+                // showToast('Info', 'Enviando imagem...', 'info'); // Optimal: feedback
+                finalImage = await uploadBase64Image(editImage, 'leagues');
+            } catch (e) {
+                console.error("Upload failed", e);
+                showToast('Erro', 'Falha ao enviar imagem. Tente novamente.', 'warning');
+                setIsSavingSettings(false);
+                return;
+            }
+        }
+
+        await updateLeague(league.id, { image: finalImage, description: editDescription, settings: league.settings, isPrivate: editIsPrivate });
+
+        // Update local state to the new URL to avoid re-uploading
+        setEditImage(finalImage);
+
         showToast('Sucesso', 'Alterações salvas.', 'success');
         setIsSavingSettings(false);
     };

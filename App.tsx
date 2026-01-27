@@ -13,6 +13,7 @@ import { ProfilePage } from './pages/ProfilePage';
 import { User, League, Match, Prediction, MatchStatus, AppNotification, Invitation, LeaguePlan } from './types';
 import { INITIAL_MATCHES, calculatePoints } from './services/dataService';
 import { supabase, supabaseRequest } from './services/supabaseClient';
+import { uploadBase64Image } from './services/storageService';
 import { Loader2 } from 'lucide-react';
 
 // --- STORE CONTEXT ---
@@ -691,7 +692,21 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   const updateUserProfile = async (name: string, avatar: string, whatsapp: string, pix: string, notificationSettings: { matchStart: boolean, matchEnd: boolean }, themePreference: 'light' | 'dark') => {
     if (!currentUser) return;
-    const updatedUser = { ...currentUser, name, avatar, whatsapp, pix, notificationSettings, theme: themePreference };
+
+    let finalAvatar = avatar;
+    // Upload avatar if it is base64 (new upload)
+    if (avatar && !avatar.startsWith('http')) {
+      try {
+        addNotification('Processando', 'Enviando imagem...', 'info');
+        finalAvatar = await uploadBase64Image(avatar, 'avatars');
+      } catch (e) {
+        console.error("Avatar upload failed", e);
+        addNotification('Erro', 'Falha no upload da imagem.', 'warning');
+        return;
+      }
+    }
+
+    const updatedUser = { ...currentUser, name, avatar: finalAvatar, whatsapp, pix, notificationSettings, theme: themePreference };
 
     // Optimistic Update
     setCurrentUser(updatedUser);
@@ -701,14 +716,14 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     localStorage.setItem(`notify_${currentUser.id}`, JSON.stringify(notificationSettings));
 
     let { error } = await supabase.from('profiles').update({
-      name, avatar, whatsapp: whatsapp.trim() || null, pix: pix.trim() || null,
+      name, avatar: finalAvatar, whatsapp: whatsapp.trim() || null, pix: pix.trim() || null,
       notification_settings: notificationSettings, theme: themePreference
     }).eq('id', currentUser.id);
 
     if (error) {
       // Retry with basic info if full schema update fails
       if (error.code === '42703' || error.message?.includes('column')) {
-        await supabase.from('profiles').update({ name, avatar }).eq('id', currentUser.id);
+        await supabase.from('profiles').update({ name, avatar: finalAvatar }).eq('id', currentUser.id);
       }
       // Não notifica erro agressivamente para o usuário se for apenas preferência
       console.error("Erro ao salvar perfil no DB:", error);
@@ -729,7 +744,20 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       for (let i = 0; i < 6; i++) leagueCode += chars.charAt(Math.floor(Math.random() * chars.length));
 
       const newLeagueId = `l-${Date.now()}`;
-      const finalImage = image || `https://api.dicebear.com/7.x/identicon/svg?seed=${newLeagueId}`;
+      let finalImage = image || `https://api.dicebear.com/7.x/identicon/svg?seed=${newLeagueId}`;
+
+      // Upload League Image
+      if (image && !image.startsWith('http')) {
+        try {
+          addNotification('Processando', 'Enviando logo da liga...', 'info');
+          finalImage = await uploadBase64Image(image, 'leagues');
+        } catch (e) {
+          console.error("League image upload failed", e);
+          // Fallback to base64 or placeholder? Let's try base64 if upload fails, or just fail safely.
+          // For now, keep base64 as fallback to strictly match old behavior if S3 fails
+        }
+      }
+
       const finalSettings = { ...settings, isUnlimited: false, plan: 'FREE' };
 
       const newLeagueApp: League = {
