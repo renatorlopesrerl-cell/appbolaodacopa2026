@@ -12,7 +12,7 @@ export default async function handler(req: Request) {
 
         if (req.method === 'GET') {
             const data = await withRetry(async () => {
-                return await userClient.from('leagues').select('*').order('created_at', { ascending: false });
+                return await userClient.from('leagues').select('*');
             });
 
             const cleanLeagues = (data as any[])?.filter(l => !l.name.includes('[EXCLUÍDA]')) || [];
