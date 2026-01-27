@@ -10,6 +10,7 @@ export const uploadBase64Image = async (base64: string, folder: string): Promise
     const { data: { session } } = await supabase.auth.getSession();
     const token = session?.access_token;
 
+    console.log(`Sending upload request to /api/storage for folder: ${folder}...`);
     const response = await fetch('/api/storage', {
         method: 'POST',
         headers: {
@@ -20,11 +21,13 @@ export const uploadBase64Image = async (base64: string, folder: string): Promise
     });
 
     if (!response.ok) {
-        const error = await response.json();
+        const error = await response.json().catch(() => ({ error: response.statusText }));
+        console.error("Upload fetch failed:", error);
         throw new Error(error.error || 'Upload failed');
     }
 
     const { publicUrl } = await response.json();
+    console.log("Upload successful, Public URL:", publicUrl);
     return publicUrl;
 };
 

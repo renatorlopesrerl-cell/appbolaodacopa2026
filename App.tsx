@@ -1,23 +1,52 @@
-import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef, createContext, useContext, useCallback } from 'react';
+import { HashRouter, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
+import {
+  Trophy,
+  Settings,
+  LogOut,
+  Plus,
+  Users,
+  ChevronRight,
+  AlertCircle,
+  CheckCircle2,
+  Info,
+  Clock,
+  Calendar,
+  Lock,
+  Globe,
+  Bell,
+  User as UserIcon
+} from 'lucide-react';
+
+// Components & Views
 import { Layout } from './components/Layout';
-import { Login } from './pages/Login';
 import { Home } from './pages/Home';
 import { TablePage } from './pages/TablePage';
 import { LeaguesPage } from './pages/LeaguesPage';
 import { LeagueDetails } from './pages/LeagueDetails';
+import { ProfilePage } from './pages/ProfilePage';
 import { AdminPage } from './pages/AdminPage';
 import { AdminLeaguesPage } from './pages/AdminLeaguesPage';
 import { AdminMatchesPage } from './pages/AdminMatchesPage';
-import { ProfilePage } from './pages/ProfilePage';
-import { User, League, Match, Prediction, MatchStatus, AppNotification, Invitation, LeaguePlan } from './types';
-import { INITIAL_MATCHES, calculatePoints } from './services/dataService';
-import { supabase } from './services/supabase'; // Auth Only
-import { api } from './services/api'; // New API Service
-import { uploadBase64Image } from './services/storageService';
-import { Loader2 } from 'lucide-react';
+import { Login } from './pages/Login';
 
-// --- STORE CONTEXT ---
+// Services
+import { supabase } from './services/supabase'; // Auth Only
+import { api } from './services/api';
+import { uploadBase64Image } from './services/storageService';
+
+// Types
+import { User, Match, League, Prediction, Invitation, MatchStatus } from './types';
+
+// Constantes
+import { INITIAL_MATCHES } from './services/dataService';
+
+interface AppNotification {
+  id: number;
+  title: string;
+  message: string;
+  type: 'success' | 'info' | 'warning';
+}
 
 interface AppState {
   currentUser: User | null;
@@ -25,37 +54,32 @@ interface AppState {
   matches: Match[];
   leagues: League[];
   predictions: Prediction[];
-  notifications: AppNotification[];
   invitations: Invitation[];
   currentTime: Date;
-  setCurrentTime: (d: Date) => void;
+  notifications: AppNotification[];
+  loading: boolean;
+  theme: 'light' | 'dark';
+  setCurrentTime: (date: Date) => void;
   loginGoogle: () => Promise<void>;
   signInWithEmail: (email: string, pass: string) => Promise<boolean>;
   signUpWithEmail: (email: string, pass: string, name: string, whatsapp?: string) => Promise<boolean>;
-  logout: () => void;
+  logout: () => Promise<void>;
   createLeague: (name: string, isPrivate: boolean, settings: any, image: string, description: string) => Promise<boolean>;
-  updateLeague: (leagueId: string, updates: Partial<League>) => Promise<void>;
-  joinLeague: (leagueId: string) => void;
+  updateLeague: (id: string, updates: Partial<League>) => Promise<void>;
+  joinLeague: (leagueId: string) => Promise<void>;
   deleteLeague: (leagueId: string) => Promise<boolean>;
-  approveUser: (leagueId: string, userId: string) => void;
-  rejectUser: (leagueId: string, userId: string) => void;
-  removeUserFromLeague: (leagueId: string, userId: string) => void;
-  sendLeagueInvite: (leagueId: string, email: string) => Promise<boolean>;
-  respondToInvite: (inviteId: string, accept: boolean) => Promise<void>;
-  /* REMOVED: submitPrediction (single) unused if we use batch, or just implement if needed. 
-     Keeping the signature in interface? It's used in one place maybe. 
-     Let's map single submit to batch logic or new endpoint? 
-     The logic below updates state directly then calls DB. 
-  */
-  submitPrediction: (matchId: string, leagueId: string, home: number, away: number) => void;
-  submitPredictions: (predictions: { matchId: string, home: number, away: number }[], leagueId: string) => Promise<boolean>;
+  approveUser: (leagueId: string, userId: string) => Promise<void>;
+  rejectUser: (leagueId: string, userId: string) => Promise<void>;
+  removeUserFromLeague: (leagueId: string, userId: string) => Promise<void>;
+  submitPrediction: (matchId: string, leagueId: string, home: number, away: number) => Promise<void>;
+  submitPredictions: (preds: { matchId: string, home: number, away: number }[], leagueId: string) => Promise<boolean>;
   simulateMatchResult: (matchId: string, home: number, away: number) => void;
   updateMatch: (match: Match) => Promise<boolean>;
   removeNotification: (id: number) => void;
-  updateUserProfile: (name: string, avatar: string, whatsapp: string, pix: string, notificationSettings: { matchStart: boolean, matchEnd: boolean }, themePreference: 'light' | 'dark') => Promise<void>;
+  updateUserProfile: (name: string, avatar: string, whatsapp: string, pix: string, notificationSettings: any, themePreference: 'light' | 'dark') => Promise<void>;
   syncInitialMatches: () => Promise<void>;
-  loading: boolean;
-  theme: 'light' | 'dark';
+  sendLeagueInvite: (leagueId: string, email: string) => Promise<boolean>;
+  respondToInvite: (inviteId: string, accept: boolean) => Promise<void>;
   toggleTheme: () => void;
   connectionError: boolean;
   retryConnection: () => void;
@@ -69,7 +93,7 @@ export const useStore = () => {
   return context;
 };
 
-// Helper to determine league limit based on plan
+// Helper: League Limit
 export const getLeagueLimit = (league: League): number => {
   if (league.settings?.isUnlimited) return Infinity;
   const plan = league.settings?.plan || 'FREE';
@@ -95,19 +119,15 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [connectionError, setConnectionError] = useState(false);
 
-  // Theme State
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const savedTheme = localStorage.getItem('app-theme');
     return (savedTheme as 'light' | 'dark') || 'light';
   });
 
-  // Refs to prevent race conditions and loops
   const fetchingRef = useRef(false);
-  const lastFetchTimeRef = useRef(0);
   const mountedRef = useRef(true);
-  const matchesRef = useRef<Match[]>([]);
   const currentUserRef = useRef<User | null>(null);
-  const failureCountRef = useRef(0); // Circuit Breaker counter
+  const failureCountRef = useRef(0);
 
   const addNotification = (title: string, message: string, type: 'success' | 'info' | 'warning' = 'info') => {
     const id = Date.now();
@@ -121,69 +141,16 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     setNotifications(prev => prev.filter(n => n.id !== id));
   };
 
-  const triggerSystemNotification = (title: string, body: string) => {
-    if ('Notification' in window && Notification.permission === 'granted') {
-      try {
-        navigator.vibrate?.([200, 100, 200]);
-        new Notification(title, {
-          body,
-          icon: 'https://sjianpqzozufnobftksp.supabase.co/storage/v1/object/public/Public/logo.png',
-          tag: 'match-update'
-        });
-      } catch (e) {
-        console.error("Erro ao enviar notificação nativa", e);
-      }
-    }
-  };
-
-  useEffect(() => {
-    matchesRef.current = matches;
-  }, [matches]);
-
   useEffect(() => {
     currentUserRef.current = currentUser;
   }, [currentUser]);
 
   useEffect(() => {
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission();
-    }
-  }, []);
-
-  useEffect(() => {
     const root = window.document.documentElement;
-    if (theme === 'dark') {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
+    if (theme === 'dark') root.classList.add('dark');
+    else root.classList.remove('dark');
     localStorage.setItem('app-theme', theme);
   }, [theme]);
-
-  // --- AUTO RECONNECT LOGIC ---
-  const retryConnection = useCallback(() => {
-    console.log("Tentando reconexão manual...");
-    failureCountRef.current = 0;
-    setConnectionError(false);
-    setLoading(true); // Feedback visual
-    fetchAllData();
-  }, []);
-
-  useEffect(() => {
-    let interval: any;
-    if (connectionError) {
-      // Tenta reconectar a cada 10 segundos se estiver em erro
-      interval = setInterval(() => {
-        if (navigator.onLine) {
-          console.log("Tentando reconexão automática...");
-          failureCountRef.current = 0; // Reset para permitir nova tentativa
-          fetchAllData();
-        }
-      }, 10000);
-    }
-    return () => clearInterval(interval);
-  }, [connectionError]);
-  // ---------------------------
 
   const toggleTheme = () => {
     setTheme(prev => {
@@ -194,6 +161,13 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       return newTheme;
     });
   };
+
+  const retryConnection = useCallback(() => {
+    failureCountRef.current = 0;
+    setConnectionError(false);
+    setLoading(true);
+    fetchAllData();
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -206,86 +180,85 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   useEffect(() => {
     mountedRef.current = true;
 
-    // Initial Auth Check
-    supabase.auth.getSession().then(({ data, error }) => {
-      if (error) {
-        console.warn("Sessão: Erro de rede ou sessão inválida (modo offline possível).", error.message);
+    const initAuth = async () => {
+      try {
+        setLoading(true);
+        console.log("Initializing Auth...");
+
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) throw error;
+
+        if (session?.user) {
+          const user = session.user;
+          const metadata = user.user_metadata || {};
+
+          const basicUser: User = {
+            id: user.id,
+            email: user.email || '',
+            name: metadata.full_name || metadata.name || user.email?.split('@')[0] || 'Usuário',
+            avatar: metadata.avatar_url || metadata.picture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`,
+            isAdmin: metadata.is_admin || user.email?.toLowerCase() === 'renatinhorlopes@hotmail.com',
+            whatsapp: metadata.whatsapp || '',
+            notificationSettings: { matchStart: true, matchEnd: true }
+          };
+
+          setCurrentUser(basicUser);
+          currentUserRef.current = basicUser;
+
+          await Promise.all([
+            fetchUserProfile(user.id, user.email || '', basicUser.avatar, basicUser.name, basicUser.whatsapp || ''),
+            fetchAllData()
+          ]);
+        }
+      } catch (err: any) {
+        console.warn("Init Auth Error:", err.message);
+      } finally {
         if (mountedRef.current) setLoading(false);
-        return;
       }
+    };
 
-      if (!data?.session) {
-        if (mountedRef.current) setLoading(false);
-      }
-
-      if (data?.session?.user) {
-        const session = data.session;
-        const avatarUrl = session.user.user_metadata.avatar_url || session.user.user_metadata.picture || '';
-        const fullName = session.user.user_metadata.full_name || session.user.user_metadata.name || session.user.user_metadata.custom_claims?.global_name || '';
-        const whatsappMeta = session.user.user_metadata.whatsapp || '';
-
-        // Trigger fetch immediately
-        fetchUserProfile(session.user.id, session.user.email || '', avatarUrl, fullName, whatsappMeta);
-        fetchAllData();
-      }
-
-    }).catch(err => {
-      // Trata erro de "Failed to fetch" no auth como warning
-      if (err.message === 'Failed to fetch') {
-        console.warn("Falha de conexão na verificação de sessão (Offline).");
-      } else {
-        console.error("Erro inesperado na sessão:", err);
-      }
-      if (mountedRef.current) setLoading(false);
-    });
+    initAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_OUT' || !session) {
+      console.log("Auth Event:", event);
+
+      if (event === 'SIGNED_OUT') {
         setCurrentUser(null);
+        currentUserRef.current = null;
         setLeagues([]);
         setPredictions([]);
         setInvitations([]);
         if (mountedRef.current) setLoading(false);
-      } else if (session?.user) {
-        const user = session.user;
-        const metadata = user.user_metadata || {};
+      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        if (session?.user && (!currentUserRef.current || currentUserRef.current.id !== session.user.id)) {
+          const user = session.user;
+          const metadata = user.user_metadata || {};
 
-        // LOGIN OTIMISTA: Define um usuário provisório imediatamente para desbloquear a UI
-        const basicUser: User = {
-          id: user.id,
-          email: user.email || '',
-          name: metadata.full_name || metadata.name || user.email?.split('@')[0] || 'Usuário',
-          avatar: metadata.avatar_url || metadata.picture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`,
-          isAdmin: false,
-          whatsapp: metadata.whatsapp || '',
-          notificationSettings: { matchStart: true, matchEnd: true }
-        };
+          const basicUser: User = {
+            id: user.id,
+            email: user.email || '',
+            name: metadata.full_name || metadata.name || user.email?.split('@')[0] || 'Usuário',
+            avatar: metadata.avatar_url || metadata.picture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`,
+            isAdmin: metadata.is_admin || user.email?.toLowerCase() === 'renatinhorlopes@hotmail.com',
+            whatsapp: metadata.whatsapp || '',
+            notificationSettings: { matchStart: true, matchEnd: true }
+          };
 
-        if (!currentUserRef.current || currentUserRef.current.id !== user.id) {
-          // Define estado imediatamente
           setCurrentUser(basicUser);
-
-          // Busca dados completos em segundo plano
-          await fetchUserProfile(user.id, user.email || '', basicUser.avatar, basicUser.name, basicUser.whatsapp || '');
+          currentUserRef.current = basicUser;
+          fetchUserProfile(user.id, user.email || '', basicUser.avatar, basicUser.name, basicUser.whatsapp || '');
           fetchAllData();
         }
       }
     });
 
-    // 2. REALTIME (REMOVED FOR ARCHITECTURE UPDATE)
-    // Refactored to strictly use API Routes. 
-    // We could implement polling here if needed, but fetchAllData already exists and can be called manually or on interval.
-    // For now, reliance on Auto-Reconnect/Polling interval in useEffect below.
-
     return () => {
       mountedRef.current = false;
       subscription.unsubscribe();
-      // supabase.removeChannel(channel);
     };
   }, []);
 
   const fetchUserProfile = async (uid: string, email: string, photoURL: string, fullName: string = '', whatsappMeta: string = '') => {
-    // FALLBACK USER: Criado imediatamente para garantir que a UI não trave em estado nulo
     const savedPrefs = localStorage.getItem(`notify_${uid}`);
     const fallbackPrefs = savedPrefs ? JSON.parse(savedPrefs) : { matchStart: true, matchEnd: true };
     const shouldBeAdmin = email.toLowerCase() === 'renatinhorlopes@hotmail.com';
@@ -304,11 +277,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
     try {
       const data = await api.profiles.get(uid).catch(() => null);
-
       if (data) {
-        // Sucesso: Atualiza com dados do banco
-        // Admin fix check handled by API or separate trigger? 
-        // For now, assume API returns correct data. Admin check logic:
         if (shouldBeAdmin && !data.is_admin) {
           await api.profiles.update({ id: uid, is_admin: true });
           data.is_admin = true;
@@ -323,50 +292,28 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           whatsapp: data.whatsapp || '',
           pix: data.pix || '',
           notificationSettings: data.notification_settings || fallbackPrefs,
-          theme: data.theme // Load DB Theme
+          theme: data.theme
         };
 
-        if (user.theme && (user.theme === 'light' || user.theme === 'dark')) {
-          setTheme(user.theme);
-        }
-
+        if (user.theme && (user.theme === 'light' || user.theme === 'dark')) setTheme(user.theme);
         setCurrentUser(user);
-        // Reset connection error if success
         setConnectionError(false);
         failureCountRef.current = 0;
-
         fetchInvitations(user.email);
-      }
-      else {
-        // Usuário não existe: Cria novo via API?
-        // API.profiles.update works as upsert if logic allows.
-        // Or create explicit endpoint. 
-        // Existing api.profiles.update logic is upsert. 
+      } else {
         const newUserDB = {
           id: uid, email: email, name: fallbackUser.name, avatar: fallbackUser.avatar,
           is_admin: shouldBeAdmin, whatsapp: whatsappMeta || null, notification_settings: fallbackPrefs
         };
-
-        try {
-          await api.profiles.update(newUserDB);
-          setCurrentUser(fallbackUser);
-          fetchInvitations(fallbackUser.email);
-          setUsers(prev => prev.some(u => u.id === fallbackUser.id) ? prev : [...prev, fallbackUser]);
-        } catch (insertError) {
-          throw insertError;
-        }
+        await api.profiles.update(newUserDB);
+        setCurrentUser(fallbackUser);
+        fetchInvitations(fallbackUser.email);
+        setUsers(prev => prev.some(u => u.id === fallbackUser.id) ? prev : [...prev, fallbackUser]);
       }
     } catch (e: any) {
       if (e.message !== 'Failed to fetch') console.error("Fetch profile error", e);
-
-      // EM CASO DE ERRO CRÍTICO (Banco fora, timeout, etc):
-      // Usa o fallbackUser para permitir que o app funcione em modo "degradado"
-      console.warn("Entrando em modo de contingência para o perfil.");
       setCurrentUser(fallbackUser);
-      // Se for "Failed to fetch", provavelmente é offline, então setamos erro de conexão
-      if (e.message === 'Failed to fetch') {
-        setConnectionError(true);
-      }
+      if (e.message === 'Failed to fetch') setConnectionError(true);
     } finally {
       if (mountedRef.current) setLoading(false);
     }
@@ -381,15 +328,11 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         }));
         setInvitations(mappedInvites);
       }
-    } catch (e) {
-      // Ignora erros de convite para não bloquear o app
-    }
+    } catch (e) { }
   };
 
   const fetchAllData = async () => {
-    // 0. CHECK ONLINE
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      console.log("Offline: Skipping fetch.");
       if (!connectionError) setConnectionError(true);
       if (mountedRef.current) setLoading(false);
       return;
@@ -399,7 +342,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     fetchingRef.current = true;
 
     try {
-      // Parallel Fetching for speed
       const [leaguesData, matchesData, predsData, profilesData] = await Promise.all([
         api.leagues.list().catch(e => {
           console.error("Leagues error", e);
@@ -423,23 +365,20 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         })
       ]);
 
-      // 1. LEAGUES
       if (leaguesData) {
-        const mappedLeagues: League[] = leaguesData
-          .map((l: any) => ({
-            id: l.id, name: l.name, image: l.image, description: l.description,
-            leagueCode: l.league_code, adminId: l.admin_id, isPrivate: l.is_private,
-            participants: l.participants || [], pendingRequests: l.pending_requests || [],
-            settings: {
-              ...l.settings,
-              isUnlimited: l.settings?.isUnlimited === true,
-              plan: l.settings?.plan || (l.settings?.isUnlimited ? 'VIP_UNLIMITED' : 'FREE')
-            }
-          }));
+        const mappedLeagues: League[] = leaguesData.map((l: any) => ({
+          id: l.id, name: l.name, image: l.image, description: l.description,
+          leagueCode: l.league_code, adminId: l.admin_id, isPrivate: l.is_private,
+          participants: l.participants || [], pendingRequests: l.pending_requests || [],
+          settings: {
+            ...l.settings,
+            isUnlimited: l.settings?.isUnlimited === true,
+            plan: l.settings?.plan || (l.settings?.isUnlimited ? 'VIP_UNLIMITED' : 'FREE')
+          }
+        }));
         setLeagues(mappedLeagues);
       }
 
-      // 2. MATCHES
       if (matchesData && matchesData.length > 0) {
         const mappedMatches: Match[] = matchesData.map((m: any) => ({
           id: m.id, homeTeamId: m.home_team_id, awayTeamId: m.away_team_id,
@@ -450,7 +389,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         setMatches(mappedMatches);
       }
 
-      // 3. PREDICTIONS
       if (predsData) {
         const mappedPreds: Prediction[] = predsData.map((p: any) => ({
           userId: p.user_id, matchId: p.match_id, leagueId: p.league_id,
@@ -460,7 +398,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         setPredictions(mappedPreds);
       }
 
-      // 4. PROFILES
       if (profilesData) {
         const mappedUsers: User[] = profilesData.map((p: any) => ({
           id: p.id, name: p.name, email: p.email, avatar: p.avatar, isAdmin: p.is_admin,
@@ -471,20 +408,15 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
       setConnectionError(false);
       failureCountRef.current = 0;
-
     } catch (e: any) {
       console.error("API Fetch Error", e);
       failureCountRef.current += 1;
-      if (failureCountRef.current > 3 && !connectionError) {
-        setConnectionError(true);
-      }
+      if (failureCountRef.current > 3 && !connectionError) setConnectionError(true);
     } finally {
       fetchingRef.current = false;
       if (mountedRef.current) setLoading(false);
     }
   };
-
-  // --- ACTIONS ---
 
   const loginGoogle = async () => {
     setLoading(true);
@@ -511,25 +443,20 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { data, error } = await supabase.auth.signUp({
       email, password: pass, options: { data: { name, full_name: name, whatsapp: whatsapp || null } }
     });
-
     if (error) {
       addNotification('Erro no Cadastro', error.message, 'warning');
       return false;
     }
-
     if (data.user && data.session) {
       const newUserDB = {
         id: data.user.id, email, name, avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.user.id}`,
         is_admin: false, whatsapp: whatsapp || null, notification_settings: { matchStart: true, matchEnd: true }
       };
-      // Tenta salvar, mas não bloqueia se falhar (rls/offline)
-      api.profiles.update(newUserDB).catch((error) => console.warn(error));
-
+      api.profiles.update(newUserDB).catch((err) => console.warn(err));
       const newUser: User = { ...newUserDB, isAdmin: false, whatsapp: whatsapp || '', pix: '', notificationSettings: newUserDB.notification_settings };
       setCurrentUser(newUser);
       setUsers(prev => prev.some(u => u.id === newUser.id) ? prev : [...prev, newUser]);
     }
-
     if (!data.session) {
       addNotification('Verifique seu E-mail', 'Enviamos um link de confirmação.', 'info');
       return true;
@@ -540,114 +467,69 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   const logout = async () => {
     console.log("Logout triggered.");
-
-    // 1. Clear state FIRST - UI reacts immediately
     setCurrentUser(null);
     setLeagues([]);
     setPredictions([]);
     setInvitations([]);
     setLoading(false);
-
-    // 2. Local Cleanup (Keep theme if possible, but clear auth)
     Object.keys(localStorage).forEach(key => {
-      if (key.includes('supabase.auth.token') || key.startsWith('sb-')) {
-        localStorage.removeItem(key);
-      }
+      if (key.includes('supabase.auth.token') || key.startsWith('sb-')) localStorage.removeItem(key);
     });
-
-    // 3. Async SignOut (Non-blocking)
     try {
       supabase.auth.signOut({ scope: 'global' }).catch(err => console.warn("Background signout issue:", err));
-    } catch (e) {
-      console.warn("Signout call failed:", e);
-    }
-
-    // 4. Force Redirect and Reload
+    } catch (e) { }
     window.location.hash = '/login';
-    setTimeout(() => {
-      window.location.reload();
-    }, 50);
+    setTimeout(() => { window.location.reload(); }, 50);
   };
 
-  const updateUserProfile = async (name: string, avatar: string, whatsapp: string, pix: string, notificationSettings: { matchStart: boolean, matchEnd: boolean }, themePreference: 'light' | 'dark') => {
+  const updateUserProfile = async (name: string, avatar: string, whatsapp: string, pix: string, notificationSettings: any, themePreference: 'light' | 'dark') => {
     if (!currentUser) return;
-
     let finalAvatar = avatar;
-    // Upload avatar if it is base64 (new upload)
     if (avatar && !avatar.startsWith('http')) {
       try {
         addNotification('Processando', 'Enviando imagem...', 'info');
         finalAvatar = await uploadBase64Image(avatar, 'avatars');
       } catch (e) {
-        console.error("Avatar upload failed", e);
         addNotification('Erro', 'Falha no upload da imagem.', 'warning');
         return;
       }
     }
-
     const updatedUser = { ...currentUser, name, avatar: finalAvatar, whatsapp, pix, notificationSettings, theme: themePreference };
-
-    // Optimistic Update
     setCurrentUser(updatedUser);
     setUsers(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
     setTheme(themePreference);
-
     localStorage.setItem(`notify_${currentUser.id}`, JSON.stringify(notificationSettings));
-
     try {
       await api.profiles.update({
-        id: currentUser.id,
-        name, avatar: finalAvatar, whatsapp: whatsapp.trim() || null, pix: pix.trim() || null,
-        notification_settings: notificationSettings, theme: themePreference
+        id: currentUser.id, name, avatar: finalAvatar, whatsapp: whatsapp.trim() || null,
+        pix: pix.trim() || null, notification_settings: notificationSettings, theme: themePreference
       });
       addNotification('Perfil Atualizado', 'Seus dados foram salvos.', 'success');
-    } catch (e) {
-      console.error("Update Profile Error", e);
-      // Fallback retry minimal?
-      // Let's just warn for now.
-    }
+    } catch (e) { }
   };
 
-  // Generic Create/Update helpers
   const createLeague = async (name: string, isPrivate: boolean, settings: any, image: string, description: string): Promise<boolean> => {
     if (!currentUser) return false;
     try {
-      // const { data: existingLeague } = await supabase.from('leagues').select('id').ilike('name', name).maybeSingle();
-      // Remove DB check in favor of API constraint handling? 
-      // Or we can leave this check if we expose an API endpoint for checking existence safely. 
-      // For now, let's just proceed and handle API error.
-      // if (existingLeague) { addNotification('Nome Indisponível', `Já existe uma liga chamada "${name}".`, 'warning'); return false; }
-
       let leagueCode = '';
       const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
       for (let i = 0; i < 6; i++) leagueCode += chars.charAt(Math.floor(Math.random() * chars.length));
 
       const newLeagueId = `l-${Date.now()}`;
       let finalImage = image || `https://api.dicebear.com/7.x/identicon/svg?seed=${newLeagueId}`;
-
-      // Upload League Image
       if (image && !image.startsWith('http')) {
         try {
           addNotification('Processando', 'Enviando logo da liga...', 'info');
           finalImage = await uploadBase64Image(image, 'leagues');
-        } catch (e) {
-          console.error("League image upload failed", e);
-          // Fallback to base64 or placeholder? Let's try base64 if upload fails, or just fail safely.
-          // For now, keep base64 as fallback to strictly match old behavior if S3 fails
-        }
+        } catch (e) { }
       }
-
       const finalSettings = { ...settings, isUnlimited: false, plan: 'FREE' };
-
       const newLeagueApp: League = {
         id: newLeagueId, name, image: finalImage, description: description || '',
         leagueCode: leagueCode, adminId: currentUser.id, isPrivate, participants: [currentUser.id],
         pendingRequests: [], settings: finalSettings
       };
-
-      // Optimistic
       setLeagues(prev => [...prev, newLeagueApp]);
-
       try {
         await api.leagues.create({
           id: newLeagueId, name, image: finalImage, description: description || '',
@@ -656,11 +538,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         });
         addNotification('Liga Criada', `A liga "${name}" foi criada!`, 'success');
         return true;
-      } catch (err) {
-        throw err;
-      }
+      } catch (err) { throw err; }
     } catch (e: any) {
-      console.error("Create League Exception:", e);
       addNotification('Erro', 'Ocorreu um erro ao criar a liga.', 'warning');
       return false;
     }
@@ -682,13 +561,10 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       try {
         await api.leagues.update(leagueId, dbUpdates);
         addNotification('Sucesso', 'Liga atualizada.', 'success');
-      } catch (e: any) {
-        console.error("Update League Error", e);
-        // Rollback? For now simplistically just notify error
+      } catch (e) {
         addNotification('Erro', 'Falha ao atualizar liga.', 'warning');
       }
     }
-
   }, [currentUser]);
 
   const deleteLeague = async (leagueId: string): Promise<boolean> => {
@@ -700,8 +576,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       await api.leagues.delete(leagueId);
       addNotification('Liga Excluída', 'A liga foi removida.', 'success');
       return true;
-    } catch (e: any) {
-      console.error("Delete League Error", e);
+    } catch (e) {
       addNotification('Erro', `Falha ao excluir.`, 'warning');
       return false;
     }
@@ -712,11 +587,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const league = leagues.find(l => l.id === leagueId);
     if (!league) return;
     if (league.participants.includes(currentUser.id)) { addNotification('Aviso', 'Você já participa desta liga.', 'info'); return; }
-
     const limit = getLeagueLimit(league);
     if (league.participants.length >= limit) { addNotification('Liga Cheia', 'O limite de participantes foi atingido.', 'warning'); return; }
-
-    // Optimistic
     let updatedLeague = { ...league };
     if (league.isPrivate) {
       if (!league.pendingRequests.includes(currentUser.id)) updatedLeague.pendingRequests = [...league.pendingRequests, currentUser.id];
@@ -725,14 +597,11 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       updatedLeague.participants = [...league.participants, currentUser.id];
     }
     setLeagues(prev => prev.map(l => l.id === leagueId ? updatedLeague : l));
-
     try {
       await api.leagues.join(leagueId);
       addNotification('Sucesso', league.isPrivate ? 'Solicitação enviada.' : 'Você entrou na liga.', league.isPrivate ? 'info' : 'success');
     } catch (e: any) {
-      console.error("Join League Error", e);
       addNotification('Erro', e.message || 'Falha ao entrar na liga.', 'warning');
-      // Rollback?
     }
   };
 
@@ -740,16 +609,13 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const league = leagues.find(l => l.id === leagueId);
     if (!league) return;
     const limit = getLeagueLimit(league);
-    if (league.participants.length >= limit) { addNotification('Limite Atingido', `Limite do plano (${limit}) atingido.`, 'warning'); return; }
-
+    if (league.participants.length >= limit) { addNotification('Limite Atingido', `Limite do plano atingido.`, 'warning'); return; }
     const updatedPending = league.pendingRequests.filter(id => id !== userId);
     const updatedParticipants = Array.from(new Set([...league.participants, userId]));
-
     setLeagues(prev => prev.map(l => l.id === leagueId ? { ...l, participants: updatedParticipants, pendingRequests: updatedPending } : l));
     try {
       await api.leagues.approveUser(leagueId, userId);
-    } catch (e: any) {
-      console.error("Approve User Error", e);
+    } catch (e) {
       addNotification('Erro', 'Falha ao aprovar usuário.', 'warning');
     }
   };
@@ -761,8 +627,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     setLeagues(prev => prev.map(l => l.id === leagueId ? { ...l, pendingRequests: updatedPending } : l));
     try {
       await api.leagues.rejectUser(leagueId, userId);
-    } catch (e: any) {
-      console.error("Reject User Error", e);
+    } catch (e) {
       addNotification('Erro', 'Falha ao rejeitar usuário.', 'warning');
     }
   };
@@ -775,27 +640,20 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     try {
       await api.leagues.removeUser(leagueId, userId);
       addNotification('Removido', 'Usuário removido da liga.', 'info');
-    } catch (e: any) {
-      console.error("Remove User Error", e);
-    }
+    } catch (e) { }
   };
 
-  const sendLeagueInvite = async (leagueId: string, email: string): Promise<boolean> => {
+  const sendLeagueInvite = async (leagueId: string, email: string) => {
     const league = leagues.find(l => l.id === leagueId);
     if (!league) return false;
     const limit = getLeagueLimit(league);
     if (league.participants.length >= limit) { addNotification('Limite Atingido', `Limite do plano atingido.`, 'warning'); return false; }
-
     const emailNormalized = email.toLowerCase().trim();
-    const existingUser = users.find(u => u.email.toLowerCase() === emailNormalized);
-    if (existingUser && league.participants.includes(existingUser.id)) { addNotification('Já Participa', 'Usuário já está na liga.', 'warning'); return false; }
-
     try {
       await api.leagues.invite(leagueId, emailNormalized);
       addNotification('Sucesso', 'Convite enviado.', 'success');
       return true;
     } catch (e: any) {
-      console.error("Invite Error", e);
       addNotification('Erro', e.message || 'Falha ao enviar convite.', 'warning');
       return false;
     }
@@ -805,97 +663,60 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     if (!currentUser) return;
     const invite = invitations.find(i => i.id === inviteId);
     if (!invite) return;
-
     if (accept) {
       const league = leagues.find(l => l.id === invite.leagueId);
       if (league) {
         const limit = getLeagueLimit(league);
         if (league.participants.length >= limit) { addNotification('Liga Cheia', 'Limite atingido.', 'warning'); return; }
-
         const updatedParticipants = [...league.participants, currentUser.id];
         const updatedPending = league.pendingRequests.filter(uid => uid !== currentUser.id);
         setLeagues(prev => prev.map(l => l.id === league.id ? { ...l, participants: updatedParticipants, pendingRequests: updatedPending } : l));
         addNotification('Sucesso', `Bem-vindo à liga ${league.name}!`, 'success');
       }
     }
-
-    // Optimistic Remove
     setInvitations(prev => prev.filter(i => i.id !== inviteId));
-
     try {
       await api.leagues.respondInvite(inviteId, accept);
-    } catch (e: any) {
-      console.error("Respond Invite Error", e);
+    } catch (e) {
       addNotification('Erro', 'Falha ao responder convite.', 'warning');
-      // Rollback? Should fetch invitations again
       if (currentUser?.email) fetchInvitations(currentUser.email);
     }
   };
 
-
-
   const updateMatch = async (updatedMatch: Match): Promise<boolean> => {
-    // 1. Capture previous state for rollback
     const previousMatches = [...matches];
-
-    // 2. Optimistic Update
     setMatches(prev => prev.map(m => m.id === updatedMatch.id ? updatedMatch : m));
-
     try {
       const dbPayload = {
         id: updatedMatch.id, home_team_id: updatedMatch.homeTeamId, away_team_id: updatedMatch.awayTeamId,
         date: updatedMatch.date, location: updatedMatch.location, group: updatedMatch.group || null,
         phase: updatedMatch.phase, status: updatedMatch.status, home_score: updatedMatch.homeScore, away_score: updatedMatch.awayScore
       };
-
       await api.matches.update(dbPayload);
-
-      // Calculation logic removed from here; it's now handled by DB trigger
       return true;
-    } catch (e: any) {
-      // 3. ROLLBACK ON ERROR
-      console.error("Failed to update match, rolling back", e);
-      // DB ERROR NOTIFICATION?
+    } catch (e) {
       addNotification('Erro', 'Falha ao atualizar a partida.', 'warning');
-
       setMatches(previousMatches);
       return false;
     }
   };
 
-  /* API BASED PREDICTIONS */
   const submitPredictions = async (predictionsToSubmit: { matchId: string, home: number, away: number }[], leagueId: string) => {
     if (!currentUser) return false;
-
-    // Optimistic Update
     setPredictions(prev => {
       let newPreds = [...prev];
       predictionsToSubmit.forEach(p => {
-        // remove old
         newPreds = newPreds.filter(existing => !(existing.matchId === p.matchId && existing.leagueId === leagueId && existing.userId === currentUser.id));
-        // add new
-        newPreds.push({
-          userId: currentUser.id, matchId: p.matchId, leagueId,
-          homeScore: p.home, awayScore: p.away, points: 0
-        });
+        newPreds.push({ userId: currentUser.id, matchId: p.matchId, leagueId, homeScore: p.home, awayScore: p.away, points: 0 });
       });
       return newPreds;
     });
-
     try {
-      const dbPayload = predictionsToSubmit.map(p => ({
-        user_id: currentUser.id,
-        match_id: p.matchId,
-        league_id: leagueId,
-        home_score: p.home,
-        away_score: p.away
-      }));
-
+      const dbPayload = predictionsToSubmit.map(p => ({ user_id: currentUser.id, match_id: p.matchId, league_id: leagueId, home_score: p.home, away_score: p.away }));
       await api.predictions.submit(dbPayload);
       addNotification('Palpites Salvos', 'Seus palpites foram registrados.', 'success');
       return true;
     } catch (e) {
-      console.error("Submit Preds Error", e);
       addNotification('Erro', 'Falha ao salvar palpites.', 'warning');
       return false;
     }
@@ -910,9 +731,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     if (match) updateMatch({ ...match, homeScore: home, awayScore: away, status: MatchStatus.FINISHED });
   };
 
-  const syncInitialMatches = async () => {
-    // Only for admin or init
-  };
+  const syncInitialMatches = async () => { };
 
   useEffect(() => {
     if (!currentUser?.isAdmin || loading) return;
