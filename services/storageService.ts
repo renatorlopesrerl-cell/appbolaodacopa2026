@@ -1,7 +1,7 @@
 
 import { supabase } from './supabaseClient';
 
-const BUCKET_NAME = 'public-images'; // Or 'images', 'uploads' - configurable
+const BUCKET_NAME = 'Public'; // Bucket name matches user's setup
 
 /**
  * Converts a Base64 string to a Blob
@@ -28,10 +28,9 @@ export const uploadImage = async (file: File | Blob, folder: string, fileName?: 
         const name = fileName || `${Date.now()}-${Math.random().toString(36).substring(2)}.${ext}`;
         const filePath = `${folder}/${name}`;
 
-        // Upload to 'public' bucket (assuming it exists and is public)
-        // You might need to create this bucket in Supabase Dashboard if it doesn't exist
+        // Upload to bucket
         const { data, error } = await supabase.storage
-            .from('public')
+            .from(BUCKET_NAME)
             .upload(filePath, file, {
                 cacheControl: '3600',
                 upsert: true
@@ -41,7 +40,7 @@ export const uploadImage = async (file: File | Blob, folder: string, fileName?: 
 
         // Get Public URL
         const { data: { publicUrl } } = supabase.storage
-            .from('public')
+            .from(BUCKET_NAME)
             .getPublicUrl(filePath);
 
         return publicUrl;
