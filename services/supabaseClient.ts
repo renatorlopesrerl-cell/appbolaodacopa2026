@@ -6,6 +6,8 @@ const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     console.warn('Missing Supabase credentials. check .env file');
+} else {
+    console.log('Supabase Initialized with URL:', SUPABASE_URL); // DEBUG
 }
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
