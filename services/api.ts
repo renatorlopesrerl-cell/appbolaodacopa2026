@@ -1,4 +1,4 @@
-import { supabase } from './supabaseClient'; // Only for Auth Session
+import { supabase } from './supabase'; // Only for Auth Session
 
 const API_BASE = '/api';
 

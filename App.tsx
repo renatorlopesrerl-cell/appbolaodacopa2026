@@ -12,7 +12,7 @@ import { AdminMatchesPage } from './pages/AdminMatchesPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { User, League, Match, Prediction, MatchStatus, AppNotification, Invitation, LeaguePlan } from './types';
 import { INITIAL_MATCHES, calculatePoints } from './services/dataService';
-import { supabase } from './services/supabaseClient'; // Auth Only
+import { supabase } from './services/supabase'; // Auth Only
 import { api } from './services/api'; // New API Service
 import { uploadBase64Image } from './services/storageService';
 import { Loader2 } from 'lucide-react';

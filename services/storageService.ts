@@ -1,5 +1,5 @@
 
-import { supabase } from './supabaseClient';
+import { supabase } from './supabase';
 
 const BUCKET_NAME = 'Public'; // Bucket name matches user's setup
 
