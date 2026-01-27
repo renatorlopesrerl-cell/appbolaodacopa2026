@@ -36,10 +36,11 @@ export async function withRetry<T>(fn: () => Promise<{ data: T | null; error: an
             await new Promise(res => setTimeout(res, 1000));
             return withRetry(fn, retries - 1);
         }
-        console.error("Supabase API Error after retries:", error.message);
-        throw new Error("Service Unavailable"); // Generic safe error
+        console.error("Supabase API Error after retries:", error.message || error);
+        throw error; // Throw the actual error to see it in the frontend
     }
 }
+
 
 export { requireAuth, requireAdmin } from '../_auth';
 

@@ -403,22 +403,22 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       const [leaguesData, matchesData, predsData, profilesData] = await Promise.all([
         api.leagues.list().catch(e => {
           console.error("Leagues error", e);
-          addNotification('Erro', 'Falha ao carregar Ligas. Verifique permissões RLS.', 'warning');
+          addNotification('Erro', `Falha ao carregar Ligas: ${e.message}`, 'warning');
           return [];
         }),
         api.matches.list().catch(e => {
           console.error("Matches error", e);
-          addNotification('Erro', 'Falha ao carregar Partidas.', 'warning');
+          addNotification('Erro', `Falha ao carregar Partidas: ${e.message}`, 'warning');
           return [];
         }),
         api.predictions.list().catch(e => {
           console.error("Preds error", e);
-          addNotification('Erro', 'Falha ao carregar Palpites.', 'warning');
+          addNotification('Erro', `Falha ao carregar Palpites: ${e.message}`, 'warning');
           return [];
         }),
         api.profiles.list().catch(e => {
           console.error("Profiles error", e);
-          addNotification('Erro', 'Falha ao carregar Perfis.', 'warning');
+          addNotification('Erro', `Falha ao carregar Perfis: ${e.message}`, 'warning');
           return [];
         })
       ]);
