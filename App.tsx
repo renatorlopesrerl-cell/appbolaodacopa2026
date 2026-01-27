@@ -401,10 +401,26 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     try {
       // Parallel Fetching for speed
       const [leaguesData, matchesData, predsData, profilesData] = await Promise.all([
-        api.leagues.list().catch(e => { console.error("Leagues error", e); return []; }),
-        api.matches.list().catch(e => { console.error("Matches error", e); return []; }),
-        api.predictions.list().catch(e => { console.error("Preds error", e); return []; }),
-        api.profiles.list().catch(e => { console.error("Profiles error", e); return []; })
+        api.leagues.list().catch(e => {
+          console.error("Leagues error", e);
+          addNotification('Erro', 'Falha ao carregar Ligas. Verifique permissões RLS.', 'warning');
+          return [];
+        }),
+        api.matches.list().catch(e => {
+          console.error("Matches error", e);
+          addNotification('Erro', 'Falha ao carregar Partidas.', 'warning');
+          return [];
+        }),
+        api.predictions.list().catch(e => {
+          console.error("Preds error", e);
+          addNotification('Erro', 'Falha ao carregar Palpites.', 'warning');
+          return [];
+        }),
+        api.profiles.list().catch(e => {
+          console.error("Profiles error", e);
+          addNotification('Erro', 'Falha ao carregar Perfis.', 'warning');
+          return [];
+        })
       ]);
 
       // 1. LEAGUES
@@ -536,9 +552,10 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       setPredictions([]);
       setInvitations([]);
       setLoading(false);
-      // Force clear potential stale localStorage keys if any
-      localStorage.removeItem('supabase.auth.token');
-      console.log("Logout completed successfully.");
+      console.log("Logout completed successfully. Reloading...");
+      // Hard reload to clean all React states and caches
+      window.location.href = '/#/';
+      window.location.reload();
     }
   };
 
