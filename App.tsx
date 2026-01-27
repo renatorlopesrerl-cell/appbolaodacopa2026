@@ -539,24 +539,34 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   };
 
   const logout = async () => {
+    console.log("Logout triggered.");
+
+    // 1. Clear state FIRST - UI reacts immediately
+    setCurrentUser(null);
+    setLeagues([]);
+    setPredictions([]);
+    setInvitations([]);
+    setLoading(false);
+
+    // 2. Local Cleanup (Keep theme if possible, but clear auth)
+    Object.keys(localStorage).forEach(key => {
+      if (key.includes('supabase.auth.token') || key.startsWith('sb-')) {
+        localStorage.removeItem(key);
+      }
+    });
+
+    // 3. Async SignOut (Non-blocking)
     try {
-      // Force loading while signing out
-      setLoading(true);
-      await supabase.auth.signOut({ scope: 'global' });
+      supabase.auth.signOut({ scope: 'global' }).catch(err => console.warn("Background signout issue:", err));
     } catch (e) {
-      console.error("Sign out error", e);
-    } finally {
-      // Clear EVERYTHING
-      setCurrentUser(null);
-      setLeagues([]);
-      setPredictions([]);
-      setInvitations([]);
-      setLoading(false);
-      console.log("Logout completed successfully. Reloading...");
-      // Hard reload to clean all React states and caches
-      window.location.href = '/#/';
-      window.location.reload();
+      console.warn("Signout call failed:", e);
     }
+
+    // 4. Force Redirect and Reload
+    window.location.hash = '/login';
+    setTimeout(() => {
+      window.location.reload();
+    }, 50);
   };
 
   const updateUserProfile = async (name: string, avatar: string, whatsapp: string, pix: string, notificationSettings: { matchStart: boolean, matchEnd: boolean }, themePreference: 'light' | 'dark') => {
