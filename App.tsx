@@ -523,8 +523,23 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   };
 
   const logout = async () => {
-    await supabase.auth.signOut();
-    setCurrentUser(null);
+    try {
+      // Force loading while signing out
+      setLoading(true);
+      await supabase.auth.signOut({ scope: 'global' });
+    } catch (e) {
+      console.error("Sign out error", e);
+    } finally {
+      // Clear EVERYTHING
+      setCurrentUser(null);
+      setLeagues([]);
+      setPredictions([]);
+      setInvitations([]);
+      setLoading(false);
+      // Force clear potential stale localStorage keys if any
+      localStorage.removeItem('supabase.auth.token');
+      console.log("Logout completed successfully.");
+    }
   };
 
   const updateUserProfile = async (name: string, avatar: string, whatsapp: string, pix: string, notificationSettings: { matchStart: boolean, matchEnd: boolean }, themePreference: 'light' | 'dark') => {
