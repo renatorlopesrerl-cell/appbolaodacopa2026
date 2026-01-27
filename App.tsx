@@ -777,7 +777,7 @@ const App: React.FC = () => {
         <Layout>
           <Routes>
             <Route path="/login" element={<Login />} />
-            <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+            <Route path="/" element={<Home />} />
             <Route path="/table" element={<ProtectedRoute><TablePage /></ProtectedRoute>} />
             <Route path="/leagues" element={<ProtectedRoute><LeaguesPage /></ProtectedRoute>} />
             <Route path="/leagues/:id" element={<ProtectedRoute><LeagueDetails /></ProtectedRoute>} />
