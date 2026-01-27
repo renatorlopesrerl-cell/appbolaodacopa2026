@@ -1,4 +1,4 @@
-import { supabase, withRetry, jsonResponse, errorResponse } from './_utils/supabase';
+import { supabase, withRetry, jsonResponse, errorResponse, requireAuth, getUserClient } from './_utils/supabase';
 
 export const config = {
     runtime: 'edge',
@@ -6,14 +6,18 @@ export const config = {
 
 export default async function handler(req: Request) {
     try {
+        await requireAuth(req);
+        const userClient = getUserClient(req);
+
         if (req.method === 'GET') {
             const data = await withRetry(async () => {
-                return await supabase.from('matches').select('*').order('date', { ascending: true });
+                return await userClient.from('matches').select('*').order('date', { ascending: true });
             });
-            return jsonResponse(data);
+            return jsonResponse(data || []);
         }
         return new Response("Method not allowed", { status: 405 });
     } catch (e: any) {
         return errorResponse(e);
     }
 }
+

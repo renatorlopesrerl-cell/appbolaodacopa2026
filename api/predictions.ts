@@ -1,4 +1,4 @@
-import { supabase, withRetry, jsonResponse, errorResponse } from './_utils/supabase';
+import { supabase, withRetry, jsonResponse, errorResponse, requireAuth, getUserClient } from './_utils/supabase';
 
 export const config = {
     runtime: 'edge',
@@ -6,26 +6,27 @@ export const config = {
 
 export default async function handler(req: Request) {
     try {
+        const authUser = await requireAuth(req);
+        const userClient = getUserClient(req);
+
         if (req.method === 'GET') {
             const data = await withRetry(async () => {
-                return await supabase.from('predictions').select('*');
+                return await userClient.from('predictions').select('*');
             });
-            return jsonResponse(data);
+            return jsonResponse(data || []);
         }
 
         if (req.method === 'POST') {
-            // Submit Prediction
-            const authHeader = req.headers.get('Authorization');
-            if (!authHeader) return errorResponse(new Error("Unauthorized"));
-
-            // Ideally we check user session
             const body = await req.json();
-
-            // Bulk upsert or single? App does single usually, or bulk?
-            // Let's support array or object.
             const updates = Array.isArray(body) ? body : [body];
 
-            const { error } = await supabase.from('predictions').upsert(updates);
+            // Validation: Ensure user only submits for themselves (Rule 10)
+            const sanitizedUpdates = updates.map(u => ({
+                ...u,
+                user_id: authUser.id // Force matching auth user
+            }));
+
+            const { error } = await userClient.from('predictions').upsert(sanitizedUpdates, { onConflict: 'user_id,match_id,league_id' });
             if (error) throw error;
 
             return jsonResponse({ success: true });
@@ -36,3 +37,4 @@ export default async function handler(req: Request) {
         return errorResponse(e);
     }
 }
+

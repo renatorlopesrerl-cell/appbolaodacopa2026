@@ -895,6 +895,20 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   );
 };
 
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { currentUser, loading } = useStore();
+  if (loading) return null;
+  if (!currentUser) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+};
+
+const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { currentUser, loading } = useStore();
+  if (loading) return null;
+  if (!currentUser?.isAdmin) return <Navigate to="/" replace />;
+  return <>{children}</>;
+};
+
 const App: React.FC = () => {
   return (
     <AppProvider>
@@ -902,14 +916,14 @@ const App: React.FC = () => {
         <Layout>
           <Routes>
             <Route path="/login" element={<Login />} />
-            <Route path="/" element={<Home />} />
-            <Route path="/table" element={<TablePage />} />
-            <Route path="/leagues" element={<LeaguesPage />} />
-            <Route path="/leagues/:id" element={<LeagueDetails />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/admin" element={<AdminPage />} />
-            <Route path="/admin/leagues" element={<AdminLeaguesPage />} />
-            <Route path="/admin/matches" element={<AdminMatchesPage />} />
+            <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+            <Route path="/table" element={<ProtectedRoute><TablePage /></ProtectedRoute>} />
+            <Route path="/leagues" element={<ProtectedRoute><LeaguesPage /></ProtectedRoute>} />
+            <Route path="/leagues/:id" element={<ProtectedRoute><LeagueDetails /></ProtectedRoute>} />
+            <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+            <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
+            <Route path="/admin/leagues" element={<AdminRoute><AdminLeaguesPage /></AdminRoute>} />
+            <Route path="/admin/matches" element={<AdminRoute><AdminMatchesPage /></AdminRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Layout>

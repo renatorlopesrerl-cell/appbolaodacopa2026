@@ -1,5 +1,25 @@
+import { createClient } from '@supabase/supabase-js';
 import { supabaseServer as supabase } from '../_supabase';
 export { supabase };
+
+/**
+ * Creates a Supabase client that uses the user's own JWT token.
+ * This is essential for RLS to work correctly.
+ */
+export function getUserClient(req: Request) {
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) return supabase; // Fallback to anon, RLS will likely limit access
+
+    return createClient(
+        process.env.SUPABASE_URL!,
+        process.env.SUPABASE_ANON_KEY!,
+        {
+            global: {
+                headers: { 'Authorization': authHeader }
+            }
+        }
+    );
+}
 
 /**
  * Execute a Supabase query with automatic retry logic.
@@ -20,32 +40,7 @@ export async function withRetry<T>(fn: () => Promise<{ data: T | null; error: an
     }
 }
 
-/**
- * Validates if the request is authenticated and user is Admin.
- * Returns the user object if authorized, throws error otherwise.
- */
-export async function requireAdmin(req: Request) {
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) throw new Error("Unauthorized");
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error } = await supabase.auth.getUser(token);
-
-    if (error || !user) throw new Error("Unauthorized");
-
-    // Check Admin Role in DB
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('is_admin')
-        .eq('id', user.id)
-        .single();
-
-    if (!profile || !profile.is_admin) {
-        throw new Error("Forbidden");
-    }
-
-    return user;
-}
+export { requireAuth, requireAdmin } from '../_auth';
 
 /**
  * Standard API Response Helper
