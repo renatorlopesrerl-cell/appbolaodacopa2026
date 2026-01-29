@@ -1,5 +1,5 @@
 
-import { getUserClient, jsonResponse, errorResponse } from '../../_shared';
+import { getUserClient, jsonResponse, errorResponse } from '../_shared';
 
 export const onRequest = async ({ request, env }: { request: Request, env: any }) => {
     try {
