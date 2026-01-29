@@ -540,7 +540,7 @@ export const SimulatePage: React.FC = () => {
                     </h1>
                     <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 bg-gray-50 dark:bg-gray-900 px-3 py-1 rounded-full shadow-sm border border-gray-200 dark:border-gray-700">
                         <Info size={12} />
-                        Todos os jogos estão em horários de Brasília (BRT)
+                        Todos os jogos estão no horário de Brasília (BRT)
                     </div>
                 </div>
 

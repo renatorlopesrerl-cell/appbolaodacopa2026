@@ -333,10 +333,10 @@ export const LeagueDetails: React.FC = () => {
             <div className="space-y-6 pb-24">
                 <div className="space-y-3">
                     <div className="bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 px-4 py-3 text-xs md:text-sm font-medium border border-blue-100 dark:border-blue-800 rounded-xl flex items-center justify-center gap-2 text-center shadow-sm">
-                        <MousePointerClick size={16} /><span>Clique em uma partida com palpite encerrado para ver os palpites da galera.</span>
+                        <MousePointerClick size={16} /><span>Clique em uma partida com palpite encerrado para conferir os palpites da galera.</span>
                     </div>
                     <div className="bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 px-4 py-3 text-xs md:text-sm font-bold border border-yellow-200 dark:border-yellow-800 rounded-xl flex items-center justify-center gap-2 text-center shadow-sm">
-                        <Clock size={16} /><span>O palpite é encerrado 5 minutos antes do início do jogo.</span>
+                        <Clock size={16} /><span>O palpite é encerrado 5 min. antes do início do jogo.</span>
                     </div>
                 </div>
 
@@ -514,7 +514,7 @@ export const LeagueDetails: React.FC = () => {
         return (
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm min-h-[500px] relative overflow-hidden">
                 <div className="bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 px-4 py-3 text-xs md:text-sm font-medium border-b border-blue-100 dark:border-blue-800 flex items-center justify-center gap-2 text-center">
-                    <MousePointerClick size={16} /><span>Clique no nome de um participante para ver histórico detalhado.</span>
+                    <MousePointerClick size={16} /><span>Clique no participante para ver o histórico detalhado.</span>
                 </div>
                 <div className="p-4 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 space-y-3">
                     <div className="flex items-center gap-2"><span className="text-sm font-bold text-brasil-blue dark:text-blue-400 whitespace-nowrap">Visualizar Pontos:</span><div className="relative w-full md:w-auto flex-1"><select value={leaderboardView} onChange={(e) => setLeaderboardView(e.target.value)} className="w-full bg-brasil-blue dark:bg-blue-900 text-white border border-blue-900 dark:border-blue-800 text-sm font-bold rounded-lg focus:ring-2 focus:ring-brasil-yellow focus:border-brasil-yellow block p-2.5 pr-8 shadow-md transition-colors hover:bg-blue-900 cursor-pointer"><option value="total" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Pontuação Total</option><option value="1" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">1ª Rodada (Grupos)</option><option value="2" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">2ª Rodada (Grupos)</option><option value="3" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">3ª Rodada (Grupos)</option><option value="group_phase" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Fase de Grupos (Completa)</option><option value="knockout" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Mata-Mata</option></select><ChevronDown size={14} className="absolute right-3 top-3.5 text-blue-200 pointer-events-none" /></div></div>
