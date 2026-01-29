@@ -152,6 +152,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           <nav className="hidden md:flex gap-4 items-center">
             <Link to="/" className={`px-3 py-2 rounded-md transition-colors ${isActive('/')}`}>Início</Link>
             <Link to="/table" className={`px-3 py-2 rounded-md transition-colors ${isActive('/table')}`}>Tabela</Link>
+            <Link to="/simulador" className={`px-3 py-2 rounded-md transition-colors ${isActive('/simulador')}`}>Simulador</Link>
             <Link to="/leagues" className={`px-3 py-2 rounded-md transition-colors ${isActive('/leagues')}`}>Ligas</Link>
 
             {currentUser.isAdmin && (
@@ -226,6 +227,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               </div>
             </Link>
             <Link onClick={() => setIsMenuOpen(false)} to="/table" className={`block px-3 py-2 rounded-md ${isActive('/table')}`}>Tabela</Link>
+            <Link onClick={() => setIsMenuOpen(false)} to="/simulador" className={`block px-3 py-2 rounded-md ${isActive('/simulador')}`}>Simulador</Link>
             <Link onClick={() => setIsMenuOpen(false)} to="/leagues" className={`block px-3 py-2 rounded-md ${isActive('/leagues')}`}>Ligas</Link>
             {currentUser.isAdmin && (
               <Link onClick={() => setIsMenuOpen(false)} to="/admin" className={`block px-3 py-2 rounded-md ${isActive('/admin')}`}>Admin Painel</Link>

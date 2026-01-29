@@ -24,6 +24,7 @@ import { Home } from './pages/Home';
 import { TablePage } from './pages/TablePage';
 import { LeaguesPage } from './pages/LeaguesPage';
 import { LeagueDetails } from './pages/LeagueDetails';
+import { SimulatePage } from './pages/SimulatePage';
 import { ProfilePage } from './pages/ProfilePage';
 import { AdminPage } from './pages/AdminPage';
 import { AdminLeaguesPage } from './pages/AdminLeaguesPage';
@@ -714,7 +715,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     try {
       const dbPayload = predictionsToSubmit.map(p => ({ user_id: currentUser.id, match_id: p.matchId, league_id: leagueId, home_score: p.home, away_score: p.away }));
       await api.predictions.submit(dbPayload);
-// Notification handled by caller
+      // Notification handled by caller
       return true;
     } catch (e) {
       addNotification('Erro', 'Falha ao salvar palpites.', 'warning');
@@ -779,6 +780,7 @@ const App: React.FC = () => {
             <Route path="/login" element={<Login />} />
             <Route path="/" element={<Home />} />
             <Route path="/table" element={<ProtectedRoute><TablePage /></ProtectedRoute>} />
+            <Route path="/simulador" element={<ProtectedRoute><SimulatePage /></ProtectedRoute>} />
             <Route path="/leagues" element={<ProtectedRoute><LeaguesPage /></ProtectedRoute>} />
             <Route path="/leagues/:id" element={<ProtectedRoute><LeagueDetails /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />

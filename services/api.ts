@@ -68,5 +68,9 @@ export const api = {
     predictions: {
         list: () => apiFetch<any[]>('/predictions'),
         submit: (data: any) => apiFetch('/predictions', { method: 'POST', body: JSON.stringify(data) })
+    },
+    simulations: {
+        get: (userId: string) => apiFetch<any>(`/simulations?userId=${userId}`),
+        save: (data: any) => apiFetch('/simulations', { method: 'POST', body: JSON.stringify(data) })
     }
 };
