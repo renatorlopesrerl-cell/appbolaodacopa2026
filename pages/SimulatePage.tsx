@@ -40,13 +40,14 @@ const R32_3RD_PLACE_RULES: Record<string, string[]> = {
 
 export const SimulatePage: React.FC = () => {
     const navigate = useNavigate();
-    const { currentUser, leagues, addNotification } = useStore();
+    const { currentUser, leagues, addNotification, submitPredictions } = useStore();
     const [savedButtonText, setSavedButtonText] = useState('Salvar');
 
     // State: Simulated Scores (matchId -> {home, away})
     const [simulatedScores, setSimulatedScores] = useState<Record<string, { home: number, away: number }>>({});
     const [loadingSim, setLoadingSim] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [exporting, setExporting] = useState(false);
     const [exportLeagueId, setExportLeagueId] = useState<string>('');
     const [importLeagueId, setImportLeagueId] = useState<string>('');
     const [exportScope, setExportScope] = useState<'all' | 'group' | 'knockout'>('all');
@@ -331,6 +332,8 @@ export const SimulatePage: React.FC = () => {
         const confirmMsg = "Isso substituirá seus palpites existentes nesta liga (exceto jogos bloqueados). Deseja continuar?";
         if (!window.confirm(confirmMsg)) return;
 
+        setExporting(true);
+
         // Filter: only matches with both scores filled
         const toExport = Object.entries(simulatedScores)
             .filter(([_, s]: [string, any]) => s.home !== null && s.away !== null && s.home !== undefined && s.away !== undefined)
@@ -359,15 +362,17 @@ export const SimulatePage: React.FC = () => {
         // Our existing `submitPrediction` usually handles this or returns error.
         // The Plan says "Export to League".
 
-        const success = await api.predictions.submit(
+        // Use store function to update local state immediately
+        const success = await submitPredictions(
             toExport.map(p => ({
-                user_id: currentUser?.id,
-                league_id: exportLeagueId,
-                match_id: p.matchId,
-                home_score: p.home,
-                away_score: p.away
-            }))
-        ).then(() => true).catch(() => false);
+                matchId: p.matchId,
+                home: p.home,
+                away: p.away
+            })),
+            exportLeagueId
+        );
+
+        setExporting(false);
 
         if (success) {
             if (addNotification) addNotification('Exportado!', 'Palpites exportados para a liga com sucesso.', 'success');
@@ -437,6 +442,7 @@ export const SimulatePage: React.FC = () => {
                     <span>{new Date(match.date).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
                     <span className="truncate max-w-[100px]">{match.location.split(',')[0]}</span>
                 </div>
+                {/* Back Button added in Header, this input render doesn't need changes but context for others */}
                 <div className="flex items-center justify-between px-2 gap-2">
                     {/* Home */}
                     <div className="flex items-center gap-2 flex-1 justify-end min-w-0">
@@ -481,6 +487,18 @@ export const SimulatePage: React.FC = () => {
     return (
         <div className="space-y-8 pb-12 animate-in fade-in duration-500">
             {/* HEADER & TOOLBAR */}
+            <div className="mb-4">
+                <button
+                    onClick={() => navigate('/')}
+                    className="flex items-center gap-2 text-sm font-bold text-brasil-blue hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors group"
+                >
+                    <div className="bg-blue-50 dark:bg-gray-800 p-1.5 rounded-full group-hover:bg-blue-100 dark:group-hover:bg-gray-700">
+                        <ArrowRight size={18} className="rotate-180" />
+                    </div>
+                    Voltar
+                </button>
+            </div>
+
             <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
                     <h1 className="text-2xl font-black text-brasil-blue dark:text-blue-400 flex items-center gap-2">
@@ -509,8 +527,15 @@ export const SimulatePage: React.FC = () => {
                                 <option value="">Selecione a Liga...</option>
                                 {leagues.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
                             </select>
-                            <button onClick={handleExport} className="bg-blue-600 text-white px-3 rounded hover:bg-blue-700"><ArrowRight size={16} /></button>
+                            <select className="flex-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-sm p-1.5" value={exportLeagueId} onChange={e => setExportLeagueId(e.target.value)}>
+                                <option value="">Selecione a Liga...</option>
+                                {leagues.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                            </select>
+                            <button onClick={handleExport} disabled={exporting} className="bg-blue-600 text-white px-3 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                                {exporting ? <Loader2 className="animate-spin" size={16} /> : <ArrowRight size={16} />}
+                            </button>
                         </div>
+                        {exporting && <span className="text-[10px] text-blue-600 font-bold animate-pulse">Exportando palpites...</span>}
                         <div className="flex items-center gap-2 text-xs">
                             <select className="bg-transparent border-b border-gray-300 py-1" value={exportScope} onChange={(e: any) => setExportScope(e.target.value)}>
                                 <option value="all">Tudo</option>
@@ -619,7 +644,7 @@ export const SimulatePage: React.FC = () => {
                                 <h3 className="text-lg font-bold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-4 py-1 rounded-full uppercase text-xs tracking-widest">{phase}</h3>
                                 <div className="h-px bg-gray-200 dark:bg-gray-700 flex-1"></div>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-6">
                                 {phaseMatches.map(m => (
                                     <div key={m.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
                                         {renderMatchInput(m)}

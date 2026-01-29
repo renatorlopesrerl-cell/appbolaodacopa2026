@@ -79,8 +79,8 @@ export const TablePage: React.FC = () => {
                 <div className="flex justify-between items-center">
                   {/* Home Team */}
                   <div className="flex items-center justify-end w-[35%] gap-2 md:gap-3">
-                    <span className={`truncate leading-tight text-right ${homeWinner && (isFinished || isLive) ? 'text-gray-900 dark:text-white font-black' : 'text-gray-900 dark:text-gray-200 font-bold'} text-sm md:text-lg`}>{match.homeTeamId}</span>
-                    <img src={getTeamFlag(match.homeTeamId)} alt={match.homeTeamId} className="w-10 h-7 object-cover rounded shadow-md" />
+                    <span className={`truncate leading-tight text-right ${homeWinner && (isFinished || isLive) ? 'text-gray-900 dark:text-white font-black' : 'text-gray-900 dark:text-gray-200 font-bold'} text-sm md:text-base`}>{match.homeTeamId}</span>
+                    <img src={getTeamFlag(match.homeTeamId)} alt={match.homeTeamId} className="w-7 h-5 object-cover rounded shadow-sm" />
                   </div>
 
                   {/* Score / Time */}
@@ -102,8 +102,8 @@ export const TablePage: React.FC = () => {
 
                   {/* Away Team */}
                   <div className="flex items-center justify-start w-[35%] gap-2 md:gap-3">
-                    <img src={getTeamFlag(match.awayTeamId)} alt={match.awayTeamId} className="w-10 h-7 object-cover rounded shadow-md" />
-                    <span className={`truncate leading-tight text-left ${awayWinner && (isFinished || isLive) ? 'text-gray-900 dark:text-white font-black' : 'text-gray-900 dark:text-gray-200 font-bold'} text-sm md:text-lg`}>{match.awayTeamId}</span>
+                    <img src={getTeamFlag(match.awayTeamId)} alt={match.awayTeamId} className="w-7 h-5 object-cover rounded shadow-sm" />
+                    <span className={`truncate leading-tight text-left ${awayWinner && (isFinished || isLive) ? 'text-gray-900 dark:text-white font-black' : 'text-gray-900 dark:text-gray-200 font-bold'} text-sm md:text-base`}>{match.awayTeamId}</span>
                   </div>
                 </div>
               </div>
@@ -228,8 +228,8 @@ export const TablePage: React.FC = () => {
                         <tr key={team.teamId} className={`${idx < 2 ? 'bg-green-50/50 dark:bg-green-900/10' : (idx === 2 ? 'bg-yellow-50/30' : '')}`}>
                           <td className="pl-3 py-1.5 flex items-center gap-2 font-semibold text-gray-800 dark:text-gray-200">
                             <span className="text-[10px] w-3 text-gray-400">{idx + 1}</span>
-                            <img src={getTeamFlag(team.teamId)} alt={team.teamId} className="w-5 h-3.5 object-cover rounded shadow-sm" />
-                            <span className="truncate max-w-[100px]">{team.teamId}</span>
+                            <img src={getTeamFlag(team.teamId)} alt={team.teamId} className="w-7 h-5 object-cover rounded shadow-sm" />
+                            <span className="truncate max-w-[100px] text-sm md:text-base">{team.teamId}</span>
                           </td>
                           <td className="text-center font-bold px-1">{team.points}</td>
                           <td className="text-center text-gray-500 px-1">{team.played}</td>
@@ -264,7 +264,7 @@ export const TablePage: React.FC = () => {
             <div className="h-px bg-gray-200 dark:bg-gray-700 flex-1"></div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="flex flex-col gap-8">
             {visibleKnockoutPhases.map(phase => {
               const phaseMatches = matches.filter(m => m.phase === phase);
               if (phaseMatches.length === 0) return null;

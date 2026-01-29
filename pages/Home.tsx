@@ -182,7 +182,7 @@ export const Home: React.FC = () => {
           </div>
         </Link>
 
-        <Link to="/simulate" className="group bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm hover:shadow-xl transition-all border border-gray-100 dark:border-gray-700 hover:border-blue-500 relative overflow-hidden">
+        <Link to="/simulador" className="group bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm hover:shadow-xl transition-all border border-gray-100 dark:border-gray-700 hover:border-blue-500 relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:scale-110 duration-500">
             <PlayCircle size={80} className="text-blue-500 dark:text-blue-400" />
           </div>
