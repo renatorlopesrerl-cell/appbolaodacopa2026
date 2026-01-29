@@ -26,10 +26,21 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
         if (request.method === 'POST') {
             const body = await request.json() as any;
 
-            // Ensure user only updates their own profile
-            if (body.id !== authUser.id) return errorResponse(new Error("Forbidden"), 403);
+            // Sanitize input: Prevent is_admin escalation or Id spoofing
+            const safeBody: any = {
+                id: authUser.id, // Enforce ID
+                name: body.name,
+                avatar: body.avatar,
+                whatsapp: body.whatsapp,
+                pix: body.pix,
+                theme: body.theme,
+                notification_settings: body.notification_settings
+            };
 
-            const { error } = await userClient.from('profiles').upsert(body);
+            // Remove undefined keys
+            Object.keys(safeBody).forEach(key => safeBody[key] === undefined && delete safeBody[key]);
+
+            const { error } = await userClient.from('profiles').upsert(safeBody);
             if (error) throw error;
 
             return jsonResponse({ success: true });

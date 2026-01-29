@@ -18,8 +18,20 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
         }
 
         if (request.method === 'POST') {
-            const body = await request.json();
-            const { error } = await userClient.from('leagues').insert([body]);
+            const body = await request.json() as any;
+
+            const safeLeague = {
+                name: body.name,
+                image: body.image,
+                description: body.description,
+                is_private: !!body.is_private,
+                settings: body.settings,
+                admin_id: authUser.id, // Enforce admin to be creator
+                participants: [authUser.id], // Creator starts as participant
+                pending_requests: []
+            };
+
+            const { error } = await userClient.from('leagues').insert([safeLeague]);
             if (error) throw error;
             return jsonResponse({ success: true }, 201);
         }
