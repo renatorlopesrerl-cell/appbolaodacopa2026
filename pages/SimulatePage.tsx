@@ -4,7 +4,7 @@ import { useStore } from '../App';
 import { Match, MatchStatus, Phase, GroupStanding, Team } from '../types';
 import { GROUPS_CONFIG, calculateStandings, getTeamFlag, INITIAL_MATCHES } from '../services/dataService';
 import { api } from '../services/api';
-import { Save, Upload, Download, RefreshCw, Trophy, ArrowRight, AlertTriangle, CheckCircle, Info, Loader2 } from 'lucide-react';
+import { Save, Upload, Download, RefreshCw, Trophy, ArrowRight, AlertTriangle, CheckCircle, Info, Loader2, Filter, ChevronDown, X } from 'lucide-react';
 
 // --- THIRD PLACE RANKING LOGIC (USER PROVIDED) ---
 type ThirdPlaceTeam = {
@@ -52,7 +52,11 @@ export const SimulatePage: React.FC = () => {
     const [importLeagueId, setImportLeagueId] = useState<string>('');
     const [exportScope, setExportScope] = useState<'all' | 'group' | 'knockout'>('all');
     const [exportGroup, setExportGroup] = useState<string>('A');
-    const [exportPhase, setExportPhase] = useState<string>('all'); // 'all' or specific Phase value
+    const [exportPhase, setExportPhase] = useState<string>('all');
+
+    // Filter States for View
+    const [filterPhase, setFilterPhase] = useState<string>('all');
+    const [filterGroup, setFilterGroup] = useState<string>('all');
 
     // Load Simulation on Mount
     useEffect(() => {
@@ -140,7 +144,7 @@ export const SimulatePage: React.FC = () => {
                 points: teamStats.points,
                 goalDiff: teamStats.gd,
                 goalsFor: teamStats.gf,
-                fairPlay: 0 // No data currently
+                fairPlay: 0
             };
         }).filter(Boolean) as ThirdPlaceTeam[];
 
@@ -148,60 +152,56 @@ export const SimulatePage: React.FC = () => {
             if (b.points !== a.points) return b.points - a.points;
             if (b.goalDiff !== a.goalDiff) return b.goalDiff - a.goalDiff;
             if (b.goalsFor !== a.goalsFor) return b.goalsFor - a.goalsFor;
-            return 0; // Random fallback handled by determinism or ignore
+            return 0;
         }).slice(0, 8); // Top 8 qualify
 
         // Assign to Matches based on R32_3RD_PLACE_RULES
-        // We need to track used 3rd place teams
         const usedGroups = new Set<string>();
-
-        // Pre-calculate assignments to ensure global validity?
-        // The user's prompt implies a specific logic per match.
-        // We iterate matches that have "3º Grupo" in awayTeamId
-
-        // We need to process matches in a specific order? 
-        // Logic: "matches.map... if match needs 3rd, find first available from allowed list"
-        // Wait, the order matters. The user provided `ROUND_OF_32_THIRD_MAP` with keys 1, 2, 7 etc.
-        // These likely correspond to match order or ID.
-        // We need to be deterministic. Let's process R32 matches by ID/Date.
-        // But we need to identify the match by its RULE.
-        // R32_3RD_PLACE_RULES is keyed by `homeTeamId` (e.g., '1º Grupo E').
-        // This is safer because `homeTeamId` ("1º Grupo E") is static in INITIAL_MATCHES until resolved.
-        // Wait, I just resolved `homeTeamId` in step 2!
-        // So I should look at `INITIAL_MATCHES` for the rule key, but apply to `currentMatches`.
-
-        const r32MatchesConfig = INITIAL_MATCHES.filter(m => m.phase === Phase.ROUND_32);
-
-        // Create a map of "Real Home ID" -> "Rule Key" from initial
-        // No, easier: loop through currentMatches in R32. find corresponding Initial match. check rule.
-
-        // Let's optimize:
-        // We need to assign thirds based on the "static" definition of the match.
 
         // Map of matchId -> allowedGroups
         const matchThirdsMap: Record<string, string[]> = {};
-
         INITIAL_MATCHES.forEach(m => {
             if (R32_3RD_PLACE_RULES[m.homeTeamId]) {
                 matchThirdsMap[m.id] = R32_3RD_PLACE_RULES[m.homeTeamId];
             }
         });
 
-        currentMatches = currentMatches.map(m => {
-            if (m.phase !== Phase.ROUND_32) return m;
+        // Sort matches by "strictness" (number of allowed groups) to avoid conflicts
+        // We only care about matches that NEED a 3rd place
+        const r32Matches = currentMatches.filter(m => m.phase === Phase.ROUND_32);
 
-            const allowedGroups = matchThirdsMap[m.id];
-            if (!allowedGroups) return m;
+        // Identify matches that need resolution (those present in matchThirdsMap)
+        // and sort them.
+        const matchesToResolve = r32Matches
+            .filter(m => matchThirdsMap[m.id])
+            .sort((a, b) => {
+                const lenA = matchThirdsMap[a.id].length;
+                const lenB = matchThirdsMap[b.id].length;
+                return lenA - lenB;
+            });
 
-            // Find the best ranked third that is in allowedGroups and NOT used
-            const bestThird = rankedThirds.find(t => allowedGroups.includes(t.group) && !usedGroups.has(t.group));
+        // Create a map for quick update
+        const resolvedThirds: Record<string, string> = {};
+
+        for (const m of matchesToResolve) {
+            const allowed = matchThirdsMap[m.id];
+            const bestThird = rankedThirds.find(t => allowed.includes(t.group) && !usedGroups.has(t.group));
 
             if (bestThird) {
                 usedGroups.add(bestThird.group);
-                return { ...m, awayTeamId: bestThird.team };
+                resolvedThirds[m.id] = bestThird.team;
             } else {
-                return { ...m, awayTeamId: 'A Definir (3º)' };
+                resolvedThirds[m.id] = 'A Definir (3º)';
+                // Conflict or not enough thirds computed yet
             }
+        }
+
+        currentMatches = currentMatches.map(m => {
+            if (m.phase !== Phase.ROUND_32) return m;
+            if (resolvedThirds[m.id]) {
+                return { ...m, awayTeamId: resolvedThirds[m.id] };
+            }
+            return m;
         });
 
         // 4. Resolve Knockout Winners (Propagation)
@@ -517,16 +517,66 @@ export const SimulatePage: React.FC = () => {
                     </div>
                 </div>
 
+                {/* FILTERS SECTION */}
+                <div className="flex flex-col gap-3 pt-2 border-t border-gray-100 dark:border-gray-700 mt-4">
+                    <div className="flex items-center gap-2 px-1">
+                        <div className="flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-300">
+                            <Filter size={16} className="text-brasil-green dark:text-green-400" />
+                            Filtros
+                        </div>
+                        {(filterPhase !== 'all' || filterGroup !== 'all') && (
+                            <button
+                                onClick={() => { setFilterPhase('all'); setFilterGroup('all'); }}
+                                className="text-xs font-bold text-red-500 hover:text-red-700 transition-colors flex items-center gap-1 ml-2"
+                            >
+                                <X size={12} /> Limpar
+                            </button>
+                        )}
+                    </div>
+                    <div className="flex flex-wrap gap-3 items-center">
+                        {/* Phase Select */}
+                        <div className="relative w-full md:w-auto">
+                            <select
+                                value={filterPhase}
+                                onChange={(e) => {
+                                    setFilterPhase(e.target.value);
+                                    if (e.target.value !== Phase.GROUP) setFilterGroup('all');
+                                }}
+                                className="w-full md:w-48 appearance-none bg-gray-700 text-white border border-gray-600 text-xs font-bold rounded-lg focus:ring-brasil-green focus:border-brasil-green block p-2.5 pr-8"
+                            >
+                                <option value="all">Todas as Fases</option>
+                                {Object.values(Phase).map(p => (
+                                    <option key={p} value={p}>{p}</option>
+                                ))}
+                            </select>
+                            <ChevronDown size={14} className="absolute right-3 top-3 text-gray-300 pointer-events-none" />
+                        </div>
+
+                        {/* Group Select (Conditional) */}
+                        {(filterPhase === 'all' || filterPhase === Phase.GROUP) && (
+                            <div className="relative w-full md:w-auto">
+                                <select
+                                    value={filterGroup}
+                                    onChange={(e) => setFilterGroup(e.target.value)}
+                                    className="w-full md:w-32 appearance-none bg-gray-700 text-white border border-gray-600 text-xs font-bold rounded-lg focus:ring-brasil-green focus:border-brasil-green block p-2.5 pr-8"
+                                >
+                                    <option value="all">Todos Grupos</option>
+                                    {groups.map(g => (
+                                        <option key={g} value={g}>Grupo {g}</option>
+                                    ))}
+                                </select>
+                                <ChevronDown size={14} className="absolute right-3 top-3 text-gray-300 pointer-events-none" />
+                            </div>
+                        )}
+                    </div>
+                </div>
+
                 {/* IMPORT / EXPORT CONTROLS */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 dark:bg-gray-900/50 p-3 rounded-lg border border-gray-200 dark:border-gray-600">
                     {/* Export */}
                     <div className="flex flex-col gap-2">
                         <span className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1"><Upload size={12} /> Exportar para Liga</span>
                         <div className="flex gap-2">
-                            <select className="flex-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-sm p-1.5" value={exportLeagueId} onChange={e => setExportLeagueId(e.target.value)}>
-                                <option value="">Selecione a Liga...</option>
-                                {leagues.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
-                            </select>
                             <select className="flex-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-sm p-1.5" value={exportLeagueId} onChange={e => setExportLeagueId(e.target.value)}>
                                 <option value="">Selecione a Liga...</option>
                                 {leagues.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
@@ -576,84 +626,88 @@ export const SimulatePage: React.FC = () => {
             </div>
 
             {/* GROUP STAGE */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                {groups.map(group => {
-                    const teamStandings = standings[group] || [];
-                    return (
-                        <div key={group} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-                            <div className="bg-gray-50 dark:bg-gray-700 px-4 py-2 border-b border-gray-100 dark:border-gray-600 flex justify-between items-center">
-                                <h3 className="font-black text-gray-700 dark:text-gray-200">GRUPO {group}</h3>
-                            </div>
-                            {/* Standing Table */}
-                            <table className="w-full text-sm">
-                                <thead className="text-xs text-gray-400 border-b border-gray-100 dark:border-gray-700">
-                                    <tr>
-                                        <th className="pl-3 py-1 text-left">País</th>
-                                        <th className="py-1 text-center" title="Pontos">Pts</th>
-                                        <th className="py-1 text-center" title="Jogos">J</th>
-                                        <th className="py-1 text-center" title="Vitórias">V</th>
-                                        <th className="py-1 text-center" title="Empates">E</th>
-                                        <th className="py-1 text-center" title="Derrotas">D</th>
-                                        <th className="py-1 text-center" title="Gols Marcados">GM</th>
-                                        <th className="py-1 text-center" title="Gols Sofridos">GS</th>
-                                        <th className="py-1 text-center" title="Saldo de Gols">SG</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
-                                    {teamStandings.map((t, i) => (
-                                        <tr key={t.teamId} className={`${i < 2 ? 'bg-green-50/50 dark:bg-green-900/10' : (i === 2 ? 'bg-yellow-50/30' : '')}`}>
-                                            <td className="pl-3 py-1.5 flex items-center gap-2 font-semibold text-gray-800 dark:text-gray-200">
-                                                <span className="text-[10px] w-3 text-gray-400">{i + 1}</span>
-                                                <img src={getTeamFlag(t.teamId)} className="w-5 h-3.5 object-cover rounded shadow-sm" />
-                                                <span className="truncate max-w-[100px]">{t.teamId}</span>
-                                            </td>
-                                            <td className="text-center font-bold px-1">{t.points}</td>
-                                            <td className="text-center text-gray-500 px-1">{t.played}</td>
-                                            <td className="text-center text-gray-500 px-1">{t.won}</td>
-                                            <td className="text-center text-gray-500 px-1">{t.drawn}</td>
-                                            <td className="text-center text-gray-500 px-1">{t.lost}</td>
-                                            <td className="text-center text-gray-500 px-1">{t.gf}</td>
-                                            <td className="text-center text-gray-500 px-1">{t.ga}</td>
-                                            <td className="text-center text-gray-500 px-1">{t.gd}</td>
+            {(filterPhase === 'all' || filterPhase === Phase.GROUP) && (
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                    {groups.filter(g => filterGroup === 'all' || filterGroup === g).map(group => {
+                        const teamStandings = standings[group] || [];
+                        return (
+                            <div key={group} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+                                <div className="bg-gray-50 dark:bg-gray-700 px-4 py-2 border-b border-gray-100 dark:border-gray-600 flex justify-between items-center">
+                                    <h3 className="font-black text-gray-700 dark:text-gray-200">GRUPO {group}</h3>
+                                </div>
+                                {/* Standing Table */}
+                                <table className="w-full text-sm">
+                                    <thead className="text-xs text-gray-400 border-b border-gray-100 dark:border-gray-700">
+                                        <tr>
+                                            <th className="pl-3 py-1 text-left">País</th>
+                                            <th className="py-1 text-center" title="Pontos">Pts</th>
+                                            <th className="py-1 text-center" title="Jogos">J</th>
+                                            <th className="py-1 text-center" title="Vitórias">V</th>
+                                            <th className="py-1 text-center" title="Empates">E</th>
+                                            <th className="py-1 text-center" title="Derrotas">D</th>
+                                            <th className="py-1 text-center" title="Gols Marcados">GM</th>
+                                            <th className="py-1 text-center" title="Gols Sofridos">GS</th>
+                                            <th className="py-1 text-center" title="Saldo de Gols">SG</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
+                                        {teamStandings.map((t, i) => (
+                                            <tr key={t.teamId} className={`${i < 2 ? 'bg-green-50/50 dark:bg-green-900/10' : (i === 2 ? 'bg-yellow-50/30' : '')}`}>
+                                                <td className="pl-3 py-1.5 flex items-center gap-2 font-semibold text-gray-800 dark:text-gray-200">
+                                                    <span className="text-[10px] w-3 text-gray-400">{i + 1}</span>
+                                                    <img src={getTeamFlag(t.teamId)} className="w-5 h-3.5 object-cover rounded shadow-sm" />
+                                                    <span className="truncate max-w-[100px]">{t.teamId}</span>
+                                                </td>
+                                                <td className="text-center font-bold px-1">{t.points}</td>
+                                                <td className="text-center text-gray-500 px-1">{t.played}</td>
+                                                <td className="text-center text-gray-500 px-1">{t.won}</td>
+                                                <td className="text-center text-gray-500 px-1">{t.drawn}</td>
+                                                <td className="text-center text-gray-500 px-1">{t.lost}</td>
+                                                <td className="text-center text-gray-500 px-1">{t.gf}</td>
+                                                <td className="text-center text-gray-500 px-1">{t.ga}</td>
+                                                <td className="text-center text-gray-500 px-1">{t.gd}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
 
-                            {/* Matches */}
-                            <div className="bg-gray-50/30 dark:bg-gray-900/20 border-t border-gray-100 dark:border-gray-700">
-                                {groupMatches.filter(m => m.group === group).map(renderMatchInput)}
+                                {/* Matches */}
+                                <div className="bg-gray-50/30 dark:bg-gray-900/20 border-t border-gray-100 dark:border-gray-700">
+                                    {groupMatches.filter(m => m.group === group).map(renderMatchInput)}
+                                </div>
                             </div>
-                        </div>
-                    );
-                })}
-            </div>
+                        );
+                    })}
+                </div>
+            )}
 
             {/* KNOCKOUT STAGE */}
             <div className="space-y-8 mt-12">
                 <h2 className="text-2xl font-black text-center text-brasil-blue dark:text-white uppercase tracking-wider">Fase Final</h2>
 
-                {[Phase.ROUND_32, Phase.ROUND_16, Phase.QUARTER, Phase.SEMI, Phase.FINAL].map(phase => {
-                    const phaseMatches = computedMatches.filter(m => m.phase === phase);
-                    if (phaseMatches.length === 0) return null;
+                {[Phase.ROUND_32, Phase.ROUND_16, Phase.QUARTER, Phase.SEMI, Phase.FINAL]
+                    .filter(phase => filterPhase === 'all' || filterPhase === phase)
+                    .map(phase => {
+                        const phaseMatches = computedMatches.filter(m => m.phase === phase);
+                        if (phaseMatches.length === 0) return null;
 
-                    return (
-                        <div key={phase} className="relative">
-                            <div className="flex items-center gap-4 mb-4">
-                                <div className="h-px bg-gray-200 dark:bg-gray-700 flex-1"></div>
-                                <h3 className="text-lg font-bold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-4 py-1 rounded-full uppercase text-xs tracking-widest">{phase}</h3>
-                                <div className="h-px bg-gray-200 dark:bg-gray-700 flex-1"></div>
+                        return (
+                            <div key={phase} className="relative">
+                                <div className="flex items-center gap-4 mb-4">
+                                    <div className="h-px bg-gray-200 dark:bg-gray-700 flex-1"></div>
+                                    <h3 className="text-lg font-bold text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 px-4 py-1 rounded-full uppercase text-xs tracking-widest">{phase}</h3>
+                                    <div className="h-px bg-gray-200 dark:bg-gray-700 flex-1"></div>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-6">
+                                    {phaseMatches.map(m => (
+                                        <div key={m.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                                            {renderMatchInput(m)}
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-6">
-                                {phaseMatches.map(m => (
-                                    <div key={m.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-                                        {renderMatchInput(m)}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    );
-                })}
+                        );
+                    })}
             </div>
         </div>
     );
