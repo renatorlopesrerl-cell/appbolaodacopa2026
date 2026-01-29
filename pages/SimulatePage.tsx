@@ -370,7 +370,9 @@ export const SimulatePage: React.FC = () => {
 
         if (toExport.length === 0) return alert('Nenhum jogo preenchido para exportar.');
 
-        if (addNotification) addNotification('Exportando...', 'Iniciando exportação dos palpites.', 'info');
+        if (toExport.length === 0) return alert('Nenhum jogo preenchido para exportar.');
+
+        // Removed 'Exportando...' notification to avoid overlap
         setExporting(true);
 
         try {
@@ -476,9 +478,9 @@ export const SimulatePage: React.FC = () => {
                 {/* Back Button added in Header, this input render doesn't need changes but context for others */}
                 <div className="flex items-center justify-between px-2 gap-2">
                     {/* Home */}
-                    <div className="flex items-center gap-2 flex-1 justify-end min-w-0">
-                        <span className={`text-sm font-bold text-right truncate ${!isResolved ? 'text-gray-400' : 'text-gray-800 dark:text-gray-200'}`}>{match.homeTeamId}</span>
-                        <img src={getTeamFlag(match.homeTeamId)} className="w-6 h-4 object-cover rounded shadow-sm flex-shrink-0" />
+                    <div className="flex items-center gap-2 md:gap-3 flex-1 justify-end min-w-0">
+                        <span className={`truncate leading-tight text-right ${!isResolved ? 'text-gray-400' : 'text-gray-900 dark:text-gray-200 font-bold'} text-sm md:text-base`}>{match.homeTeamId}</span>
+                        <img src={getTeamFlag(match.homeTeamId)} className="w-7 h-5 object-cover rounded shadow-sm flex-shrink-0" />
                     </div>
 
                     {/* Inputs */}
@@ -501,9 +503,9 @@ export const SimulatePage: React.FC = () => {
                     </div>
 
                     {/* Away */}
-                    <div className="flex items-center gap-2 flex-1 justify-start min-w-0">
-                        <img src={getTeamFlag(match.awayTeamId)} className="w-6 h-4 object-cover rounded shadow-sm flex-shrink-0" />
-                        <span className={`text-sm font-bold text-left truncate ${!isResolved ? 'text-gray-400' : 'text-gray-800 dark:text-gray-200'}`}>{match.awayTeamId}</span>
+                    <div className="flex items-center gap-2 md:gap-3 flex-1 justify-start min-w-0">
+                        <img src={getTeamFlag(match.awayTeamId)} className="w-7 h-5 object-cover rounded shadow-sm flex-shrink-0" />
+                        <span className={`truncate leading-tight text-left ${!isResolved ? 'text-gray-400' : 'text-gray-900 dark:text-gray-200 font-bold'} text-sm md:text-base`}>{match.awayTeamId}</span>
                     </div>
                 </div>
             </div>
@@ -535,8 +537,14 @@ export const SimulatePage: React.FC = () => {
                     <h1 className="text-2xl font-black text-brasil-blue dark:text-blue-400 flex items-center gap-2">
                         <Trophy className="text-brasil-yellow" fill="currentColor" />
                         Simulador da Copa 2026
-                        <span className="text-xs font-normal text-gray-500 dark:text-gray-400 ml-2">(Horário de Brasília)</span>
                     </h1>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 bg-gray-50 dark:bg-gray-900 px-3 py-1 rounded-full shadow-sm border border-gray-200 dark:border-gray-700">
+                        <Info size={12} />
+                        Todos os jogos estão em horários de Brasília (BRT)
+                    </div>
+                </div>
+
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
                     <div className="flex flex-wrap gap-2 w-full md:w-auto">
                         <button onClick={handleSave} disabled={saving} className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold transition-colors disabled:opacity-50 flex-1 md:flex-none justify-center ${savedButtonText === 'Salvo!' ? 'bg-green-700 text-white' : 'bg-brasil-green hover:bg-green-700 text-white'}`}>
                             {saving ? <Loader2 className="animate-spin" size={18} /> : (savedButtonText === 'Salvo!' ? <CheckCircle size={18} /> : <Save size={18} />)}

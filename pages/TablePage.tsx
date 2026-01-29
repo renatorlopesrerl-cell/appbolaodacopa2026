@@ -136,7 +136,7 @@ export const TablePage: React.FC = () => {
           </h1>
           <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 bg-gray-50 dark:bg-gray-900 px-3 py-1 rounded-full shadow-sm border border-gray-200 dark:border-gray-700">
             <Clock size={12} />
-            Todos os horários estão em Brasília (BRT)
+            Todos os jogos estão em horários de Brasília (BRT)
           </div>
         </div>
 
