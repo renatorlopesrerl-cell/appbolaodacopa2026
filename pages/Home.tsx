@@ -182,6 +182,19 @@ export const Home: React.FC = () => {
           </div>
         </Link>
 
+        <Link to="/simulate" className="group bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm hover:shadow-xl transition-all border border-gray-100 dark:border-gray-700 hover:border-blue-500 relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:scale-110 duration-500">
+            <PlayCircle size={80} className="text-blue-500 dark:text-blue-400" />
+          </div>
+          <div className="relative z-10">
+            <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-xl w-fit mb-4 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+              <PlayCircle className="w-6 h-6 text-blue-600 dark:text-blue-400 group-hover:text-white" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-1">Simulador da Copa</h2>
+            <p className="text-gray-500 dark:text-gray-400 text-sm">Simule resultados e veja o caminho até a final.</p>
+          </div>
+        </Link>
+
         <Link to="/leagues" className="group bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm hover:shadow-xl transition-all border border-gray-100 dark:border-gray-700 hover:border-brasil-yellow relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:scale-110 duration-500">
             <Users size={80} className="text-yellow-600 dark:text-yellow-400" />

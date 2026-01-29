@@ -41,6 +41,7 @@ const R32_3RD_PLACE_RULES: Record<string, string[]> = {
 export const SimulatePage: React.FC = () => {
     const navigate = useNavigate();
     const { currentUser, leagues, addNotification } = useStore();
+    const [savedButtonText, setSavedButtonText] = useState('Salvar');
 
     // State: Simulated Scores (matchId -> {home, away})
     const [simulatedScores, setSimulatedScores] = useState<Record<string, { home: number, away: number }>>({});
@@ -314,10 +315,12 @@ export const SimulatePage: React.FC = () => {
                 userId: currentUser.id,
                 simulationData: simulatedScores
             });
-            if (addNotification) addNotification('Salvo', 'Simulação salva com sucesso!', 'success');
+            if (addNotification) addNotification('Sucesso', 'Simulação salva com sucesso!', 'success');
+            setSavedButtonText('Salvo!');
+            setTimeout(() => setSavedButtonText('Salvar'), 2000);
         } catch (e) {
             console.error(e);
-            alert('Erro ao salvar');
+            if (addNotification) addNotification('Erro', 'Erro ao salvar simulação.', 'warning');
         } finally {
             setSaving(false);
         }
@@ -366,8 +369,11 @@ export const SimulatePage: React.FC = () => {
             }))
         ).then(() => true).catch(() => false);
 
-        if (success) alert('Exportado com sucesso!');
-        else alert('Erro na exportação. Verifique jogos bloqueados.');
+        if (success) {
+            if (addNotification) addNotification('Exportado!', 'Palpites exportados para a liga com sucesso.', 'success');
+        } else {
+            alert('Erro na exportação. Verifique se há jogos bloqueados.');
+        }
     };
 
     const handleImport = async () => {
@@ -482,9 +488,9 @@ export const SimulatePage: React.FC = () => {
                         Simulador da Copa 2026
                     </h1>
                     <div className="flex flex-wrap gap-2 w-full md:w-auto">
-                        <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 bg-brasil-green hover:bg-green-700 text-white px-4 py-2 rounded-lg font-bold transition-colors disabled:opacity-50 flex-1 md:flex-none justify-center">
-                            {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-                            Salvar
+                        <button onClick={handleSave} disabled={saving} className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold transition-colors disabled:opacity-50 flex-1 md:flex-none justify-center ${savedButtonText === 'Salvo!' ? 'bg-green-700 text-white' : 'bg-brasil-green hover:bg-green-700 text-white'}`}>
+                            {saving ? <Loader2 className="animate-spin" size={18} /> : (savedButtonText === 'Salvo!' ? <CheckCircle size={18} /> : <Save size={18} />)}
+                            {savedButtonText}
                         </button>
                         <button onClick={handleSyncReal} className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-lg font-bold transition-colors flex-1 md:flex-none justify-center">
                             <RefreshCw size={18} />

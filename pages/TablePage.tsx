@@ -127,112 +127,118 @@ export const TablePage: React.FC = () => {
         </button>
       </div>
 
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <h1 className="text-2xl font-bold text-brasil-green dark:text-green-400">Tabela da Copa 2026</h1>
-        <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 bg-white dark:bg-gray-800 px-3 py-1 rounded-full shadow-sm">
-          <Clock size={12} />
-          Todos os horários estão em Brasília (BRT)
-        </div>
-      </div>
-
-      {/* FILTERS SECTION */}
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center gap-2 px-1">
-          <div className="flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-300">
-            <Filter size={16} className="text-brasil-blue dark:text-blue-400" />
-            Filtros
+      {/* MATCH SIMULATOR PAGE HEADER DESIGN */}
+      <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+          <h1 className="text-2xl font-black text-brasil-green dark:text-green-400 flex items-center gap-2">
+            <Trophy className="text-brasil-yellow" fill="currentColor" />
+            Tabela da Copa 2026
+          </h1>
+          <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 bg-gray-50 dark:bg-gray-900 px-3 py-1 rounded-full shadow-sm border border-gray-200 dark:border-gray-700">
+            <Clock size={12} />
+            Todos os horários estão em Brasília (BRT)
           </div>
-          {hasFilters && (
-            <button
-              onClick={clearFilters}
-              className="text-xs font-bold text-red-500 hover:text-red-700 transition-colors flex items-center gap-1 ml-2"
-            >
-              <X size={12} /> Limpar
-            </button>
-          )}
         </div>
-        <div className="flex flex-wrap gap-3 items-center">
-          {/* Phase Select */}
-          <div className="relative w-full md:w-auto">
-            <select
-              value={filterPhase}
-              onChange={(e) => {
-                setFilterPhase(e.target.value);
-                if (e.target.value !== Phase.GROUP) setFilterGroup('all');
-              }}
-              className="w-full md:w-48 appearance-none bg-gray-700 text-white border border-gray-600 text-xs font-bold rounded-lg focus:ring-brasil-blue focus:border-brasil-blue block p-2.5 pr-8"
-            >
-              <option value="all">Todas as Fases</option>
-              {Object.values(Phase).map(p => (
-                <option key={p} value={p}>{p}</option>
-              ))}
-            </select>
-            <ChevronDown size={14} className="absolute right-3 top-3 text-gray-300 pointer-events-none" />
-          </div>
 
-          {/* Group Select (Conditional) */}
-          {(filterPhase === 'all' || filterPhase === Phase.GROUP) && (
+        {/* FILTERS SECTION INTEGRATED IN HEADER CARD */}
+        <div className="flex flex-col gap-3 pt-2 border-t border-gray-100 dark:border-gray-700">
+          <div className="flex items-center gap-2 px-1">
+            <div className="flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-300">
+              <Filter size={16} className="text-brasil-green dark:text-green-400" />
+              Filtros
+            </div>
+            {hasFilters && (
+              <button
+                onClick={clearFilters}
+                className="text-xs font-bold text-red-500 hover:text-red-700 transition-colors flex items-center gap-1 ml-2"
+              >
+                <X size={12} /> Limpar
+              </button>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-3 items-center">
+            {/* Phase Select */}
             <div className="relative w-full md:w-auto">
               <select
-                value={filterGroup}
-                onChange={(e) => setFilterGroup(e.target.value)}
-                className="w-full md:w-32 appearance-none bg-gray-700 text-white border border-gray-600 text-xs font-bold rounded-lg focus:ring-brasil-blue focus:border-brasil-blue block p-2.5 pr-8"
+                value={filterPhase}
+                onChange={(e) => {
+                  setFilterPhase(e.target.value);
+                  if (e.target.value !== Phase.GROUP) setFilterGroup('all');
+                }}
+                className="w-full md:w-48 appearance-none bg-gray-700 text-white border border-gray-600 text-xs font-bold rounded-lg focus:ring-brasil-green focus:border-brasil-green block p-2.5 pr-8"
               >
-                <option value="all">Todos Grupos</option>
-                {groups.map(g => (
-                  <option key={g} value={g}>Grupo {g}</option>
+                <option value="all">Todas as Fases</option>
+                {Object.values(Phase).map(p => (
+                  <option key={p} value={p}>{p}</option>
                 ))}
               </select>
               <ChevronDown size={14} className="absolute right-3 top-3 text-gray-300 pointer-events-none" />
             </div>
-          )}
+
+            {/* Group Select (Conditional) */}
+            {(filterPhase === 'all' || filterPhase === Phase.GROUP) && (
+              <div className="relative w-full md:w-auto">
+                <select
+                  value={filterGroup}
+                  onChange={(e) => setFilterGroup(e.target.value)}
+                  className="w-full md:w-32 appearance-none bg-gray-700 text-white border border-gray-600 text-xs font-bold rounded-lg focus:ring-brasil-green focus:border-brasil-green block p-2.5 pr-8"
+                >
+                  <option value="all">Todos Grupos</option>
+                  {groups.map(g => (
+                    <option key={g} value={g}>Grupo {g}</option>
+                  ))}
+                </select>
+                <ChevronDown size={14} className="absolute right-3 top-3 text-gray-300 pointer-events-none" />
+              </div>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* FILTERS SECTION */}
+
 
       {/* --- FASE DE GRUPOS --- */}
       {showGroupStage && (
         <section className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-          <h2 className="text-lg font-bold text-gray-700 dark:text-gray-300 mb-4 pl-1 border-l-4 border-brasil-yellow flex items-center gap-2">
-            Fase de Grupos
-          </h2>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             {visibleGroups.map(group => (
-              <div key={group} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden border border-gray-100 dark:border-gray-700">
-                <div className="bg-brasil-blue dark:bg-blue-900 text-white px-4 py-2 font-bold flex justify-between items-center">
-                  <span className="text-lg">Grupo {group}</span>
+              <div key={group} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+                <div className="bg-gray-50 dark:bg-gray-700 px-4 py-2 border-b border-gray-100 dark:border-gray-600 flex justify-between items-center">
+                  <h3 className="font-black text-gray-700 dark:text-gray-200">GRUPO {group}</h3>
                 </div>
 
                 <div className="overflow-x-auto">
-                  <table className="w-full text-sm md:text-base">
-                    <thead className="bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-300 border-b border-gray-200 dark:border-gray-600 text-xs md:text-sm">
+                  <table className="w-full text-sm">
+                    <thead className="text-xs text-gray-400 border-b border-gray-100 dark:border-gray-700">
                       <tr>
-                        <th className="px-3 py-2 text-left font-semibold pl-4">País</th>
-                        <th className="px-2 py-2 text-center font-semibold" title="Pontos">Pts</th>
-                        <th className="px-2 py-2 text-center font-semibold" title="Jogos">J</th>
-                        <th className="px-2 py-2 text-center font-semibold" title="Vitórias">V</th>
-                        <th className="px-2 py-2 text-center font-semibold" title="Empates">E</th>
-                        <th className="px-2 py-2 text-center font-semibold" title="Derrotas">D</th>
-                        <th className="px-2 py-2 text-center font-semibold" title="Gols Marcados">GM</th>
-                        <th className="px-2 py-2 text-center font-semibold" title="Gols Sofridos">GS</th>
-                        <th className="px-2 py-2 text-center font-semibold" title="Saldo de Gols">SG</th>
+                        <th className="pl-3 py-1 text-left">País</th>
+                        <th className="py-1 text-center" title="Pontos">Pts</th>
+                        <th className="py-1 text-center" title="Jogos">J</th>
+                        <th className="py-1 text-center" title="Vitórias">V</th>
+                        <th className="py-1 text-center" title="Empates">E</th>
+                        <th className="py-1 text-center" title="Derrotas">D</th>
+                        <th className="py-1 text-center" title="Gols Marcados">GM</th>
+                        <th className="py-1 text-center" title="Gols Sofridos">GS</th>
+                        <th className="py-1 text-center" title="Saldo de Gols">SG</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                    <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
                       {standings[group]?.map((team, idx) => (
-                        <tr key={team.teamId} className={idx < 2 ? 'bg-green-50/50 dark:bg-green-900/20' : ''}>
-                          <td className="px-3 py-3 font-bold text-gray-800 dark:text-gray-100 flex items-center gap-3 pl-4">
-                            <span className="w-4 text-center text-xs text-gray-400 font-normal">{idx + 1}</span>
-                            <img src={getTeamFlag(team.teamId)} alt={team.teamId} className="w-8 h-6 object-cover rounded shadow-sm" />
-                            {team.teamId}
+                        <tr key={team.teamId} className={`${idx < 2 ? 'bg-green-50/50 dark:bg-green-900/10' : (idx === 2 ? 'bg-yellow-50/30' : '')}`}>
+                          <td className="pl-3 py-1.5 flex items-center gap-2 font-semibold text-gray-800 dark:text-gray-200">
+                            <span className="text-[10px] w-3 text-gray-400">{idx + 1}</span>
+                            <img src={getTeamFlag(team.teamId)} alt={team.teamId} className="w-5 h-3.5 object-cover rounded shadow-sm" />
+                            <span className="truncate max-w-[100px]">{team.teamId}</span>
                           </td>
-                          <td className="px-2 py-3 text-center font-black text-gray-900 dark:text-white">{team.points}</td>
-                          <td className="px-2 py-3 text-center text-gray-500 dark:text-gray-400">{team.played}</td>
-                          <td className="px-2 py-3 text-center text-gray-500 dark:text-gray-400">{team.won}</td>
-                          <td className="px-2 py-3 text-center text-gray-500 dark:text-gray-400">{team.drawn}</td>
-                          <td className="px-2 py-3 text-center text-gray-500 dark:text-gray-400">{team.lost}</td>
-                          <td className="px-2 py-3 text-center text-gray-500 dark:text-gray-400">{team.gf}</td>
-                          <td className="px-2 py-3 text-center text-gray-500 dark:text-gray-400">{team.ga}</td>
-                          <td className="px-2 py-3 text-center text-gray-500 dark:text-gray-400 font-medium">{team.gd}</td>
+                          <td className="text-center font-bold px-1">{team.points}</td>
+                          <td className="text-center text-gray-500 px-1">{team.played}</td>
+                          <td className="text-center text-gray-500 px-1">{team.won}</td>
+                          <td className="text-center text-gray-500 px-1">{team.drawn}</td>
+                          <td className="text-center text-gray-500 px-1">{team.lost}</td>
+                          <td className="text-center text-gray-500 px-1">{team.gf}</td>
+                          <td className="text-center text-gray-500 px-1">{team.ga}</td>
+                          <td className="text-center text-gray-500 px-1">{team.gd}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -240,8 +246,7 @@ export const TablePage: React.FC = () => {
                 </div>
 
                 {/* Jogos do Grupo */}
-                <div className="border-t border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
-                  <p className="text-xs font-bold text-gray-400 uppercase py-2 px-3 border-b border-gray-100 dark:border-gray-700">Jogos do Grupo</p>
+                <div className="bg-gray-50/30 dark:bg-gray-900/20 border-t border-gray-100 dark:border-gray-700">
                   {renderMatchList(matches.filter(m => m.group === group))}
                 </div>
               </div>
@@ -253,12 +258,13 @@ export const TablePage: React.FC = () => {
       {/* --- FASE FINAL --- */}
       {visibleKnockoutPhases.length > 0 && (
         <section className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-          <h2 className="text-lg font-bold text-gray-700 dark:text-gray-300 mb-4 pl-1 border-l-4 border-brasil-green flex items-center gap-2 mt-8">
-            <Trophy size={20} className="text-brasil-green dark:text-green-400" />
-            Fase Final
-          </h2>
+          <div className="flex items-center gap-4 mb-4 mt-8">
+            <div className="h-px bg-gray-200 dark:bg-gray-700 flex-1"></div>
+            <h3 className="text-2xl font-black text-center text-brasil-green dark:text-white uppercase tracking-wider">Fase Final</h3>
+            <div className="h-px bg-gray-200 dark:bg-gray-700 flex-1"></div>
+          </div>
 
-          <div className="grid grid-cols-1 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {visibleKnockoutPhases.map(phase => {
               const phaseMatches = matches.filter(m => m.phase === phase);
               if (phaseMatches.length === 0) return null;
@@ -267,16 +273,13 @@ export const TablePage: React.FC = () => {
 
               return (
                 <div key={phase} className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden border border-gray-100 dark:border-gray-700 ${isFinal ? 'border-brasil-yellow shadow-md ring-1 ring-brasil-yellow/20' : ''}`}>
-                  <div className={`px-4 py-3 font-bold flex justify-between items-center ${isFinal ? 'bg-gradient-to-r from-brasil-yellow to-yellow-500 text-brasil-blue' : 'bg-gray-800 dark:bg-gray-700 text-white'}`}>
-                    <span className="flex items-center gap-2 text-lg">
-                      {isFinal && <Medal size={20} />}
+                  <div className={`px-4 py-2 font-bold flex justify-between items-center ${isFinal ? 'bg-gradient-to-r from-brasil-yellow to-yellow-500 text-brasil-blue' : 'bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-200'}`}>
+                    <span className="flex items-center gap-2 text-sm uppercase">
+                      {isFinal && <Medal size={16} />}
                       {phase}
                     </span>
-                    <span className="text-xs font-normal opacity-80 bg-white/20 px-2 py-0.5 rounded">
-                      {phaseMatches.length} jogos
-                    </span>
                   </div>
-                  <div className="bg-gray-50/30 dark:bg-gray-900/30">
+                  <div className="bg-white dark:bg-gray-900/30">
                     {renderMatchList(phaseMatches)}
                   </div>
                 </div>
