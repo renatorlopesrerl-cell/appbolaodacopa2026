@@ -18,7 +18,7 @@ export const GROUPS_CONFIG: Record<string, string[]> = {
 };
 
 // Flatten teams for easy access
-export const ALL_TEAMS: Team[] = Object.entries(GROUPS_CONFIG).flatMap(([group, names]) => 
+export const ALL_TEAMS: Team[] = Object.entries(GROUPS_CONFIG).flatMap(([group, names]) =>
   names.map(name => ({ id: name, name, group }))
 );
 
@@ -41,20 +41,20 @@ const FLAG_CODES: Record<string, string> = {
 export const getTeamFlag = (teamName: string): string => {
   // Placeholder for TBD teams - Increased resolution
   if (teamName.includes('Venc.') || teamName.includes('Perd.') || teamName.includes('Grupo')) {
-     return 'https://placehold.co/160x120/e2e8f0/94a3b8?text=?';
+    return 'https://placehold.co/160x120/e2e8f0/94a3b8?text=?';
   }
 
   // Question mark for placeholders (Europa/Intercontinental) - Increased resolution
   if (teamName.includes('Europa') || teamName.includes('Intercontinental')) {
-      return 'https://placehold.co/160x120/cbd5e1/475569?text=?';
+    return 'https://placehold.co/160x120/cbd5e1/475569?text=?';
   }
 
   const code = FLAG_CODES[teamName];
   if (code) {
-      // Changed from w40 to w160 for better quality (High DPI screens)
-      return `https://flagcdn.com/w160/${code}.png`;
+    // Changed from w40 to w160 for better quality (High DPI screens)
+    return `https://flagcdn.com/w160/${code}.png`;
   }
-  
+
   // Fallback - Increased resolution
   return 'https://placehold.co/160x120/e2e8f0/94a3b8?text=?';
 };
@@ -174,20 +174,20 @@ export const getTeam = (id: string): Team | undefined => ALL_TEAMS.find(t => t.i
 
 // Calculate Match Round (1, 2, or 3) for Groups
 export const getMatchRound = (match: Match, allMatches: Match[]): number | null => {
-    if (match.phase !== Phase.GROUP || !match.group) return null;
-    const groupMatches = allMatches
-        .filter(m => m.group === match.group && m.phase === Phase.GROUP)
-        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    
-    const index = groupMatches.findIndex(m => m.id === match.id);
-    if (index === -1) return null;
-    return Math.floor(index / 2) + 1;
+  if (match.phase !== Phase.GROUP || !match.group) return null;
+  const groupMatches = allMatches
+    .filter(m => m.group === match.group && m.phase === Phase.GROUP)
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  const index = groupMatches.findIndex(m => m.id === match.id);
+  if (index === -1) return null;
+  return Math.floor(index / 2) + 1;
 };
 
 export const calculatePoints = (
-  predHome: number, 
-  predAway: number, 
-  actualHome: number, 
+  predHome: number,
+  predAway: number,
+  actualHome: number,
   actualAway: number,
   settings: { exactScore: number, winnerAndDiff: number, winner: number, draw: number }
 ): number => {
@@ -232,9 +232,9 @@ export const calculateStandings = (matches: Match[]): Record<string, GroupStandi
   });
 
   // Process Matches - Includes FINISHED and IN_PROGRESS matches
-  matches.filter(m => 
-    m.phase === Phase.GROUP && 
-    (m.status === MatchStatus.FINISHED || m.status === MatchStatus.IN_PROGRESS) && 
+  matches.filter(m =>
+    m.phase === Phase.GROUP &&
+    (m.status === MatchStatus.FINISHED || m.status === MatchStatus.IN_PROGRESS) &&
     m.group
   ).forEach(match => {
     const group = match.group!;
@@ -266,9 +266,14 @@ export const calculateStandings = (matches: Match[]): Record<string, GroupStandi
   const result: Record<string, GroupStanding[]> = {};
   Object.keys(standings).forEach(group => {
     result[group] = Object.values(standings[group]).sort((a, b) => {
+      // 1. Points
       if (b.points !== a.points) return b.points - a.points;
+      // 2. Goal Difference (Saldo de Gols)
       if (b.gd !== a.gd) return b.gd - a.gd;
-      return b.gf - a.gf;
+      // 3. Goals For (Gols Marcados)
+      if (b.gf !== a.gf) return b.gf - a.gf;
+      // 4. Fair Play (Not tracked, random/alphabetic fallback)
+      return a.teamId.localeCompare(b.teamId);
     });
   });
 
@@ -313,14 +318,14 @@ export const processImageForUpload = (file: File): Promise<string> => {
         canvas.height = height;
         const ctx = canvas.getContext('2d');
         if (!ctx) {
-            reject(new Error('Canvas context failed'));
-            return;
+          reject(new Error('Canvas context failed'));
+          return;
         }
-        
+
         // CORREÇÃO: Preencher fundo branco para evitar transparência preta em JPEGs
         ctx.fillStyle = '#FFFFFF';
         ctx.fillRect(0, 0, width, height);
-        
+
         ctx.drawImage(img, 0, 0, width, height);
 
         // Quality reduction loop
@@ -330,8 +335,8 @@ export const processImageForUpload = (file: File): Promise<string> => {
         let dataUrl = canvas.toDataURL('image/jpeg', quality);
 
         while (dataUrl.length > MAX_CHARS && quality > 0.1) {
-            quality -= 0.1;
-            dataUrl = canvas.toDataURL('image/jpeg', quality);
+          quality -= 0.1;
+          dataUrl = canvas.toDataURL('image/jpeg', quality);
         }
 
         resolve(dataUrl);

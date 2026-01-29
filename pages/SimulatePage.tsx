@@ -542,9 +542,14 @@ export const SimulatePage: React.FC = () => {
                                 <thead className="text-xs text-gray-400 border-b border-gray-100 dark:border-gray-700">
                                     <tr>
                                         <th className="pl-3 py-1 text-left">País</th>
-                                        <th className="py-1">Pts</th>
-                                        <th className="py-1">V</th>
-                                        <th className="py-1">SG</th>
+                                        <th className="py-1 text-center" title="Pontos">Pts</th>
+                                        <th className="py-1 text-center" title="Jogos">J</th>
+                                        <th className="py-1 text-center" title="Vitórias">V</th>
+                                        <th className="py-1 text-center" title="Empates">E</th>
+                                        <th className="py-1 text-center" title="Derrotas">D</th>
+                                        <th className="py-1 text-center" title="Gols Marcados">GM</th>
+                                        <th className="py-1 text-center" title="Gols Sofridos">GS</th>
+                                        <th className="py-1 text-center" title="Saldo de Gols">SG</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
@@ -555,9 +560,14 @@ export const SimulatePage: React.FC = () => {
                                                 <img src={getTeamFlag(t.teamId)} className="w-5 h-3.5 object-cover rounded shadow-sm" />
                                                 <span className="truncate max-w-[100px]">{t.teamId}</span>
                                             </td>
-                                            <td className="text-center font-bold">{t.points}</td>
-                                            <td className="text-center text-gray-500">{t.won}</td>
-                                            <td className="text-center text-gray-500">{t.gd}</td>
+                                            <td className="text-center font-bold px-1">{t.points}</td>
+                                            <td className="text-center text-gray-500 px-1">{t.played}</td>
+                                            <td className="text-center text-gray-500 px-1">{t.won}</td>
+                                            <td className="text-center text-gray-500 px-1">{t.drawn}</td>
+                                            <td className="text-center text-gray-500 px-1">{t.lost}</td>
+                                            <td className="text-center text-gray-500 px-1">{t.gf}</td>
+                                            <td className="text-center text-gray-500 px-1">{t.ga}</td>
+                                            <td className="text-center text-gray-500 px-1">{t.gd}</td>
                                         </tr>
                                     ))}
                                 </tbody>

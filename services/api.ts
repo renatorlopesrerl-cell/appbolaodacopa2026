@@ -70,7 +70,35 @@ export const api = {
         submit: (data: any) => apiFetch('/predictions', { method: 'POST', body: JSON.stringify(data) })
     },
     simulations: {
-        get: (userId: string) => apiFetch<any>(`/simulations?userId=${userId}`),
-        save: (data: any) => apiFetch('/simulations', { method: 'POST', body: JSON.stringify(data) })
+        get: async (userId: string) => {
+            const { data, error } = await supabase
+                .from('user_simulations')
+                .select('*')
+                .eq('user_id', userId)
+                .single();
+            if (error && error.code !== 'PGRST116') throw error; // PGRST116 is not found
+            return data;
+        },
+        save: async (data: { userId: string, simulationData: any }) => {
+            // Check if exists
+            const { data: existing } = await supabase
+                .from('user_simulations')
+                .select('id')
+                .eq('user_id', data.userId)
+                .single();
+
+            if (existing) {
+                const { error } = await supabase
+                    .from('user_simulations')
+                    .update({ simulation_data: data.simulationData, updated_at: new Date() })
+                    .eq('user_id', data.userId);
+                if (error) throw error;
+            } else {
+                const { error } = await supabase
+                    .from('user_simulations')
+                    .insert({ user_id: data.userId, simulation_data: data.simulationData });
+                if (error) throw error;
+            }
+        }
     }
 };
