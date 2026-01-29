@@ -14,9 +14,9 @@ const getLeagueLimit = (settings: any) => {
     }
 };
 
-export const onRequest = async ({ request, env }: { request: Request, env: any }) => {
+export const onRequest = async ({ request, env, data }: { request: Request, env: any, data: any }) => {
     try {
-        const authUser = (request as any).user;
+        const authUser = data.user;
         const userClient = getUserClient(env, request);
 
         if (request.method === 'GET') {

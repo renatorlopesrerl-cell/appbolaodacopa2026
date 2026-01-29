@@ -14,11 +14,11 @@ const getLeagueLimit = (settings: any) => {
     }
 };
 
-export const onRequest = async ({ request, env }: { request: Request, env: any }) => {
+export const onRequest = async ({ request, env, data }: { request: Request, env: any, data: any }) => {
     if (request.method !== 'POST') return new Response("Method not allowed", { status: 405 });
 
     try {
-        const authUser = (request as any).user;
+        const authUser = data.user;
         const userClient = getUserClient(env, request);
 
         const { leagueId, userId, action } = await request.json() as any;

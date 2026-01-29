@@ -1,10 +1,10 @@
 
 import { getUserClient, withRetry, jsonResponse, errorResponse } from './_shared';
 
-export const onRequest = async ({ request, env }: { request: Request, env: any }) => {
+export const onRequest = async ({ request, env, data }: { request: Request, env: any, data: any }) => {
     try {
         const url = new URL(request.url);
-        const authUser = (request as any).user;
+        const authUser = data.user;
         const userClient = getUserClient(env, request);
 
         if (request.method === 'GET') {

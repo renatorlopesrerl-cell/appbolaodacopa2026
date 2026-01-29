@@ -13,7 +13,7 @@ async function retry(fn, attempts = 3) {
     }
 }
 
-export const onRequest = async ({ request, env, next }) => {
+export const onRequest = async ({ request, env, next, data }) => {
     // Public routes (no auth required)
     if (request.url.includes('/health')) {
         return next()
@@ -55,7 +55,18 @@ export const onRequest = async ({ request, env, next }) => {
         }
     }
 
-    request.user = userData.user
+    // Pass user to next handler via 'data'
+    // Note: Cloudflare Pages uses 'data' for middleware context
+    const nextRequest = next as Function; // Type casting to avoid ts error in this context if needed
+    // Actually in Pages: ({ request, env, params, data, next })
 
-    return next()
+    // We can just assign to data if it is available in arguments, or just define it.
+    // However, the signature I used was ({ request, env, next }).
+    // I need to change signature to ({ request, env, next, data }).
+
+    if (data) {
+        data.user = userData.user;
+    }
+
+    return next();
 }
