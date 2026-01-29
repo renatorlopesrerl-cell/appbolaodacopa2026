@@ -84,6 +84,7 @@ interface AppState {
   toggleTheme: () => void;
   connectionError: boolean;
   retryConnection: () => void;
+  addNotification: (title: string, message: string, type: 'success' | 'info' | 'warning') => void;
 }
 
 const AppContext = createContext<AppState | null>(null);
@@ -750,7 +751,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       currentUser, users, matches, leagues, predictions, currentTime, notifications, loading, invitations,
       setCurrentTime, loginGoogle, signInWithEmail, signUpWithEmail, logout, createLeague, updateLeague, joinLeague, deleteLeague, approveUser, rejectUser,
       removeUserFromLeague, submitPrediction, submitPredictions, simulateMatchResult, updateMatch, removeNotification, updateUserProfile, syncInitialMatches,
-      sendLeagueInvite, respondToInvite, theme, toggleTheme, connectionError, retryConnection
+      sendLeagueInvite, respondToInvite, theme, toggleTheme, connectionError, retryConnection, addNotification
     }}>
       {children}
     </AppContext.Provider>

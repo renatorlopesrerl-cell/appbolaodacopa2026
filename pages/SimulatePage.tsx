@@ -237,75 +237,61 @@ export const SimulatePage: React.FC = () => {
 
         // 4. Resolve Knockout Winners (Propagation)
         // Groups -> R32 -> R16 -> QF -> SF -> Final
-        const PHASES_ORDER = [Phase.ROUND_32, Phase.ROUND_16, Phase.QUARTER, Phase.SEMI, Phase.FINAL];
 
-        // We need a loop or just rely on the order of matches in the array?
-        // Matches are not strictly ordered by dependency in the array.
-        // But R16 depends on R32.
-
-        // Helper to get winner of a match
-        const getWinner = (matchId: string): string | undefined => {
-            const m = currentMatches.find(x => x.id === matchId);
+        // Helper to get winner/loser from specific match list
+        const getResultTeam = (matchId: string, matchList: typeof currentMatches, type: 'winner' | 'loser'): string | undefined => {
+            const m = matchList.find(x => x.id === matchId);
             if (!m) return undefined;
-            // Check simulation score
             const sim = simulatedScores[matchId];
+
             if (sim && m.homeScore !== null && m.awayScore !== null) {
-                if (m.homeScore > m.awayScore) return m.homeTeamId;
-                if (m.awayScore > m.homeScore) return m.awayTeamId;
-                // Penalties? Not handled in simplified sim. Assume Home for draw or randomize?
-                // User didn't specify penalties. Let's assume input forces a winner or simply TBD.
-                // Or maybe we treat Draw as "Undefined Winner" for propagation.
-                return undefined;
+                const isHomeWinner = m.homeScore > m.awayScore;
+                const isAwayWinner = m.awayScore > m.homeScore;
+
+                if (type === 'winner') {
+                    if (isHomeWinner) return m.homeTeamId;
+                    if (isAwayWinner) return m.awayTeamId;
+                } else {
+                    // Loser
+                    if (isHomeWinner) return m.awayTeamId;
+                    if (isAwayWinner) return m.homeTeamId;
+                }
             }
             return undefined;
         };
 
-        const getLoser = (matchId: string): string | undefined => {
-            const m = currentMatches.find(x => x.id === matchId);
-            if (!m) return undefined;
-            const sim = simulatedScores[matchId];
-            if (sim && m.homeScore !== null && m.awayScore !== null) {
-                if (m.homeScore < m.awayScore) return m.homeTeamId;
-                if (m.awayScore < m.homeScore) return m.awayTeamId;
-                return undefined;
-            }
-            return undefined;
-        };
+        // Sequential Propagation (Phase by Phase to ensure dependencies)
+        [Phase.ROUND_16, Phase.QUARTER, Phase.SEMI, Phase.FINAL].forEach(phase => {
+            currentMatches = currentMatches.map(m => {
+                if (m.phase !== phase) return m;
 
-        // Propagate
-        // We have to update currentMatches iteratively or just map placeholders.
-        // IDs like 'm-R16-1' have 'Venc. R32-1' in INITIAL_MATCHES.
+                let h = m.homeTeamId;
+                let a = m.awayTeamId;
 
-        currentMatches = currentMatches.map(m => {
-            if (m.phase === Phase.GROUP || m.phase === Phase.ROUND_32) return m; // R32 inputs resolved above
+                // Resolve Home
+                if (h.startsWith('Venc. ')) {
+                    const id = 'm-' + h.replace('Venc. ', '');
+                    const w = getResultTeam(id, currentMatches, 'winner');
+                    if (w && !w.includes('TBD') && !w.includes('Grupo')) h = w;
+                } else if (h.startsWith('Perd. ')) {
+                    const id = 'm-' + h.replace('Perd. ', '');
+                    const l = getResultTeam(id, currentMatches, 'loser');
+                    if (l && !l.includes('TBD') && !l.includes('Grupo')) h = l;
+                }
 
-            let h = m.homeTeamId;
-            let a = m.awayTeamId;
+                // Resolve Away
+                if (a.startsWith('Venc. ')) {
+                    const id = 'm-' + a.replace('Venc. ', '');
+                    const w = getResultTeam(id, currentMatches, 'winner');
+                    if (w && !w.includes('TBD') && !w.includes('Grupo')) a = w;
+                } else if (a.startsWith('Perd. ')) {
+                    const id = 'm-' + a.replace('Perd. ', '');
+                    const l = getResultTeam(id, currentMatches, 'loser');
+                    if (l && !l.includes('TBD') && !l.includes('Grupo')) a = l;
+                }
 
-            // Regex/Logic to find "Venc. XXX" or "Perd. XXX"
-            // Examples: "Venc. R32-1", "Perd. SF-1"
-
-            if (h.startsWith('Venc. ')) {
-                const targetId = 'm-' + h.replace('Venc. ', '');
-                const w = getWinner(targetId);
-                if (w && !w.includes('TBD') && !w.includes('Grupo')) h = w;
-            } else if (h.startsWith('Perd. ')) {
-                const targetId = 'm-' + h.replace('Perd. ', '');
-                const l = getLoser(targetId);
-                if (l && !l.includes('TBD') && !l.includes('Grupo')) h = l;
-            }
-
-            if (a.startsWith('Venc. ')) {
-                const targetId = 'm-' + a.replace('Venc. ', '');
-                const w = getWinner(targetId);
-                if (w && !w.includes('TBD') && !w.includes('Grupo')) a = w;
-            } else if (a.startsWith('Perd. ')) {
-                const targetId = 'm-' + a.replace('Perd. ', '');
-                const l = getLoser(targetId);
-                if (l && !l.includes('TBD') && !l.includes('Grupo')) a = l;
-            }
-
-            return { ...m, homeTeamId: h, awayTeamId: a };
+                return { ...m, homeTeamId: h, awayTeamId: a };
+            });
         });
 
         return currentMatches;
@@ -363,10 +349,7 @@ export const SimulatePage: React.FC = () => {
         const confirmMsg = "Isso substituirá seus palpites existentes nesta liga (exceto jogos bloqueados). Deseja continuar?";
         if (!window.confirm(confirmMsg)) return;
 
-        if (addNotification) addNotification('Exportando...', 'Iniciando exportação dos palpites.', 'info');
-        setExporting(true);
-
-        // Filter: only matches with both scores filled
+        // Filter synchonously first
         const toExport = Object.entries(simulatedScores)
             .filter(([_, s]: [string, any]) => s.home !== null && s.away !== null && s.home !== undefined && s.away !== undefined)
             .map(([matchId, s]: [string, any]) => {
@@ -387,29 +370,30 @@ export const SimulatePage: React.FC = () => {
 
         if (toExport.length === 0) return alert('Nenhum jogo preenchido para exportar.');
 
-        // We can use api.predictions.submit
-        // But we need to handle "Locked" check locally or let backend reject?
-        // Backend `submit` usually allows unless locked.
-        // User requirement: "Os únicos palpites que não poderão ser substituídos serão os que já estiverem com os palpites encerrados"
-        // Our existing `submitPrediction` usually handles this or returns error.
-        // The Plan says "Export to League".
+        if (addNotification) addNotification('Exportando...', 'Iniciando exportação dos palpites.', 'info');
+        setExporting(true);
 
-        // Use store function to update local state immediately
-        const success = await submitPredictions(
-            toExport.map(p => ({
-                matchId: p.matchId,
-                home: p.home,
-                away: p.away
-            })),
-            exportLeagueId
-        );
+        try {
+            // Use store function to update local state immediately
+            const success = await submitPredictions(
+                toExport.map(p => ({
+                    matchId: p.matchId,
+                    home: p.home,
+                    away: p.away
+                })),
+                exportLeagueId
+            );
 
-        setExporting(false);
-
-        if (success) {
-            if (addNotification) addNotification('Exportado!', 'Palpites exportados para a liga com sucesso.', 'success');
-        } else {
-            alert('Erro na exportação. Verifique se há jogos bloqueados.');
+            if (success) {
+                if (addNotification) addNotification('Exportado!', 'Palpites exportados para a liga com sucesso.', 'success');
+            } else {
+                alert('Erro na exportação. Verifique se há jogos bloqueados.');
+            }
+        } catch (error) {
+            console.error(error);
+            alert('Ocorreu um erro inesperado durante a exportação.');
+        } finally {
+            setExporting(false);
         }
     };
 
