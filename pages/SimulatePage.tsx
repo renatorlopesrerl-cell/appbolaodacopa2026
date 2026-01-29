@@ -384,16 +384,16 @@ export const SimulatePage: React.FC = () => {
                 exportLeagueId
             );
 
+            setExporting(false); // Clear loading state BEFORE success notification
             if (success) {
                 if (addNotification) addNotification('Exportado!', 'Palpites exportados para a liga com sucesso.', 'success');
             } else {
                 alert('Erro na exportação. Verifique se há jogos bloqueados.');
             }
         } catch (error) {
+            setExporting(false);
             console.error(error);
             alert('Ocorreu um erro inesperado durante a exportação.');
-        } finally {
-            setExporting(false);
         }
     };
 
@@ -535,6 +535,7 @@ export const SimulatePage: React.FC = () => {
                     <h1 className="text-2xl font-black text-brasil-blue dark:text-blue-400 flex items-center gap-2">
                         <Trophy className="text-brasil-yellow" fill="currentColor" />
                         Simulador da Copa 2026
+                        <span className="text-xs font-normal text-gray-500 dark:text-gray-400 ml-2">(Horário de Brasília)</span>
                     </h1>
                     <div className="flex flex-wrap gap-2 w-full md:w-auto">
                         <button onClick={handleSave} disabled={saving} className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold transition-colors disabled:opacity-50 flex-1 md:flex-none justify-center ${savedButtonText === 'Salvo!' ? 'bg-green-700 text-white' : 'bg-brasil-green hover:bg-green-700 text-white'}`}>
