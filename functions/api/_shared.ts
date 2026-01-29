@@ -1,0 +1,58 @@
+
+import { createClient } from '@supabase/supabase-js';
+
+// ---- Response Helpers ----
+
+export function jsonResponse(data: any, status = 200) {
+    return new Response(JSON.stringify(data), {
+        status,
+        headers: { 'Content-Type': 'application/json' }
+    });
+}
+
+export function errorResponse(error: any, statusOverride?: number) {
+    const status = statusOverride || (error.message === 'Unauthorized' ? 401 :
+        error.message === 'Forbidden' ? 403 :
+            error.message === 'Service Unavailable' ? 503 : 500);
+
+    return jsonResponse({ error: error.message || "Internal Server Error" }, status);
+}
+
+// ---- Supabase Clients ----
+
+export function getSupabaseClient(env: any) {
+    return createClient(
+        env.SUPABASE_URL,
+        env.SUPABASE_ANON_KEY
+    );
+}
+
+export function getUserClient(env: any, request: Request) {
+    const authHeader = request.headers.get('Authorization');
+    return createClient(
+        env.SUPABASE_URL,
+        env.SUPABASE_ANON_KEY,
+        {
+            global: {
+                headers: authHeader ? { 'Authorization': authHeader } : undefined
+            }
+        }
+    );
+}
+
+// ---- Utils ----
+
+export async function withRetry<T>(fn: () => Promise<{ data: T | null; error: any }>, retries = 3): Promise<T | null> {
+    try {
+        const { data, error } = await fn();
+        if (error) throw error;
+        return data;
+    } catch (error: any) {
+        if (retries > 0) {
+            await new Promise(res => setTimeout(res, 1000));
+            return withRetry(fn, retries - 1);
+        }
+        console.error("Supabase API Error after retries:", error.message || error);
+        throw error;
+    }
+}

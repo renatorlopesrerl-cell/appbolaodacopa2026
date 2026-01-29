@@ -1,9 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabase = createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_ANON_KEY!
-)
+
 
 async function retry(fn, attempts = 3) {
     for (let i = 0; i < attempts; i++) {
@@ -16,7 +13,17 @@ async function retry(fn, attempts = 3) {
     }
 }
 
-export const onRequest = async ({ request, next }) => {
+export const onRequest = async ({ request, env, next }) => {
+    // Public routes (no auth required)
+    if (request.url.includes('/health')) {
+        return next()
+    }
+
+    const supabase = createClient(
+        env.SUPABASE_URL,
+        env.SUPABASE_ANON_KEY
+    )
+
     const authHeader = request.headers.get('Authorization')
 
     if (!authHeader) {
@@ -49,9 +56,6 @@ export const onRequest = async ({ request, next }) => {
     }
 
     request.user = userData.user
-  if (!request.url.includes('/api')) {
-    return next()
-  }
 
-  // valida token só para API
+    return next()
 }
