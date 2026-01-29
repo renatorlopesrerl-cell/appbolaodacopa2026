@@ -128,7 +128,7 @@ export const TablePage: React.FC = () => {
       </div>
 
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <h1 className="text-2xl font-bold text-brasil-green dark:text-green-400">Tabela Copa 2026</h1>
+        <h1 className="text-2xl font-bold text-brasil-green dark:text-green-400">Tabela da Copa 2026</h1>
         <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 bg-white dark:bg-gray-800 px-3 py-1 rounded-full shadow-sm">
           <Clock size={12} />
           Todos os horários estão em Brasília (BRT)

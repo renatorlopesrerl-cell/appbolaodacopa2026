@@ -48,8 +48,9 @@ export const SimulatePage: React.FC = () => {
     const [saving, setSaving] = useState(false);
     const [exportLeagueId, setExportLeagueId] = useState<string>('');
     const [importLeagueId, setImportLeagueId] = useState<string>('');
-    const [exportScope, setExportScope] = useState<'all' | 'group'>('all');
+    const [exportScope, setExportScope] = useState<'all' | 'group' | 'knockout'>('all');
     const [exportGroup, setExportGroup] = useState<string>('A');
+    const [exportPhase, setExportPhase] = useState<string>('all'); // 'all' or specific Phase value
 
     // Load Simulation on Mount
     useEffect(() => {
@@ -313,9 +314,7 @@ export const SimulatePage: React.FC = () => {
                 userId: currentUser.id,
                 simulationData: simulatedScores
             });
-            // eslint-disable-next-line
-            // @ts-ignore
-            if (useStore().addNotification) useStore().addNotification('Salvo', 'Simulação salva com sucesso!', 'success'); // Hack access
+            if (addNotification) addNotification('Salvo', 'Simulação salva com sucesso!', 'success');
         } catch (e) {
             console.error(e);
             alert('Erro ao salvar');
@@ -331,13 +330,19 @@ export const SimulatePage: React.FC = () => {
 
         // Filter: only matches with both scores filled
         const toExport = Object.entries(simulatedScores)
-            .filter(([_, s]) => s.home !== null && s.away !== null && s.home !== undefined && s.away !== undefined)
-            .map(([matchId, s]) => {
-                // If scope is 'group' and we selected a group, filter
+            .filter(([_, s]: [string, any]) => s.home !== null && s.away !== null && s.home !== undefined && s.away !== undefined)
+            .map(([matchId, s]: [string, any]) => {
+                const m = INITIAL_MATCHES.find(x => x.id === matchId);
+
+                // Filter by Scope
                 if (exportScope === 'group') {
-                    const m = INITIAL_MATCHES.find(x => x.id === matchId);
+                    if (m?.phase !== Phase.GROUP) return null;
                     if (m?.group !== exportGroup) return null;
+                } else if (exportScope === 'knockout') {
+                    if (m?.phase === Phase.GROUP) return null; // Exclude groups
+                    if (exportPhase !== 'all' && m?.phase !== exportPhase) return null;
                 }
+
                 return { matchId, home: s.home, away: s.away };
             })
             .filter(Boolean) as { matchId: string, home: number, away: number }[];
@@ -474,7 +479,7 @@ export const SimulatePage: React.FC = () => {
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
                     <h1 className="text-2xl font-black text-brasil-blue dark:text-blue-400 flex items-center gap-2">
                         <Trophy className="text-brasil-yellow" fill="currentColor" />
-                        Simulador Copa 2026
+                        Simulador da Copa 2026
                     </h1>
                     <div className="flex flex-wrap gap-2 w-full md:w-auto">
                         <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 bg-brasil-green hover:bg-green-700 text-white px-4 py-2 rounded-lg font-bold transition-colors disabled:opacity-50 flex-1 md:flex-none justify-center">
@@ -503,11 +508,22 @@ export const SimulatePage: React.FC = () => {
                         <div className="flex items-center gap-2 text-xs">
                             <select className="bg-transparent border-b border-gray-300 py-1" value={exportScope} onChange={(e: any) => setExportScope(e.target.value)}>
                                 <option value="all">Tudo</option>
-                                <option value="group">Apenas Grupo</option>
+                                <option value="group">Apenas Grupos</option>
+                                <option value="knockout">Mata-mata</option>
                             </select>
                             {exportScope === 'group' && (
                                 <select className="bg-transparent border-b border-gray-300 py-1" value={exportGroup} onChange={e => setExportGroup(e.target.value)}>
                                     {groups.map(g => <option key={g} value={g}>Grupo {g}</option>)}
+                                </select>
+                            )}
+                            {exportScope === 'knockout' && (
+                                <select className="bg-transparent border-b border-gray-300 py-1" value={exportPhase} onChange={e => setExportPhase(e.target.value)}>
+                                    <option value="all">Todas as Fases</option>
+                                    <option value={Phase.ROUND_32}>16-avos</option>
+                                    <option value={Phase.ROUND_16}>Oitavas</option>
+                                    <option value={Phase.QUARTER}>Quartas</option>
+                                    <option value={Phase.SEMI}>Semi</option>
+                                    <option value={Phase.FINAL}>Final</option>
                                 </select>
                             )}
                         </div>

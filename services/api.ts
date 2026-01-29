@@ -80,25 +80,15 @@ export const api = {
             return data;
         },
         save: async (data: { userId: string, simulationData: any }) => {
-            // Check if exists
-            const { data: existing } = await supabase
+            const { error } = await supabase
                 .from('user_simulations')
-                .select('id')
-                .eq('user_id', data.userId)
-                .single();
+                .upsert({
+                    user_id: data.userId,
+                    simulation_data: data.simulationData,
+                    updated_at: new Date().toISOString()
+                }, { onConflict: 'user_id' });
 
-            if (existing) {
-                const { error } = await supabase
-                    .from('user_simulations')
-                    .update({ simulation_data: data.simulationData, updated_at: new Date() })
-                    .eq('user_id', data.userId);
-                if (error) throw error;
-            } else {
-                const { error } = await supabase
-                    .from('user_simulations')
-                    .insert({ user_id: data.userId, simulation_data: data.simulationData });
-                if (error) throw error;
-            }
+            if (error) throw error;
         }
     }
 };
