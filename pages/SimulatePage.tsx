@@ -358,7 +358,7 @@ export const SimulatePage: React.FC = () => {
                 // Filter by Scope
                 if (exportScope === 'group') {
                     if (m?.phase !== Phase.GROUP) return null;
-                    if (m?.group !== exportGroup) return null;
+                    if (exportGroup !== 'all' && m?.group !== exportGroup) return null;
                 } else if (exportScope === 'knockout') {
                     if (m?.phase === Phase.GROUP) return null; // Exclude groups
                     if (exportPhase !== 'all' && m?.phase !== exportPhase) return null;
@@ -616,7 +616,7 @@ export const SimulatePage: React.FC = () => {
                 </div>
 
                 {/* IMPORT / EXPORT CONTROLS */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 dark:bg-gray-900/50 p-3 rounded-lg border border-gray-200 dark:border-gray-600">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 dark:bg-gray-900/50 p-3 rounded-lg border border-gray-200 dark:border-gray-600 mt-6">
                     {/* Export */}
                     <div className="flex flex-col gap-2">
                         <span className="text-xs font-bold text-gray-500 uppercase flex items-center gap-1"><Upload size={12} /> Exportar para Liga</span>
@@ -640,8 +640,8 @@ export const SimulatePage: React.FC = () => {
                                     onChange={(e: any) => setExportScope(e.target.value)}
                                 >
                                     <option value="all">Exportar Tudo</option>
-                                    <option value="group">Apenas Grupos</option>
-                                    <option value="knockout">Apenas Mata-mata</option>
+                                    <option value="group">Grupos</option>
+                                    <option value="knockout">Mata-mata</option>
                                 </select>
 
                                 {exportScope === 'group' && (
@@ -650,6 +650,7 @@ export const SimulatePage: React.FC = () => {
                                         value={exportGroup}
                                         onChange={e => setExportGroup(e.target.value)}
                                     >
+                                        <option value="all">Todos os Grupos</option>
                                         {groups.map(g => <option key={g} value={g}>Grupo {g}</option>)}
                                     </select>
                                 )}
@@ -735,7 +736,7 @@ export const SimulatePage: React.FC = () => {
 
                                 {/* Matches */}
                                 <div className="bg-gray-50/30 dark:bg-gray-900/20 border-t border-gray-100 dark:border-gray-700">
-                                    {groupMatches.filter(m => m.group === group).map(renderMatchInput)}
+                                    {groupMatches.filter(m => m.group === group).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).map(renderMatchInput)}
                                 </div>
                             </div>
                         );
