@@ -714,7 +714,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     try {
       const dbPayload = predictionsToSubmit.map(p => ({ user_id: currentUser.id, match_id: p.matchId, league_id: leagueId, home_score: p.home, away_score: p.away }));
       await api.predictions.submit(dbPayload);
-      addNotification('Palpites Salvos', 'Seus palpites foram registrados.', 'success');
+// Notification handled by caller
       return true;
     } catch (e) {
       addNotification('Erro', 'Falha ao salvar palpites.', 'warning');
