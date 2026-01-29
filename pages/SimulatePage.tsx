@@ -4,7 +4,7 @@ import { useStore } from '../App';
 import { Match, MatchStatus, Phase, GroupStanding, Team } from '../types';
 import { GROUPS_CONFIG, calculateStandings, getTeamFlag, INITIAL_MATCHES } from '../services/dataService';
 import { api } from '../services/api';
-import { Save, Upload, Download, RefreshCw, Trophy, ArrowRight, AlertTriangle, CheckCircle, Info, Loader2, Filter, ChevronDown, X } from 'lucide-react';
+import { Save, Upload, Download, RefreshCw, Trophy, ArrowRight, AlertTriangle, CheckCircle, Info, Loader2, Filter, ChevronDown, X, Trash2 } from 'lucide-react';
 
 // --- THIRD PLACE RANKING LOGIC (USER PROVIDED) ---
 type ThirdPlaceTeam = {
@@ -183,23 +183,54 @@ export const SimulatePage: React.FC = () => {
         // Create a map for quick update
         const resolvedThirds: Record<string, string> = {};
 
-        for (const m of matchesToResolve) {
-            const allowed = matchThirdsMap[m.id];
-            const bestThird = rankedThirds.find(t => allowed.includes(t.group) && !usedGroups.has(t.group));
+        // Recursive backtracking to assign thirds
+        const assignThirds = (
+            matches: { id: string, phase: string, homeTeamId: string, awayTeamId: string }[],
+            thirds: ThirdPlaceTeam[],
+            used: Set<string> = new Set()
+        ): boolean => {
+            if (matches.length === 0) return true;
 
-            if (bestThird) {
-                usedGroups.add(bestThird.group);
-                resolvedThirds[m.id] = bestThird.team;
-            } else {
-                resolvedThirds[m.id] = 'A Definir (3º)';
-                // Conflict or not enough thirds computed yet
+            const match = matches[0];
+            const allowed = matchThirdsMap[match.id];
+
+            // If match doesn't have restrictions (shouldn't happen in this list), proceed
+            if (!allowed) return assignThirds(matches.slice(1), thirds, used);
+
+            for (const third of thirds) {
+                if (allowed.includes(third.group) && !used.has(third.group)) {
+                    // Try assigning
+                    resolvedThirds[match.id] = third.team;
+                    used.add(third.group);
+
+                    // Recurse
+                    if (assignThirds(matches.slice(1), thirds, used)) {
+                        return true;
+                    }
+
+                    // Rollback
+                    delete resolvedThirds[match.id];
+                    used.delete(third.group);
+                }
             }
+
+            return false;
+        };
+
+        const success = assignThirds(matchesToResolve, rankedThirds);
+
+        if (!success) {
+            console.warn("Could not find a valid assignment for all 3rd places.");
         }
 
         currentMatches = currentMatches.map(m => {
             if (m.phase !== Phase.ROUND_32) return m;
             if (resolvedThirds[m.id]) {
                 return { ...m, awayTeamId: resolvedThirds[m.id] };
+            }
+            // Ensure matches that NEEDED specific 3rd but failed get marked
+            if (matchThirdsMap[m.id] && !resolvedThirds[m.id]) {
+                return { ...m, awayTeamId: 'Conflito (3º)' };
             }
             return m;
         });
@@ -332,6 +363,7 @@ export const SimulatePage: React.FC = () => {
         const confirmMsg = "Isso substituirá seus palpites existentes nesta liga (exceto jogos bloqueados). Deseja continuar?";
         if (!window.confirm(confirmMsg)) return;
 
+        if (addNotification) addNotification('Exportando...', 'Iniciando exportação dos palpites.', 'info');
         setExporting(true);
 
         // Filter: only matches with both scores filled
@@ -378,6 +410,21 @@ export const SimulatePage: React.FC = () => {
             if (addNotification) addNotification('Exportado!', 'Palpites exportados para a liga com sucesso.', 'success');
         } else {
             alert('Erro na exportação. Verifique se há jogos bloqueados.');
+        }
+    };
+
+    const handleClear = async () => {
+        if (!window.confirm('Tem certeza que deseja limpar TODAS as simulações e começar do zero? Essa ação não pode ser desfeita.')) return;
+
+        setSimulatedScores({});
+        if (currentUser) {
+            try {
+                await api.simulations.save({ userId: currentUser.id, simulationData: {} });
+                if (addNotification) addNotification('Limpo', 'Simulador limpo com sucesso.', 'info');
+            } catch (e) {
+                console.error(e);
+                if (addNotification) addNotification('Erro', 'Erro ao limpar dados no servidor.', 'warning');
+            }
         }
     };
 
@@ -514,6 +561,10 @@ export const SimulatePage: React.FC = () => {
                             <RefreshCw size={18} />
                             Sincronizar Reais
                         </button>
+                        <button onClick={handleClear} className="flex items-center gap-2 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 px-4 py-2 rounded-lg font-bold transition-colors flex-1 md:flex-none justify-center">
+                            <Trash2 size={18} />
+                            Limpar
+                        </button>
                     </div>
                 </div>
 
@@ -586,27 +637,45 @@ export const SimulatePage: React.FC = () => {
                             </button>
                         </div>
                         {exporting && <span className="text-[10px] text-blue-600 font-bold animate-pulse">Exportando palpites...</span>}
-                        <div className="flex items-center gap-2 text-xs">
-                            <select className="bg-transparent border-b border-gray-300 py-1" value={exportScope} onChange={(e: any) => setExportScope(e.target.value)}>
-                                <option value="all">Tudo</option>
-                                <option value="group">Apenas Grupos</option>
-                                <option value="knockout">Mata-mata</option>
-                            </select>
-                            {exportScope === 'group' && (
-                                <select className="bg-transparent border-b border-gray-300 py-1" value={exportGroup} onChange={e => setExportGroup(e.target.value)}>
-                                    {groups.map(g => <option key={g} value={g}>Grupo {g}</option>)}
+
+                        <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-blue-100 dark:border-blue-900/30 flex flex-col gap-2 shadow-sm">
+                            <span className="text-[10px] uppercase font-black text-blue-600 dark:text-blue-400 tracking-wider">Filtros de Exportação</span>
+                            <div className="flex flex-wrap gap-2">
+                                <select
+                                    className="bg-gray-100 dark:bg-gray-700 border-none rounded-md py-1.5 px-3 text-xs font-bold text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-brasil-blue cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                                    value={exportScope}
+                                    onChange={(e: any) => setExportScope(e.target.value)}
+                                >
+                                    <option value="all">Exportar Tudo</option>
+                                    <option value="group">Apenas Grupos</option>
+                                    <option value="knockout">Apenas Mata-mata</option>
                                 </select>
-                            )}
-                            {exportScope === 'knockout' && (
-                                <select className="bg-transparent border-b border-gray-300 py-1" value={exportPhase} onChange={e => setExportPhase(e.target.value)}>
-                                    <option value="all">Todas as Fases</option>
-                                    <option value={Phase.ROUND_32}>16-avos</option>
-                                    <option value={Phase.ROUND_16}>Oitavas</option>
-                                    <option value={Phase.QUARTER}>Quartas</option>
-                                    <option value={Phase.SEMI}>Semi</option>
-                                    <option value={Phase.FINAL}>Final</option>
-                                </select>
-                            )}
+
+                                {exportScope === 'group' && (
+                                    <select
+                                        className="bg-gray-100 dark:bg-gray-700 border-none rounded-md py-1.5 px-3 text-xs font-bold text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-brasil-blue cursor-pointer animate-in fade-in slide-in-from-left-2"
+                                        value={exportGroup}
+                                        onChange={e => setExportGroup(e.target.value)}
+                                    >
+                                        {groups.map(g => <option key={g} value={g}>Grupo {g}</option>)}
+                                    </select>
+                                )}
+
+                                {exportScope === 'knockout' && (
+                                    <select
+                                        className="bg-gray-100 dark:bg-gray-700 border-none rounded-md py-1.5 px-3 text-xs font-bold text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-brasil-blue cursor-pointer animate-in fade-in slide-in-from-left-2"
+                                        value={exportPhase}
+                                        onChange={e => setExportPhase(e.target.value)}
+                                    >
+                                        <option value="all">Todas as Fases</option>
+                                        <option value={Phase.ROUND_32}>16-avos</option>
+                                        <option value={Phase.ROUND_16}>Oitavas</option>
+                                        <option value={Phase.QUARTER}>Quartas</option>
+                                        <option value={Phase.SEMI}>Semi</option>
+                                        <option value={Phase.FINAL}>Final</option>
+                                    </select>
+                                )}
+                            </div>
                         </div>
                     </div>
 
