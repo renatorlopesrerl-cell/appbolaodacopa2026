@@ -346,57 +346,66 @@ export const SimulatePage: React.FC = () => {
     };
 
     const handleExport = async () => {
-        if (!exportLeagueId) return alert('Selecione uma liga');
-        const confirmMsg = "Isso substituirá seus palpites existentes nesta liga (exceto jogos bloqueados). Deseja continuar?";
-        if (!window.confirm(confirmMsg)) return;
+        if (!exportLeagueId) { alert('Selecione uma liga.'); return; }
+        if (Object.keys(simulatedScores).length === 0) { alert('Não há palpites simulados.'); return; }
 
-        // Filter synchonously first
-        const toExport = Object.entries(simulatedScores)
-            .filter(([_, s]: [string, any]) => s.home !== null && s.away !== null && s.home !== undefined && s.away !== undefined)
-            .map(([matchId, s]: [string, any]) => {
-                const m = matches.find(x => x.id === matchId);
-
-                // Filter by Scope
-                if (exportScope === 'group') {
-                    if (m?.phase !== Phase.GROUP) return null;
-                    if (exportGroup !== 'all' && m?.group !== exportGroup) return null;
-                } else if (exportScope === 'knockout') {
-                    if (m?.phase === Phase.GROUP) return null; // Exclude groups
-                    if (exportPhase !== 'all' && m?.phase !== exportPhase) return null;
-                }
-
-                return { matchId, home: s.home, away: s.away };
-            })
-            .filter(Boolean) as { matchId: string, home: number, away: number }[];
-
-        if (toExport.length === 0) return alert('Nenhum jogo preenchido para exportar.');
-
-        if (toExport.length === 0) return alert('Nenhum jogo preenchido para exportar.');
-
-        // Removed 'Exportando...' notification to avoid overlap
         setExporting(true);
-
         try {
-            // Use store function to update local state immediately
-            const success = await submitPredictions(
-                toExport.map(p => ({
-                    matchId: p.matchId,
-                    home: p.home,
-                    away: p.away
-                })),
-                exportLeagueId
-            );
+            const predsToExport: { matchId: string, home: number, away: number }[] = [];
+            const now = new Date();
+            let lockedCount = 0;
 
-            setExporting(false); // Clear loading state BEFORE success notification
-            if (success) {
-                if (addNotification) addNotification('Exportado!', 'Palpites exportados para a liga com sucesso.', 'success');
-            } else {
-                alert('Erro na exportação. Verifique se há jogos bloqueados.');
+            Object.entries(simulatedScores).forEach(([mId, score]) => {
+                const match = matches.find(m => m.id === mId);
+                if (match) {
+                    // Check if match is locked (started or < 5 min to start)
+                    const matchDate = new Date(match.date);
+                    const diffMs = matchDate.getTime() - now.getTime();
+                    // isPredictionLocked logic: < 5 min or ongoing/finished
+                    const isLocked = diffMs < 5 * 60 * 1000 || match.status !== MatchStatus.SCHEDULED;
+
+                    if (isLocked) {
+                        lockedCount++;
+                        return; // Skip locked match
+                    }
+
+                    if (exportScope === 'all') {
+                        predsToExport.push({ matchId: mId, home: score.home, away: score.away });
+                    } else if (exportScope === 'group') {
+                        if (match.phase === Phase.GROUP) {
+                            if (match.group === exportGroup) predsToExport.push({ matchId: mId, home: score.home, away: score.away });
+                        }
+                    } else if (exportScope === 'knockout') {
+                        if (match.phase !== Phase.GROUP) {
+                            if (exportPhase === 'all' || match.phase === exportPhase) {
+                                predsToExport.push({ matchId: mId, home: score.home, away: score.away });
+                            }
+                        }
+                    }
+                }
+            });
+
+            if (predsToExport.length === 0) {
+                if (lockedCount > 0) {
+                    alert(`Nenhum palpite exportado. ${lockedCount} jogos foram ignorados pois já estão bloqueados ou finalizados.`);
+                } else {
+                    alert('Nenhum jogo corresponde aos filtros selecionados.');
+                }
+                setExporting(false);
+                return;
             }
-        } catch (error) {
+
+            await submitPredictions(predsToExport, exportLeagueId);
+
+            let msg = `Sucesso! ${predsToExport.length} palpites exportados.`;
+            if (lockedCount > 0) msg += ` (${lockedCount} ignorados por bloqueio)`;
+
+            addNotification('Exportação Concluída', msg, 'success');
+        } catch (e) {
+            console.error(e);
+            alert('Erro ao exportar.');
+        } finally {
             setExporting(false);
-            console.error(error);
-            alert('Ocorreu um erro inesperado durante a exportação.');
         }
     };
 
@@ -716,9 +725,9 @@ export const SimulatePage: React.FC = () => {
                                     </thead>
                                     <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
                                         {teamStandings.map((t, i) => (
-                                            <tr key={t.teamId} className={`${i < 2 ? 'bg-green-50/50 dark:bg-green-900/10' : (i === 2 ? 'bg-yellow-50/30' : '')}`}>
+                                            <tr key={t.teamId} className={`${i < 2 ? 'bg-green-100 dark:bg-green-900/40' : (i === 2 ? 'bg-blue-50 dark:bg-blue-900/20' : '')}`}>
                                                 <td className="pl-3 py-1.5 flex items-center gap-2 font-semibold text-gray-800 dark:text-gray-200">
-                                                    <span className="text-[10px] w-3 text-gray-400">{i + 1}</span>
+                                                    <span className={`text-[10px] w-3 ${i < 2 ? 'text-green-800 dark:text-green-300 font-bold' : (i === 2 ? 'text-blue-700 dark:text-blue-400 font-bold' : 'text-gray-400')}`}>{i + 1}</span>
                                                     <img src={getTeamFlag(t.teamId)} className="w-5 h-3.5 object-cover rounded shadow-sm" />
                                                     <span className="truncate max-w-[100px]">{t.teamId}</span>
                                                 </td>

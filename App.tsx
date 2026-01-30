@@ -513,6 +513,14 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   const createLeague = async (name: string, isPrivate: boolean, settings: any, image: string, description: string): Promise<boolean> => {
     if (!currentUser) return false;
+
+    // Check for existing league with same name
+    const nameExists = leagues.some(l => l.name.toLowerCase() === name.toLowerCase().trim());
+    if (nameExists) {
+      addNotification('Nome Indisponível', 'Já existe uma liga com este nome. Escolha outro.', 'warning');
+      return false;
+    }
+
     try {
       let leagueCode = '';
       const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -524,7 +532,11 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         try {
           addNotification('Processando', 'Enviando logo da liga...', 'info');
           finalImage = await uploadBase64Image(image, 'leagues');
-        } catch (e) { }
+        } catch (e) {
+          console.warn("Image upload failed, using default", e);
+          // Optionally notify user but proceed
+          addNotification('Aviso', 'Erro ao enviar imagem. Criando com imagem padrão.', 'info');
+        }
       }
       const finalSettings = { ...settings, isUnlimited: false, plan: 'FREE' };
       const newLeagueApp: League = {
@@ -532,17 +544,21 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         leagueCode: leagueCode, adminId: currentUser.id, isPrivate, participants: [currentUser.id],
         pendingRequests: [], settings: finalSettings
       };
-      setLeagues(prev => [...prev, newLeagueApp]);
+
       try {
         await api.leagues.create({
           id: newLeagueId, name, image: finalImage, description: description || '',
           league_code: leagueCode, admin_id: currentUser.id, is_private: isPrivate, participants: [currentUser.id],
           pending_requests: [], settings: finalSettings
         });
+
+        // Update state ONLY after successful API call
+        setLeagues(prev => [...prev, newLeagueApp]);
         addNotification('Liga Criada', `A liga "${name}" foi criada!`, 'success');
         return true;
       } catch (err) { throw err; }
     } catch (e: any) {
+      console.error("Create League Error", e);
       addNotification('Erro', 'Ocorreu um erro ao criar a liga.', 'warning');
       return false;
     }

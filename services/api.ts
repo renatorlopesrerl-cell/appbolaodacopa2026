@@ -39,9 +39,21 @@ async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise
 export const api = {
     leagues: {
         list: () => apiFetch<any[]>('/leagues'),
-        create: (data: any) => apiFetch('/leagues', { method: 'POST', body: JSON.stringify(data) }),
-        update: (id: string, data: any) => apiFetch('/leagues', { method: 'PUT', body: JSON.stringify({ id, ...data }) }),
-        delete: (id: string) => apiFetch(`/leagues?id=${id}`, { method: 'DELETE' }), // Owner Delete (api/leagues handles it)
+        create: async (data: any) => {
+            const { error } = await supabase.from('leagues').insert(data);
+            if (error) throw error;
+            return { error: null };
+        },
+        update: async (id: string, data: any) => {
+            const { error } = await supabase.from('leagues').update(data).eq('id', id);
+            if (error) throw error;
+            return { error: null };
+        },
+        delete: async (id: string) => {
+            const { error } = await supabase.from('leagues').delete().eq('id', id);
+            if (error) throw error;
+            return { error: null };
+        },
 
         // Actions
         join: (id: string) => apiFetch('/leagues/join', { method: 'POST', body: JSON.stringify({ id }) }),
