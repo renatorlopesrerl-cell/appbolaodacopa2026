@@ -225,7 +225,7 @@ export const TablePage: React.FC = () => {
                     </thead>
                     <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
                       {standings[group]?.map((team, idx) => (
-                        <tr key={team.teamId} className={`${idx < 2 ? 'bg-blue-100 dark:bg-green-900/40' : (idx === 2 ? 'bg-yellow-50 dark:bg-blue-900/20' : '')}`}>
+                        <tr key={team.teamId} className={`${idx < 2 ? 'bg-blue-50 dark:bg-green-900/40' : (idx === 2 ? 'bg-yellow-50/50 dark:bg-blue-900/20' : '')}`}>
                           <td className="pl-3 py-1.5 flex items-center gap-2 font-semibold text-gray-800 dark:text-gray-200">
                             <span className={`text-[10px] w-3 ${idx < 2 ? 'text-blue-800 dark:text-green-300 font-bold' : (idx === 2 ? 'text-yellow-800 dark:text-blue-400 font-bold' : 'text-gray-400')}`}>{idx + 1}</span>
                             <img src={getTeamFlag(team.teamId)} alt={team.teamId} className="w-7 h-5 object-cover rounded shadow-sm" />

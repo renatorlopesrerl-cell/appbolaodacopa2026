@@ -562,7 +562,7 @@ export const SimulatePage: React.FC = () => {
                         </button>
                         <button onClick={handleSyncReal} className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-lg font-bold transition-colors flex-1 md:flex-none justify-center">
                             <RefreshCw size={18} />
-                            Sincronizar Jogos Finalizados
+                            Sinc. Jogos Finalizados
                         </button>
                         <button onClick={handleClear} className="flex items-center gap-2 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 px-4 py-2 rounded-lg font-bold transition-colors flex-1 md:flex-none justify-center">
                             <Trash2 size={18} />
@@ -725,7 +725,7 @@ export const SimulatePage: React.FC = () => {
                                     </thead>
                                     <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
                                         {teamStandings.map((t, i) => (
-                                            <tr key={t.teamId} className={`${i < 2 ? 'bg-blue-100 dark:bg-green-900/40' : (i === 2 ? 'bg-yellow-50 dark:bg-blue-900/20' : '')}`}>
+                                            <tr key={t.teamId} className={`${i < 2 ? 'bg-blue-50 dark:bg-green-900/40' : (i === 2 ? 'bg-yellow-50/50 dark:bg-blue-900/20' : '')}`}>
                                                 <td className="pl-3 py-1.5 flex items-center gap-2 font-semibold text-gray-800 dark:text-gray-200">
                                                     <span className={`text-[10px] w-3 ${i < 2 ? 'text-blue-800 dark:text-green-300 font-bold' : (i === 2 ? 'text-yellow-800 dark:text-blue-400 font-bold' : 'text-gray-400')}`}>{i + 1}</span>
                                                     <img src={getTeamFlag(t.teamId)} className="w-5 h-3.5 object-cover rounded shadow-sm" />
