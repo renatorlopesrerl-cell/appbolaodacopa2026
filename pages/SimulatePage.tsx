@@ -5,6 +5,7 @@ import { Match, MatchStatus, Phase, GroupStanding, Team } from '../types';
 import { GROUPS_CONFIG, calculateStandings, getTeamFlag, INITIAL_MATCHES } from '../services/dataService';
 import { api } from '../services/api';
 import { Save, Upload, Download, RefreshCw, Trophy, ArrowRight, AlertTriangle, CheckCircle, Info, Loader2, Filter, ChevronDown, X, Trash2 } from 'lucide-react';
+import { supabase } from '../services/supabase';
 
 // --- THIRD PLACE RANKING LOGIC (USER PROVIDED) ---
 type ThirdPlaceTeam = {
@@ -425,26 +426,47 @@ export const SimulatePage: React.FC = () => {
     };
 
     const handleImport = async () => {
-        if (!importLeagueId) return alert('Selecione uma liga');
-        if (!window.confirm('Importar substituirá sua simulação atual. Continuar?')) return;
+        if (!importLeagueId || !currentUser) return alert('Selecione uma liga');
+        if (!window.confirm('Importar substituirá sua simulação atual. Jogos já iniciados ou finalizados não serão alterados. Continuar?')) return;
 
         try {
-            // We need to fetch predictions for that league.
-            // Our `api` doesn't have `listByLeague`. `list` returns all user predictions.
-            // We filter by league locally.
-            const allPreds = await api.predictions.list();
-            const leaguePreds = allPreds.filter((p: any) => p.league_id === importLeagueId);
+            // Fetch directly from DB to avoid stale data
+            const { data: leaguePreds, error } = await supabase
+                .from('predictions')
+                .select('*')
+                .eq('league_id', importLeagueId)
+                .eq('user_id', currentUser.id);
 
-            const newScores = { ...simulatedScores };
+            if (error) throw error;
+            if (!leaguePreds) return;
+
+            const newSim = { ...simulatedScores };
+            let importedCount = 0;
+            const now = new Date();
+
             leaguePreds.forEach((p: any) => {
-                if (p.home_score !== null && p.away_score !== null) {
-                    newScores[p.match_id] = { home: parseInt(p.home_score), away: parseInt(p.away_score) };
+                const match = matches.find(m => m.id === p.match_id);
+                if (match) {
+                    const matchDate = new Date(match.date);
+                    const diffMs = matchDate.getTime() - now.getTime();
+                    // Lock if < 5 mins or not SCHEDULED
+                    const isLocked = diffMs < 5 * 60 * 1000 || match.status !== MatchStatus.SCHEDULED;
+
+                    if (!isLocked && p.home_score !== null && p.away_score !== null) {
+                        newSim[p.match_id] = { home: parseInt(p.home_score), away: parseInt(p.away_score) };
+                        importedCount++;
+                    }
                 }
             });
-            setSimulatedScores(newScores);
-            alert('Importado com sucesso!');
+            setSimulatedScores(newSim);
+            if (addNotification) {
+                addNotification('Importado', `${importedCount} palpites importados com sucesso.`, 'success');
+            } else {
+                alert(`${importedCount} palpites importados com sucesso.`);
+            }
         } catch (e) {
-            alert('Erro ao importar');
+            console.error("Import Error", e);
+            alert('Erro ao importar palpites.');
         }
     };
 
@@ -725,7 +747,7 @@ export const SimulatePage: React.FC = () => {
                                     </thead>
                                     <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
                                         {teamStandings.map((t, i) => (
-                                            <tr key={t.teamId} className={`${i < 2 ? 'bg-blue-50 dark:bg-green-900/40' : (i === 2 ? 'bg-yellow-50/50 dark:bg-blue-900/20' : '')}`}>
+                                            <tr key={t.teamId} className={`${i < 2 ? 'bg-blue-50/50 dark:bg-green-900/40' : (i === 2 ? 'bg-yellow-50/50 dark:bg-blue-900/20' : '')}`}>
                                                 <td className="pl-3 py-1.5 flex items-center gap-2 font-semibold text-gray-800 dark:text-gray-200">
                                                     <span className={`text-[10px] w-3 ${i < 2 ? 'text-blue-800 dark:text-green-300 font-bold' : (i === 2 ? 'text-yellow-800 dark:text-blue-400 font-bold' : 'text-gray-400')}`}>{i + 1}</span>
                                                     <img src={getTeamFlag(t.teamId)} className="w-5 h-3.5 object-cover rounded shadow-sm" />
