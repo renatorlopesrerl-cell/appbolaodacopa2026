@@ -106,7 +106,7 @@ export const getLeagueLimit = (league: League): number => {
     case 'VIP': return 100;
     case 'VIP_BASIC': return 50;
     case 'FREE':
-    default: return 5;
+    default: return 10;
   }
 };
 
@@ -762,7 +762,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           points: p.points ? Number(p.points) : 0
         }));
         setPredictions(mappedPreds);
-        addNotification('Atualizado', 'Palpites sincronizados (Seguro).', 'info');
+        addNotification('Atualizado', 'Palpites sincronizados com sucesso.', 'success');
       }
     } catch (e) {
       console.error("Refresh Preds Error", e);
