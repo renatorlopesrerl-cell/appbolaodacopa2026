@@ -85,6 +85,7 @@ interface AppState {
   connectionError: boolean;
   retryConnection: () => void;
   addNotification: (title: string, message: string, type: 'success' | 'info' | 'warning') => void;
+  refreshPredictions: () => Promise<void>;
 }
 
 const AppContext = createContext<AppState | null>(null);
@@ -735,6 +736,23 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   const syncInitialMatches = async () => { };
 
+  const refreshPredictions = async () => {
+    try {
+      const predsData = await api.predictions.list();
+      if (predsData) {
+        const mappedPreds: Prediction[] = predsData.map((p: any) => ({
+          userId: p.user_id, matchId: p.match_id, leagueId: p.league_id,
+          homeScore: Number(p.home_score), awayScore: Number(p.away_score),
+          points: p.points ? Number(p.points) : 0
+        }));
+        setPredictions(mappedPreds);
+        addNotification('Atualizado', 'Palpites sincronizados (Seguro).', 'info');
+      }
+    } catch (e) {
+      console.error("Refresh Preds Error", e);
+    }
+  };
+
   useEffect(() => {
     if (!currentUser?.isAdmin || loading) return;
     const matchesToStart = matches.filter(m => m.status === MatchStatus.SCHEDULED && new Date(m.date) <= currentTime);
@@ -751,7 +769,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       currentUser, users, matches, leagues, predictions, currentTime, notifications, loading, invitations,
       setCurrentTime, loginGoogle, signInWithEmail, signUpWithEmail, logout, createLeague, updateLeague, joinLeague, deleteLeague, approveUser, rejectUser,
       removeUserFromLeague, submitPrediction, submitPredictions, simulateMatchResult, updateMatch, removeNotification, updateUserProfile, syncInitialMatches,
-      sendLeagueInvite, respondToInvite, theme, toggleTheme, connectionError, retryConnection, addNotification
+      sendLeagueInvite, respondToInvite, theme, toggleTheme, connectionError, retryConnection, addNotification, refreshPredictions
     }}>
       {children}
     </AppContext.Provider>

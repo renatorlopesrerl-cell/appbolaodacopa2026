@@ -1,0 +1,22 @@
+    const getMatchStats = (matchId: string) => {
+        const matchPreds = predictions.filter(p => p.matchId === matchId && p.leagueId === league.id);
+        const total = matchPreds.length;
+        if (total === 0) return null;
+
+        let homeWins = 0;
+        let draws = 0;
+        let awayWins = 0;
+
+        matchPreds.forEach(p => {
+             if (p.homeScore > p.awayScore) homeWins++;
+             else if (p.awayScore > p.homeScore) awayWins++;
+             else draws++;
+        });
+
+        return {
+            home: Math.round((homeWins / total) * 100),
+            draw: Math.round((draws / total) * 100),
+            away: Math.round((awayWins / total) * 100),
+            total
+        };
+    };

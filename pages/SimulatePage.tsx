@@ -40,7 +40,7 @@ const R32_3RD_PLACE_RULES: Record<string, string[]> = {
 
 export const SimulatePage: React.FC = () => {
     const navigate = useNavigate();
-    const { currentUser, leagues, addNotification, submitPredictions } = useStore();
+    const { currentUser, leagues, addNotification, submitPredictions, matches } = useStore();
     const [savedButtonText, setSavedButtonText] = useState('Salvar');
 
     // State: Simulated Scores (matchId -> {home, away})
@@ -78,11 +78,12 @@ export const SimulatePage: React.FC = () => {
     }, [currentUser]);
 
     // Computed: Simulated Matches (Group Stage only first, then expanded)
-    // We start with INITIAL_MATCHES but override scores with simulatedScores
+    // We start with matches from store but override scores with simulatedScores
     // And status to FINISHED if scored.
 
     const computedMatches = useMemo(() => {
-        let currentMatches = INITIAL_MATCHES.map(m => {
+        // Use matches from store instead of INITIAL_MATCHES
+        let currentMatches = matches.map(m => {
             const sim = simulatedScores[m.id];
             if (sim !== undefined) {
                 return {
@@ -160,7 +161,7 @@ export const SimulatePage: React.FC = () => {
 
         // Map of matchId -> allowedGroups
         const matchThirdsMap: Record<string, string[]> = {};
-        INITIAL_MATCHES.forEach(m => {
+        matches.forEach(m => {
             if (R32_3RD_PLACE_RULES[m.homeTeamId]) {
                 matchThirdsMap[m.id] = R32_3RD_PLACE_RULES[m.homeTeamId];
             }
@@ -296,7 +297,7 @@ export const SimulatePage: React.FC = () => {
 
         return currentMatches;
 
-    }, [simulatedScores]);
+    }, [simulatedScores, matches]);
 
     // Derived Standings for Visualization
     const standings = calculateStandings(computedMatches);
@@ -353,7 +354,7 @@ export const SimulatePage: React.FC = () => {
         const toExport = Object.entries(simulatedScores)
             .filter(([_, s]: [string, any]) => s.home !== null && s.away !== null && s.home !== undefined && s.away !== undefined)
             .map(([matchId, s]: [string, any]) => {
-                const m = INITIAL_MATCHES.find(x => x.id === matchId);
+                const m = matches.find(x => x.id === matchId);
 
                 // Filter by Scope
                 if (exportScope === 'group') {
@@ -441,7 +442,7 @@ export const SimulatePage: React.FC = () => {
     const handleSyncReal = () => {
         if (!window.confirm('Isso atualizará os jogos FINALIZADOS com placares reais. Continuar?')) return;
 
-        const realFinished = INITIAL_MATCHES.filter(m => m.status === MatchStatus.FINISHED);
+        const realFinished = matches.filter(m => m.status === MatchStatus.FINISHED);
         const newScores = { ...simulatedScores };
         let count = 0;
         realFinished.forEach(m => {
@@ -552,7 +553,7 @@ export const SimulatePage: React.FC = () => {
                         </button>
                         <button onClick={handleSyncReal} className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 text-gray-700 dark:text-gray-200 px-4 py-2 rounded-lg font-bold transition-colors flex-1 md:flex-none justify-center">
                             <RefreshCw size={18} />
-                            Sincronizar Reais
+                            Sincronizar Jogos Finalizados
                         </button>
                         <button onClick={handleClear} className="flex items-center gap-2 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 px-4 py-2 rounded-lg font-bold transition-colors flex-1 md:flex-none justify-center">
                             <Trash2 size={18} />
