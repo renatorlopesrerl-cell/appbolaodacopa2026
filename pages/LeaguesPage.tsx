@@ -18,7 +18,12 @@ export const LeaguesPage: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Settings State
-  const [settings, setSettings] = useState({ exactScore: 10, winnerAndDiff: 7, winner: 5, draw: 5 });
+  const [settings, setSettings] = useState<{
+    exactScore: number | '';
+    winnerAndDiff: number | '';
+    winner: number | '';
+    draw: number | '';
+  }>({ exactScore: 10, winnerAndDiff: 7, winner: 5, draw: 7 });
 
   if (loading) {
     return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin text-brasil-green" size={48} /></div>;
@@ -32,17 +37,27 @@ export const LeaguesPage: React.FC = () => {
     setNewLeagueDescription('');
     setLeagueImage('');
     setIsPrivate(true);
-    setSettings({ exactScore: 10, winnerAndDiff: 7, winner: 5, draw: 5 });
+    setSettings({ exactScore: 10, winnerAndDiff: 7, winner: 5, draw: 7 });
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate Settings
+    if (settings.exactScore === '' || settings.winnerAndDiff === '' || settings.winner === '' || settings.draw === '') {
+      alert("Por favor, preencha todos os campos de pontuação.");
+      return;
+    }
+
     setIsCreating(true);
 
     try {
       const finalSettings = {
-        ...settings
+        exactScore: Number(settings.exactScore),
+        winnerAndDiff: Number(settings.winnerAndDiff),
+        winner: Number(settings.winner),
+        draw: Number(settings.draw)
       };
 
       const success = await createLeague(newLeagueName, isPrivate, finalSettings, leagueImage, newLeagueDescription);
@@ -327,19 +342,43 @@ export const LeaguesPage: React.FC = () => {
                 <div className="grid grid-cols-2 gap-3 text-sm text-gray-700 dark:text-gray-300">
                   <div>
                     <label>Placar Exato</label>
-                    <input type="number" min="0" value={settings.exactScore} onChange={e => setSettings({ ...settings, exactScore: parseInt(e.target.value) || 0 })} className="w-full border border-gray-600 bg-gray-700 text-white p-1 rounded" />
+                    <input
+                      type="number"
+                      min="0"
+                      value={settings.exactScore}
+                      onChange={e => setSettings({ ...settings, exactScore: e.target.value === '' ? '' : parseInt(e.target.value) })}
+                      className="w-full border border-gray-600 bg-gray-700 text-white p-1 rounded"
+                    />
                   </div>
                   <div>
                     <label>Vencedor + SG</label>
-                    <input type="number" min="0" value={settings.winnerAndDiff} onChange={e => setSettings({ ...settings, winnerAndDiff: parseInt(e.target.value) || 0 })} className="w-full border border-gray-600 bg-gray-700 text-white p-1 rounded" />
+                    <input
+                      type="number"
+                      min="0"
+                      value={settings.winnerAndDiff}
+                      onChange={e => setSettings({ ...settings, winnerAndDiff: e.target.value === '' ? '' : parseInt(e.target.value) })}
+                      className="w-full border border-gray-600 bg-gray-700 text-white p-1 rounded"
+                    />
                   </div>
                   <div>
                     <label>Vencedor</label>
-                    <input type="number" min="0" value={settings.winner} onChange={e => setSettings({ ...settings, winner: parseInt(e.target.value) || 0 })} className="w-full border border-gray-600 bg-gray-700 text-white p-1 rounded" />
+                    <input
+                      type="number"
+                      min="0"
+                      value={settings.winner}
+                      onChange={e => setSettings({ ...settings, winner: e.target.value === '' ? '' : parseInt(e.target.value) })}
+                      className="w-full border border-gray-600 bg-gray-700 text-white p-1 rounded"
+                    />
                   </div>
                   <div>
                     <label>Empate (Ñ Exato)</label>
-                    <input type="number" min="0" value={settings.draw} onChange={e => setSettings({ ...settings, draw: parseInt(e.target.value) || 0 })} className="w-full border border-gray-600 bg-gray-700 text-white p-1 rounded" />
+                    <input
+                      type="number"
+                      min="0"
+                      value={settings.draw}
+                      onChange={e => setSettings({ ...settings, draw: e.target.value === '' ? '' : parseInt(e.target.value) })}
+                      className="w-full border border-gray-600 bg-gray-700 text-white p-1 rounded"
+                    />
                   </div>
                 </div>
               </div>
