@@ -182,7 +182,7 @@ export const LeaguesPage: React.FC = () => {
               const validPendingCount = l.pendingRequests.filter(uid => users.some(u => u.id === uid)).length;
 
               return (
-                <Link to={`/leagues/${l.id}`} key={l.id} className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 hover:border-brasil-blue dark:hover:border-blue-500 transition-all group relative overflow-hidden">
+                <Link to={`/league/${l.id}`} key={l.id} className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 hover:border-brasil-blue dark:hover:border-blue-500 transition-all group relative overflow-hidden">
                   <div className="flex justify-between items-start">
                     <div className="flex items-center gap-3">
                       {l.image ? (

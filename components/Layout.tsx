@@ -79,7 +79,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               return (
                 <Link
                   key={l.id}
-                  to={`/leagues/${l.id}`}
+                  to={`/league/${l.id}`}
                   onClick={() => { setShowNotifications(false); setIsMenuOpen(false); }}
                   className="block p-3 hover:bg-white dark:hover:bg-gray-800 transition-colors group relative"
                 >
