@@ -224,9 +224,12 @@ export const Home: React.FC = () => {
           .then(res => res.json())
           .then((data: any) => {
             if (data.init_point) window.location.href = data.init_point;
-            else alert('Erro ao iniciar pagamento. Tente novamente.');
+            else alert(`Erro ao iniciar pagamento: ${data.error || 'Resposta inválida do servidor'}`);
           })
-          .catch(() => alert('Erro ao conectar com servidor de pagamento.'));
+          .catch((err) => {
+            console.error(err);
+            alert('Erro ao conectar com servidor de pagamento. Verifique o console.');
+          });
       }}>
         <div className="absolute top-0 right-0 p-10 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:scale-110 duration-500">
           <Trophy size={180} className="text-yellow-400" />

@@ -575,9 +575,12 @@ export const SimulatePage: React.FC = () => {
                                 .then(res => res.json())
                                 .then((data: any) => {
                                     if (data.init_point) window.location.href = data.init_point;
-                                    else alert('Erro ao iniciar pagamento. Tente novamente.');
+                                    else alert(`Erro ao iniciar pagamento: ${data.error || 'Resposta inválida do servidor'}`);
                                 })
-                                .catch(() => alert('Erro ao conectar com servidor de pagamento.'));
+                                .catch((err) => {
+                                    console.error(err);
+                                    alert('Erro ao conectar com servidor de pagamento. Verifique o console.');
+                                });
                         }} className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-4 px-8 rounded-xl shadow-lg shadow-yellow-500/20 transition-all transform hover:-translate-y-1 active:scale-95 text-lg flex items-center justify-center gap-2">
                             QUERO SER PRO
                         </button>
