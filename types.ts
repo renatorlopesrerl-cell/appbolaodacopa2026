@@ -47,6 +47,7 @@ export interface User {
     matchEnd: boolean;
   };
   isPro?: boolean;
+  proExpiresAt?: string; // ISO Date String
 }
 
 export interface Prediction {

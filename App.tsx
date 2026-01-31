@@ -31,6 +31,7 @@ import { AdminLeaguesPage } from './pages/AdminLeaguesPage';
 import { AdminMatchesPage } from './pages/AdminMatchesPage';
 import { AdminUsersPage } from './pages/AdminUsersPage';
 import { Login } from './pages/Login';
+import { PaymentSuccess, PaymentFailure, PaymentPending } from './pages/PaymentStatus';
 
 // Services
 import { supabase } from './services/supabase'; // Auth Only
@@ -845,27 +846,71 @@ const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return <>{children}</>;
 };
 
+const AppRoutes: React.FC = () => {
+  const { currentUser, loading, connectionError, retryConnection } = useStore();
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-500">
+        <div className="relative">
+          <div className="w-16 h-16 border-4 border-brasil-blue border-t-brasil-yellow rounded-full animate-spin"></div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-8 h-8 bg-white dark:bg-gray-800 rounded-full"></div>
+          </div>
+        </div>
+        <p className="mt-4 text-gray-500 dark:text-gray-400 font-medium animate-pulse">Carregando...</p>
+      </div>
+    );
+  }
+
+  if (connectionError) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 p-6 text-center">
+        <div className="bg-red-50 dark:bg-red-900/20 p-6 rounded-2xl max-w-md w-full border border-red-100 dark:border-red-800">
+          <AlertCircle size={48} className="text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2">Erro de Conexão</h2>
+          <p className="text-gray-600 dark:text-gray-300 mb-6">Não foi possível conectar ao servidor. Verifique sua internet.</p>
+          <button onClick={retryConnection} className="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-8 rounded-xl transition-colors">
+            Tentar Novamente
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <HashRouter>
+      <Layout>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/table" element={<TablePage />} />
+          <Route path="/leagues" element={currentUser ? <LeaguesPage /> : <Navigate to="/login" />} />
+          <Route path="/league/:id" element={currentUser ? <LeagueDetails /> : <Navigate to="/login" />} />
+          <Route path="/simulador" element={<SimulatePage />} />
+          <Route path="/profile" element={currentUser ? <ProfilePage /> : <Navigate to="/login" />} />
+
+          <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
+          <Route path="/admin/leagues" element={<AdminRoute><AdminLeaguesPage /></AdminRoute>} />
+          <Route path="/admin/matches" element={<AdminRoute><AdminMatchesPage /></AdminRoute>} />
+          <Route path="/admin/users" element={currentUser && currentUser.isAdmin ? <AdminUsersPage /> : <Navigate to="/" />} />
+
+          {/* Payment Routes */}
+          <Route path="/pagamento/sucesso" element={currentUser ? <PaymentSuccess /> : <Navigate to="/login" />} />
+          <Route path="/pagamento/erro" element={currentUser ? <PaymentFailure /> : <Navigate to="/login" />} />
+          <Route path="/pagamento/pendente" element={currentUser ? <PaymentPending /> : <Navigate to="/login" />} />
+
+          <Route path="/login" element={!currentUser ? <Login /> : <Navigate to="/" />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Layout>
+    </HashRouter>
+  );
+};
+
 const App: React.FC = () => {
   return (
     <AppProvider>
-      <HashRouter>
-        <Layout>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/" element={<Home />} />
-            <Route path="/table" element={<ProtectedRoute><TablePage /></ProtectedRoute>} />
-            <Route path="/simulador" element={<ProtectedRoute><SimulatePage /></ProtectedRoute>} />
-            <Route path="/leagues" element={<ProtectedRoute><LeaguesPage /></ProtectedRoute>} />
-            <Route path="/leagues/:id" element={<ProtectedRoute><LeagueDetails /></ProtectedRoute>} />
-            <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-            <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
-            <Route path="/admin/leagues" element={<AdminRoute><AdminLeaguesPage /></AdminRoute>} />
-            <Route path="/admin/matches" element={<AdminRoute><AdminMatchesPage /></AdminRoute>} />
-            <Route path="/admin/users" element={<AdminRoute><AdminUsersPage /></AdminRoute>} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Layout>
-      </HashRouter>
+      <AppRoutes />
     </AppProvider>
   );
 };

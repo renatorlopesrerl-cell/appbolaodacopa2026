@@ -214,7 +214,20 @@ export const Home: React.FC = () => {
       </div>
 
       {/* PRO PLAN CARD - FULL WIDTH */}
-      <div className="group bg-gradient-to-br from-gray-900 to-gray-800 p-8 rounded-2xl shadow-sm hover:shadow-xl transition-all border border-gray-700 hover:border-yellow-500 relative overflow-hidden cursor-pointer" onClick={() => currentUser.isPro ? null : window.open('https://wa.me/5515997165772?text=Quero%20ser%20PRO!', '_blank')}>
+      <div className="group bg-gradient-to-br from-gray-900 to-gray-800 p-8 rounded-2xl shadow-sm hover:shadow-xl transition-all border border-gray-700 hover:border-yellow-500 relative overflow-hidden cursor-pointer" onClick={() => {
+        if (currentUser.isPro) return;
+        fetch("/api/create-payment", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: currentUser.id }),
+        })
+          .then(res => res.json())
+          .then((data: any) => {
+            if (data.init_point) window.location.href = data.init_point;
+            else alert('Erro ao iniciar pagamento. Tente novamente.');
+          })
+          .catch(() => alert('Erro ao conectar com servidor de pagamento.'));
+      }}>
         <div className="absolute top-0 right-0 p-10 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:scale-110 duration-500">
           <Trophy size={180} className="text-yellow-400" />
         </div>
@@ -235,9 +248,11 @@ export const Home: React.FC = () => {
             </p>
 
             {!currentUser.isPro && (
-              <div className="inline-block bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-8 rounded-xl text-base shadow-lg shadow-yellow-500/20 transition-all transform hover:-translate-y-1">
+              <button
+                className="inline-block bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-8 rounded-xl text-base shadow-lg shadow-yellow-500/20 transition-all transform hover:-translate-y-1"
+              >
                 SEJA PRO
-              </div>
+              </button>
             )}
           </div>
         </div>

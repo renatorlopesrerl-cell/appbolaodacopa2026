@@ -566,7 +566,19 @@ export const SimulatePage: React.FC = () => {
                         <p className="text-gray-300 text-lg mb-8 leading-relaxed">
                             O <strong>Simulador da Copa</strong> é exclusivo para membros PRO. Simule resultados da fase de grupos até a final e faça importação e exportação de palpites para as ligas.
                         </p>
-                        <button onClick={() => window.open('https://wa.me/5515997165772?text=Quero%20ser%20PRO!', '_blank')} className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-4 px-8 rounded-xl shadow-lg shadow-yellow-500/20 transition-all transform hover:-translate-y-1 active:scale-95 text-lg flex items-center justify-center gap-2">
+                        <button onClick={() => {
+                            fetch("/api/create-payment", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ userId: currentUser.id }),
+                            })
+                                .then(res => res.json())
+                                .then((data: any) => {
+                                    if (data.init_point) window.location.href = data.init_point;
+                                    else alert('Erro ao iniciar pagamento. Tente novamente.');
+                                })
+                                .catch(() => alert('Erro ao conectar com servidor de pagamento.'));
+                        }} className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-4 px-8 rounded-xl shadow-lg shadow-yellow-500/20 transition-all transform hover:-translate-y-1 active:scale-95 text-lg flex items-center justify-center gap-2">
                             QUERO SER PRO
                         </button>
                         <button onClick={() => navigate('/')} className="mt-4 text-gray-500 hover:text-white font-bold text-sm transition-colors">
