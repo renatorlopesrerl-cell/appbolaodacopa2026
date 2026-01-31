@@ -54,7 +54,8 @@ export const onRequestPost = async (context) => {
 
         const data: any = await response.json();
 
-        return new Response(JSON.stringify({ init_point: data.init_point }), {
+        // Using sandbox_init_point for testing as requested
+        return new Response(JSON.stringify({ init_point: data.sandbox_init_point }), {
             headers: { 'Content-Type': 'application/json' }
         });
 
