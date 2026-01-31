@@ -181,7 +181,10 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               </div>
 
               <Link to="/profile" className="flex items-center gap-2 hover:bg-white/10 p-1 pr-3 rounded-full transition-colors" title="Meu Perfil">
-                <img src={currentUser.avatar} alt="User" className="w-8 h-8 rounded-full border-2 border-brasil-yellow object-cover" />
+                <div className="relative">
+                  <img src={currentUser.avatar} alt="User" className="w-8 h-8 rounded-full border-2 border-brasil-yellow object-cover" />
+                  {currentUser.isPro && <span className="absolute -bottom-1 -right-2 bg-yellow-500 text-white text-[9px] font-black px-1 rounded shadow-sm">PRO</span>}
+                </div>
                 <span className="text-sm font-medium max-w-[100px] truncate">{currentUser.name}</span>
               </Link>
               <button onClick={logout} className="p-1 hover:text-red-300 transition-colors" title="Sair">

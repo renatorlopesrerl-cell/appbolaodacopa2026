@@ -211,62 +211,35 @@ export const Home: React.FC = () => {
             </p>
           </div>
         </Link>
+      </div>
 
-        {/* PRO PLAN CARD */}
-        <div className="group bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-2xl shadow-sm hover:shadow-xl transition-all border border-gray-700 hover:border-yellow-500 relative overflow-hidden cursor-pointer" onClick={() => currentUser.isPro ? null : window.open('https://wa.me/5515997165772?text=Quero%20ser%20PRO!', '_blank')}>
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:scale-110 duration-500">
-            <Trophy size={80} className="text-yellow-400" />
+      {/* PRO PLAN CARD - FULL WIDTH */}
+      <div className="group bg-gradient-to-br from-gray-900 to-gray-800 p-8 rounded-2xl shadow-sm hover:shadow-xl transition-all border border-gray-700 hover:border-yellow-500 relative overflow-hidden cursor-pointer" onClick={() => currentUser.isPro ? null : window.open('https://wa.me/5515997165772?text=Quero%20ser%20PRO!', '_blank')}>
+        <div className="absolute top-0 right-0 p-10 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:scale-110 duration-500">
+          <Trophy size={180} className="text-yellow-400" />
+        </div>
+        <div className="relative z-10 flex flex-col md:flex-row items-center gap-6">
+          <div className={`p-4 rounded-full w-fit transition-colors shrink-0 ${currentUser.isPro ? 'bg-yellow-500/20' : 'bg-yellow-500/20 group-hover:bg-yellow-500'}`}>
+            <Trophy className={`w-10 h-10 ${currentUser.isPro ? 'text-yellow-400' : 'text-yellow-400 group-hover:text-white'}`} />
           </div>
-          <div className="relative z-10">
-            <div className={`p-3 rounded-xl w-fit mb-4 transition-colors ${currentUser.isPro ? 'bg-yellow-500/20' : 'bg-yellow-500/20 group-hover:bg-yellow-500'}`}>
-              <Trophy className={`w-6 h-6 ${currentUser.isPro ? 'text-yellow-400' : 'text-yellow-400 group-hover:text-white'}`} />
-            </div>
-            <h2 className="text-xl font-bold text-white mb-1">Plano PRO</h2>
-            <p className="text-gray-400 text-sm mb-4">
-              {currentUser.isPro ? 'Você é um membro PRO! Aproveite estatísticas e ligas ilimitadas.' : 'Desbloqueie estatísticas avançadas, simulações e crie ligas ilimitadas.'}
+
+          <div className="flex-1 text-center md:text-left">
+            <h2 className="text-2xl md:text-3xl font-black text-white mb-2 flex flex-col md:flex-row items-center gap-2 justify-center md:justify-start">
+              Plano PRO
+              {!currentUser.isPro && <span className="text-yellow-400 bg-yellow-500/10 px-3 py-1 rounded-lg text-lg border border-yellow-500/30">R$ 5,99</span>}
+            </h2>
+            <p className="text-gray-300 text-base md:text-lg mb-4 max-w-3xl leading-relaxed">
+              {currentUser.isPro
+                ? 'Você é um membro PRO! Aproveite estatísticas, simulador e ligas ilimitadas.'
+                : 'Desbloqueie estatísticas de palpites, simulações com importação e exportação de palpites para as ligas, participe e crie ligas ilimitadas.'}
             </p>
+
             {!currentUser.isPro && (
-              <div className="inline-block bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-2 px-4 rounded-lg text-sm transition-colors">
+              <div className="inline-block bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-8 rounded-xl text-base shadow-lg shadow-yellow-500/20 transition-all transform hover:-translate-y-1">
                 SEJA PRO
               </div>
             )}
           </div>
-        </div>
-
-        {/* Next Match Teaser */}
-        <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 hover:border-brasil-blue transition-all">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-xl">
-              <Trophy className="w-6 h-6 text-brasil-blue dark:text-blue-400" />
-            </div>
-            <h2 className="text-xl font-bold text-gray-800 dark:text-white">Próximo Jogo</h2>
-          </div>
-
-          {upcomingMatches.length > 0 ? (
-            <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 border border-gray-100 dark:border-gray-600">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-xs font-bold text-brasil-blue dark:text-blue-400 uppercase tracking-wider">
-                  {!isNaN(new Date(upcomingMatches[0].date).getTime())
-                    ? new Date(upcomingMatches[0].date).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric' })
-                    : 'Data inválida'
-                  }
-                </span>
-                <span className="text-xs font-bold bg-white dark:bg-gray-600 px-2 py-1 rounded border border-gray-200 dark:border-gray-500 text-gray-800 dark:text-white">
-                  {!isNaN(new Date(upcomingMatches[0].date).getTime())
-                    ? new Date(upcomingMatches[0].date).toLocaleTimeString('pt-BR', { timeStyle: 'short' })
-                    : '--:--'
-                  }
-                </span>
-              </div>
-              <div className="flex justify-between items-center text-sm font-bold text-gray-800 dark:text-gray-200">
-                <span className="truncate w-[45%] text-right">{upcomingMatches[0].homeTeamId}</span>
-                <span className="text-gray-400 px-2">X</span>
-                <span className="truncate w-[45%] text-left">{upcomingMatches[0].awayTeamId}</span>
-              </div>
-            </div>
-          ) : (
-            <p className="text-gray-500 dark:text-gray-400 text-sm italic">Nenhum jogo agendado para os próximos dias.</p>
-          )}
         </div>
       </div>
 

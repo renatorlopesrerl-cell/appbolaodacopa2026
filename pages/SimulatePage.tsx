@@ -559,9 +559,12 @@ export const SimulatePage: React.FC = () => {
                         <div className="bg-yellow-500/20 p-4 rounded-full mb-6">
                             <Trophy size={48} className="text-yellow-400" />
                         </div>
-                        <h1 className="text-3xl font-black text-white mb-2 uppercase tracking-tight">Recurso Exclusivo</h1>
+                        <h1 className="text-3xl font-black text-white mb-2 uppercase tracking-tight flex flex-col items-center">
+                            Recurso Exclusivo
+                            <span className="text-yellow-400 bg-yellow-500/10 px-3 py-1 rounded-lg text-lg border border-yellow-500/30 mt-2">R$ 5,99</span>
+                        </h1>
                         <p className="text-gray-300 text-lg mb-8 leading-relaxed">
-                            O <strong>Simulador da Copa</strong> é exclusivo para membros PRO. Simule resultados, visualize o caminho até a final e muito mais.
+                            O <strong>Simulador da Copa</strong> é exclusivo para membros PRO. Simule resultados da fase de grupos até a final e faça importação e exportação de palpites para as ligas.
                         </p>
                         <button onClick={() => window.open('https://wa.me/5515997165772?text=Quero%20ser%20PRO!', '_blank')} className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-4 px-8 rounded-xl shadow-lg shadow-yellow-500/20 transition-all transform hover:-translate-y-1 active:scale-95 text-lg flex items-center justify-center gap-2">
                             QUERO SER PRO
