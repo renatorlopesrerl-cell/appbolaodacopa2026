@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle, XCircle, Clock, ArrowRight } from 'lucide-react';
 import { useStore } from '../App';
+import { supabase } from '../services/supabase';
 
 export const PaymentSuccess: React.FC = () => {
     const navigate = useNavigate();
@@ -74,15 +75,54 @@ export const PaymentFailure: React.FC = () => {
 
 export const PaymentPending: React.FC = () => {
     const navigate = useNavigate();
+    const { user, fetchUserData } = useStore();
+
+    useEffect(() => {
+        if (!user) return;
+
+        // Create a realtime subscription
+        const channel = supabase
+            .channel('profile-update')
+            .on(
+                'postgres_changes',
+                {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'profiles',
+                    filter: `id=eq.${user.id}`
+                },
+                (payload) => {
+                    console.log('Realtime update received:', payload);
+                    if (payload.new.is_pro) {
+                        fetchUserData(); // Update local store
+                        navigate('/pagamento/sucesso');
+                    }
+                }
+            )
+            .subscribe();
+
+        // Check immediately in case it happened while loading
+        fetchUserData().then(() => {
+            if (user.is_pro) navigate('/pagamento/sucesso');
+        });
+
+        // Cleanup subscription
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [user, navigate, fetchUserData]);
 
     return (
         <div className="min-h-[70vh] flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-500">
             <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl shadow-xl max-w-md w-full border border-yellow-100 dark:border-yellow-900/30">
-                <Clock size={80} className="text-yellow-500 mx-auto mb-6" />
+                <Clock size={80} className="text-yellow-500 mx-auto mb-6 animate-pulse" />
                 <h1 className="text-3xl font-black text-gray-800 dark:text-white mb-2">Pagamento Pendente</h1>
                 <p className="text-gray-600 dark:text-gray-300 mb-6">
                     Estamos aguardando a confirmação do seu pagamento.
-                    Assim que aprovado, seu plano PRO será ativado automaticamente.
+                    <br />
+                    <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                        Esta tela atualizará automaticamente assim que aprovado.
+                    </span>
                 </p>
                 <button
                     onClick={() => navigate('/')}
