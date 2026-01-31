@@ -1,5 +1,3 @@
-import { MercadoPagoConfig, Preference } from 'mercadopago';
-
 export const onRequestPost = async (context) => {
     try {
         const { request, env } = context;
@@ -13,9 +11,6 @@ export const onRequestPost = async (context) => {
         if (!env.MERCADO_PAGO_ACCESS_TOKEN) {
             return new Response(JSON.stringify({ error: 'Server misconfiguration: Missing MP Token' }), { status: 500 });
         }
-
-        const client = new MercadoPagoConfig({ accessToken: env.MERCADO_PAGO_ACCESS_TOKEN });
-        const preference = new Preference(client);
 
         const preferenceData = {
             items: [
@@ -35,17 +30,31 @@ export const onRequestPost = async (context) => {
             },
             auto_return: "approved",
             metadata: {
-                user_id: userId, // Snake case is safer for MP metadata
+                user_id: userId,
                 plano: "PRO",
             },
             notification_url: "https://bolaodacopa2026.pages.dev/api/webhook-mercadopago",
             statement_descriptor: "BOLAO COPA",
-            external_reference: userId, // Backup ID
+            external_reference: userId,
         };
 
-        const response = await preference.create({ body: preferenceData });
+        const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${env.MERCADO_PAGO_ACCESS_TOKEN}`
+            },
+            body: JSON.stringify(preferenceData)
+        });
 
-        return new Response(JSON.stringify({ init_point: response.init_point }), {
+        if (!response.ok) {
+            const errorData = await response.text();
+            throw new Error(`Mercado Pago API Error: ${response.status} ${response.statusText} - ${errorData}`);
+        }
+
+        const data: any = await response.json();
+
+        return new Response(JSON.stringify({ init_point: data.init_point }), {
             headers: { 'Content-Type': 'application/json' }
         });
 

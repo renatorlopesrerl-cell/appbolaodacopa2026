@@ -1,4 +1,3 @@
-import { MercadoPagoConfig, Payment } from 'mercadopago';
 import { createClient } from '@supabase/supabase-js';
 
 export const onRequestPost = async (context) => {
@@ -7,9 +6,6 @@ export const onRequestPost = async (context) => {
         const url = new URL(request.url);
 
         // Webhook can come as query param ?id=... or body.data.id depends on configuration
-        // Mercado Pago usually posts to notification_url with ?topic=payment&id=123
-        // Or body: { action: 'payment.created', data: { id: '123' } }
-
         const body: any = await request.json().catch(() => ({}));
         const queryParams = url.searchParams;
 
@@ -31,19 +27,28 @@ export const onRequestPost = async (context) => {
             return new Response('Config Error', { status: 500 });
         }
 
-        const client = new MercadoPagoConfig({ accessToken: env.MERCADO_PAGO_ACCESS_TOKEN });
-        const paymentClient = new Payment(client);
+        // Fetch Payment Data directly from MP API
+        const paymentRes = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+            headers: {
+                'Authorization': `Bearer ${env.MERCADO_PAGO_ACCESS_TOKEN}`
+            }
+        });
 
-        const payment = await paymentClient.get({ id: paymentId });
+        if (!paymentRes.ok) {
+            console.error('Failed to fetch payment', paymentRes.status, await paymentRes.text());
+            return new Response('OK', { status: 200 }); // Acknowledge to stop retries if we can't check
+        }
+
+        const payment = await paymentRes.json();
 
         if (payment.status === 'approved') {
+            // Check metadata (preferred) or external_reference
             const userId = payment.metadata?.user_id || payment.external_reference;
 
             if (userId && env.VITE_SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY) {
                 const supabase = createClient(env.VITE_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
 
-                // Set expire date to 4 years from now (next cup) or just "forever" (null)
-                // User asked for "2026-08-01" or similar. Let's do 2026-12-31 to be safe.
+                // Set expire date to end of 2026
                 const expiresAt = new Date('2026-12-31T23:59:59Z').toISOString();
 
                 const { error } = await supabase.from('profiles').update({
