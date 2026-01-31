@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useStore } from '../App';
 import { Calendar, Trophy, Users, PlayCircle, ShieldCheck, Mail, Check, X, Loader2 } from 'lucide-react';
+import { supabase } from '../services/supabase';
 
 export const Home: React.FC = () => {
   const { currentUser, matches, leagues, currentTime, loading, invitations, respondToInvite, loginGoogle } = useStore();
@@ -214,21 +215,36 @@ export const Home: React.FC = () => {
       </div>
 
       {/* PRO PLAN CARD - FULL WIDTH */}
-      <div className="group bg-gradient-to-br from-gray-900 to-gray-800 p-8 rounded-2xl shadow-sm hover:shadow-xl transition-all border border-gray-700 hover:border-yellow-500 relative overflow-hidden cursor-pointer" onClick={() => {
+      <div className="group bg-gradient-to-br from-gray-900 to-gray-800 p-8 rounded-2xl shadow-sm hover:shadow-xl transition-all border border-gray-700 hover:border-yellow-500 relative overflow-hidden cursor-pointer" onClick={async () => {
         if (currentUser.isPro) return;
+
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+
+        if (!token) {
+          alert('Erro de autenticação. Tente fazer login novamente.');
+          return;
+        }
+
         fetch("/api/create-payment", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
           body: JSON.stringify({ userId: currentUser.id }),
         })
-          .then(res => res.json())
+          .then(res => {
+            if (res.status === 401) throw new Error('Não autorizado (401)');
+            return res.json();
+          })
           .then((data: any) => {
             if (data.init_point) window.location.href = data.init_point;
             else alert(`Erro ao iniciar pagamento: ${data.error || 'Resposta inválida do servidor'}`);
           })
           .catch((err) => {
             console.error(err);
-            alert('Erro ao conectar com servidor de pagamento. Verifique o console.');
+            alert(`Erro ao conectar com servidor de pagamento: ${err.message}`);
           });
       }}>
         <div className="absolute top-0 right-0 p-10 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:scale-110 duration-500">

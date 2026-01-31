@@ -566,20 +566,34 @@ export const SimulatePage: React.FC = () => {
                         <p className="text-gray-300 text-lg mb-8 leading-relaxed">
                             O <strong>Simulador da Copa</strong> é exclusivo para membros PRO. Simule resultados da fase de grupos até a final e faça importação e exportação de palpites para as ligas.
                         </p>
-                        <button onClick={() => {
+                        <button onClick={async () => {
+                            const { data: { session } } = await supabase.auth.getSession();
+                            const token = session?.access_token;
+
+                            if (!token) {
+                                alert('Erro de autenticação. Tente fazer login novamente.');
+                                return;
+                            }
+
                             fetch("/api/create-payment", {
                                 method: "POST",
-                                headers: { "Content-Type": "application/json" },
+                                headers: {
+                                    "Content-Type": "application/json",
+                                    "Authorization": `Bearer ${token}`
+                                },
                                 body: JSON.stringify({ userId: currentUser.id }),
                             })
-                                .then(res => res.json())
+                                .then(res => {
+                                    if (res.status === 401) throw new Error('Não autorizado (401)');
+                                    return res.json();
+                                })
                                 .then((data: any) => {
                                     if (data.init_point) window.location.href = data.init_point;
                                     else alert(`Erro ao iniciar pagamento: ${data.error || 'Resposta inválida do servidor'}`);
                                 })
                                 .catch((err) => {
                                     console.error(err);
-                                    alert('Erro ao conectar com servidor de pagamento. Verifique o console.');
+                                    alert(`Erro ao conectar com servidor de pagamento: ${err.message}`);
                                 });
                         }} className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-4 px-8 rounded-xl shadow-lg shadow-yellow-500/20 transition-all transform hover:-translate-y-1 active:scale-95 text-lg flex items-center justify-center gap-2">
                             QUERO SER PRO
