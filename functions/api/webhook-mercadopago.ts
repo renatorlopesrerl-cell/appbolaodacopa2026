@@ -45,8 +45,8 @@ export const onRequestPost = async (context) => {
             // Check metadata (preferred) or external_reference
             const userId = payment.metadata?.user_id || payment.external_reference;
 
-            if (userId && env.VITE_SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY) {
-                const supabase = createClient(env.VITE_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
+            if (userId && env.SUPABASE_URL && env.SUPABASE_SERVICE_ROLE_KEY) {
+                const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
 
                 // Set expire date to end of 2026
                 const expiresAt = new Date('2026-12-31T23:59:59Z').toISOString();
