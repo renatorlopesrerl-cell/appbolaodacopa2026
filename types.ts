@@ -46,6 +46,7 @@ export interface User {
     matchStart: boolean;
     matchEnd: boolean;
   };
+  isPro?: boolean;
 }
 
 export interface Prediction {

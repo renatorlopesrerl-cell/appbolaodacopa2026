@@ -212,6 +212,27 @@ export const Home: React.FC = () => {
           </div>
         </Link>
 
+        {/* PRO PLAN CARD */}
+        <div className="group bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-2xl shadow-sm hover:shadow-xl transition-all border border-gray-700 hover:border-yellow-500 relative overflow-hidden cursor-pointer" onClick={() => currentUser.isPro ? null : window.open('https://wa.me/5515997165772?text=Quero%20ser%20PRO!', '_blank')}>
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:scale-110 duration-500">
+            <Trophy size={80} className="text-yellow-400" />
+          </div>
+          <div className="relative z-10">
+            <div className={`p-3 rounded-xl w-fit mb-4 transition-colors ${currentUser.isPro ? 'bg-yellow-500/20' : 'bg-yellow-500/20 group-hover:bg-yellow-500'}`}>
+              <Trophy className={`w-6 h-6 ${currentUser.isPro ? 'text-yellow-400' : 'text-yellow-400 group-hover:text-white'}`} />
+            </div>
+            <h2 className="text-xl font-bold text-white mb-1">Plano PRO</h2>
+            <p className="text-gray-400 text-sm mb-4">
+              {currentUser.isPro ? 'Você é um membro PRO! Aproveite estatísticas e ligas ilimitadas.' : 'Desbloqueie estatísticas avançadas, simulações e crie ligas ilimitadas.'}
+            </p>
+            {!currentUser.isPro && (
+              <div className="inline-block bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-2 px-4 rounded-lg text-sm transition-colors">
+                SEJA PRO
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Next Match Teaser */}
         <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 hover:border-brasil-blue transition-all">
           <div className="flex items-center gap-4 mb-4">

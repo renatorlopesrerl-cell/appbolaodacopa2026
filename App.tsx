@@ -29,6 +29,7 @@ import { ProfilePage } from './pages/ProfilePage';
 import { AdminPage } from './pages/AdminPage';
 import { AdminLeaguesPage } from './pages/AdminLeaguesPage';
 import { AdminMatchesPage } from './pages/AdminMatchesPage';
+import { AdminUsersPage } from './pages/AdminUsersPage';
 import { Login } from './pages/Login';
 
 // Services
@@ -202,7 +203,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             avatar: metadata.avatar_url || metadata.picture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`,
             isAdmin: metadata.is_admin || user.email?.toLowerCase() === 'renatinhorlopes@hotmail.com',
             whatsapp: metadata.whatsapp || '',
-            notificationSettings: { matchStart: true, matchEnd: true }
+            notificationSettings: { matchStart: true, matchEnd: true },
+            isPro: metadata.is_pro || false
           };
 
           setCurrentUser(basicUser);
@@ -244,7 +246,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             avatar: metadata.avatar_url || metadata.picture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`,
             isAdmin: metadata.is_admin || user.email?.toLowerCase() === 'renatinhorlopes@hotmail.com',
             whatsapp: metadata.whatsapp || '',
-            notificationSettings: { matchStart: true, matchEnd: true }
+            notificationSettings: { matchStart: true, matchEnd: true },
+            isPro: metadata.is_pro || false
           };
 
           setCurrentUser(basicUser);
@@ -275,7 +278,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       whatsapp: whatsappMeta || '',
       pix: '',
       notificationSettings: fallbackPrefs,
-      theme: 'light'
+      theme: 'light',
+      isPro: false
     };
 
     try {
@@ -295,7 +299,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           whatsapp: data.whatsapp || '',
           pix: data.pix || '',
           notificationSettings: data.notification_settings || fallbackPrefs,
-          theme: data.theme
+          theme: data.theme,
+          isPro: data.is_pro
         };
 
         if (user.theme && (user.theme === 'light' || user.theme === 'dark')) setTheme(user.theme);
@@ -404,7 +409,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       if (profilesData) {
         const mappedUsers: User[] = profilesData.map((p: any) => ({
           id: p.id, name: p.name, email: p.email, avatar: p.avatar, isAdmin: p.is_admin,
-          whatsapp: p.whatsapp || '', pix: p.pix || '', notificationSettings: p.notification_settings, theme: p.theme
+          whatsapp: p.whatsapp || '', pix: p.pix || '', notificationSettings: p.notification_settings, theme: p.theme, isPro: p.is_pro
         }));
         setUsers(mappedUsers);
       }
@@ -521,6 +526,22 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       return false;
     }
 
+    // PRO Limit Check: Creation
+    if (!currentUser.isPro) {
+      const ownedLeagues = leagues.filter(l => l.adminId === currentUser.id);
+      if (ownedLeagues.length >= 1) {
+        addNotification('Limite Gratuito', 'Usuários gratuitos só podem criar 1 liga. Seja PRO!', 'warning');
+        return false;
+      }
+      // Also check participation limit? If I create I join.
+      // If I am already in a league (joined), I cannot create (would be 2).
+      const participatingLeagues = leagues.filter(l => l.participants.includes(currentUser.id));
+      if (participatingLeagues.length >= 1) {
+        addNotification('Limite Gratuito', 'Você já participa de uma liga. Usuários gratuitos limite de 1 liga.', 'warning');
+        return false;
+      }
+    }
+
     try {
       let leagueCode = '';
       const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -608,6 +629,15 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     if (league.participants.includes(currentUser.id)) { addNotification('Aviso', 'Você já participa desta liga.', 'info'); return; }
     const limit = getLeagueLimit(league);
     if (league.participants.length >= limit) { addNotification('Liga Cheia', 'O limite de participantes foi atingido.', 'warning'); return; }
+
+    // PRO Limit Check: Joining
+    if (!currentUser.isPro) {
+      const participatingLeagues = leagues.filter(l => l.participants.includes(currentUser.id));
+      if (participatingLeagues.length >= 1) {
+        addNotification('Limite Gratuito', 'Usuários gratuitos só podem participar de 1 liga. Seja PRO!', 'warning');
+        return;
+      }
+    }
     let updatedLeague = { ...league };
     if (league.isPrivate) {
       if (!league.pendingRequests.includes(currentUser.id)) updatedLeague.pendingRequests = [...league.pendingRequests, currentUser.id];
@@ -687,6 +717,15 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       if (league) {
         const limit = getLeagueLimit(league);
         if (league.participants.length >= limit) { addNotification('Liga Cheia', 'Limite atingido.', 'warning'); return; }
+
+        // PRO Limit Check: Invite Response
+        if (!currentUser.isPro) {
+          const participatingLeagues = leagues.filter(l => l.participants.includes(currentUser.id));
+          if (participatingLeagues.length >= 1) {
+            addNotification('Limite Gratuito', 'Você já participa de uma liga. Seja PRO!', 'warning');
+            return;
+          }
+        }
         const updatedParticipants = [...league.participants, currentUser.id];
         const updatedPending = league.pendingRequests.filter(uid => uid !== currentUser.id);
         setLeagues(prev => prev.map(l => l.id === league.id ? { ...l, participants: updatedParticipants, pendingRequests: updatedPending } : l));
@@ -822,6 +861,7 @@ const App: React.FC = () => {
             <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
             <Route path="/admin/leagues" element={<AdminRoute><AdminLeaguesPage /></AdminRoute>} />
             <Route path="/admin/matches" element={<AdminRoute><AdminMatchesPage /></AdminRoute>} />
+            <Route path="/admin/users" element={<AdminRoute><AdminUsersPage /></AdminRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Layout>

@@ -102,5 +102,22 @@ export const api = {
 
             if (error) throw error;
         }
+    },
+    admin: {
+        listUsers: async () => {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .order('name');
+            if (error) throw error;
+            return data;
+        },
+        togglePro: async (userId: string, isPro: boolean) => {
+            const { error } = await supabase
+                .from('profiles')
+                .update({ is_pro: isPro })
+                .eq('id', userId);
+            if (error) throw error;
+        }
     }
 };

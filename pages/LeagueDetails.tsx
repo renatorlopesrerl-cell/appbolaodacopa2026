@@ -9,7 +9,7 @@ import {
     Trophy, Users, ArrowLeft, Search, Lock, Globe,
     UserPlus, LogOut, Trash2, Check, X, MousePointerClick,
     Save, Loader2, Medal, AlertCircle, Share2, Info, Filter, Plus, Clock, MapPin, CheckCircle2, Unlock, Calendar, ChevronDown, Crown, Eye,
-    Target, Mail, AlertTriangle, Camera, Upload, MessageCircle, Copy, Bell, Star, StarHalf, Infinity as InfinityIcon
+    Target, Mail, AlertTriangle, Camera, Upload, MessageCircle, Copy, Bell, Star, StarHalf, Infinity as InfinityIcon, Zap
 } from 'lucide-react';
 
 export const LeagueDetails: React.FC = () => {
@@ -99,6 +99,41 @@ export const LeagueDetails: React.FC = () => {
             }
         }
     }, [league, users, isAdmin, updateLeague]);
+
+    // --- SMART POLLING LOGIC ---
+    useEffect(() => {
+        if (!league) return;
+
+        // Clear any existing timeouts first
+        const timeouts: NodeJS.Timeout[] = [];
+
+        matches.forEach(match => {
+            const matchDate = new Date(match.date);
+            if (isNaN(matchDate.getTime())) return;
+
+            // Lock time is 5 minutes before match
+            const lockTime = new Date(matchDate.getTime() - 5 * 60 * 1000);
+
+            // Poll triggers 15 seconds AFTER lock
+            const pollTime = new Date(lockTime.getTime() + 15 * 1000);
+
+            const now = new Date();
+            const timeUntilPoll = pollTime.getTime() - now.getTime();
+
+            // Only schedule if it's in the future and less than 24h away (avoid massive timeouts)
+            if (timeUntilPoll > 0 && timeUntilPoll < 24 * 60 * 60 * 1000) {
+                const tid = setTimeout(() => {
+                    console.log(`Polling triggered for match ${match.id} lock`);
+                    refreshPredictions();
+                }, timeUntilPoll);
+                timeouts.push(tid);
+            }
+        });
+
+        return () => {
+            timeouts.forEach(clearTimeout);
+        };
+    }, [matches, league?.id]);
 
     if (loading) return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin text-brasil-green" size={48} /></div>;
     if (!currentUser) return <Navigate to="/" replace />;
@@ -302,6 +337,7 @@ export const LeagueDetails: React.FC = () => {
         const matchPreds = predictions.filter(p => p.matchId === matchId && p.leagueId === league.id);
         const total = matchPreds.length;
         if (total === 0) return null;
+        if (!currentUser?.isPro) return null; // PRO Feature: Stats
 
         let homeWins = 0;
         let draws = 0;
@@ -355,7 +391,7 @@ export const LeagueDetails: React.FC = () => {
             <div className="space-y-6 pb-24">
                 <div className="space-y-3">
                     <div className="bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 px-4 py-3 text-xs md:text-sm font-medium border border-blue-100 dark:border-blue-800 rounded-xl flex items-center justify-center gap-2 text-center shadow-sm">
-                        <MousePointerClick size={16} /><span>Clique em uma partida com palpite encerrado para conferir os palpites da galera.</span>
+                        <MousePointerClick size={16} /><span>Clique am uma partida com palpite encerrado para conferir os palpites da galera (Atualização auto. 15s após bloqueio).</span>
                     </div>
                     <div className="bg-yellow-50 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 px-4 py-3 text-xs md:text-sm font-medium border border-yellow-100 dark:border-yellow-800 rounded-xl flex items-center justify-center gap-2 text-center shadow-sm">
                         <AlertCircle size={16} /><span>O palpite é encerrado 5 min. antes do inicio do jogo.</span>
@@ -439,7 +475,8 @@ export const LeagueDetails: React.FC = () => {
                                 displayPoints = calculatePoints(Number(userPred.homeScore), Number(userPred.awayScore), Number(match.homeScore), Number(match.awayScore), league.settings);
                             }
 
-                            const stats = getMatchStats(match.id);
+                            const stats = currentUser?.isPro ? getMatchStats(match.id) : null;
+                            const showBlurStats = !currentUser?.isPro && getMatchStats(match.id) !== null;
 
                             return (
                                 <div key={match.id} onClick={() => { if (locked) { setSelectedMatchForDetails(match.id); setMatchDetailsSearch(''); } }} className={`bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border transition-all relative overflow-hidden ${isEdited ? 'border-brasil-yellow ring-1 ring-brasil-yellow' : 'border-gray-200 dark:border-gray-700'} ${locked ? 'cursor-pointer hover:border-brasil-blue dark:hover:border-blue-500 hover:shadow-md' : ''}`}>
@@ -460,28 +497,29 @@ export const LeagueDetails: React.FC = () => {
                                             <span className="text-center font-black text-sm md:text-base text-gray-900 dark:text-gray-100 leading-tight">{match.homeTeamId}</span>
                                             {stats && <span className="text-[10px] font-bold text-gray-500 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{stats.home}%</span>}
                                         </div>
-                                        <div className="flex flex-col items-center">
-                                            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}><input type="number" min="0" disabled={locked} value={homeValue} onChange={(e) => handleScoreChange(match.id, 'home', e.target.value, userPred)} placeholder="-" className={`w-14 h-12 text-center border rounded-lg font-bold text-xl md:text-2xl focus:border-brasil-blue focus:ring-1 focus:ring-brasil-blue outline-none transition-all ${locked ? 'bg-gray-800 text-gray-500 border-gray-700 cursor-pointer' : 'bg-gray-700 border-gray-600 text-white'}`} /><span className="text-gray-300 dark:text-gray-600 text-sm font-bold">X</span><input type="number" min="0" disabled={locked} value={awayValue} onChange={(e) => handleScoreChange(match.id, 'away', e.target.value, userPred)} placeholder="-" className={`w-14 h-12 text-center border rounded-lg font-bold text-xl md:text-2xl focus:border-brasil-blue focus:ring-1 focus:ring-brasil-blue outline-none transition-all ${locked ? 'bg-gray-800 text-gray-500 border-gray-700 cursor-pointer' : 'bg-gray-700 border-gray-600 text-white'}`} /></div>
-                                            {stats && <span className="text-[10px] font-bold text-gray-400 mt-3">{stats.draw}% Empate</span>}
-                                        </div>
-                                        <div className="flex flex-col items-center justify-center w-1/3 gap-2">
-                                            <img src={getTeamFlag(match.awayTeamId)} alt={match.awayTeamId} className="w-12 h-9 object-cover rounded shadow-md" />
-                                            <span className="text-center font-black text-sm md:text-base text-gray-900 dark:text-gray-100 leading-tight">{match.awayTeamId}</span>
-                                            {stats && <span className="text-[10px] font-bold text-gray-500 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{stats.away}%</span>}
-                                        </div>
                                     </div>
-                                    {(match.status === MatchStatus.FINISHED || match.status === MatchStatus.IN_PROGRESS) && (
-                                        <div className={`p-2 rounded-lg text-center text-sm border mt-3 ${match.status === MatchStatus.IN_PROGRESS ? 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800' : 'bg-gray-50 dark:bg-gray-700/50 border-gray-100 dark:border-gray-600'}`}>
-                                            <p className={`${match.status === MatchStatus.IN_PROGRESS ? 'text-green-700 dark:text-green-400' : 'text-gray-600 dark:text-gray-300'}`}>{match.status === MatchStatus.IN_PROGRESS ? <span className="flex items-center justify-center gap-1 font-bold animate-pulse"><div className="w-2 h-2 rounded-full bg-red-500"></div> Ao Vivo: <span className="text-gray-900 dark:text-white ml-1 whitespace-nowrap">{match.homeScore} x {match.awayScore}</span></span> : <span>Placar: <span className="font-bold text-gray-900 dark:text-white text-base whitespace-nowrap">{match.homeScore} x {match.awayScore}</span></span>}</p>
-                                            {userPred && <p className="text-brasil-green dark:text-green-400 font-black text-base mt-1">{match.status === MatchStatus.IN_PROGRESS ? 'Parcial: ' : 'Pontos: '}+{displayPoints}</p>}
-                                        </div>
-                                    )}
+                                    <div className="flex flex-col items-center justify-center relative">
+                                        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}><input type="number" min="0" disabled={locked} value={homeValue} onChange={(e) => handleScoreChange(match.id, 'home', e.target.value, userPred)} placeholder="-" className={`w-14 h-12 text-center border rounded-lg font-bold text-xl md:text-2xl focus:border-brasil-blue focus:ring-1 focus:ring-brasil-blue outline-none transition-all ${locked ? 'bg-gray-800 text-gray-500 border-gray-700 cursor-pointer' : 'bg-gray-700 border-gray-600 text-white'}`} /><span className="text-gray-300 dark:text-gray-600 text-sm font-bold">X</span><input type="number" min="0" disabled={locked} value={awayValue} onChange={(e) => handleScoreChange(match.id, 'away', e.target.value, userPred)} placeholder="-" className={`w-14 h-12 text-center border rounded-lg font-bold text-xl md:text-2xl focus:border-brasil-blue focus:ring-1 focus:ring-brasil-blue outline-none transition-all ${locked ? 'bg-gray-800 text-gray-500 border-gray-700 cursor-pointer' : 'bg-gray-700 border-gray-600 text-white'}`} /></div>
+                                        {stats && <span className="text-[10px] font-bold text-gray-400 mt-3">{stats.draw}% Empate</span>}
+                                        {showBlurStats && <div className="mt-3 flex items-center gap-1 cursor-pointer bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded text-[10px] text-gray-500 font-bold" onClick={(e) => { e.stopPropagation(); showToast('Recurso PRO', 'Seja PRO para ver as estatísticas!', 'info'); }}><Lock size={10} /> Estatisticas PRO</div>}
+                                    </div>
+                                    <div className="flex flex-col items-center justify-center w-1/3 gap-2">
+                                        <img src={getTeamFlag(match.awayTeamId)} alt={match.awayTeamId} className="w-12 h-9 object-cover rounded shadow-md" />
+                                        <span className="text-center font-black text-sm md:text-base text-gray-900 dark:text-gray-100 leading-tight">{match.awayTeamId}</span>
+                                        {stats && <span className="text-[10px] font-bold text-gray-500 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{stats.away}%</span>}
+                                    </div>
                                 </div>
-                            );
+                                    {
+                                (match.status === MatchStatus.FINISHED || match.status === MatchStatus.IN_PROGRESS) && (
+                                    <div className={`p-2 rounded-lg text-center text-sm border mt-3 ${match.status === MatchStatus.IN_PROGRESS ? 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800' : 'bg-gray-50 dark:bg-gray-700/50 border-gray-100 dark:border-gray-600'}`}>
+                                        <p className={`${match.status === MatchStatus.IN_PROGRESS ? 'text-green-700 dark:text-green-400' : 'text-gray-600 dark:text-gray-300'}`}>{match.status === MatchStatus.IN_PROGRESS ? <span className="flex items-center justify-center gap-1 font-bold animate-pulse"><div className="w-2 h-2 rounded-full bg-red-500"></div> Ao Vivo: <span className="text-gray-900 dark:text-white ml-1 whitespace-nowrap">{match.homeScore} x {match.awayScore}</span></span> : <span>Placar: <span className="font-bold text-gray-900 dark:text-white text-base whitespace-nowrap">{match.homeScore} x {match.awayScore}</span></span>}</p>
+                                        {userPred && <p className="text-brasil-green dark:text-green-400 font-black text-base mt-1">{match.status === MatchStatus.IN_PROGRESS ? 'Parcial: ' : 'Pontos: '}+{displayPoints}</p>}
+                                    </div>
+                                )
+                            }
+                                </div>
+                );
                         })}
-                    </div>
-                )}
-
                 {selectedMatchForDetails && detailsData && (
                     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setSelectedMatchForDetails(null)}>
                         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-300" onClick={(e) => e.stopPropagation()}>
@@ -559,7 +597,7 @@ export const LeagueDetails: React.FC = () => {
                 <table className="w-full text-sm md:text-base">
                     <thead className="bg-brasil-blue dark:bg-blue-900 text-white"><tr><th className="px-2 py-3 text-center w-12 md:w-16 text-xs md:text-sm">#</th><th className="px-2 py-3 text-left">Participante</th><th className="hidden md:table-cell px-2 py-3 text-center w-24"><span className="flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-2 py-1 rounded"><Target size={14} /> Cravadas</span></th><th className="px-2 py-3 text-right w-14 md:w-20">Pts</th>{isAdmin ? <th className="px-2 py-3 w-8 md:w-10"></th> : <th className=""></th>}</tr></thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                        {filteredLeaderboard.length === 0 ? <tr><td colSpan={5} className="text-center py-8 text-gray-400 italic">Nenhum participante encontrado.</td></tr> : filteredLeaderboard.map((entry, idx) => { const rank = idx + 1; return (<tr key={entry.user.id} className={entry.user.id === currentUser.id ? 'bg-yellow-50 dark:bg-yellow-900/20' : ''}><td className="px-2 py-3 font-bold text-center text-sm align-middle">{rank === 1 ? <div className="w-6 h-6 mx-auto bg-yellow-400 text-yellow-900 rounded-full flex items-center justify-center shadow-sm font-black text-xs">1</div> : rank === 2 ? <div className="w-6 h-6 mx-auto bg-gray-300 text-gray-800 rounded-full flex items-center justify-center shadow-sm font-black text-xs">2</div> : rank === 3 ? <div className="w-6 h-6 mx-auto bg-orange-400 text-orange-900 rounded-full flex items-center justify-center shadow-sm font-black text-xs">3</div> : <span className="text-gray-500 dark:text-gray-400">#{rank}</span>}</td><td className="px-2 py-3 relative"><div className="flex items-center gap-2 md:gap-3 cursor-pointer group" onClick={() => setSelectedUserId(entry.user.id)}><img src={entry.user.avatar} className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gray-200 dark:bg-gray-600 shrink-0" alt="" /><div className="flex flex-col"><span className="font-medium decoration-dotted decoration-gray-400 dark:decoration-gray-500 underline-offset-4 group-hover:text-brasil-blue dark:group-hover:text-blue-400 group-hover:underline text-sm md:text-base line-clamp-1 text-gray-900 dark:text-white">{entry.user.name} {entry.user.id === currentUser.id && '(Você)'}</span><span className="md:hidden text-[10px] text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-0.5"><Target size={10} className="text-brasil-blue dark:text-blue-400" />{entry.exactScores} cravadas</span></div><Eye size={16} className="text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity ml-auto hidden md:block" /></div></td><td className="hidden md:table-cell px-2 py-3 text-center"><span className="bg-blue-50 dark:bg-blue-900/30 text-brasil-blue dark:text-blue-300 font-bold px-2 py-1 rounded text-sm">{entry.exactScores}</span></td><td className="px-2 py-3 text-right font-bold text-brasil-green dark:text-green-400 text-base md:text-lg">{entry.totalPoints}</td>{isAdmin && <td className="px-2 py-3 text-center">{entry.user.id !== currentUser.id && (<button type="button" onClick={(e) => initiateRemoveUser(e, entry.user.id, entry.user.name)} className="text-red-300 hover:text-red-500 dark:hover:text-red-400 p-2 rounded transition-colors z-10 relative"><Trash2 size={18} /></button>)}</td>}</tr>); })}
+                        {filteredLeaderboard.length === 0 ? <tr><td colSpan={5} className="text-center py-8 text-gray-400 italic">Nenhum participante encontrado.</td></tr> : filteredLeaderboard.map((entry, idx) => { const rank = idx + 1; return (<tr key={entry.user.id} className={entry.user.id === currentUser.id ? 'bg-yellow-50 dark:bg-yellow-900/20' : ''}><td className="px-2 py-3 font-bold text-center text-sm align-middle">{rank === 1 ? <div className="w-6 h-6 mx-auto bg-yellow-400 text-yellow-900 rounded-full flex items-center justify-center shadow-sm font-black text-xs">1</div> : rank === 2 ? <div className="w-6 h-6 mx-auto bg-gray-300 text-gray-800 rounded-full flex items-center justify-center shadow-sm font-black text-xs">2</div> : rank === 3 ? <div className="w-6 h-6 mx-auto bg-orange-400 text-orange-900 rounded-full flex items-center justify-center shadow-sm font-black text-xs">3</div> : <span className="text-gray-500 dark:text-gray-400">#{rank}</span>}</td><td className="px-2 py-3 relative"><div className="flex items-center gap-2 md:gap-3 cursor-pointer group" onClick={() => setSelectedUserId(entry.user.id)}><img src={entry.user.avatar} className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gray-200 dark:bg-gray-600 shrink-0" alt="" /><div className="flex flex-col"><span className="font-medium decoration-dotted decoration-gray-400 dark:decoration-gray-500 underline-offset-4 group-hover:text-brasil-blue dark:group-hover:text-blue-400 group-hover:underline text-sm md:text-base line-clamp-1 text-gray-900 dark:text-white flex items-center gap-1">{entry.user.name} {entry.user.isPro && <Zap size={12} className="text-yellow-400 fill-yellow-400" />} {entry.user.id === currentUser.id && <span className="text-[10px] font-normal text-gray-500 dark:text-gray-400">(Você)</span>}</span><span className="md:hidden text-[10px] text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-0.5"><Target size={10} className="text-brasil-blue dark:text-blue-400" />{entry.exactScores} cravadas</span></div><Eye size={16} className="text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity ml-auto hidden md:block" /></div></td><td className="hidden md:table-cell px-2 py-3 text-center"><span className="bg-blue-50 dark:bg-blue-900/30 text-brasil-blue dark:text-blue-300 font-bold px-2 py-1 rounded text-sm">{entry.exactScores}</span></td><td className="px-2 py-3 text-right font-bold text-brasil-green dark:text-green-400 text-base md:text-lg">{entry.totalPoints}</td>{isAdmin && <td className="px-2 py-3 text-center">{entry.user.id !== currentUser.id && (<button type="button" onClick={(e) => initiateRemoveUser(e, entry.user.id, entry.user.name)} className="text-red-300 hover:text-red-500 dark:hover:text-red-400 p-2 rounded transition-colors z-10 relative"><Trash2 size={18} /></button>)}</td>}</tr>); })}
                     </tbody>
                 </table>
                 {selectedUserId && selectedUser && (

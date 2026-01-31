@@ -356,7 +356,8 @@ export const SimulatePage: React.FC = () => {
             const now = new Date();
             let lockedCount = 0;
 
-            Object.entries(simulatedScores).forEach(([mId, score]) => {
+            Object.entries(simulatedScores).forEach(([mId, s]) => {
+                const score = s as { home: number; away: number };
                 const match = matches.find(m => m.id === mId);
                 if (match) {
                     // Check if match is locked (started or < 5 min to start)
@@ -543,6 +544,36 @@ export const SimulatePage: React.FC = () => {
             </div>
         );
     };
+
+
+
+    // --- PRO RESTRICTION ---
+    if (!currentUser?.isPro) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6 animate-in fade-in zoom-in-95 duration-500">
+                <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-8 rounded-3xl shadow-2xl max-w-lg w-full border border-gray-700 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-10 opacity-5">
+                        <Trophy size={150} />
+                    </div>
+                    <div className="relative z-10 flex flex-col items-center">
+                        <div className="bg-yellow-500/20 p-4 rounded-full mb-6">
+                            <Trophy size={48} className="text-yellow-400" />
+                        </div>
+                        <h1 className="text-3xl font-black text-white mb-2 uppercase tracking-tight">Recurso Exclusivo</h1>
+                        <p className="text-gray-300 text-lg mb-8 leading-relaxed">
+                            O <strong>Simulador da Copa</strong> é exclusivo para membros PRO. Simule resultados, visualize o caminho até a final e muito mais.
+                        </p>
+                        <button onClick={() => window.open('https://wa.me/5515997165772?text=Quero%20ser%20PRO!', '_blank')} className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-4 px-8 rounded-xl shadow-lg shadow-yellow-500/20 transition-all transform hover:-translate-y-1 active:scale-95 text-lg flex items-center justify-center gap-2">
+                            QUERO SER PRO
+                        </button>
+                        <button onClick={() => navigate('/')} className="mt-4 text-gray-500 hover:text-white font-bold text-sm transition-colors">
+                            Voltar ao Início
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     if (loadingSim) return <div className="flex justify-center p-12"><Loader2 className="animate-spin text-brasil-green" size={48} /></div>;
 
