@@ -36,6 +36,12 @@ export const onRequestPost = async (context) => {
             notification_url: "https://bolaodacopa2026.pages.dev/api/webhook-mercadopago",
             statement_descriptor: "BOLAO COPA",
             external_reference: userId,
+            payment_methods: {
+                excluded_payment_types: [
+                    { id: "ticket" }
+                ],
+                installments: 1
+            }
         };
 
         const response = await fetch('https://api.mercadopago.com/checkout/preferences', {
