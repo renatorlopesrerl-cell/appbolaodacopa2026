@@ -240,7 +240,7 @@ export const Home: React.FC = () => {
           })
           .then((data: any) => {
             if (data.init_point) window.location.href = data.init_point;
-            else alert(`Erro ao iniciar pagamento: ${data.error || 'Resposta inválida do servidor'}`);
+            else alert(`Erro ao iniciar pagamento: ${data.error || 'Resposta inválida do servidor'}\nDetalhes: ${data.details || 'Sem detalhes'}`);
           })
           .catch((err) => {
             console.error(err);
