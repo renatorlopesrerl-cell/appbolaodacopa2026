@@ -51,6 +51,9 @@ export const onRequestPost = async (context) => {
 
     } catch (error) {
         console.error('Mercado Pago Error:', error);
-        return new Response(JSON.stringify({ error: 'Failed to create payment preference' }), { status: 500 });
+        return new Response(JSON.stringify({
+            error: 'Failed to create payment preference',
+            details: error instanceof Error ? error.message : JSON.stringify(error)
+        }), { status: 500 });
     }
 };
