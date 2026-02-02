@@ -286,50 +286,43 @@ export const ProfilePage: React.FC = () => {
                   >
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition duration-200 ease-in-out ${notifyEnd ? 'translate-x-6' : 'translate-x-1'}`} />
                   </button>
-                </button>
-              </div>
-
-              {/* Prediction Reminder Toggle (30 min before) */}
-              <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-3 rounded-xl border border-gray-100 dark:border-gray-600">
-                <div className="flex items-center gap-3">
-                  <div className="bg-yellow-100 dark:bg-yellow-900/50 p-2 rounded-lg text-yellow-700 dark:text-yellow-300">
-                    <Clock size={20} />
-                  </div>
-                  <div>
-                    <p className="font-bold text-gray-800 dark:text-gray-200 text-sm">Lembrete de Palpite</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Avisar 35 min antes do jogo se não houver palpite.</p>
-                  </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setNotifyPrediction(!notifyPrediction)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brasil-blue ${notifyPrediction ? 'bg-brasil-green' : 'bg-gray-300 dark:bg-gray-600'}`}
-                >
-                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition duration-200 ease-in-out ${notifyPrediction ? 'translate-x-6' : 'translate-x-1'}`} />
-                </button>
+
+                {/* Prediction Reminder Toggle (30 min before) */}
+                <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-3 rounded-xl border border-gray-100 dark:border-gray-600">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-yellow-100 dark:bg-yellow-900/50 p-2 rounded-lg text-yellow-700 dark:text-yellow-300">
+                      <Clock size={20} />
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-800 dark:text-gray-200 text-sm">Lembrete de Palpite</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Avisar 35 min antes do jogo se não houver palpite.</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setNotifyPrediction(!notifyPrediction)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brasil-blue ${notifyPrediction ? 'bg-brasil-green' : 'bg-gray-300 dark:bg-gray-600'}`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition duration-200 ease-in-out ${notifyPrediction ? 'translate-x-6' : 'translate-x-1'}`} />
+                  </button>
+                </div>
               </div>
             </div>
-        </div>
-
-        <div className="pt-4 border-t border-gray-100 dark:border-gray-700 flex justify-end">
-          <button
-            type="submit"
-            disabled={loading || imageProcessing}
-            className="bg-brasil-green text-white px-6 py-2.5 rounded-lg font-bold shadow-sm hover:bg-green-700 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
 
             <div className="pt-4 border-t border-gray-100 dark:border-gray-700 flex justify-end">
-            <button
-              type="submit"
-              disabled={loading || imageProcessing}
-              className="bg-brasil-green text-white px-6 py-2.5 rounded-lg font-bold shadow-sm hover:bg-green-700 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-              {loading ? 'Salvando...' : 'Salvar Alterações'}
-            </button>
-          </div>
-        </form>
+              <button
+                type="submit"
+                disabled={loading || imageProcessing}
+                className="bg-brasil-green text-white px-6 py-2.5 rounded-lg font-bold shadow-sm hover:bg-green-700 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+                {loading ? 'Salvando...' : 'Salvar Alterações'}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
-    </div >
   );
 };
