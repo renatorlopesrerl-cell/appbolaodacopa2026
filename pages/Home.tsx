@@ -105,6 +105,16 @@ export const Home: React.FC = () => {
   const myLeagues = leagues.filter(l => l.participants.includes(currentUser.id));
   const pendingInvites = invitations.filter(i => i.status === 'pending');
 
+  // Handle hash scrolling
+  React.useEffect(() => {
+    if (window.location.hash === '#invites-section') {
+      const element = document.getElementById('invites-section');
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  }, [loading, pendingInvites.length]); // Re-run when invites load/change
+
   return (
     <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
       {/* Welcome Banner */}
@@ -133,7 +143,7 @@ export const Home: React.FC = () => {
 
       {/* PENDING INVITES SECTION */}
       {pendingInvites.length > 0 && (
-        <div className="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 p-4 rounded-r-lg shadow-sm">
+        <div id="invites-section" className="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 p-4 rounded-r-lg shadow-sm">
           <h2 className="font-bold text-yellow-800 dark:text-yellow-400 flex items-center gap-2 mb-3">
             <Mail size={20} />
             Convites Pendentes

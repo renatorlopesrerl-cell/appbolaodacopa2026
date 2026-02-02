@@ -60,8 +60,15 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               return (
                 <Link
                   key={invite.id}
-                  to="/"
-                  onClick={() => { setShowNotifications(false); setIsMenuOpen(false); }}
+                  to="/#invites-section"
+                  onClick={() => {
+                    setShowNotifications(false);
+                    setIsMenuOpen(false);
+                    // Force scroll check if already on page
+                    if (window.location.hash === '#invites-section') {
+                      document.getElementById('invites-section')?.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }}
                   className="block p-3 hover:bg-white dark:hover:bg-gray-800 transition-colors group relative"
                 >
                   <div className="absolute left-0 top-0 bottom-0 w-1 bg-yellow-400"></div>
@@ -79,7 +86,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               return (
                 <Link
                   key={l.id}
-                  to={`/league/${l.id}`}
+                  to={`/league/${l.id}?tab=admin`}
                   onClick={() => { setShowNotifications(false); setIsMenuOpen(false); }}
                   className="block p-3 hover:bg-white dark:hover:bg-gray-800 transition-colors group relative"
                 >
@@ -243,6 +250,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               <div className="flex justify-between items-center px-3">
                 <div className="flex items-center gap-2">
                   <img src={currentUser.avatar} alt="User" className="w-8 h-8 rounded-full object-cover" />
+                  {currentUser.isPro && <span className="bg-yellow-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-sm">PRO</span>}
                   <span className="font-medium text-sm">{currentUser.name}</span>
                 </div>
                 <button onClick={() => { logout(); setIsMenuOpen(false); }} className="text-red-300 text-sm font-bold">Sair</button>

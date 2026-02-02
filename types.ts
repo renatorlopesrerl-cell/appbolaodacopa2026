@@ -45,6 +45,7 @@ export interface User {
   notificationSettings?: {
     matchStart: boolean;
     matchEnd: boolean;
+    predictionReminder?: boolean;
   };
   isPro?: boolean;
   proExpiresAt?: string; // ISO Date String

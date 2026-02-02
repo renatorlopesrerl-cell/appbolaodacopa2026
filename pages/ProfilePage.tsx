@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useStore } from '../App';
-import { User as UserIcon, Save, Camera, Upload, AlertCircle, ArrowLeft, Phone, Loader2, Bell, PlayCircle, Flag, Sun, Moon } from 'lucide-react';
+import { User as UserIcon, Save, Camera, Upload, AlertCircle, ArrowLeft, Phone, Loader2, Bell, PlayCircle, Flag, Sun, Moon, Clock } from 'lucide-react';
 import { processImageForUpload } from '../services/dataService';
 
 export const ProfilePage: React.FC = () => {
@@ -13,10 +13,11 @@ export const ProfilePage: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [imageProcessing, setImageProcessing] = useState(false);
-  
+
   // Notification State
   const [notifyStart, setNotifyStart] = useState(true);
   const [notifyEnd, setNotifyEnd] = useState(true);
+  const [notifyPrediction, setNotifyPrediction] = useState(true);
 
   // Theme State
   const [selectedTheme, setSelectedTheme] = useState<'light' | 'dark'>('light');
@@ -31,6 +32,7 @@ export const ProfilePage: React.FC = () => {
       // Set notifications from user settings (default true if undefined)
       setNotifyStart(currentUser.notificationSettings?.matchStart ?? true);
       setNotifyEnd(currentUser.notificationSettings?.matchEnd ?? true);
+      setNotifyPrediction(currentUser.notificationSettings?.predictionReminder ?? true);
       // Set theme from user preference or fallback to global/current
       setSelectedTheme(currentUser.theme || globalTheme);
     }
@@ -56,18 +58,18 @@ export const ProfilePage: React.FC = () => {
     setError('');
     setLoading(true);
     try {
-        await updateUserProfile(
-            name, 
-            avatar, 
-            whatsapp, 
-            currentUser.pix || '',
-            { matchStart: notifyStart, matchEnd: notifyEnd }, // Pass notification settings
-            selectedTheme // Pass theme preference
-        );
+      await updateUserProfile(
+        name,
+        avatar,
+        whatsapp,
+        currentUser.pix || '',
+        { matchStart: notifyStart, matchEnd: notifyEnd, predictionReminder: notifyPrediction }, // Pass notification settings
+        selectedTheme // Pass theme preference
+      );
     } catch (e) {
-        console.error(e);
+      console.error(e);
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
   };
 
@@ -81,15 +83,15 @@ export const ProfilePage: React.FC = () => {
       }
 
       try {
-          setImageProcessing(true);
-          const compressedImage = await processImageForUpload(file);
-          setAvatar(compressedImage);
-          setError('');
+        setImageProcessing(true);
+        const compressedImage = await processImageForUpload(file);
+        setAvatar(compressedImage);
+        setError('');
       } catch (err) {
-          console.error(err);
-          setError('Erro ao processar imagem. Tente outra.');
+        console.error(err);
+        setError('Erro ao processar imagem. Tente outra.');
       } finally {
-          setImageProcessing(false);
+        setImageProcessing(false);
       }
     }
   };
@@ -101,20 +103,20 @@ export const ProfilePage: React.FC = () => {
   return (
     <div className="max-w-2xl mx-auto space-y-6 pb-12">
       <div className="mb-2">
-         <button 
-           onClick={() => navigate('/')}
-           className="flex items-center gap-2 text-sm font-bold text-brasil-blue hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors group"
-         >
-           <div className="bg-blue-50 dark:bg-gray-800 p-1.5 rounded-full group-hover:bg-blue-100 dark:group-hover:bg-gray-700">
-             <ArrowLeft size={18} />
-           </div>
-           Voltar
-         </button>
+        <button
+          onClick={() => navigate('/')}
+          className="flex items-center gap-2 text-sm font-bold text-brasil-blue hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors group"
+        >
+          <div className="bg-blue-50 dark:bg-gray-800 p-1.5 rounded-full group-hover:bg-blue-100 dark:group-hover:bg-gray-700">
+            <ArrowLeft size={18} />
+          </div>
+          Voltar
+        </button>
       </div>
 
       <div className="flex items-center gap-2 mb-4">
         <div className="p-2 bg-brasil-blue text-white rounded-lg">
-           <UserIcon size={24} />
+          <UserIcon size={24} />
         </div>
         <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Meu Perfil</h1>
       </div>
@@ -124,183 +126,210 @@ export const ProfilePage: React.FC = () => {
         <div className="h-32 bg-gradient-to-r from-brasil-green to-brasil-blue"></div>
 
         <div className="px-8 pb-8">
-           {/* Avatar Preview & Upload Trigger */}
-           <div className="relative -mt-12 mb-6 flex justify-center sm:justify-start">
-              <div 
-                className="relative group cursor-pointer"
-                onClick={triggerFileInput}
-                title="Alterar foto"
-              >
-                <img 
-                  src={avatar || 'https://via.placeholder.com/150'} 
-                  alt="Avatar" 
-                  className={`w-24 h-24 rounded-full border-4 border-white dark:border-gray-800 shadow-lg object-cover bg-gray-200 dark:bg-gray-700 group-hover:brightness-75 transition-all ${imageProcessing ? 'opacity-50' : ''}`}
-                  onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/150?text=Error'; }}
-                />
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
-                   <Camera className="text-white drop-shadow-md" size={32} />
-                </div>
-                {imageProcessing && (
-                    <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/20">
-                        <Loader2 className="animate-spin text-white" size={32} />
-                    </div>
-                )}
-                <div className="absolute bottom-0 right-0 bg-brasil-yellow text-brasil-blue p-1.5 rounded-full shadow-sm border-2 border-white dark:border-gray-800 group-hover:scale-110 transition-transform">
-                  <Camera size={14} />
-                </div>
+          {/* Avatar Preview & Upload Trigger */}
+          <div className="relative -mt-12 mb-6 flex justify-center sm:justify-start">
+            <div
+              className="relative group cursor-pointer"
+              onClick={triggerFileInput}
+              title="Alterar foto"
+            >
+              <img
+                src={avatar || 'https://via.placeholder.com/150'}
+                alt="Avatar"
+                className={`w-24 h-24 rounded-full border-4 border-white dark:border-gray-800 shadow-lg object-cover bg-gray-200 dark:bg-gray-700 group-hover:brightness-75 transition-all ${imageProcessing ? 'opacity-50' : ''}`}
+                onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/150?text=Error'; }}
+              />
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
+                <Camera className="text-white drop-shadow-md" size={32} />
               </div>
-           </div>
-
-           <form onSubmit={handleSubmit} className="space-y-6">
-              {error && (
-                <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-300 p-3 rounded-lg text-sm flex items-center gap-2 animate-pulse border border-red-100 dark:border-red-800">
-                  <AlertCircle size={16} />
-                  {error}
+              {imageProcessing && (
+                <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/20">
+                  <Loader2 className="animate-spin text-white" size={32} />
                 </div>
               )}
-
-              {/* Basic Info */}
-              <div>
-                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Apelido (Nome Exibido)</label>
-                <input 
-                  type="text" 
-                  value={name} 
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full border border-gray-600 bg-gray-700 rounded-lg p-3 focus:ring-2 focus:ring-brasil-blue focus:border-brasil-blue outline-none transition-all text-white placeholder-gray-400"
-                  placeholder="Seu nome ou apelido"
-                />
-                <p className="text-xs text-gray-400 mt-1">Este nome aparecerá nas tabelas de classificação.</p>
+              <div className="absolute bottom-0 right-0 bg-brasil-yellow text-brasil-blue p-1.5 rounded-full shadow-sm border-2 border-white dark:border-gray-800 group-hover:scale-110 transition-transform">
+                <Camera size={14} />
               </div>
+            </div>
+          </div>
 
-              <div>
-                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Foto de Perfil</label>
-                
-                {/* File Upload Option */}
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  ref={fileInputRef} 
-                  onChange={handleFileChange} 
-                  className="hidden" 
-                />
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {error && (
+              <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-300 p-3 rounded-lg text-sm flex items-center gap-2 animate-pulse border border-red-100 dark:border-red-800">
+                <AlertCircle size={16} />
+                {error}
+              </div>
+            )}
 
-                <div 
-                  onClick={triggerFileInput}
-                  className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer hover:border-brasil-blue dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all group"
-                >
-                  <div className="bg-blue-100 dark:bg-blue-900/50 p-3 rounded-full mb-3 group-hover:bg-blue-200 dark:group-hover:bg-blue-900 transition-colors">
-                    <Upload className="text-brasil-blue dark:text-blue-300" size={24} />
-                  </div>
-                  <p className="text-sm font-bold text-gray-600 dark:text-gray-300 group-hover:text-brasil-blue dark:group-hover:text-blue-300">Clique para fazer upload da foto</p>
-                  <p className="text-xs text-gray-400 mt-1">
-                      {imageProcessing ? 'Processando imagem...' : 'Qualquer tamanho (Otimização Automática)'}
-                  </p>
+            {/* Basic Info */}
+            <div>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Apelido (Nome Exibido)</label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full border border-gray-600 bg-gray-700 rounded-lg p-3 focus:ring-2 focus:ring-brasil-blue focus:border-brasil-blue outline-none transition-all text-white placeholder-gray-400"
+                placeholder="Seu nome ou apelido"
+              />
+              <p className="text-xs text-gray-400 mt-1">Este nome aparecerá nas tabelas de classificação.</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Foto de Perfil</label>
+
+              {/* File Upload Option */}
+              <input
+                type="file"
+                accept="image/*"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                className="hidden"
+              />
+
+              <div
+                onClick={triggerFileInput}
+                className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer hover:border-brasil-blue dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all group"
+              >
+                <div className="bg-blue-100 dark:bg-blue-900/50 p-3 rounded-full mb-3 group-hover:bg-blue-200 dark:group-hover:bg-blue-900 transition-colors">
+                  <Upload className="text-brasil-blue dark:text-blue-300" size={24} />
                 </div>
+                <p className="text-sm font-bold text-gray-600 dark:text-gray-300 group-hover:text-brasil-blue dark:group-hover:text-blue-300">Clique para fazer upload da foto</p>
+                <p className="text-xs text-gray-400 mt-1">
+                  {imageProcessing ? 'Processando imagem...' : 'Qualquer tamanho (Otimização Automática)'}
+                </p>
               </div>
+            </div>
 
-              {/* WhatsApp Field */}
-              <div>
-                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1">
-                    <Phone size={14} /> WhatsApp
-                </label>
-                <input 
-                  type="text" 
-                  value={whatsapp} 
-                  onChange={(e) => setWhatsapp(e.target.value)}
-                  className="w-full border border-gray-600 bg-gray-700 rounded-lg p-3 focus:ring-2 focus:ring-brasil-blue focus:border-brasil-blue outline-none transition-all text-white placeholder-gray-400"
-                  placeholder="(00) 00000-0000"
-                />
-              </div>
+            {/* WhatsApp Field */}
+            <div>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1">
+                <Phone size={14} /> WhatsApp
+              </label>
+              <input
+                type="text"
+                value={whatsapp}
+                onChange={(e) => setWhatsapp(e.target.value)}
+                className="w-full border border-gray-600 bg-gray-700 rounded-lg p-3 focus:ring-2 focus:ring-brasil-blue focus:border-brasil-blue outline-none transition-all text-white placeholder-gray-400"
+                placeholder="(00) 00000-0000"
+              />
+            </div>
 
-              {/* Theme Settings */}
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-                  <h3 className="font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
-                      {selectedTheme === 'dark' ? <Moon size={20} className="text-brasil-blue dark:text-blue-400" /> : <Sun size={20} className="text-brasil-blue dark:text-blue-400" />}
-                      Aparência e Tema
-                  </h3>
-                  <div className="grid grid-cols-2 gap-4">
-                      <button 
-                        type="button"
-                        onClick={() => setSelectedTheme('light')}
-                        className={`flex items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all ${selectedTheme === 'light' ? 'border-brasil-blue bg-blue-50 dark:bg-blue-900/20 text-brasil-blue dark:text-blue-300' : 'border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:border-gray-300'}`}
-                      >
-                          <Sun size={24} />
-                          <span className="font-bold">Claro</span>
-                      </button>
-                      <button 
-                        type="button"
-                        onClick={() => setSelectedTheme('dark')}
-                        className={`flex items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all ${selectedTheme === 'dark' ? 'border-brasil-blue bg-blue-50 dark:bg-blue-900/20 text-brasil-blue dark:text-blue-300' : 'border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:border-gray-300'}`}
-                      >
-                          <Moon size={24} />
-                          <span className="font-bold">Escuro</span>
-                      </button>
-                  </div>
-              </div>
-
-              {/* Notifications Section */}
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-                  <h3 className="font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
-                      <Bell size={20} className="text-brasil-blue dark:text-blue-400" />
-                      Configurar Notificações
-                  </h3>
-                  
-                  <div className="space-y-4">
-                      {/* Match Start Toggle */}
-                      <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-3 rounded-xl border border-gray-100 dark:border-gray-600">
-                          <div className="flex items-center gap-3">
-                              <div className="bg-blue-100 dark:bg-blue-900/50 p-2 rounded-lg text-blue-700 dark:text-blue-300">
-                                  <PlayCircle size={20} />
-                              </div>
-                              <div>
-                                  <p className="font-bold text-gray-800 dark:text-gray-200 text-sm">Início de Jogo</p>
-                                  <p className="text-xs text-gray-500 dark:text-gray-400">Receber alerta quando a bola rolar.</p>
-                              </div>
-                          </div>
-                          <button 
-                            type="button"
-                            onClick={() => setNotifyStart(!notifyStart)}
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brasil-blue ${notifyStart ? 'bg-brasil-green' : 'bg-gray-300 dark:bg-gray-600'}`}
-                          >
-                              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition duration-200 ease-in-out ${notifyStart ? 'translate-x-6' : 'translate-x-1'}`} />
-                          </button>
-                      </div>
-
-                      {/* Match End Toggle */}
-                      <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-3 rounded-xl border border-gray-100 dark:border-gray-600">
-                          <div className="flex items-center gap-3">
-                              <div className="bg-green-100 dark:bg-green-900/50 p-2 rounded-lg text-green-700 dark:text-green-300">
-                                  <Flag size={20} />
-                              </div>
-                              <div>
-                                  <p className="font-bold text-gray-800 dark:text-gray-200 text-sm">Fim de Jogo</p>
-                                  <p className="text-xs text-gray-500 dark:text-gray-400">Receber alerta com o placar final.</p>
-                              </div>
-                          </div>
-                          <button 
-                            type="button"
-                            onClick={() => setNotifyEnd(!notifyEnd)}
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brasil-blue ${notifyEnd ? 'bg-brasil-green' : 'bg-gray-300 dark:bg-gray-600'}`}
-                          >
-                              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition duration-200 ease-in-out ${notifyEnd ? 'translate-x-6' : 'translate-x-1'}`} />
-                          </button>
-                      </div>
-                  </div>
-              </div>
-
-              <div className="pt-4 border-t border-gray-100 dark:border-gray-700 flex justify-end">
-                <button 
-                  type="submit"
-                  disabled={loading || imageProcessing}
-                  className="bg-brasil-green text-white px-6 py-2.5 rounded-lg font-bold shadow-sm hover:bg-green-700 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            {/* Theme Settings */}
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+              <h3 className="font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+                {selectedTheme === 'dark' ? <Moon size={20} className="text-brasil-blue dark:text-blue-400" /> : <Sun size={20} className="text-brasil-blue dark:text-blue-400" />}
+                Aparência e Tema
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  type="button"
+                  onClick={() => setSelectedTheme('light')}
+                  className={`flex items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all ${selectedTheme === 'light' ? 'border-brasil-blue bg-blue-50 dark:bg-blue-900/20 text-brasil-blue dark:text-blue-300' : 'border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:border-gray-300'}`}
                 >
-                  {loading ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-                  {loading ? 'Salvando...' : 'Salvar Alterações'}
+                  <Sun size={24} />
+                  <span className="font-bold">Claro</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedTheme('dark')}
+                  className={`flex items-center justify-center gap-2 p-4 rounded-xl border-2 transition-all ${selectedTheme === 'dark' ? 'border-brasil-blue bg-blue-50 dark:bg-blue-900/20 text-brasil-blue dark:text-blue-300' : 'border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:border-gray-300'}`}
+                >
+                  <Moon size={24} />
+                  <span className="font-bold">Escuro</span>
                 </button>
               </div>
-           </form>
+            </div>
+
+            {/* Notifications Section */}
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
+              <h3 className="font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+                <Bell size={20} className="text-brasil-blue dark:text-blue-400" />
+                Configurar Notificações
+              </h3>
+
+              <div className="space-y-4">
+                {/* Match Start Toggle */}
+                <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-3 rounded-xl border border-gray-100 dark:border-gray-600">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-blue-100 dark:bg-blue-900/50 p-2 rounded-lg text-blue-700 dark:text-blue-300">
+                      <PlayCircle size={20} />
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-800 dark:text-gray-200 text-sm">Início de Jogo</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Receber alerta quando a bola rolar.</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setNotifyStart(!notifyStart)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brasil-blue ${notifyStart ? 'bg-brasil-green' : 'bg-gray-300 dark:bg-gray-600'}`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition duration-200 ease-in-out ${notifyStart ? 'translate-x-6' : 'translate-x-1'}`} />
+                  </button>
+                </div>
+
+                {/* Match End Toggle */}
+                <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-3 rounded-xl border border-gray-100 dark:border-gray-600">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-green-100 dark:bg-green-900/50 p-2 rounded-lg text-green-700 dark:text-green-300">
+                      <Flag size={20} />
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-800 dark:text-gray-200 text-sm">Fim de Jogo</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Receber alerta com o placar final.</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setNotifyEnd(!notifyEnd)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brasil-blue ${notifyEnd ? 'bg-brasil-green' : 'bg-gray-300 dark:bg-gray-600'}`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition duration-200 ease-in-out ${notifyEnd ? 'translate-x-6' : 'translate-x-1'}`} />
+                  </button>
+                </button>
+              </div>
+
+              {/* Prediction Reminder Toggle (30 min before) */}
+              <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-3 rounded-xl border border-gray-100 dark:border-gray-600">
+                <div className="flex items-center gap-3">
+                  <div className="bg-yellow-100 dark:bg-yellow-900/50 p-2 rounded-lg text-yellow-700 dark:text-yellow-300">
+                    <Clock size={20} />
+                  </div>
+                  <div>
+                    <p className="font-bold text-gray-800 dark:text-gray-200 text-sm">Lembrete de Palpite</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Avisar 35 min antes do jogo se não houver palpite.</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setNotifyPrediction(!notifyPrediction)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brasil-blue ${notifyPrediction ? 'bg-brasil-green' : 'bg-gray-300 dark:bg-gray-600'}`}
+                >
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition duration-200 ease-in-out ${notifyPrediction ? 'translate-x-6' : 'translate-x-1'}`} />
+                </button>
+              </div>
+            </div>
         </div>
+
+        <div className="pt-4 border-t border-gray-100 dark:border-gray-700 flex justify-end">
+          <button
+            type="submit"
+            disabled={loading || imageProcessing}
+            className="bg-brasil-green text-white px-6 py-2.5 rounded-lg font-bold shadow-sm hover:bg-green-700 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+
+            <div className="pt-4 border-t border-gray-100 dark:border-gray-700 flex justify-end">
+            <button
+              type="submit"
+              disabled={loading || imageProcessing}
+              className="bg-brasil-green text-white px-6 py-2.5 rounded-lg font-bold shadow-sm hover:bg-green-700 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+              {loading ? 'Salvando...' : 'Salvar Alterações'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
+    </div >
   );
 };

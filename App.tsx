@@ -161,7 +161,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     setTheme(prev => {
       const newTheme = prev === 'light' ? 'dark' : 'light';
       if (currentUser) {
-        updateUserProfile(currentUser.name, currentUser.avatar, currentUser.whatsapp || '', currentUser.pix || '', currentUser.notificationSettings || { matchStart: true, matchEnd: true }, newTheme).catch(() => { });
+        updateUserProfile(currentUser.name, currentUser.avatar, currentUser.whatsapp || '', currentUser.pix || '', currentUser.notificationSettings || { matchStart: true, matchEnd: true, predictionReminder: true }, newTheme).catch(() => { });
       }
       return newTheme;
     });
@@ -179,9 +179,58 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       setCurrentTime(new Date());
     }, 60000);
     return () => clearInterval(interval);
+    return () => clearInterval(interval);
   }, []);
 
-  // --- INITIAL DATA FETCHING ---
+  // --- PREDICTION REMINDER SCHEDULER ---
+  useEffect(() => {
+    // Clear any existing timeouts if re-running (not easily possible with anonymous timeouts, 
+    // but calculating fresh is fine if we check "already notified" or just standard behavior.
+    // Ideally we track timeouts in a ref, but for simplicity/performance in this specific constraint:
+    // We will just run this logic. Note: Setting many timeouts is cheap.
+    // To prevent dupes, we can check if the time is VERY close to the trigger point?
+    // Or just let the timeout fire. The timeout callback will check the condition (prediction exists) AT THAT MOMENT.
+
+    if (!currentUser?.notificationSettings?.predictionReminder) return;
+
+    const timers: NodeJS.Timeout[] = [];
+    const now = new Date().getTime();
+
+    matches.forEach(match => {
+      if (match.status !== MatchStatus.SCHEDULED) return;
+
+      const matchTime = new Date(match.date).getTime();
+      // Notify 35 minutes before
+      const notifyTime = matchTime - (35 * 60 * 1000);
+      const timeUntilNotify = notifyTime - now;
+
+      // Only schedule if it's in the future (and reasonable time, e.g. < 24h? No user said 35 min before.
+      // If the app is open right now, and the notification time is 2 hours from now, we schedule it.
+      // If the notification time was 5 minutes ago, we skip (don't notify late).
+      if (timeUntilNotify > 0 && timeUntilNotify < 24 * 60 * 60 * 1000) { // Limit to next 24h to avoid millions of timers
+        const timer = setTimeout(() => {
+          // RE-CHECK condition explicitly at trigger time
+          // We need fresh state. 'predictions' from closure might be stale.
+          // Best way: use functional update or ref.
+          // Since this effect depends on 'predictions', it re-runs when predictions change.
+          // That might clear/reset timers.
+          // Actually, let's look at dependencies.
+
+          // We'll perform the check here.
+          const hasPrediction = predictions.some(p => p.matchId === match.id && p.userId === currentUser.id);
+          if (!hasPrediction) {
+            // Double check we are still enabled (user might have toggled off in the meantime, though effect would cleanup)
+            addNotification('Lembrete ⏳', `Faltam 30 min para encerrar palpites de: ${match.homeTeamId} x ${match.awayTeamId}`, 'warning');
+          }
+        }, timeUntilNotify);
+        timers.push(timer);
+      }
+    });
+
+    return () => {
+      timers.forEach(t => clearTimeout(t));
+    };
+  }, [matches, predictions, currentUser]); // Re-schedules if any data changes, which ensures correctness.
   useEffect(() => {
     mountedRef.current = true;
 
@@ -267,7 +316,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   const fetchUserProfile = async (uid: string, email: string, photoURL: string, fullName: string = '', whatsappMeta: string = '') => {
     const savedPrefs = localStorage.getItem(`notify_${uid}`);
-    const fallbackPrefs = savedPrefs ? JSON.parse(savedPrefs) : { matchStart: true, matchEnd: true };
+    const fallbackPrefs = savedPrefs ? JSON.parse(savedPrefs) : { matchStart: true, matchEnd: true, predictionReminder: true };
     const shouldBeAdmin = email.toLowerCase() === 'renatinhorlopes@hotmail.com';
 
     const fallbackUser: User = {
@@ -459,7 +508,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     if (data.user && data.session) {
       const newUserDB = {
         id: data.user.id, email, name, avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.user.id}`,
-        is_admin: false, whatsapp: whatsapp || null, notification_settings: { matchStart: true, matchEnd: true }
+        is_admin: false, whatsapp: whatsapp || null, notification_settings: { matchStart: true, matchEnd: true, predictionReminder: true }
       };
       api.profiles.update(newUserDB).catch((err) => console.warn(err));
       const newUser: User = { ...newUserDB, isAdmin: false, whatsapp: whatsapp || '', pix: '', notificationSettings: newUserDB.notification_settings };

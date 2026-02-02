@@ -59,6 +59,11 @@ export const SimulatePage: React.FC = () => {
     const [filterPhase, setFilterPhase] = useState<string>('all');
     const [filterGroup, setFilterGroup] = useState<string>('all');
 
+    const myLeagues = React.useMemo(() => {
+        if (!currentUser) return [];
+        return leagues.filter(l => l.participants.includes(currentUser.id));
+    }, [leagues, currentUser]);
+
     // Load Simulation on Mount
     useEffect(() => {
         if (!currentUser) return;
@@ -718,7 +723,7 @@ export const SimulatePage: React.FC = () => {
                         <div className="flex gap-2">
                             <select className="flex-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-sm p-1.5" value={exportLeagueId} onChange={e => setExportLeagueId(e.target.value)}>
                                 <option value="">Selecione a Liga...</option>
-                                {leagues.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                                {myLeagues.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
                             </select>
                             <button onClick={handleExport} disabled={exporting} className="bg-blue-600 text-white px-3 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
                                 {exporting ? <Loader2 className="animate-spin" size={16} /> : <ArrowRight size={16} />}
@@ -774,7 +779,7 @@ export const SimulatePage: React.FC = () => {
                         <div className="flex gap-2">
                             <select className="flex-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded text-sm p-1.5" value={importLeagueId} onChange={e => setImportLeagueId(e.target.value)}>
                                 <option value="">Selecione a Liga...</option>
-                                {leagues.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                                {myLeagues.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
                             </select>
                             <button onClick={handleImport} className="bg-purple-600 text-white px-3 rounded hover:bg-purple-700"><CheckCircle size={16} /></button>
                         </div>

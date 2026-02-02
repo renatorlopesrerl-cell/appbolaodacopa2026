@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { useParams, useNavigate, Link, Navigate } from 'react-router-dom';
+import { useParams, useNavigate, Link, Navigate, useSearchParams } from 'react-router-dom';
 import { useStore, getLeagueLimit } from '../App';
 import { MatchStatus, Phase, Match, User, LeaguePlan } from '../types';
 import { getTeamFlag, isPredictionLocked, calculatePoints, GROUPS_CONFIG, processImageForUpload } from '../services/dataService';
@@ -15,6 +15,7 @@ import {
 export const LeagueDetails: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const {
         currentUser, leagues, matches, predictions, users, currentTime,
         joinLeague, deleteLeague, approveUser, rejectUser,
@@ -22,6 +23,14 @@ export const LeagueDetails: React.FC = () => {
     } = useStore();
 
     const [activeTab, setActiveTab] = useState<'palpites' | 'classificacao' | 'regras' | 'admin'>('palpites');
+
+    // Handle Deep Linking Tabs
+    useEffect(() => {
+        const tabParam = searchParams.get('tab');
+        if (tabParam === 'admin') setActiveTab('admin');
+        else if (tabParam === 'classificacao') setActiveTab('classificacao');
+        else if (tabParam === 'regras') setActiveTab('regras');
+    }, [searchParams]);
 
     // --- GLOBAL STATE (HOISTED) ---
     const [inviteEmail, setInviteEmail] = useState('');
