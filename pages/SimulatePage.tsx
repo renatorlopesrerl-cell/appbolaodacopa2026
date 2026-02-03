@@ -737,7 +737,7 @@ export const SimulatePage: React.FC = () => {
                         const teamStandings = standings[group] || [];
                         return (
                             <div key={group} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-                                <div className="bg-gray-50 dark:bg-gray-700 px-4 py-2 border-b border-gray-100 dark:border-gray-600 flex justify-between items-center">
+                                <div className="bg-gray-200 dark:bg-gray-700 px-4 py-2 border-b border-gray-100 dark:border-gray-600 flex justify-between items-center">
                                     <h3 className="font-black text-gray-700 dark:text-gray-200">GRUPO {group}</h3>
                                 </div>
                                 {/* Standing Table */}
@@ -757,7 +757,7 @@ export const SimulatePage: React.FC = () => {
                                     </thead>
                                     <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
                                         {teamStandings.map((t, i) => (
-                                            <tr key={t.teamId} className={`${i < 2 ? 'bg-blue-50/50 dark:bg-green-900/40' : (i === 2 ? 'bg-yellow-50/50 dark:bg-blue-900/20' : '')}`}>
+                                            <tr key={t.teamId} className={`${i < 2 ? 'bg-blue-50 dark:bg-green-900/40' : (i === 2 ? 'bg-yellow-50/50 dark:bg-blue-900/20' : '')}`}>
                                                 <td className="pl-3 py-1.5 flex items-center gap-2 font-semibold text-gray-800 dark:text-gray-200">
                                                     <span className={`text-[10px] w-3 ${i < 2 ? 'text-blue-800 dark:text-green-300 font-bold' : (i === 2 ? 'text-yellow-800 dark:text-blue-400 font-bold' : 'text-gray-400')}`}>{i + 1}</span>
                                                     <img src={getTeamFlag(t.teamId)} className="w-5 h-3.5 object-cover rounded shadow-sm" />

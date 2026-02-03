@@ -130,7 +130,7 @@ export const TablePage: React.FC = () => {
       {/* MATCH SIMULATOR PAGE HEADER DESIGN */}
       <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
-          <h1 className="text-2xl font-black text-brasil-green dark:text-green-400 flex items-center gap-2">
+          <h1 className="text-3xl font-black text-brasil-green dark:text-green-400 flex items-center gap-2">
             <Trophy className="text-brasil-yellow" fill="currentColor" />
             Tabela da Copa 2026
           </h1>
@@ -204,7 +204,7 @@ export const TablePage: React.FC = () => {
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             {visibleGroups.map(group => (
               <div key={group} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
-                <div className="bg-gray-50 dark:bg-gray-700 px-4 py-2 border-b border-gray-100 dark:border-gray-600 flex justify-between items-center">
+                <div className="bg-gray-200 dark:bg-gray-700 px-4 py-2 border-b border-gray-100 dark:border-gray-600 flex justify-between items-center">
                   <h3 className="font-black text-gray-700 dark:text-gray-200">GRUPO {group}</h3>
                 </div>
 
@@ -273,7 +273,7 @@ export const TablePage: React.FC = () => {
 
               return (
                 <div key={phase} className={`bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden border border-gray-100 dark:border-gray-700 ${isFinal ? 'border-brasil-yellow shadow-md ring-1 ring-brasil-yellow/20' : ''}`}>
-                  <div className={`px-4 py-2 font-bold flex justify-between items-center ${isFinal ? 'bg-gradient-to-r from-brasil-yellow to-yellow-500 text-brasil-blue' : 'bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-200'}`}>
+                  <div className={`px-4 py-2 font-bold flex justify-between items-center ${isFinal ? 'bg-gradient-to-r from-brasil-yellow to-yellow-500 text-brasil-blue' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200'}`}>
                     <span className="flex items-center gap-2 text-sm uppercase">
                       {isFinal && <Medal size={16} />}
                       {phase}
