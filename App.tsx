@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, createContext, useContext, useCallback } from 'react';
-import { HashRouter, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import {
   Trophy,
   Settings,
@@ -900,7 +900,7 @@ const AppRoutes: React.FC = () => {
   }
 
   return (
-    <HashRouter>
+    <BrowserRouter>
       <Layout>
         <Routes>
           <Route path="/" element={<Home />} />
@@ -921,7 +921,7 @@ const AppRoutes: React.FC = () => {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Layout>
-    </HashRouter>
+    </BrowserRouter>
   );
 };
 

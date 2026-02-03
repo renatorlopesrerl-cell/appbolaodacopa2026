@@ -152,7 +152,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <Trophy className="w-6 h-6 text-brasil-yellow" />
-            <span className="text-xl font-bold tracking-wide">Bolão da Copa 2026</span>
+            <span className="text-xl font-bold tracking-wide">Palpiteiro da Copa 2026</span>
           </div>
 
           {/* Desktop Nav */}
