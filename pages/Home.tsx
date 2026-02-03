@@ -25,8 +25,8 @@ export const Home: React.FC = () => {
           </div>
 
           <div className="space-y-2">
-            <h1 className="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-brasil-green to-brasil-blue dark:from-green-400 dark:to-blue-400 tracking-tighter uppercase">
-              BOLÃO DA COPA 2026
+            <h1 className="text-3xl md:text-5xl lg:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-brasil-green to-brasil-blue dark:from-green-400 dark:to-blue-400 tracking-tighter uppercase break-words">
+              PALPITEIROS DA COPA 2026
             </h1>
             <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 font-medium max-w-lg mx-auto leading-relaxed">
               A torcida começa aqui. Crie sua liga, desafie seus amigos e viva a emoção do Hexa.

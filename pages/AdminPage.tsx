@@ -82,28 +82,7 @@ export const AdminPage: React.FC = () => {
           </div>
         </button>
 
-        {/* Card: Usuários (PRO Management) */}
-        <button
-          onClick={() => navigate('/admin/users')}
-          className="group relative bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-md border-2 border-transparent hover:border-purple-500 dark:hover:border-purple-500 transition-all hover:shadow-xl text-left overflow-hidden md:col-span-2 lg:col-span-1"
-        >
-          <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 group-hover:scale-110 transition-all duration-500">
-            <Users size={120} className="text-purple-600 dark:text-purple-400" />
-          </div>
 
-          <div className="relative z-10">
-            <div className="w-16 h-16 bg-purple-50 dark:bg-purple-900/30 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-purple-600 dark:group-hover:bg-purple-600 transition-colors">
-              <Users size={32} className="text-purple-600 dark:text-purple-400 group-hover:text-white" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">Gerenciar Usuários</h2>
-            <p className="text-gray-500 dark:text-gray-400 font-medium leading-relaxed">
-              Visualize todos os usuários e gerencie o status PRO. Ative ou desative benefícios manualmente.
-            </p>
-            <div className="mt-6 flex items-center gap-2 text-purple-600 dark:text-purple-400 font-bold group-hover:underline">
-              Acessar painel <ArrowLeft size={16} className="rotate-180" />
-            </div>
-          </div>
-        </button>
 
       </div>
     </div >

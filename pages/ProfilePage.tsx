@@ -294,9 +294,9 @@ export const ProfilePage: React.FC = () => {
                     <div className="bg-yellow-100 dark:bg-yellow-900/50 p-2 rounded-lg text-yellow-700 dark:text-yellow-300">
                       <Clock size={20} />
                     </div>
-                    <div>
+                    <div className="flex-1 min-w-0">
                       <p className="font-bold text-gray-800 dark:text-gray-200 text-sm">Lembrete de Palpite</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Avisar 35 min antes do jogo se não houver palpite.</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Avisar 30 min antes do jogo se não houver palpite.</p>
                     </div>
                   </div>
                   <button

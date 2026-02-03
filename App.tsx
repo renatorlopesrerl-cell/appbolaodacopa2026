@@ -29,8 +29,8 @@ import { ProfilePage } from './pages/ProfilePage';
 import { AdminPage } from './pages/AdminPage';
 import { AdminLeaguesPage } from './pages/AdminLeaguesPage';
 import { AdminMatchesPage } from './pages/AdminMatchesPage';
-import { AdminUsersPage } from './pages/AdminUsersPage';
 import { Login } from './pages/Login';
+
 
 
 // Services
@@ -108,7 +108,7 @@ export const getLeagueLimit = (league: League): number => {
     case 'VIP': return 100;
     case 'VIP_BASIC': return 50;
     case 'FREE':
-    default: return 10;
+    default: return 5;
   }
 };
 
@@ -200,8 +200,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       if (match.status !== MatchStatus.SCHEDULED) return;
 
       const matchTime = new Date(match.date).getTime();
-      // Notify 35 minutes before
-      const notifyTime = matchTime - (35 * 60 * 1000);
+      // Notify 30 minutes before
+      const notifyTime = matchTime - (30 * 60 * 1000);
       const timeUntilNotify = notifyTime - now;
 
       // Only schedule if it's in the future (and reasonable time, e.g. < 24h? No user said 35 min before.
@@ -913,7 +913,7 @@ const AppRoutes: React.FC = () => {
           <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
           <Route path="/admin/leagues" element={<AdminRoute><AdminLeaguesPage /></AdminRoute>} />
           <Route path="/admin/matches" element={<AdminRoute><AdminMatchesPage /></AdminRoute>} />
-          <Route path="/admin/users" element={currentUser && currentUser.isAdmin ? <AdminUsersPage /> : <Navigate to="/" />} />
+
 
 
 
