@@ -100,7 +100,16 @@ export const useStore = () => {
 
 // Helper: League Limit
 export const getLeagueLimit = (league: League): number => {
-  return 5;
+  if (league.settings?.isUnlimited) return Infinity;
+  const plan = league.settings?.plan || 'FREE';
+  switch (plan) {
+    case 'VIP_UNLIMITED': return Infinity;
+    case 'VIP_MASTER': return 200;
+    case 'VIP': return 100;
+    case 'VIP_BASIC': return 50;
+    case 'FREE':
+    default: return 10;
+  }
 };
 
 const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
