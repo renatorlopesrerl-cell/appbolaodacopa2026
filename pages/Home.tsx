@@ -26,11 +26,11 @@ export const Home: React.FC = () => {
 
           <div className="space-y-2">
             <h1 className="text-3xl md:text-5xl lg:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-brasil-green to-brasil-blue dark:from-green-400 dark:to-blue-400 tracking-tighter uppercase break-words">
-              PALPITEIRO DA COPA 2026
+              BOLÃO DA COPA DO MUNDO 2026
             </h1>
-            <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 font-medium max-w-lg mx-auto leading-relaxed">
-              A torcida começa aqui. Crie sua liga, desafie seus amigos e viva a emoção do Hexa.
-            </p>
+            <h2 className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 font-medium max-w-lg mx-auto leading-relaxed">
+              Crie seu Bolão da Copa 2026 Online. A torcida começa aqui.
+            </h2>
           </div>
         </div>
 
@@ -66,7 +66,12 @@ export const Home: React.FC = () => {
         </div>
 
         {/* Feature Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-16 w-full max-w-5xl px-4">
+        <div className="w-full max-w-5xl px-4 mt-8 flex flex-col gap-2 items-center text-center">
+          <h2 className="text-lg font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider opacity-80">Simulador da Copa do Mundo 2026</h2>
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400">Palpites, Ligas e Ranking em Tempo Real</h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8 w-full max-w-5xl px-4">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 hover:border-brasil-green hover:shadow-md transition-all">
             <div className="bg-green-100 dark:bg-green-900 w-12 h-12 rounded-xl flex items-center justify-center mb-4 text-brasil-green dark:text-green-300">
               <Users size={24} />

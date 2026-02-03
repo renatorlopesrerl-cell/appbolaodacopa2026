@@ -380,7 +380,7 @@ export const LeagueDetails: React.FC = () => {
             <div className="space-y-6 pb-24">
                 <div className="space-y-3">
                     <div className="bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 px-4 py-3 text-xs md:text-sm font-medium border border-blue-100 dark:border-blue-800 rounded-xl flex items-center justify-center gap-2 text-center shadow-sm">
-                        <MousePointerClick size={16} /><span>Clique am uma partida com palpite encerrado para conferir os palpites da galera (Atualização auto. 15s após bloqueio).</span>
+                        <MousePointerClick size={16} /><span>Clique am uma partida com palpite encerrado para conferir os palpites da galera.</span>
                     </div>
                     <div className="bg-yellow-50 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 px-4 py-3 text-xs md:text-sm font-medium border border-yellow-100 dark:border-yellow-800 rounded-xl flex items-center justify-center gap-2 text-center shadow-sm">
                         <AlertCircle size={16} /><span>O palpite é encerrado 5 min. antes do inicio do jogo.</span>
