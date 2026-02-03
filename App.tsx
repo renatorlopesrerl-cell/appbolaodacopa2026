@@ -31,7 +31,7 @@ import { AdminLeaguesPage } from './pages/AdminLeaguesPage';
 import { AdminMatchesPage } from './pages/AdminMatchesPage';
 import { AdminUsersPage } from './pages/AdminUsersPage';
 import { Login } from './pages/Login';
-import { PaymentSuccess, PaymentFailure, PaymentPending } from './pages/PaymentStatus';
+
 
 // Services
 import { supabase } from './services/supabase'; // Auth Only
@@ -100,16 +100,7 @@ export const useStore = () => {
 
 // Helper: League Limit
 export const getLeagueLimit = (league: League): number => {
-  if (league.settings?.isUnlimited) return Infinity;
-  const plan = league.settings?.plan || 'FREE';
-  switch (plan) {
-    case 'VIP_UNLIMITED': return Infinity;
-    case 'VIP_MASTER': return 200;
-    case 'VIP': return 100;
-    case 'VIP_BASIC': return 50;
-    case 'FREE':
-    default: return 10;
-  }
+  return 5;
 };
 
 const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -576,21 +567,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       return false;
     }
 
-    // PRO Limit Check: Creation
-    if (!currentUser.isPro) {
-      const ownedLeagues = leagues.filter(l => l.adminId === currentUser.id);
-      if (ownedLeagues.length >= 1) {
-        addNotification('Limite Gratuito', 'Usuários gratuitos só podem criar 1 liga. Seja PRO!', 'warning');
-        return false;
-      }
-      // Also check participation limit? If I create I join.
-      // If I am already in a league (joined), I cannot create (would be 2).
-      const participatingLeagues = leagues.filter(l => l.participants.includes(currentUser.id));
-      if (participatingLeagues.length >= 1) {
-        addNotification('Limite Gratuito', 'Você já participa de uma liga. Usuários gratuitos limite de 1 liga.', 'warning');
-        return false;
-      }
-    }
+
 
     try {
       let leagueCode = '';
@@ -680,14 +657,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const limit = getLeagueLimit(league);
     if (league.participants.length >= limit) { addNotification('Liga Cheia', 'O limite de participantes foi atingido.', 'warning'); return; }
 
-    // PRO Limit Check: Joining
-    if (!currentUser.isPro) {
-      const participatingLeagues = leagues.filter(l => l.participants.includes(currentUser.id));
-      if (participatingLeagues.length >= 1) {
-        addNotification('Limite Gratuito', 'Usuários gratuitos só podem participar de 1 liga. Seja PRO!', 'warning');
-        return;
-      }
-    }
+
     let updatedLeague = { ...league };
     if (league.isPrivate) {
       if (!league.pendingRequests.includes(currentUser.id)) updatedLeague.pendingRequests = [...league.pendingRequests, currentUser.id];
@@ -768,14 +738,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         const limit = getLeagueLimit(league);
         if (league.participants.length >= limit) { addNotification('Liga Cheia', 'Limite atingido.', 'warning'); return; }
 
-        // PRO Limit Check: Invite Response
-        if (!currentUser.isPro) {
-          const participatingLeagues = leagues.filter(l => l.participants.includes(currentUser.id));
-          if (participatingLeagues.length >= 1) {
-            addNotification('Limite Gratuito', 'Você já participa de uma liga. Seja PRO!', 'warning');
-            return;
-          }
-        }
+
         const updatedParticipants = [...league.participants, currentUser.id];
         const updatedPending = league.pendingRequests.filter(uid => uid !== currentUser.id);
         setLeagues(prev => prev.map(l => l.id === league.id ? { ...l, participants: updatedParticipants, pendingRequests: updatedPending } : l));
@@ -943,10 +906,7 @@ const AppRoutes: React.FC = () => {
           <Route path="/admin/matches" element={<AdminRoute><AdminMatchesPage /></AdminRoute>} />
           <Route path="/admin/users" element={currentUser && currentUser.isAdmin ? <AdminUsersPage /> : <Navigate to="/" />} />
 
-          {/* Payment Routes */}
-          <Route path="/pagamento/sucesso" element={currentUser ? <PaymentSuccess /> : <Navigate to="/login" />} />
-          <Route path="/pagamento/erro" element={currentUser ? <PaymentFailure /> : <Navigate to="/login" />} />
-          <Route path="/pagamento/pendente" element={currentUser ? <PaymentPending /> : <Navigate to="/login" />} />
+
 
           <Route path="/login" element={!currentUser ? <Login /> : <Navigate to="/" />} />
           <Route path="*" element={<Navigate to="/" replace />} />

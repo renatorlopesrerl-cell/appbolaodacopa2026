@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useStore } from '../App';
-import { Calendar, Trophy, Users, PlayCircle, ShieldCheck, Mail, Check, X, Loader2 } from 'lucide-react';
+import { Calendar, Trophy, Users, PlayCircle, ShieldCheck, Mail, Check, X, Loader2, Info } from 'lucide-react';
 import { supabase } from '../services/supabase';
 
 export const Home: React.FC = () => {
@@ -224,65 +224,18 @@ export const Home: React.FC = () => {
         </Link>
       </div>
 
-      {/* PRO PLAN CARD - FULL WIDTH */}
-      <div className="group bg-gradient-to-br from-gray-900 to-gray-800 p-8 rounded-2xl shadow-sm hover:shadow-xl transition-all border border-gray-700 hover:border-yellow-500 relative overflow-hidden cursor-pointer" onClick={async () => {
-        if (currentUser.isPro) return;
-
-        const { data: { session } } = await supabase.auth.getSession();
-        const token = session?.access_token;
-
-        if (!token) {
-          alert('Erro de autenticação. Tente fazer login novamente.');
-          return;
-        }
-
-        fetch("/api/create-payment", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${token}`
-          },
-          body: JSON.stringify({ userId: currentUser.id }),
-        })
-          .then(res => {
-            if (res.status === 401) throw new Error('Não autorizado (401)');
-            return res.json();
-          })
-          .then((data: any) => {
-            if (data.init_point) window.location.href = data.init_point;
-            else alert(`Erro ao iniciar pagamento: ${data.error || 'Resposta inválida do servidor'}\nDetalhes: ${data.details || 'Sem detalhes'}`);
-          })
-          .catch((err) => {
-            console.error(err);
-            alert(`Erro ao conectar com servidor de pagamento: ${err.message}`);
-          });
-      }}>
-        <div className="absolute top-0 right-0 p-10 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:scale-110 duration-500">
-          <Trophy size={180} className="text-yellow-400" />
-        </div>
-        <div className="relative z-10 flex flex-col md:flex-row items-center gap-6">
-          <div className={`p-4 rounded-full w-fit transition-colors shrink-0 ${currentUser.isPro ? 'bg-yellow-500/20' : 'bg-yellow-500/20 group-hover:bg-yellow-500'}`}>
-            <Trophy className={`w-10 h-10 ${currentUser.isPro ? 'text-yellow-400' : 'text-yellow-400 group-hover:text-white'}`} />
+      {/* LEGAL INFO CARD */}
+      <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 relative overflow-hidden">
+        <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+          <div className="p-4 rounded-full bg-blue-50 dark:bg-blue-900/30 text-brasil-blue dark:text-blue-400 shrink-0">
+            <Info className="w-8 h-8" />
           </div>
-
-          <div className="flex-1 text-center md:text-left">
-            <h2 className="text-2xl md:text-3xl font-black text-white mb-2 flex flex-col md:flex-row items-center gap-2 justify-center md:justify-start">
-              Plano PRO
-              {!currentUser.isPro && <span className="text-yellow-400 bg-yellow-500/10 px-3 py-1 rounded-lg text-lg border border-yellow-500/30">R$ 5,99</span>}
-            </h2>
-            <p className="text-gray-300 text-base md:text-lg mb-4 max-w-3xl leading-relaxed">
-              {currentUser.isPro
-                ? 'Você é um membro PRO! Aproveite estatísticas, simulador e ligas ilimitadas.'
-                : 'Desbloqueie estatísticas de palpites, simulações com importação e exportação de palpites para as ligas, participe e crie ligas ilimitadas.'}
+          <div className="flex-1">
+            <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2">Informativo Legal</h2>
+            <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed text-justify">
+              Este aplicativo tem finalidade exclusivamente recreativa e não possui vínculo com entidades organizadoras da Copa do Mundo 2026.
+              Não promovemos apostas financeiras. A gestão de ligas e premiações (se houver) é de total responsabilidade dos criadores e participantes de cada liga.
             </p>
-
-            {!currentUser.isPro && (
-              <button
-                className="inline-block bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-8 rounded-xl text-base shadow-lg shadow-yellow-500/20 transition-all transform hover:-translate-y-1"
-              >
-                SEJA PRO
-              </button>
-            )}
           </div>
         </div>
       </div>

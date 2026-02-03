@@ -552,65 +552,7 @@ export const SimulatePage: React.FC = () => {
 
 
 
-    // --- PRO RESTRICTION ---
-    if (!currentUser?.isPro) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6 animate-in fade-in zoom-in-95 duration-500">
-                <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-8 rounded-3xl shadow-2xl max-w-lg w-full border border-gray-700 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-10 opacity-5">
-                        <Trophy size={150} />
-                    </div>
-                    <div className="relative z-10 flex flex-col items-center">
-                        <div className="bg-yellow-500/20 p-4 rounded-full mb-6">
-                            <Trophy size={48} className="text-yellow-400" />
-                        </div>
-                        <h1 className="text-3xl font-black text-white mb-2 uppercase tracking-tight flex flex-col items-center">
-                            Recurso Exclusivo
-                            <span className="text-yellow-400 bg-yellow-500/10 px-3 py-1 rounded-lg text-lg border border-yellow-500/30 mt-2">R$ 5,99</span>
-                        </h1>
-                        <p className="text-gray-300 text-lg mb-8 leading-relaxed">
-                            O <strong>Simulador da Copa</strong> é exclusivo para membros PRO. Simule resultados da fase de grupos até a final e faça importação e exportação de palpites para as ligas.
-                        </p>
-                        <button onClick={async () => {
-                            const { data: { session } } = await supabase.auth.getSession();
-                            const token = session?.access_token;
 
-                            if (!token) {
-                                alert('Erro de autenticação. Tente fazer login novamente.');
-                                return;
-                            }
-
-                            fetch("/api/create-payment", {
-                                method: "POST",
-                                headers: {
-                                    "Content-Type": "application/json",
-                                    "Authorization": `Bearer ${token}`
-                                },
-                                body: JSON.stringify({ userId: currentUser.id }),
-                            })
-                                .then(res => {
-                                    if (res.status === 401) throw new Error('Não autorizado (401)');
-                                    return res.json();
-                                })
-                                .then((data: any) => {
-                                    if (data.init_point) window.location.href = data.init_point;
-                                    else alert(`Erro ao iniciar pagamento: ${data.error || 'Resposta inválida do servidor'}\nDetalhes: ${data.details || 'Sem detalhes'}`);
-                                })
-                                .catch((err) => {
-                                    console.error(err);
-                                    alert(`Erro ao conectar com servidor de pagamento: ${err.message}`);
-                                });
-                        }} className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-4 px-8 rounded-xl shadow-lg shadow-yellow-500/20 transition-all transform hover:-translate-y-1 active:scale-95 text-lg flex items-center justify-center gap-2">
-                            QUERO SER PRO
-                        </button>
-                        <button onClick={() => navigate('/')} className="mt-4 text-gray-500 hover:text-white font-bold text-sm transition-colors">
-                            Voltar ao Início
-                        </button>
-                    </div>
-                </div>
-            </div>
-        );
-    }
 
     if (loadingSim) return <div className="flex justify-center p-12"><Loader2 className="animate-spin text-brasil-green" size={48} /></div>;
 
