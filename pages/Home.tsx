@@ -249,8 +249,8 @@ export const Home: React.FC = () => {
       {/* LEGAL INFO CARD */}
       <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 relative overflow-hidden">
         <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
-          <div className="p-4 rounded-full bg-blue-50 dark:bg-blue-900/30 text-brasil-blue dark:text-blue-400 shrink-0">
-            <Info className="w-8 h-8" />
+          <div className="p-4 rounded-2xl bg-gray-200 dark:bg-gray-700 shrink-0">
+            <ShieldCheck className="w-8 h-8 text-gray-600 dark:text-gray-300" />
           </div>
           <div className="flex-1">
             <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2">Informativo Legal</h2>

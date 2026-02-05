@@ -404,7 +404,7 @@ export const SimulatePage: React.FC = () => {
 
             await submitPredictions(predsToExport, exportLeagueId);
 
-            let msg = `Sucesso! ${predsToExport.length} palpites exportados.`;
+            let msg = `Sucesso! ${predsToExport.length} palpites salvos na liga.`;
             if (lockedCount > 0) msg += ` (${lockedCount} ignorados por bloqueio)`;
 
             addNotification('Exportação Concluída', msg, 'success');
@@ -448,6 +448,7 @@ export const SimulatePage: React.FC = () => {
 
             const newSim = { ...simulatedScores };
             let importedCount = 0;
+            let skippedCount = 0;
             const now = new Date();
 
             leaguePreds.forEach((p: any) => {
@@ -461,14 +462,20 @@ export const SimulatePage: React.FC = () => {
                     if (!isLocked && p.home_score !== null && p.away_score !== null) {
                         newSim[p.match_id] = { home: parseInt(p.home_score), away: parseInt(p.away_score) };
                         importedCount++;
+                    } else if (isLocked) {
+                        skippedCount++;
                     }
                 }
             });
             setSimulatedScores(newSim);
+
+            let msg = `${importedCount} palpites importados com sucesso.`;
+            if (skippedCount > 0) msg += ` (${skippedCount} ignorados por bloqueio)`;
+
             if (addNotification) {
-                addNotification('Importado', `${importedCount} palpites importados com sucesso.`, 'success');
+                addNotification('Importado', msg, 'success');
             } else {
-                alert(`${importedCount} palpites importados com sucesso.`);
+                alert(msg);
             }
         } catch (e) {
             console.error("Import Error", e);

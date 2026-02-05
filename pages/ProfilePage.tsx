@@ -13,6 +13,7 @@ export const ProfilePage: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [imageProcessing, setImageProcessing] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
 
   // Notification State
   const [notifyStart, setNotifyStart] = useState(true);
@@ -310,15 +311,77 @@ export const ProfilePage: React.FC = () => {
               </div>
             </div>
 
-            <div className="pt-4 border-t border-gray-100 dark:border-gray-700 flex justify-end">
-              <button
-                type="submit"
-                disabled={loading || imageProcessing}
-                className="bg-brasil-green text-white px-6 py-2.5 rounded-lg font-bold shadow-sm hover:bg-green-700 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-                {loading ? 'Salvando...' : 'Salvar Alterações'}
-              </button>
+            <div className="pt-4 border-t border-gray-100 dark:border-gray-700 flex flex-col gap-4">
+              <div className="flex justify-end">
+                <button
+                  type="submit"
+                  disabled={loading || imageProcessing}
+                  className="bg-brasil-green text-white px-6 py-2.5 rounded-lg font-bold shadow-sm hover:bg-green-700 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+                  {loading ? 'Salvando...' : 'Salvar Alterações'}
+                </button>
+              </div>
+
+              {/* Privacy Policy Toggle */}
+              <div className="flex justify-center mt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowPrivacy(!showPrivacy)}
+                  className="text-sm text-gray-500 dark:text-gray-400 hover:text-brasil-blue dark:hover:text-blue-400 underline transition-colors"
+                >
+                  Política de Privacidade
+                </button>
+              </div>
+
+              {/* Privacy Policy Content */}
+              {showPrivacy && (
+                <div className="bg-gray-50 dark:bg-gray-900/50 p-6 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-700 dark:text-gray-300 space-y-4 animate-in fade-in slide-in-from-top-2">
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">Política de Privacidade</h3>
+                  <p>Esta Política de Privacidade descreve como coletamos, usamos e protegemos as informações dos usuários do aplicativo Simulador e Gerenciador de Palpites da Copa do Mundo 2026. Ao utilizar o aplicativo, você concorda com as práticas descritas nesta política.</p>
+
+                  <h4 className="font-bold text-gray-900 dark:text-white mt-2">1. Coleta de Informações</h4>
+                  <p>Podemos coletar as seguintes informações:</p>
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li>Dados de cadastro (como nome, e-mail e imagem de perfil)</li>
+                    <li>Informações necessárias para criação e participação em ligas</li>
+                    <li>Palpites, simulações e preferências do usuário</li>
+                    <li>Dados técnicos, como tipo de dispositivo, navegador e endereço IP (de forma anonimizada)</li>
+                  </ul>
+                  <p>Não coletamos dados sensíveis além do necessário para o funcionamento do aplicativo.</p>
+
+                  <h4 className="font-bold text-gray-900 dark:text-white mt-2">2. Uso das Informações</h4>
+                  <p>As informações coletadas são utilizadas para:</p>
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li>Permitir o funcionamento das ligas e simulador</li>
+                    <li>Identificar usuários e autenticar acessos</li>
+                    <li>Salvar palpites, simulações e classificações</li>
+                    <li>Melhorar a experiência do usuário</li>
+                    <li>Garantir segurança e prevenção de uso indevido</li>
+                  </ul>
+
+                  <h4 className="font-bold text-gray-900 dark:text-white mt-2">3. Armazenamento e Segurança</h4>
+                  <p>As informações são armazenadas em servidores seguros e protegidas por medidas técnicas e organizacionais adequadas para evitar acesso não autorizado, perda, alteração ou divulgação indevida.</p>
+
+                  <h4 className="font-bold text-gray-900 dark:text-white mt-2">4. Compartilhamento de Informações</h4>
+                  <p>Não vendemos, alugamos ou compartilhamos informações pessoais com terceiros, exceto:</p>
+                  <ul className="list-disc pl-5 space-y-1">
+                    <li>Quando exigido por obrigação legal</li>
+                    <li>Para cumprir ordens judiciais</li>
+                    <li>Para proteger nossos direitos, usuários ou a integridade da plataforma</li>
+                  </ul>
+
+                  <h4 className="font-bold text-gray-900 dark:text-white mt-2">5. Responsabilidade sobre Ligas</h4>
+                  <p>O aplicativo fornece apenas ferramentas para criação e gerenciamento de ligas privadas ou públicas. Quaisquer acordos, premiações ou combinações realizadas entre usuários ocorrem fora da plataforma e são de responsabilidade exclusiva dos participantes.</p>
+
+                  <h4 className="font-bold text-gray-900 dark:text-white mt-2">6. Alterações nesta Política</h4>
+                  <p>Esta Política de Privacidade pode ser atualizada a qualquer momento. As alterações entrarão em vigor imediatamente após sua publicação nesta página.</p>
+
+                  <h4 className="font-bold text-gray-900 dark:text-white mt-2">7. Contato</h4>
+                  <p>Em caso de dúvidas ou solicitações relacionadas a esta Política de Privacidade, entre em contato pelo e-mail:</p>
+                  <p className="font-bold text-brasil-blue dark:text-blue-400">📧 renatorlopes.rerl@gmail.com</p>
+                </div>
+              )}
             </div>
           </form>
         </div>
