@@ -18,8 +18,8 @@ export const Home: React.FC = () => {
             <div className="absolute inset-0 bg-brasil-yellow blur-xl opacity-50 rounded-full"></div>
             {/* LOGO DA COPA */}
             <img
-              src="https://sjianpqzozufnobftksp.supabase.co/storage/v1/object/public/Public/logo.png"
-              alt="Logo Bolão da Copa 2026"
+              src="https://sjianpqzozufnobftksp.supabase.co/storage/v1/object/public/Public/palpiteirodacopa2026.png"
+              alt="Logo Palpiteiro da Copa 2026"
               className="relative w-64 md:w-80 h-auto drop-shadow-2xl hover:scale-105 transition-transform duration-500"
             />
           </div>
@@ -29,7 +29,8 @@ export const Home: React.FC = () => {
               PALPITEIRO DA COPA DO MUNDO FIFA 2026
             </h1>
             <h2 className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 font-medium max-w-lg mx-auto leading-relaxed">
-              Crie sua liga e desafie seus amigos.   A sua torcida começa aqui!
+              Crie sua liga e desafie seus amigos.
+              <span className="block">A sua torcida começa aqui!</span>
             </h2>
           </div>
         </div>
@@ -139,8 +140,8 @@ export const Home: React.FC = () => {
           </div>
           {/* Small Logo for Dashboard */}
           <img
-            src="https://sjianpqzozufnobftksp.supabase.co/storage/v1/object/public/Public/logo.png"
-            alt="Bolão"
+            src="https://sjianpqzozufnobftksp.supabase.co/storage/v1/object/public/Public/palpiteirodacopa2026.png"
+            alt="Palpiteiro"
             className="w-24 h-auto drop-shadow-lg hidden md:block opacity-90"
           />
         </div>
