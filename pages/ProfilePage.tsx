@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useStore } from '../App';
-import { User as UserIcon, Save, Camera, Upload, AlertCircle, ArrowLeft, Phone, Loader2, Bell, PlayCircle, Flag, Sun, Moon, Clock } from 'lucide-react';
+import { User as UserIcon, Save, Camera, Upload, AlertCircle, ArrowLeft, Phone, Loader2, Bell, PlayCircle, Flag, Sun, Moon, Clock, Trash2 } from 'lucide-react';
 import { processImageForUpload } from '../services/dataService';
 
 export const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
-  const { currentUser, updateUserProfile, loading: globalLoading, theme: globalTheme } = useStore();
+  const { currentUser, updateUserProfile, deleteAccount, loading: globalLoading, theme: globalTheme } = useStore();
   const [name, setName] = useState('');
   const [avatar, setAvatar] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
@@ -14,6 +14,7 @@ export const ProfilePage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [imageProcessing, setImageProcessing] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Notification State
   const [notifyStart, setNotifyStart] = useState(true);
@@ -328,7 +329,7 @@ export const ProfilePage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowPrivacy(!showPrivacy)}
-                  className="text-sm text-gray-500 dark:text-gray-400 hover:text-brasil-blue dark:hover:text-blue-400 underline transition-colors"
+                  className="text-base font-bold text-gray-500 dark:text-gray-400 hover:text-brasil-blue dark:hover:text-blue-400 underline transition-colors"
                 >
                   Política de Privacidade
                 </button>
@@ -385,6 +386,49 @@ export const ProfilePage: React.FC = () => {
             </div>
           </form>
         </div>
+      </div>
+
+      {/* Delete Account Section */}
+      <div className="bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 rounded-xl p-6">
+        <h3 className="text-red-800 dark:text-red-400 font-bold mb-2 flex items-center gap-2">
+          <Trash2 size={20} /> Excluir Conta
+        </h3>
+        <p className="text-sm text-red-600 dark:text-red-300 mb-4">
+          Esta ação é irreversível. Todos os seus dados, palpites e participações em ligas serão permanentemente removidos.
+        </p>
+
+        {!showDeleteConfirm ? (
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-bold text-sm bg-white dark:bg-gray-800 border border-red-200 dark:border-red-800 px-4 py-2 rounded-lg transition-colors hover:shadow-md"
+          >
+            Quero excluir minha conta
+          </button>
+        ) : (
+          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-red-200 dark:border-red-800 animate-in fade-in slide-in-from-top-2">
+            <p className="font-bold text-gray-800 dark:text-white mb-3">Tem certeza absoluta?</p>
+            <div className="flex gap-3">
+              <button
+                onClick={async () => {
+                  setLoading(true);
+                  await deleteAccount();
+                  // No need to set loading false as user will be redirected/logged out
+                }}
+                disabled={loading}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-red-700 transition-colors flex items-center gap-2"
+              >
+                {loading ? <Loader2 className="animate-spin" size={16} /> : null}
+                Sim, excluir tudo
+              </button>
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg font-bold text-sm hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

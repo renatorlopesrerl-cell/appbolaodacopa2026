@@ -96,8 +96,14 @@ export const Home: React.FC = () => {
           </div>
         </div>
 
+        {/* Footer Links */}
+        <div className="flex gap-6 mt-8 text-sm text-gray-500 dark:text-gray-400">
+          <Link to="/termos" className="hover:text-brasil-blue dark:hover:text-blue-400 transition-colors">Termos de Uso</Link>
+          <Link to="/privacidade" className="hover:text-brasil-blue dark:hover:text-blue-400 transition-colors">Política de Privacidade</Link>
+        </div>
+
         {/* Decorative Bottom Border */}
-        <div className="w-full max-w-5xl mt-16 h-1.5 bg-gradient-to-r from-brasil-green via-brasil-yellow to-brasil-blue rounded-full opacity-60"></div>
+        <div className="w-full max-w-5xl mt-8 h-1.5 bg-gradient-to-r from-brasil-green via-brasil-yellow to-brasil-blue rounded-full opacity-60"></div>
       </div>
     );
   }

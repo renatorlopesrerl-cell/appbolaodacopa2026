@@ -31,6 +31,8 @@ import { AdminLeaguesPage } from './pages/AdminLeaguesPage';
 import { AdminMatchesPage } from './pages/AdminMatchesPage';
 import { HowToPlay } from './pages/HowToPlay';
 import { Login } from './pages/Login';
+import { TermsPage } from './pages/TermsPage';
+import { PrivacyPage } from './pages/PrivacyPage';
 
 
 
@@ -89,6 +91,7 @@ interface AppState {
   retryConnection: () => void;
   addNotification: (title: string, message: string, type: 'success' | 'info' | 'warning') => void;
   refreshPredictions: () => Promise<void>;
+  deleteAccount: () => Promise<boolean>;
 }
 
 const AppContext = createContext<AppState | null>(null);
@@ -541,6 +544,20 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     setTimeout(() => { window.location.reload(); }, 50);
   };
 
+  const deleteAccount = async (): Promise<boolean> => {
+    if (!currentUser) return false;
+    try {
+      await api.profiles.delete(currentUser.id);
+      addNotification('Conta Excluída', 'Seus dados foram removidos.', 'info');
+      await logout();
+      return true;
+    } catch (e: any) {
+      console.error("Delete Account Error", e);
+      addNotification('Erro', 'Falha ao excluir conta. Tente novamente.', 'warning');
+      return false;
+    }
+  };
+
   const updateUserProfile = async (name: string, avatar: string, whatsapp: string, pix: string, notificationSettings: any, themePreference: 'light' | 'dark') => {
     if (!currentUser) return;
     let finalAvatar = avatar;
@@ -910,6 +927,8 @@ const AppRoutes: React.FC = () => {
           <Route path="/league/:id" element={currentUser ? <LeagueDetails /> : <Navigate to="/login" />} />
           <Route path="/simulador" element={<SimulatePage />} />
           <Route path="/como-jogar" element={<HowToPlay />} />
+          <Route path="/termos" element={<TermsPage />} />
+          <Route path="/privacidade" element={<PrivacyPage />} />
           <Route path="/profile" element={currentUser ? <ProfilePage /> : <Navigate to="/login" />} />
 
           <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
