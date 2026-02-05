@@ -126,7 +126,7 @@ export const Login: React.FC = () => {
         setLoading(true);
         try {
             const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                redirectTo: 'https://bolaodacopa2026.app/reset-password'
+                redirectTo: `${window.location.origin}/reset-password`
             });
 
             if (error) throw error;

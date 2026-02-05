@@ -42,15 +42,6 @@ export const ResetPasswordPage: React.FC = () => {
             return;
         }
 
-        if (!isSessionReady) {
-            // Try one last fetch
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session) {
-                setError('Sessão expirada ou inválida. Solicite a redefinição novamente.');
-                return;
-            }
-        }
-
         setLoading(true);
 
         try {
@@ -148,11 +139,11 @@ export const ResetPasswordPage: React.FC = () => {
 
                     <button
                         type="submit"
-                        disabled={loading}
-                        className="w-full bg-brasil-blue hover:bg-blue-900 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-lg hover:shadow-xl active:scale-95"
+                        disabled={loading || !isSessionReady}
+                        className={`w-full bg-brasil-blue hover:bg-blue-900 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-lg hover:shadow-xl active:scale-95 ${(!isSessionReady || loading) ? 'opacity-70 cursor-not-allowed' : ''}`}
                     >
                         {loading ? <Loader2 className="animate-spin w-5 h-5" /> : null}
-                        {loading ? 'Salvando...' : 'Salvar Nova Senha'}
+                        {loading ? 'Salvando...' : (!isSessionReady ? 'Verificando Sessão...' : 'Salvar Nova Senha')}
                     </button>
                 </form>
             </div>
