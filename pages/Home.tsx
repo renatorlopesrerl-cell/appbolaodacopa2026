@@ -29,7 +29,7 @@ export const Home: React.FC = () => {
               PALPITEIRO DA COPA DO MUNDO FIFA 2026
             </h1>
             <h2 className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 font-medium max-w-lg mx-auto leading-relaxed">
-              Crie sua liga e desafie seus amigos. A sua torcida começa aqui!
+              Crie sua liga e desafie seus amigos.   A sua torcida começa aqui!
             </h2>
           </div>
         </div>
