@@ -29,7 +29,12 @@ import { ProfilePage } from './pages/ProfilePage';
 import { AdminPage } from './pages/AdminPage';
 import { AdminLeaguesPage } from './pages/AdminLeaguesPage';
 import { AdminMatchesPage } from './pages/AdminMatchesPage';
-import { Login } from './pages/Login';
+import { HowToPlay } from './pages/HowToPlay';
+
+// ... (other imports)
+
+          <Route path="/como-jogar" element={<HowToPlay />} />
+          <Route path="/profile" element={currentUser ? <ProfilePage /> : <Navigate to="/login" />} />
 
 
 

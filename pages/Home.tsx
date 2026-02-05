@@ -185,7 +185,8 @@ export const Home: React.FC = () => {
       )}
 
       {/* Main Actions Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* Main Actions Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Link to="/table" className="group bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm hover:shadow-xl transition-all border border-gray-100 dark:border-gray-700 hover:border-brasil-green relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:scale-110 duration-500">
             <Calendar size={80} className="text-brasil-green dark:text-green-400" />
@@ -225,6 +226,21 @@ export const Home: React.FC = () => {
               {myLeagues.length > 0
                 ? `Você está participando de ${myLeagues.length} liga(s).`
                 : "Crie ou participe de ligas para competir."}
+            </p>
+          </div>
+        </Link>
+
+        <Link to="/como-jogar" className="group bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm hover:shadow-xl transition-all border border-gray-100 dark:border-gray-700 hover:border-purple-500 relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:scale-110 duration-500">
+            <Info size={80} className="text-purple-500 dark:text-purple-400" />
+          </div>
+          <div className="relative z-10">
+            <div className="p-3 bg-purple-50 dark:bg-purple-900/30 rounded-xl w-fit mb-4 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+              <Info className="w-6 h-6 text-purple-600 dark:text-purple-400 group-hover:text-white" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-1">Como Jogar</h2>
+            <p className="text-gray-500 dark:text-gray-400 text-sm">
+              Entenda as regras de pontuação e como funciona o simulador.
             </p>
           </div>
         </Link>
