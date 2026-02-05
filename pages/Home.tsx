@@ -26,10 +26,10 @@ export const Home: React.FC = () => {
 
           <div className="space-y-2">
             <h1 className="text-3xl md:text-5xl lg:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-brasil-green to-brasil-blue dark:from-green-400 dark:to-blue-400 tracking-tighter uppercase break-words">
-              PALPITEIRO DA COPA DO MUNDO 2026
+              PALPITEIRO DA COPA 2026
             </h1>
             <h2 className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 font-medium max-w-lg mx-auto leading-relaxed">
-              Crie sua Liga da Copa 2026 Online. A torcida começa aqui.
+              Crie sua liga e desafie seus amigos para ver quem é o melhor palpiteiro da Copa do Mundo Fifa 2026. A torcida começa aqui!
             </h2>
           </div>
         </div>
@@ -68,7 +68,7 @@ export const Home: React.FC = () => {
         {/* Feature Cards */}
         <div className="w-full max-w-5xl px-4 mt-8 flex flex-col gap-2 items-center text-center">
           <h2 className="text-lg font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider opacity-80">Copa do Mundo FIFA 2026</h2>
-          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400">Palpites, Tabela, Simulador e Ligas com Ranking em Tempo Real</h2>
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400">Tabela, Simulador, Palpites e Ligas com Ranking em Tempo Real</h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8 w-full max-w-5xl px-4">
@@ -83,8 +83,8 @@ export const Home: React.FC = () => {
             <div className="bg-yellow-100 dark:bg-yellow-900 w-12 h-12 rounded-xl flex items-center justify-center mb-4 text-yellow-700 dark:text-yellow-300">
               <PlayCircle size={24} />
             </div>
-            <h3 className="font-bold text-gray-800 dark:text-white text-lg">Simulação Real</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Pontuação dinâmica baseada em placar exato e saldo de gols.</p>
+            <h3 className="font-bold text-gray-800 dark:text-white text-lg">Simulador Real</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Simule todos os jogos com classificação e exporte para suas ligas.</p>
           </div>
           <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 hover:border-brasil-blue hover:shadow-md transition-all">
             <div className="bg-blue-100 dark:bg-blue-900 w-12 h-12 rounded-xl flex items-center justify-center mb-4 text-brasil-blue dark:text-blue-300">
@@ -207,7 +207,7 @@ export const Home: React.FC = () => {
               <PlayCircle className="w-6 h-6 text-blue-600 dark:text-blue-400 group-hover:text-white" />
             </div>
             <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-1">Simulador da Copa</h2>
-            <p className="text-gray-500 dark:text-gray-400 text-sm">Simule resultados e veja o caminho até a final.</p>
+            <p className="text-gray-500 dark:text-gray-400 text-sm">Simule resultados e exporte para suas ligas.</p>
           </div>
         </Link>
 
