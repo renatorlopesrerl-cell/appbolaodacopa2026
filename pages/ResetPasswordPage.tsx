@@ -13,9 +13,20 @@ export const ResetPasswordPage: React.FC = () => {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const [isSessionReady, setIsSessionReady] = useState(false);
 
-    // If user is not authenticated (no session from magic link), they shouldn't be here usually,
-    // but supabase handles the session on load from the URL hash.
+    // Check for session on mount
+    useEffect(() => {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session) setIsSessionReady(true);
+        });
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            if (session) setIsSessionReady(true);
+        });
+
+        return () => subscription.unsubscribe();
+    }, []);
 
     const handleUpdatePassword = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -29,6 +40,15 @@ export const ResetPasswordPage: React.FC = () => {
         if (password.length < 6) {
             setError('A senha deve ter no mínimo 6 caracteres.');
             return;
+        }
+
+        if (!isSessionReady) {
+            // Try one last fetch
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session) {
+                setError('Sessão expirada ou inválida. Solicite a redefinição novamente.');
+                return;
+            }
         }
 
         setLoading(true);

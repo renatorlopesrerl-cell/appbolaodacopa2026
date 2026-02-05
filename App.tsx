@@ -289,7 +289,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         setPredictions([]);
         setInvitations([]);
         if (mountedRef.current) setLoading(false);
-      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'PASSWORD_RECOVERY') {
         if (session?.user && (!currentUserRef.current || currentUserRef.current.id !== session.user.id)) {
           const user = session.user;
           const metadata = user.user_metadata || {};
