@@ -30,11 +30,7 @@ import { AdminPage } from './pages/AdminPage';
 import { AdminLeaguesPage } from './pages/AdminLeaguesPage';
 import { AdminMatchesPage } from './pages/AdminMatchesPage';
 import { HowToPlay } from './pages/HowToPlay';
-
-// ... (other imports)
-
-          <Route path="/como-jogar" element={<HowToPlay />} />
-          <Route path="/profile" element={currentUser ? <ProfilePage /> : <Navigate to="/login" />} />
+import { Login } from './pages/Login';
 
 
 
@@ -913,6 +909,7 @@ const AppRoutes: React.FC = () => {
           <Route path="/leagues" element={currentUser ? <LeaguesPage /> : <Navigate to="/login" />} />
           <Route path="/league/:id" element={currentUser ? <LeagueDetails /> : <Navigate to="/login" />} />
           <Route path="/simulador" element={<SimulatePage />} />
+          <Route path="/como-jogar" element={<HowToPlay />} />
           <Route path="/profile" element={currentUser ? <ProfilePage /> : <Navigate to="/login" />} />
 
           <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
