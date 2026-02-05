@@ -54,7 +54,7 @@ export const HowToPlay: React.FC = () => {
                             <li><strong>Apenas Vencedor = 5 pontos</strong> (ex. palpite: 1x0, placar final: 2x0)</li>
                         </ul>
                         <p>
-                            Caso queira utilizar apenas duas pontuações é indicado que coloque Placar Exato = 10 pontos e Todas as outras opções = 5 pontos. Ao finalizar as configurações é só clicar em Criar que sua liga estará pronta para os palpites.
+                            Caso queira utilizar apenas duas pontuações é indicado que coloque Placar Exato = 10 pontos e Todas as outras opções = 5 pontos. Mas as pontuações também podem ser definidas do jeito que quiser.Ao finalizar as configurações é só clicar em Criar que sua liga estará pronta para os palpites.
                         </p>
                         <p>
                             Quando abrir a liga criada vai dar de cara com a opção de dar os palpites. É só palpitar quantos jogos quiser e clicar no botão <strong>Salvar Palpites</strong>. Após a confirmação, clique em <strong>Atualizar Palpites</strong> e verifique se onde estava 'Palpite Aberto' agora está 'Palpite Salvo'. Temos filtros para verificar palpites Pendentes ou Preenchidos, por Fases (Grupos ou Mata-Mata) ou por Rodada.
