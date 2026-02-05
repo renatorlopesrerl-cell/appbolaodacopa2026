@@ -26,10 +26,10 @@ export const Home: React.FC = () => {
 
           <div className="space-y-2">
             <h1 className="text-3xl md:text-5xl lg:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-brasil-green to-brasil-blue dark:from-green-400 dark:to-blue-400 tracking-tighter uppercase break-words">
-              PALPITEIRO DA COPA 2026
+              PALPITEIRO DA COPA DO MUNDO FIFA 2026
             </h1>
             <h2 className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 font-medium max-w-lg mx-auto leading-relaxed">
-              Crie sua liga e desafie seus amigos para ver quem é o melhor palpiteiro da Copa do Mundo Fifa 2026. A torcida começa aqui!
+              Crie sua liga e desafie seus amigos. A sua torcida começa aqui!
             </h2>
           </div>
         </div>
@@ -84,7 +84,7 @@ export const Home: React.FC = () => {
               <PlayCircle size={24} />
             </div>
             <h3 className="font-bold text-gray-800 dark:text-white text-lg">Simulador Real</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Simule todos os jogos com classificação e exporte para suas ligas.</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Simule todos os jogos com classificação e exporte para as ligas.</p>
           </div>
           <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 hover:border-brasil-blue hover:shadow-md transition-all">
             <div className="bg-blue-100 dark:bg-blue-900 w-12 h-12 rounded-xl flex items-center justify-center mb-4 text-brasil-blue dark:text-blue-300">
