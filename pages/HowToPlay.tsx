@@ -54,7 +54,7 @@ export const HowToPlay: React.FC = () => {
                             <li><strong>Apenas Vencedor = 5 pontos</strong> (ex. palpite: 1x0, placar final: 2x0)</li>
                         </ul>
                         <p>
-                            Caso queira utilizar apenas duas pontuações é indicado que coloque Placar Exato = 10 pontos e Todas as outras opções = 5 pontos. Mas as pontuações também podem ser definidas do jeito que quiser.Ao finalizar as configurações é só clicar em Criar que sua liga estará pronta para os palpites.
+                            Caso queira utilizar apenas duas pontuações é indicado que coloque Placar Exato = 10 pontos e Todas as outras opções = 5 pontos. Mas as pontuações também podem ser definidas do jeito que quiser. Ao finalizar as configurações é só clicar em Criar que sua liga estará pronta para os palpites.
                         </p>
                         <p>
                             Quando abrir a liga criada vai dar de cara com a opção de dar os palpites. É só palpitar quantos jogos quiser e clicar no botão <strong>Salvar Palpites</strong>. Após a confirmação, clique em <strong>Atualizar Palpites</strong> e verifique se onde estava 'Palpite Aberto' agora está 'Palpite Salvo'. Temos filtros para verificar palpites Pendentes ou Preenchidos, por Fases (Grupos ou Mata-Mata) ou por Rodada.
@@ -97,7 +97,7 @@ export const HowToPlay: React.FC = () => {
                             Ao <strong>Exportar para ligas</strong>, selecione a liga destino e clique em enviar. Todos os palpites da simulação serão salvos na liga (substituindo os existentes, se houver). Você pode exportar tudo, ou filtrar por grupo/fase. Sempre verifique na liga se os palpites foram salvos corretamente.
                         </p>
                         <p>
-                            O botão <strong>Limpar</strong> reseta a simulação. O botão <strong>Sincronizar Jogo Finalizados</strong> atualiza a simulação com os placares reais dos jogos que já terminaram, fazendo o simulador funcionar como uma "Tabela de Bolso".
+                            O botão <strong>Limpar</strong> reseta a simulação. O botão <strong>Sincronizar Jogos Finalizados</strong> atualiza a simulação com os placares reais dos jogos que já terminaram, fazendo o simulador funcionar como uma "Tabela de Bolso".
                         </p>
                     </div>
                 </section>

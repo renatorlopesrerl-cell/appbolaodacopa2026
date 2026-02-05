@@ -161,6 +161,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             <Link to="/table" className={`px-3 py-2 rounded-md transition-colors ${isActive('/table')}`}>Tabela</Link>
             <Link to="/simulador" className={`px-3 py-2 rounded-md transition-colors ${isActive('/simulador')}`}>Simulador</Link>
             <Link to="/leagues" className={`px-3 py-2 rounded-md transition-colors ${isActive('/leagues')}`}>Ligas</Link>
+            <Link to="/como-jogar" className={`px-3 py-2 rounded-md transition-colors ${isActive('/como-jogar')}`}>Como Jogar</Link>
 
             {currentUser.isAdmin && (
               <Link to="/admin" className={`px-3 py-2 rounded-md transition-colors flex items-center gap-1 ${isActive('/admin')}`}>
@@ -238,6 +239,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             <Link onClick={() => setIsMenuOpen(false)} to="/table" className={`block px-3 py-2 rounded-md ${isActive('/table')}`}>Tabela</Link>
             <Link onClick={() => setIsMenuOpen(false)} to="/simulador" className={`block px-3 py-2 rounded-md ${isActive('/simulador')}`}>Simulador</Link>
             <Link onClick={() => setIsMenuOpen(false)} to="/leagues" className={`block px-3 py-2 rounded-md ${isActive('/leagues')}`}>Ligas</Link>
+            <Link onClick={() => setIsMenuOpen(false)} to="/como-jogar" className={`block px-3 py-2 rounded-md ${isActive('/como-jogar')}`}>Como Jogar</Link>
             {currentUser.isAdmin && (
               <Link onClick={() => setIsMenuOpen(false)} to="/admin" className={`block px-3 py-2 rounded-md ${isActive('/admin')}`}>Admin Painel</Link>
             )}
