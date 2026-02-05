@@ -33,6 +33,7 @@ import { HowToPlay } from './pages/HowToPlay';
 import { Login } from './pages/Login';
 import { TermsPage } from './pages/TermsPage';
 import { PrivacyPage } from './pages/PrivacyPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
 
 
 
@@ -929,6 +930,7 @@ const AppRoutes: React.FC = () => {
           <Route path="/como-jogar" element={<HowToPlay />} />
           <Route path="/termos" element={<TermsPage />} />
           <Route path="/privacidade" element={<PrivacyPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/profile" element={currentUser ? <ProfilePage /> : <Navigate to="/login" />} />
 
           <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />

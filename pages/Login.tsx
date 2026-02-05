@@ -1,13 +1,15 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useStore } from '../App';
-import { Loader2, Mail, Lock, User as UserIcon, AlertCircle, CheckCircle2, Eye, EyeOff, Phone, ArrowLeft } from 'lucide-react';
+import { Loader2, Mail, Lock, User as UserIcon, AlertCircle, CheckCircle2, Eye, EyeOff, Phone, ArrowLeft, KeyRound } from 'lucide-react';
+import { supabase } from '../services/supabase';
 
 export const Login: React.FC = () => {
     const { signInWithEmail, signUpWithEmail, currentUser } = useStore();
     const navigate = useNavigate();
 
     const [isRegistering, setIsRegistering] = useState(false);
+    const [isForgotPassword, setIsForgotPassword] = useState(false);
     const [loading, setLoading] = useState(false);
 
     // Form State
@@ -111,6 +113,33 @@ export const Login: React.FC = () => {
         }
     };
 
+    const handleForgotPasswordSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+        setSuccessMessage('');
+
+        if (!email.trim()) {
+            setError('Por favor, informe seu e-mail para recuperar a senha.');
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: 'https://bolaodacopa2026.app/reset-password'
+            });
+
+            if (error) throw error;
+
+            setSuccessMessage('Enviamos um e-mail com instruções para redefinir sua senha.');
+        } catch (err: any) {
+            console.error(err);
+            setError('Erro ao enviar e-mail. Verifique o endereço informado.');
+        } finally {
+            if (mountedRef.current) setLoading(false);
+        }
+    };
+
     const toggleMode = () => {
         setIsRegistering(!isRegistering);
         setEmail('');
@@ -139,7 +168,11 @@ export const Login: React.FC = () => {
                 <div className="p-8 pb-6 text-center">
                     <h1 className="text-3xl font-bold mb-2 text-brasil-blue dark:text-blue-400">Bolão da Copa 2026</h1>
                     <p className="text-gray-500 dark:text-gray-400 text-sm">
-                        {isRegistering ? 'Crie sua conta para participar' : 'Faça login para continuar'}
+                        {isForgotPassword
+                            ? 'Informe seu e-mail para redefinir a senha'
+                            : isRegistering
+                                ? 'Crie sua conta para participar'
+                                : 'Faça login para continuar'}
                     </p>
                 </div>
 
@@ -160,106 +193,162 @@ export const Login: React.FC = () => {
                         </div>
                     )}
 
-                    {/* EMAIL FORM */}
-                    <form onSubmit={handleEmailSubmit} className="space-y-4">
-                        {isRegistering && (
+                    {/* FORMS */}
+                    {isForgotPassword ? (
+                        <form onSubmit={handleForgotPasswordSubmit} className="space-y-4">
                             <div className="relative">
                                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <UserIcon className="h-5 w-5 text-gray-400" />
+                                    <Mail className="h-5 w-5 text-gray-400" />
                                 </div>
                                 <input
-                                    type="text"
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
                                     className="block w-full pl-10 pr-3 py-3 border border-gray-600 bg-gray-700 rounded-lg focus:ring-2 focus:ring-brasil-green focus:border-brasil-green outline-none transition-all placeholder-gray-400 text-white"
-                                    placeholder="Apelido (Nome Exibido nas Classificações)"
+                                    placeholder="seu@email.com"
                                 />
                             </div>
-                        )}
 
-                        <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <Mail className="h-5 w-5 text-gray-400" />
-                            </div>
-                            <input
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                className="block w-full pl-10 pr-3 py-3 border border-gray-600 bg-gray-700 rounded-lg focus:ring-2 focus:ring-brasil-green focus:border-brasil-green outline-none transition-all placeholder-gray-400 text-white"
-                                placeholder="seu@email.com"
-                            />
-                        </div>
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="w-full bg-brasil-blue hover:bg-blue-900 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-900/20 active:scale-95 transform"
+                            >
+                                {loading ? <Loader2 className="animate-spin w-5 h-5" /> : <KeyRound size={20} />}
+                                {loading ? 'Enviando...' : 'Enviar Instruções'}
+                            </button>
 
-                        <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <Lock className="h-5 w-5 text-gray-400" />
-                            </div>
-                            <input
-                                type={showPassword ? "text" : "password"}
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="block w-full pl-10 pr-10 py-3 border border-gray-600 bg-gray-700 rounded-lg focus:ring-2 focus:ring-brasil-green focus:border-brasil-green outline-none transition-all placeholder-gray-400 text-white"
-                                placeholder="Sua senha secreta (min. 8 caracteres)"
-                            />
                             <button
                                 type="button"
-                                onClick={() => setShowPassword(!showPassword)}
-                                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white transition-colors focus:outline-none"
+                                onClick={() => {
+                                    setIsForgotPassword(false);
+                                    setError('');
+                                    setSuccessMessage('');
+                                }}
+                                className="w-full text-center text-sm text-gray-500 hover:text-white mt-2"
                             >
-                                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                Voltar para o Login
                             </button>
-                        </div>
+                        </form>
+                    ) : (
+                        <form onSubmit={handleEmailSubmit} className="space-y-4">
 
-                        {isRegistering && (
-                            <>
-                                <div className="relative animate-in fade-in slide-in-from-top-1">
+                            {isRegistering && (
+                                <div className="relative">
                                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <Lock className="h-5 w-5 text-gray-400" />
-                                    </div>
-                                    <input
-                                        type={showConfirmPassword ? "text" : "password"}
-                                        value={confirmPassword}
-                                        onChange={(e) => setConfirmPassword(e.target.value)}
-                                        className={`block w-full pl-10 pr-10 py-3 border bg-gray-700 rounded-lg focus:ring-2 outline-none transition-all placeholder-gray-400 text-white ${confirmPassword && password !== confirmPassword
-                                                ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
-                                                : 'border-gray-600 focus:ring-brasil-green focus:border-brasil-green'
-                                            }`}
-                                        placeholder="Confirme sua senha"
-                                    />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white transition-colors focus:outline-none"
-                                    >
-                                        {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                                    </button>
-                                </div>
-
-                                {/* Novo campo de Whatsapp */}
-                                <div className="relative animate-in fade-in slide-in-from-top-1">
-                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                        <Phone className="h-5 w-5 text-gray-400" />
+                                        <UserIcon className="h-5 w-5 text-gray-400" />
                                     </div>
                                     <input
                                         type="text"
-                                        value={whatsapp}
-                                        onChange={(e) => setWhatsapp(e.target.value)}
+                                        value={name}
+                                        onChange={(e) => setName(e.target.value)}
                                         className="block w-full pl-10 pr-3 py-3 border border-gray-600 bg-gray-700 rounded-lg focus:ring-2 focus:ring-brasil-green focus:border-brasil-green outline-none transition-all placeholder-gray-400 text-white"
-                                        placeholder="WhatsApp (Opcional)"
+                                        placeholder="Apelido (Nome Exibido nas Classificações)"
                                     />
                                 </div>
-                            </>
-                        )}
+                            )}
 
-                        <button
-                            type="submit"
-                            disabled={loading}
-                            className="w-full bg-brasil-blue hover:bg-blue-900 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-900/20 active:scale-95 transform"
-                        >
-                            {loading ? <Loader2 className="animate-spin w-5 h-5" /> : null}
-                            {isRegistering ? 'Criar Conta' : loading ? 'Entrando...' : 'Entrar'}
-                        </button>
-                    </form>
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <Mail className="h-5 w-5 text-gray-400" />
+                                </div>
+                                <input
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    className="block w-full pl-10 pr-3 py-3 border border-gray-600 bg-gray-700 rounded-lg focus:ring-2 focus:ring-brasil-green focus:border-brasil-green outline-none transition-all placeholder-gray-400 text-white"
+                                    placeholder="seu@email.com"
+                                />
+                            </div>
+
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <Lock className="h-5 w-5 text-gray-400" />
+                                </div>
+                                <input
+                                    type={showPassword ? "text" : "password"}
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="block w-full pl-10 pr-10 py-3 border border-gray-600 bg-gray-700 rounded-lg focus:ring-2 focus:ring-brasil-green focus:border-brasil-green outline-none transition-all placeholder-gray-400 text-white"
+                                    placeholder="Sua senha secreta (min. 8 caracteres)"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white transition-colors focus:outline-none"
+                                >
+                                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                </button>
+                            </div>
+
+                            {isRegistering && (
+                                <>
+                                    <div className="relative animate-in fade-in slide-in-from-top-1">
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <Lock className="h-5 w-5 text-gray-400" />
+                                        </div>
+                                        <input
+                                            type={showConfirmPassword ? "text" : "password"}
+                                            value={confirmPassword}
+                                            onChange={(e) => setConfirmPassword(e.target.value)}
+                                            className={`block w-full pl-10 pr-10 py-3 border bg-gray-700 rounded-lg focus:ring-2 outline-none transition-all placeholder-gray-400 text-white ${confirmPassword && password !== confirmPassword
+                                                ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                                                : 'border-gray-600 focus:ring-brasil-green focus:border-brasil-green'
+                                                }`}
+                                            placeholder="Confirme sua senha"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white transition-colors focus:outline-none"
+                                        >
+                                            {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                                        </button>
+                                    </div>
+
+                                    {/* Novo campo de Whatsapp */}
+                                    <div className="relative animate-in fade-in slide-in-from-top-1">
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <Phone className="h-5 w-5 text-gray-400" />
+                                        </div>
+                                        <input
+                                            type="text"
+                                            value={whatsapp}
+                                            onChange={(e) => setWhatsapp(e.target.value)}
+                                            className="block w-full pl-10 pr-3 py-3 border border-gray-600 bg-gray-700 rounded-lg focus:ring-2 focus:ring-brasil-green focus:border-brasil-green outline-none transition-all placeholder-gray-400 text-white"
+                                            placeholder="WhatsApp (Opcional)"
+                                        />
+                                    </div>
+                                </>
+                            )}
+
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className="w-full bg-brasil-blue hover:bg-blue-900 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-900/20 active:scale-95 transform"
+                            >
+                                {loading ? <Loader2 className="animate-spin w-5 h-5" /> : null}
+                                {isRegistering ? 'Criar Conta' : loading ? 'Entrando...' : 'Entrar'}
+                            </button>
+                        </form>
+                    )}
+
+                    {!isRegistering && !isForgotPassword && (
+                        <div className="text-right">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setIsForgotPassword(true);
+                                    setError('');
+                                    setSuccessMessage('');
+                                }}
+                                className="text-sm text-gray-500 hover:text-brasil-blue dark:hover:text-blue-400 transition-colors"
+                            >
+                                Esqueci minha senha
+                            </button>
+                        </div>
+                    )}
+
 
                     {isRegistering && (
                         <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-4 px-4">
@@ -273,7 +362,7 @@ export const Login: React.FC = () => {
                             onClick={toggleMode}
                             className="text-sm text-gray-600 hover:text-brasil-blue dark:text-gray-400 dark:hover:text-blue-300 font-medium transition-colors"
                         >
-                            {isRegistering ? 'Já tem uma conta? Faça login' : 'Não tem conta? Cadastre-se agora'}
+                            {isForgotPassword ? null : (isRegistering ? 'Já tem uma conta? Faça login' : 'Não tem conta? Cadastre-se agora')}
                         </button>
                     </div>
                 </div>
@@ -291,6 +380,6 @@ export const Login: React.FC = () => {
                     </div>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
