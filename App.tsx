@@ -94,6 +94,7 @@ interface AppState {
   addNotification: (title: string, message: string, type: 'success' | 'info' | 'warning', duration?: number) => void;
   refreshPredictions: () => Promise<void>;
   deleteAccount: () => Promise<boolean>;
+  isRecoveryMode: boolean;
 }
 
 const AppContext = createContext<AppState | null>(null);
@@ -129,6 +130,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [connectionError, setConnectionError] = useState(false);
+  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
 
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const savedTheme = localStorage.getItem('app-theme');
@@ -291,6 +293,9 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         setInvitations([]);
         if (mountedRef.current) setLoading(false);
       } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'PASSWORD_RECOVERY') {
+        if (event === 'PASSWORD_RECOVERY') {
+          setIsRecoveryMode(true);
+        }
         if (session?.user && (!currentUserRef.current || currentUserRef.current.id !== session.user.id)) {
           const user = session.user;
           const metadata = user.user_metadata || {};
@@ -872,7 +877,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       currentUser, users, matches, leagues, predictions, currentTime, notifications, loading, invitations,
       setCurrentTime, loginGoogle, signInWithEmail, signUpWithEmail, logout, createLeague, updateLeague, joinLeague, deleteLeague, approveUser, rejectUser,
       removeUserFromLeague, submitPrediction, submitPredictions, simulateMatchResult, updateMatch, removeNotification, updateUserProfile, syncInitialMatches,
-      sendLeagueInvite, respondToInvite, theme, toggleTheme, connectionError, retryConnection, addNotification, refreshPredictions
+      sendLeagueInvite, respondToInvite, theme, toggleTheme, connectionError, retryConnection, addNotification, refreshPredictions, isRecoveryMode
     }}>
       {children}
     </AppContext.Provider>
@@ -894,7 +899,7 @@ const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 };
 
 const AppRoutes: React.FC = () => {
-  const { currentUser, loading, connectionError, retryConnection } = useStore();
+  const { currentUser, loading, connectionError, retryConnection, isRecoveryMode } = useStore();
 
   if (loading) {
     return (
@@ -929,18 +934,18 @@ const AppRoutes: React.FC = () => {
     <BrowserRouter>
       <Layout>
         <Routes>
-          <Route path="/" element={currentUser ? <Home /> : <Navigate to="/login" />} />
-          <Route path="/table" element={currentUser ? <TablePage /> : <Navigate to="/login" />} />
-          <Route path="/leagues" element={currentUser ? <LeaguesPage /> : <Navigate to="/login" />} />
-          <Route path="/league/:id" element={currentUser ? <LeagueDetails /> : <Navigate to="/login" />} />
+          <Route path="/" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <Home /> : <Navigate to="/login" />)} />
+          <Route path="/table" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <TablePage /> : <Navigate to="/login" />)} />
+          <Route path="/leagues" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <LeaguesPage /> : <Navigate to="/login" />)} />
+          <Route path="/league/:id" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <LeagueDetails /> : <Navigate to="/login" />)} />
           <Route path="/simulador" element={currentUser ? <SimulatePage /> : <Navigate to="/login" />} />
           <Route path="/como-jogar" element={<HowToPlay />} />
           <Route path="/termos" element={<TermsPage />} />
           <Route path="/privacidade" element={<PrivacyPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
-          <Route path="/profile" element={currentUser ? <ProfilePage /> : <Navigate to="/login" />} />
+          <Route path="/profile" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <ProfilePage /> : <Navigate to="/login" />)} />
 
-          <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
+          <Route path="/admin" element={isRecoveryMode ? <Navigate to="/reset-password" /> : <AdminRoute><AdminPage /></AdminRoute>} />
           <Route path="/admin/leagues" element={<AdminRoute><AdminLeaguesPage /></AdminRoute>} />
           <Route path="/admin/matches" element={<AdminRoute><AdminMatchesPage /></AdminRoute>} />
 
