@@ -12,6 +12,7 @@ export const ProfilePage: React.FC = () => {
   const [whatsapp, setWhatsapp] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [imageProcessing, setImageProcessing] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -316,7 +317,7 @@ export const ProfilePage: React.FC = () => {
               <div className="flex justify-end">
                 <button
                   type="submit"
-                  disabled={loading || imageProcessing}
+                  disabled={loading || imageProcessing || isDeleting}
                   className="bg-brasil-green text-white px-6 py-2.5 rounded-lg font-bold shadow-sm hover:bg-green-700 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
@@ -428,14 +429,14 @@ export const ProfilePage: React.FC = () => {
             <div className="flex gap-3">
               <button
                 onClick={async () => {
-                  setLoading(true);
+                  setIsDeleting(true);
                   const success = await deleteAccount();
-                  if (!success) setLoading(false);
+                  if (!success) setIsDeleting(false);
                 }}
-                disabled={loading}
-                className="bg-red-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-red-700 transition-colors flex items-center gap-2"
+                disabled={isDeleting || loading}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-red-700 transition-colors flex items-center gap-2 disabled:opacity-50"
               >
-                {loading ? <Loader2 className="animate-spin" size={16} /> : null}
+                {isDeleting ? <Loader2 className="animate-spin" size={16} /> : null}
                 Sim, excluir tudo
               </button>
               <button

@@ -561,12 +561,23 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     if (!currentUser) return false;
     try {
       // 1. Try to delete via RPC (Hard Delete of Auth + Data)
-      const { error: rpcError } = await supabase.rpc('delete_own_user');
+      // Wrap in timeout to prevent infinite hanging
+      const rpcPromise = supabase.rpc('delete_own_user');
+      const timeoutPromise = new Promise<{ error: any }>((resolve) =>
+        setTimeout(() => resolve({ error: { message: 'RPC Timeout' } }), 8000)
+      );
 
-      if (rpcError) {
-        console.warn("RPC delete_own_user error:", rpcError);
-        // 2. Fallback: Manual delete of profile data if RPC fails
-        await api.profiles.delete(currentUser.id);
+      try {
+        const { error: rpcError } = await Promise.race([rpcPromise, timeoutPromise]);
+
+        if (rpcError) {
+          console.warn("RPC delete_own_user error or timeout:", rpcError);
+          // 2. Fallback: Manual delete of profile data if RPC fails
+          await api.profiles.delete(currentUser.id).catch(() => { });
+        }
+      } catch (err) {
+        // Fallback for any other error
+        await api.profiles.delete(currentUser.id).catch(() => { });
       }
 
       addNotification('Conta Excluída', 'Seus dados foram removidos com sucesso.', 'success');
