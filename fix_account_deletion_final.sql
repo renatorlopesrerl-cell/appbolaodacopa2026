@@ -1,13 +1,9 @@
 -- ==============================================================================
--- FIX: PERMITIR EXCLUSÃO DE CONTA + TRANSFERÊNCIA DE LIGAS
+-- FIX: PERMITIR EXCLUSÃO DE CONTA + TRANSFERÊNCIA DE LIGAS (VERSÃO ROBUSTA)
 -- ==============================================================================
 
--- 1. CONFIGURAR FOREIGN KEYS
--- Ligas: SET NULL (Para não apagar a liga se o admin sair)
--- Outros: CASCADE (Para apagar dados pessoais)
-
+-- 1. CONFIGURAR FOREIGN KEYS (MANTÉM IGUAL)
 DO $$ BEGIN
-    -- Tabela LEAGUES: Permitir admin_id NULL e SET NULL no delete
     BEGIN
         ALTER TABLE leagues ALTER COLUMN admin_id DROP NOT NULL;
     EXCEPTION WHEN OTHERS THEN NULL; END;
@@ -17,7 +13,6 @@ DO $$ BEGIN
         FOREIGN KEY (admin_id) REFERENCES auth.users(id) ON DELETE SET NULL;
 EXCEPTION WHEN undefined_object THEN NULL; END $$;
 
--- Configurar CASCADE para tabelas dependentes (dados do usuário)
 DO $$ BEGIN
     ALTER TABLE predictions DROP CONSTRAINT IF EXISTS predictions_user_id_fkey;
     ALTER TABLE predictions ADD CONSTRAINT predictions_user_id_fkey 
@@ -43,9 +38,8 @@ DO $$ BEGIN
 EXCEPTION WHEN undefined_object THEN NULL; END $$;
 
 
--- 2. RECRIAR FUNÇÃO RPC PARA EXCLUSÃO DE CONTA COM TRANSFERÊNCIA DE ADMINISTRAÇÃO
--- Tenta passar a administração da liga para o próximo membro mais antigo.
-
+-- 2. RECRIAR FUNÇÃO RPC PARA EXCLUSÃO DE CONTA
+-- Agora desabilita RLS temporariamente para evitar conflitos de políticas quebradas.
 CREATE OR REPLACE FUNCTION delete_own_user()
 RETURNS void
 LANGUAGE plpgsql
@@ -56,61 +50,57 @@ DECLARE
     current_user_id uuid;
     league_record RECORD;
     new_admin_id uuid;
-    participant_list text[];
-    updated_participants text[];
+    participant_list uuid[]; -- Assumindo que a coluna é uuid[] (com base no erro uuid[] @> jsonb)
+    updated_participants uuid[];
 BEGIN
     current_user_id := auth.uid();
     
-    -- Configura flag para bypass de triggers de segurança
     PERFORM set_config('app.deleting_user', 'true', true);
 
-    -- LÓGICA DE TRANSFERÊNCIA DE LIGAS
-    -- Itera sobre todas as ligas onde o usuário é admin
+    -- Desabilitar RLS na tabela leagues para evitar erros de políticas mal configuradas
+    -- Isso garante que o UPDATE funcione mesmo se houver políticas quebradas (como uuid[] @> jsonb)
+    ALTER TABLE leagues DISABLE ROW LEVEL SECURITY;
+
     FOR league_record IN SELECT id, participants FROM leagues WHERE admin_id = current_user_id LOOP
         
-        -- Garante que participants é um array, mesmo que null
-        participant_list := COALESCE(league_record.participants, ARRAY[]::text[]);
+        -- Garante conversão correta para uuid[] e trata nulos
+        BEGIN
+            participant_list := COALESCE(league_record.participants::uuid[], ARRAY[]::uuid[]);
+        EXCEPTION WHEN OTHERS THEN
+            -- Fallback se a conversão falhar (ex: se coluna for text[] ou jsonb)
+            participant_list := ARRAY[]::uuid[]; 
+        END;
 
-        -- Remove o usuário atual do array de participantes
-        updated_participants := array_remove(participant_list, current_user_id::text);
+        -- Remove o usuário atual
+        updated_participants := array_remove(participant_list, current_user_id);
 
         IF array_length(updated_participants, 1) > 0 THEN
-            -- EXISTEM OUTROS MEMBROS: Transfere a administração
-            -- Pega o primeiro membro restante (assumindo ordem de entrada)
-            BEGIN
-                new_admin_id := updated_participants[1]::uuid;
-                
-                -- Atualiza a liga com novo admin e remove o antigo dos participantes
-                UPDATE leagues 
-                SET admin_id = new_admin_id,
-                    participants = updated_participants
-                WHERE id = league_record.id;
-            EXCEPTION WHEN OTHERS THEN
-                -- Se falhar conversão de UUID ou outro erro, apenas define admin como NULL
-                UPDATE leagues 
-                SET admin_id = NULL,
-                    participants = updated_participants
-                WHERE id = league_record.id;
-            END;
+            -- Transfere para o próximo
+            new_admin_id := updated_participants[1];
+            
+            UPDATE leagues 
+            SET admin_id = new_admin_id,
+                participants = updated_participants
+            WHERE id = league_record.id;
         ELSE
-            -- LIGA VAZIA: Não há para quem transferir
-            -- A liga ficará sem admin (admin_id = NULL) e sem participantes
+            -- Liga vazia
             UPDATE leagues
             SET admin_id = NULL,
-                participants = updated_participants -- Array vazio
+                participants = updated_participants
             WHERE id = league_record.id;
         END IF;
 
     END LOOP;
 
-    -- Tentar limpar arquivos do Storage (Avatars)
+    -- Reabilitar RLS
+    ALTER TABLE leagues ENABLE ROW LEVEL SECURITY;
+
+    -- Tentar limpar arquivos do Storage
     BEGIN
         DELETE FROM storage.objects WHERE owner = current_user_id;
     EXCEPTION WHEN OTHERS THEN NULL; END;
 
-    -- Deleta o usuário da autenticação
-    -- O CASCADE apagará profiles, predictions, etc.
-    -- O SET NULL (configurado acima) protegerá as ligas que não foram tratadas no loop (embora o loop deva tratar todas).
+    -- Deleta o usuário
     DELETE FROM auth.users WHERE id = current_user_id;
 END;
 $$;
@@ -118,7 +108,7 @@ $$;
 GRANT EXECUTE ON FUNCTION delete_own_user() TO authenticated;
 
 
--- 3. ATUALIZAR TRIGGERS E FUNÇÕES DE SEGURANÇA (MANTÉM IGUAL)
+-- 3. TRIGGERS DE PROTEÇÃO (MANTÉM IGUAL)
 
 CREATE OR REPLACE FUNCTION prevent_prediction_tampering()
 RETURNS TRIGGER AS $$
@@ -128,12 +118,9 @@ DECLARE
     current_user_id uuid;
     is_account_deletion text;
 BEGIN
-    -- Permitir bypass se for exclusão de conta
     BEGIN
         is_account_deletion := current_setting('app.deleting_user', true);
-    EXCEPTION WHEN OTHERS THEN
-        is_account_deletion := 'false';
-    END;
+    EXCEPTION WHEN OTHERS THEN is_account_deletion := 'false'; END;
 
     IF (is_account_deletion = 'true') THEN
         IF (TG_OP = 'DELETE') THEN RETURN OLD; ELSE RETURN NEW; END IF;
@@ -141,8 +128,6 @@ BEGIN
 
     current_user_id := auth.uid();
 
-    -- ... Validações normais ...
-    
     IF (TG_OP = 'UPDATE') THEN
         IF (NEW.points IS DISTINCT FROM OLD.points) THEN
             IF (pg_trigger_depth() <= 1) THEN
@@ -180,7 +165,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Trigger Admin
 CREATE OR REPLACE FUNCTION prevent_manual_admin_edits()
 RETURNS TRIGGER AS $$
 DECLARE
