@@ -404,8 +404,9 @@ export const SimulatePage: React.FC = () => {
 
             await submitPredictions(predsToExport, exportLeagueId);
 
-            let msg = `Sucesso! ${predsToExport.length} palpites salvos na liga.`;
-            if (lockedCount > 0) msg += ` (${lockedCount} ignorados por bloqueio)`;
+            const leagueName = myLeagues.find(l => l.id === exportLeagueId)?.name || 'Liga';
+            let msg = `Os palpites foram SALVOS com sucesso na liga ${leagueName}! (${predsToExport.length} jogos exportados).`;
+            if (lockedCount > 0) msg += ` (${lockedCount} jogos ignorados pois já estavam bloqueados)`;
 
             addNotification('Exportação Concluída', msg, 'success');
         } catch (e) {

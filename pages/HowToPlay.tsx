@@ -149,9 +149,6 @@ export const HowToPlay: React.FC = () => {
                             <a href="/termos" className="text-brasil-blue dark:text-blue-400 font-bold hover:underline">
                                 Termos de Uso
                             </a>
-                            <a href="/privacidade" className="text-brasil-blue dark:text-blue-400 font-bold hover:underline">
-                                Política de Privacidade
-                            </a>
                         </div>
                     </div>
                 </section>

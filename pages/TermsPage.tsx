@@ -64,7 +64,7 @@ export const TermsPage: React.FC = () => {
                         <ul className="list-disc pl-5 mt-1 space-y-1">
                             <li>Os palpites podem ser realizados até 5 minutos antes do início da partida</li>
                             <li>Após esse prazo, os palpites são automaticamente encerrados</li>
-                            <li>Os palpites dos participantes tornam-se visíveis conforme as regras do aplicativo</li>
+                            <li>Os palpites dos participantes tornam-se visíveis a partir do encerramento dos palpites.</li>
                         </ul>
                     </div>
 

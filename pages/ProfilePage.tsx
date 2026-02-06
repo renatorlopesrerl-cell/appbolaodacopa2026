@@ -292,19 +292,19 @@ export const ProfilePage: React.FC = () => {
 
                 {/* Prediction Reminder Toggle (30 min before) */}
                 <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-3 rounded-xl border border-gray-100 dark:border-gray-600">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-yellow-100 dark:bg-yellow-900/50 p-2 rounded-lg text-yellow-700 dark:text-yellow-300">
+                  <div className="flex items-center gap-3 flex-1 min-w-0 pr-2">
+                    <div className="bg-yellow-100 dark:bg-yellow-900/50 p-2 rounded-lg text-yellow-700 dark:text-yellow-300 flex-shrink-0">
                       <Clock size={20} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-gray-800 dark:text-gray-200 text-sm">Lembrete de Palpite</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Avisar 30 min antes do jogo se não houver palpite.</p>
+                      <p className="font-bold text-gray-800 dark:text-gray-200 text-sm truncate">Lembrete de Palpite</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate md:whitespace-normal md:overflow-visible">Avisar 30 min antes do jogo.</p>
                     </div>
                   </div>
                   <button
                     type="button"
                     onClick={() => setNotifyPrediction(!notifyPrediction)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brasil-blue ${notifyPrediction ? 'bg-brasil-green' : 'bg-gray-300 dark:bg-gray-600'}`}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brasil-blue flex-shrink-0 ${notifyPrediction ? 'bg-brasil-green' : 'bg-gray-300 dark:bg-gray-600'}`}
                   >
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition duration-200 ease-in-out ${notifyPrediction ? 'translate-x-6' : 'translate-x-1'}`} />
                   </button>
@@ -329,7 +329,7 @@ export const ProfilePage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowPrivacy(!showPrivacy)}
-                  className="text-base font-bold text-gray-500 dark:text-gray-400 hover:text-brasil-blue dark:hover:text-blue-400 underline transition-colors"
+                  className="text-sm font-bold text-gray-500 dark:text-gray-400 hover:text-brasil-blue dark:hover:text-blue-400 underline transition-colors"
                 >
                   Política de Privacidade
                 </button>

@@ -266,7 +266,6 @@ export const Home: React.FC = () => {
             </p>
             <div className="flex gap-4 text-sm font-medium">
               <Link to="/termos" className="text-brasil-blue dark:text-blue-400 hover:underline">Termos de Uso</Link>
-              <Link to="/privacidade" className="text-brasil-blue dark:text-blue-400 hover:underline">Política de Privacidade</Link>
             </div>
           </div>
         </div>

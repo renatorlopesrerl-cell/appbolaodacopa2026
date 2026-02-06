@@ -17,16 +17,72 @@ export const ResetPasswordPage: React.FC = () => {
 
     // Check for session on mount
     useEffect(() => {
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            if (session) setIsSessionReady(true);
+        let mounted = true;
+
+        const initializeSession = async () => {
+            try {
+                // Check for errors in URL first
+                const hash = window.location.hash;
+                const query = window.location.search;
+
+                if (hash.includes('error=') || query.includes('error=')) {
+                    const params = new URLSearchParams(hash.substring(1) || query);
+                    const errorDescription = params.get('error_description') || 'Link inválido ou expirado.';
+                    if (mounted) {
+                        setError(errorDescription.replace(/\+/g, ' '));
+                        setLoading(false); // Stop "loading" style
+                    }
+                    return;
+                }
+
+                // Check current session
+                const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+                if (sessionError) {
+                    throw sessionError;
+                }
+
+                if (session && mounted) {
+                    setIsSessionReady(true);
+                    return;
+                }
+            } catch (err: any) {
+                console.error("Session check error:", err);
+                if (mounted) setError(err.message || 'Erro ao verificar sessão.');
+            }
+        };
+
+        initializeSession();
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            console.log("ResetPage Auth Event:", event);
+            if ((event === 'SIGNED_IN' || event === 'PASSWORD_RECOVERY') && session) {
+                if (mounted) setIsSessionReady(true);
+            }
         });
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            if (session) setIsSessionReady(true);
-        });
+        // Safety timeout - if no session after 4 seconds and no error, show generic error
+        const timeout = setTimeout(() => {
+            if (mounted && !isSessionReady) { // Note: isSessionReady closure value might be stale, but we check logic relying on re-render or ref if strictly needed. 
+                // Actually, inside timeout, state 'isSessionReady' is from closure. 
+                // However, we can't easily check current state without ref.
+                // But simplified: If we are still here, we can set a flag.
+                // Better approach: check actual session again?
+                supabase.auth.getSession().then(({ data: { session } }) => {
+                    if (!session && mounted) {
+                        setError('Sessão não detectada. O link pode ter expirado.');
+                    }
+                });
+            }
+        }, 4000);
 
-        return () => subscription.unsubscribe();
-    }, []);
+        return () => {
+            mounted = false;
+            subscription.unsubscribe();
+            clearTimeout(timeout);
+        };
+    }, []); // Dependency array empty is correct, but timeout closure issue exists. 
+    // We use the inner getSession check in timeout which matches the reality.
 
     const handleUpdatePassword = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -143,7 +199,7 @@ export const ResetPasswordPage: React.FC = () => {
                         className={`w-full bg-brasil-blue hover:bg-blue-900 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-lg hover:shadow-xl active:scale-95 ${(!isSessionReady || loading) ? 'opacity-70 cursor-not-allowed' : ''}`}
                     >
                         {loading ? <Loader2 className="animate-spin w-5 h-5" /> : null}
-                        {loading ? 'Salvando...' : (!isSessionReady ? 'Verificando Sessão...' : 'Salvar Nova Senha')}
+                        {loading ? 'Salvando...' : (error ? 'Não disponível' : (!isSessionReady ? 'Verificando Sessão...' : 'Salvar Nova Senha'))}
                     </button>
                 </form>
             </div>
