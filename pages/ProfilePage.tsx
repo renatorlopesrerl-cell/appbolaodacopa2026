@@ -429,17 +429,18 @@ export const ProfilePage: React.FC = () => {
             <div className="flex gap-3">
               <button
                 onClick={async () => {
+                  if (isDeleting) return;
+                  console.log("Delete account requested");
                   try {
                     setIsDeleting(true);
                     await deleteAccount();
-                    // Even on success, stop spinning in case reload lags
                     setIsDeleting(false);
                   } catch (e) {
+                    console.error("Delete error:", e);
                     setIsDeleting(false);
                   }
                 }}
-                disabled={isDeleting}
-                className="bg-red-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-red-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className={`bg-red-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-red-700 transition-colors flex items-center gap-2 ${isDeleting ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 {isDeleting ? <Loader2 className="animate-spin" size={16} /> : null}
                 Sim, excluir tudo
