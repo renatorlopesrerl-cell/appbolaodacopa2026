@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useStore } from '../App';
 import { Calendar, Trophy, Users, PlayCircle, ShieldCheck, Mail, Check, X, Loader2, Info } from 'lucide-react';
 import { supabase } from '../services/supabase';
@@ -118,14 +118,18 @@ export const Home: React.FC = () => {
   const pendingInvites = invitations.filter(i => i.status === 'pending');
 
   // Handle hash scrolling
+  const location = useLocation();
   React.useEffect(() => {
-    if (window.location.hash === '#invites-section') {
-      const element = document.getElementById('invites-section');
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth' });
-      }
+    if (location.hash === '#invites-section') {
+      // Small timeout to ensure DOM is ready
+      setTimeout(() => {
+        const element = document.getElementById('invites-section');
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
     }
-  }, [loading, pendingInvites.length]); // Re-run when invites load/change
+  }, [loading, pendingInvites.length, location.hash]); // Re-run when invites load/change or hash changes
 
   return (
     <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">

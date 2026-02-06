@@ -72,7 +72,9 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                     setIsMenuOpen(false);
                     // Force scroll check if already on page
                     if (window.location.hash === '#invites-section') {
-                      document.getElementById('invites-section')?.scrollIntoView({ behavior: 'smooth' });
+                      setTimeout(() => {
+                        document.getElementById('invites-section')?.scrollIntoView({ behavior: 'smooth' });
+                      }, 100);
                     }
                   }}
                   className="block p-3 hover:bg-white dark:hover:bg-gray-800 transition-colors group relative"
