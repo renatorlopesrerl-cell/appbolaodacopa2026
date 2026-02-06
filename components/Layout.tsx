@@ -4,10 +4,13 @@ import { Trophy, Calendar, Users, LogOut, Menu, X, Settings, Check, Bell, Info, 
 import { useStore } from '../App';
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentUser, logout, notifications, removeNotification, invitations, leagues, users, connectionError, retryConnection } = useStore();
+  const { currentUser, logout, notifications, removeNotification, invitations, leagues, users, connectionError, retryConnection, isRecoveryMode } = useStore();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+
+  // If in recovery mode, do not render layout with navigation
+  if (isRecoveryMode) return <div className="dark:bg-gray-900 min-h-screen">{children}</div>;
 
   const notificationRef = useRef<HTMLDivElement>(null);
 
