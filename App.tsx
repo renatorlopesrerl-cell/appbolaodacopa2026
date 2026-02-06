@@ -34,6 +34,7 @@ import { Login } from './pages/Login';
 import { TermsPage } from './pages/TermsPage';
 import { PrivacyPage } from './pages/PrivacyPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
+import { ConfirmacaoCadastro } from './pages/ConfirmacaoCadastro';
 
 
 
@@ -940,6 +941,7 @@ const AppRoutes: React.FC = () => {
 
 
 
+          <Route path="/auth/callback" element={<ConfirmacaoCadastro />} />
           <Route path="/login" element={!currentUser ? <Login /> : <Navigate to="/" />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
