@@ -429,8 +429,8 @@ export const ProfilePage: React.FC = () => {
               <button
                 onClick={async () => {
                   setLoading(true);
-                  await deleteAccount();
-                  // No need to set loading false as user will be redirected/logged out
+                  const success = await deleteAccount();
+                  if (!success) setLoading(false);
                 }}
                 disabled={loading}
                 className="bg-red-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-red-700 transition-colors flex items-center gap-2"
