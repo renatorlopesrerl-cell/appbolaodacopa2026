@@ -486,7 +486,13 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     setLoading(true);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin }
+      options: {
+        redirectTo: 'https://bolaodacopa2026.app/auth/callback',
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        },
+      }
     });
     if (error) {
       addNotification('Erro no Login Google', error.message, 'warning');
