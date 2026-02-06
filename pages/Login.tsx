@@ -125,7 +125,7 @@ export const Login: React.FC = () => {
 
         setLoading(true);
         try {
-            const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            const { error } = await supabase.auth.resetPasswordForEmail(email.trim().replace(/\s/g, ''), {
                 redirectTo: `${window.location.origin}/reset-password`
             });
 
