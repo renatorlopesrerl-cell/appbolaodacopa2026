@@ -429,9 +429,14 @@ export const ProfilePage: React.FC = () => {
             <div className="flex gap-3">
               <button
                 onClick={async () => {
-                  setIsDeleting(true);
-                  const success = await deleteAccount();
-                  if (!success) setIsDeleting(false);
+                  try {
+                    setIsDeleting(true);
+                    await deleteAccount();
+                    // Even on success, stop spinning in case reload lags
+                    setIsDeleting(false);
+                  } catch (e) {
+                    setIsDeleting(false);
+                  }
                 }}
                 disabled={isDeleting || loading}
                 className="bg-red-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-red-700 transition-colors flex items-center gap-2 disabled:opacity-50"

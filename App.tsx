@@ -553,8 +553,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     try {
       supabase.auth.signOut({ scope: 'global' }).catch(err => console.warn("Background signout issue:", err));
     } catch (e) { }
-    window.location.hash = '/login';
-    setTimeout(() => { window.location.reload(); }, 50);
+    // Force hard navigation to clear all state
+    window.location.href = '/';
   };
 
   const deleteAccount = async (): Promise<boolean> => {
@@ -564,7 +564,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       // Wrap in timeout to prevent infinite hanging
       const rpcPromise = supabase.rpc('delete_own_user');
       const timeoutPromise = new Promise<{ error: any }>((resolve) =>
-        setTimeout(() => resolve({ error: { message: 'RPC Timeout' } }), 8000)
+        setTimeout(() => resolve({ error: { message: 'RPC Timeout' } }), 4000)
       );
 
       try {
