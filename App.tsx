@@ -563,57 +563,20 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
     try {
       // 1. Try to delete via RPC (Hard Delete of Auth + Data)
-      // Wrap in timeout to prevent infinite hanging
-      const executeRpc = async () => {
-        try {
-          const { error } = await supabase.rpc('delete_own_user');
-          return { error };
-        } catch (err) {
-          return { error: err };
-        }
-      };
+      const { error } = await supabase.rpc('delete_own_user');
 
-      const timeoutPromise = (ms: number) => new Promise<{ error: any }>((resolve) =>
-        setTimeout(() => resolve({ error: { message: 'Timeout' } }), ms)
-      );
-
-      let deletionSuccess = false;
-
-      try {
-        console.log("Attempting RPC delete...");
-        const result = await Promise.race([executeRpc(), timeoutPromise(5000)]);
-        
-        if (result.error) {
-           console.warn("RPC delete failed or timed out:", result.error);
-           throw result.error;
-        }
-        
-        deletionSuccess = true;
-      } catch (rpcError) {
-        console.warn("RPC error/timeout, trying fallback profile delete:", rpcError);
-        
-        // 2. Fallback: Manual delete of profile data if RPC fails
-        try {
-           console.log("Attempting fallback profile delete...");
-           const delPromise = api.profiles.delete(currentUser.id);
-           await Promise.race([delPromise, timeoutPromise(5000)]);
-           deletionSuccess = true;
-        } catch (fallbackError) {
-           console.error("Fallback delete also failed:", fallbackError);
-        }
+      if (error) {
+        console.error("RPC Delete Error:", error);
+        throw error;
       }
 
-      if (deletionSuccess) {
-         addNotification('Conta Excluída', 'Seus dados foram removidos.', 'success');
-         await logout();
-         return true;
-      } else {
-         throw new Error("Failed to delete account via both methods.");
-      }
+      addNotification('Conta Excluída', 'Sua conta foi removida com sucesso.', 'success');
+      await logout();
+      return true;
 
     } catch (e: any) {
       console.error("Delete Account Final Error", e);
-      addNotification('Erro', 'Falha ao excluir conta. Tente novamente.', 'warning');
+      addNotification('Erro ao Excluir', e.message || 'Falha desconhecida.', 'warning');
       return false;
     }
   };
