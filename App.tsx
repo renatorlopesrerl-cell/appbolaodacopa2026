@@ -887,7 +887,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentUser, loading } = useStore();
   if (loading) return null;
-  if (!currentUser) return <Navigate to="/login" replace />;
+  if (!currentUser) return <Navigate to="/" replace />;
   return <>{children}</>;
 };
 
@@ -934,16 +934,16 @@ const AppRoutes: React.FC = () => {
     <BrowserRouter>
       <Layout>
         <Routes>
-          <Route path="/" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <Home /> : <Navigate to="/login" />)} />
-          <Route path="/table" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <TablePage /> : <Navigate to="/login" />)} />
-          <Route path="/leagues" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <LeaguesPage /> : <Navigate to="/login" />)} />
-          <Route path="/league/:id" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <LeagueDetails /> : <Navigate to="/login" />)} />
-          <Route path="/simulador" element={currentUser ? <SimulatePage /> : <Navigate to="/login" />} />
+          <Route path="/" element={isRecoveryMode ? <Navigate to="/reset-password" /> : <Home />} />
+          <Route path="/table" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <TablePage /> : <Navigate to="/" />)} />
+          <Route path="/leagues" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <LeaguesPage /> : <Navigate to="/" />)} />
+          <Route path="/league/:id" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <LeagueDetails /> : <Navigate to="/" />)} />
+          <Route path="/simulador" element={currentUser ? <SimulatePage /> : <Navigate to="/" />} />
           <Route path="/como-jogar" element={<HowToPlay />} />
           <Route path="/termos" element={<TermsPage />} />
           <Route path="/privacidade" element={<PrivacyPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
-          <Route path="/profile" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <ProfilePage /> : <Navigate to="/login" />)} />
+          <Route path="/profile" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <ProfilePage /> : <Navigate to="/" />)} />
 
           <Route path="/admin" element={isRecoveryMode ? <Navigate to="/reset-password" /> : <AdminRoute><AdminPage /></AdminRoute>} />
           <Route path="/admin/leagues" element={<AdminRoute><AdminLeaguesPage /></AdminRoute>} />

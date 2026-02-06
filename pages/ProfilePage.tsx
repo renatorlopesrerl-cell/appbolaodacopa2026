@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useStore } from '../App';
-import { User as UserIcon, Save, Camera, Upload, AlertCircle, ArrowLeft, Phone, Loader2, Bell, PlayCircle, Flag, Sun, Moon, Clock, Trash2 } from 'lucide-react';
+import { User as UserIcon, Save, Camera, Upload, AlertCircle, ArrowLeft, Phone, Loader2, Bell, PlayCircle, Flag, Sun, Moon, Clock, Trash2, Lock } from 'lucide-react';
 import { processImageForUpload } from '../services/dataService';
 
 export const ProfilePage: React.FC = () => {
@@ -386,6 +386,24 @@ export const ProfilePage: React.FC = () => {
             </div>
           </form>
         </div>
+      </div>
+
+      {/* Security Section */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <h3 className="font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
+          <Lock size={20} className="text-brasil-blue dark:text-blue-400" />
+          Segurança
+        </h3>
+        <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+          Deseja alterar sua senha atual? Clique no botão abaixo para ir para a página de redefinição.
+        </p>
+        <button
+          onClick={() => navigate('/reset-password')}
+          className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-white px-4 py-2 rounded-lg font-bold text-sm transition-colors flex items-center gap-2 border border-gray-200 dark:border-gray-600"
+        >
+          <Lock size={16} />
+          Ir para Redefinir Senha
+        </button>
       </div>
 
       {/* Delete Account Section */}

@@ -9,8 +9,8 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
-  // If in recovery mode, do not render layout with navigation
-  if (isRecoveryMode) return <div className="dark:bg-gray-900 min-h-screen">{children}</div>;
+  // If in recovery mode or on reset password page, do not render layout with navigation
+  if (isRecoveryMode || location.pathname === '/reset-password') return <div className="dark:bg-gray-900 min-h-screen">{children}</div>;
 
   const notificationRef = useRef<HTMLDivElement>(null);
 
