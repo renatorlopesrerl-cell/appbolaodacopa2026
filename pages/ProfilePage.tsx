@@ -438,8 +438,8 @@ export const ProfilePage: React.FC = () => {
                     setIsDeleting(false);
                   }
                 }}
-                disabled={isDeleting || loading}
-                className="bg-red-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-red-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+                disabled={isDeleting}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-red-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isDeleting ? <Loader2 className="animate-spin" size={16} /> : null}
                 Sim, excluir tudo
