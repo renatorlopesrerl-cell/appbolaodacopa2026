@@ -33,8 +33,7 @@ export const LeagueDetails: React.FC = () => {
     }, [searchParams]);
 
     // --- GLOBAL STATE (HOISTED) ---
-    const [inviteEmail, setInviteEmail] = useState('');
-    const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+
     const [toast, setToast] = useState<{ title: string; message: string; type: 'success' | 'info' | 'warning' } | null>(null);
     const [userToRemove, setUserToRemove] = useState<{ id: string; name: string } | null>(null);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -179,14 +178,12 @@ export const LeagueDetails: React.FC = () => {
             if (success) navigate('/leagues');
         }
     };
-    const handleInvite = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (league && inviteEmail) {
-            await sendLeagueInvite(league.id, inviteEmail);
-            setInviteEmail('');
-            setIsInviteModalOpen(false);
-        }
+    const handleShareWhatsApp = () => {
+        if (!league?.leagueCode) return;
+        const text = `Venha participar da minha liga *${league.name}* no Palpiteiro da Copa 2026! ⚽🏆\n\nCopie o código:\n*${league.leagueCode}*\n\nE clique no link para acessar:\nhttps://bolaodacopa2026.app/leagues`;
+        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
     };
+
     const handleCopyCode = () => {
         if (league.leagueCode) {
             navigator.clipboard.writeText(league.leagueCode);
@@ -689,7 +686,7 @@ export const LeagueDetails: React.FC = () => {
                         </div>
                     </div>
                     <div className="flex gap-2 w-full md:w-auto">
-                        {isParticipant ? (<><button onClick={() => setIsInviteModalOpen(true)} className="flex-1 md:flex-none bg-brasil-blue text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-blue-900 transition-colors flex items-center justify-center gap-2"><Share2 size={16} /> Convidar</button>{!isAdmin && (<button onClick={handleLeave} className="px-3 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors border border-transparent hover:border-red-100 dark:hover:border-red-800" title="Sair da Liga"><LogOut size={18} /></button>)}</>) : (isPending ? (<button disabled className="w-full md:w-auto bg-yellow-100 text-yellow-700 px-6 py-2 rounded-lg font-bold text-sm cursor-not-allowed">Solicitação Enviada</button>) : (<button onClick={handleJoin} className="w-full md:w-auto bg-brasil-green text-white px-6 py-2 rounded-lg font-bold text-sm hover:bg-green-700 transition-colors flex items-center justify-center gap-2"><UserPlus size={16} /> Participar da Liga</button>))}
+                        {isParticipant ? (<><button onClick={handleShareWhatsApp} className="flex-1 md:flex-none bg-brasil-blue text-white px-4 py-2 rounded-lg font-bold text-sm hover:bg-blue-900 transition-colors flex items-center justify-center gap-2 shadow-sm"><Share2 size={16} /> Convidar</button>{!isAdmin && (<button onClick={handleLeave} className="px-3 py-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors border border-transparent hover:border-red-100 dark:hover:border-red-800" title="Sair da Liga"><LogOut size={18} /></button>)}</>) : (isPending ? (<button disabled className="w-full md:w-auto bg-yellow-100 text-yellow-700 px-6 py-2 rounded-lg font-bold text-sm cursor-not-allowed">Solicitação Enviada</button>) : (<button onClick={handleJoin} className="w-full md:w-auto bg-brasil-green text-white px-6 py-2 rounded-lg font-bold text-sm hover:bg-green-700 transition-colors flex items-center justify-center gap-2"><UserPlus size={16} /> Participar da Liga</button>))}
                     </div>
                 </div>
                 {league.description && (<div className="mt-4 bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300"><h3 className="font-bold text-gray-800 dark:text-white mb-1">Sobre a Liga</h3><p>{league.description}</p></div>)}
@@ -709,7 +706,7 @@ export const LeagueDetails: React.FC = () => {
                 {activeTab === 'admin' && renderAdminTab()}
             </div>
 
-            {isInviteModalOpen && (<div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"><div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-sm w-full p-6 animate-in zoom-in-95 duration-200"><h3 className="text-lg font-bold text-gray-800 dark:text-white mb-2">Convidar Amigo</h3><p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Envie um convite por e-mail para participar da liga.</p><form onSubmit={handleInvite}><input type="email" required placeholder="E-mail do amigo" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white rounded-lg p-3 mb-4 text-sm focus:ring-2 focus:ring-brasil-blue outline-none" /><div className="flex gap-2 justify-end"><button type="button" onClick={() => setIsInviteModalOpen(false)} className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg font-medium text-sm">Cancelar</button><button type="submit" className="px-4 py-2 bg-brasil-blue text-white rounded-lg font-bold text-sm hover:bg-blue-900">Enviar Convite</button></div></form></div></div>)}
+
         </div>
     );
 };

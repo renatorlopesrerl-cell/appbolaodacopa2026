@@ -90,7 +90,7 @@ interface AppState {
   toggleTheme: () => void;
   connectionError: boolean;
   retryConnection: () => void;
-  addNotification: (title: string, message: string, type: 'success' | 'info' | 'warning') => void;
+  addNotification: (title: string, message: string, type: 'success' | 'info' | 'warning', duration?: number) => void;
   refreshPredictions: () => Promise<void>;
   deleteAccount: () => Promise<boolean>;
 }
@@ -139,12 +139,12 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const currentUserRef = useRef<User | null>(null);
   const failureCountRef = useRef(0);
 
-  const addNotification = (title: string, message: string, type: 'success' | 'info' | 'warning' = 'info') => {
+  const addNotification = (title: string, message: string, type: 'success' | 'info' | 'warning' = 'info', duration: number = 6000) => {
     const id = Date.now();
     setNotifications(prev => [...prev, { id, title, message, type }]);
     setTimeout(() => {
       setNotifications(prev => prev.filter(n => n.id !== id));
-    }, 6000);
+    }, duration);
   };
 
   const removeNotification = (id: number) => {
@@ -922,11 +922,11 @@ const AppRoutes: React.FC = () => {
     <BrowserRouter>
       <Layout>
         <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/table" element={<TablePage />} />
+          <Route path="/" element={currentUser ? <Home /> : <Navigate to="/login" />} />
+          <Route path="/table" element={currentUser ? <TablePage /> : <Navigate to="/login" />} />
           <Route path="/leagues" element={currentUser ? <LeaguesPage /> : <Navigate to="/login" />} />
           <Route path="/league/:id" element={currentUser ? <LeagueDetails /> : <Navigate to="/login" />} />
-          <Route path="/simulador" element={<SimulatePage />} />
+          <Route path="/simulador" element={currentUser ? <SimulatePage /> : <Navigate to="/login" />} />
           <Route path="/como-jogar" element={<HowToPlay />} />
           <Route path="/termos" element={<TermsPage />} />
           <Route path="/privacidade" element={<PrivacyPage />} />

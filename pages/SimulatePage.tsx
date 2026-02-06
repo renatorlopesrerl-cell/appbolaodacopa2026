@@ -408,7 +408,7 @@ export const SimulatePage: React.FC = () => {
             let msg = `Os palpites foram SALVOS com sucesso na liga ${leagueName}! (${predsToExport.length} jogos exportados).`;
             if (lockedCount > 0) msg += ` (${lockedCount} jogos ignorados pois já estavam bloqueados)`;
 
-            addNotification('Exportação Concluída', msg, 'success');
+            addNotification('Exportação Concluída', msg, 'success', 12000);
         } catch (e) {
             console.error(e);
             alert('Erro ao exportar.');

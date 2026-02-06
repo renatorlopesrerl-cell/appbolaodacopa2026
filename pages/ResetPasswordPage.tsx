@@ -70,7 +70,7 @@ export const ResetPasswordPage: React.FC = () => {
                 // Better approach: check actual session again?
                 supabase.auth.getSession().then(({ data: { session } }) => {
                     if (!session && mounted) {
-                        setError('Sessão não detectada. O link pode ter expirado.');
+                        setError('Sessão não detectada. Se você abriu o link em outro navegador/celular, copie o link e cole no mesmo local onde pediu a senha.');
                     }
                 });
             }
