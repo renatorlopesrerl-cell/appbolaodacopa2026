@@ -559,35 +559,60 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   const deleteAccount = async (): Promise<boolean> => {
     if (!currentUser) return false;
+    console.log("Starting account deletion process...");
+
     try {
       // 1. Try to delete via RPC (Hard Delete of Auth + Data)
       // Wrap in timeout to prevent infinite hanging
-      const rpcPromise = supabase.rpc('delete_own_user');
+      const executeRpc = async () => {
+        try {
+          const { error } = await supabase.rpc('delete_own_user');
+          return { error };
+        } catch (err) {
+          return { error: err };
+        }
+      };
+
       const timeoutPromise = (ms: number) => new Promise<{ error: any }>((resolve) =>
         setTimeout(() => resolve({ error: { message: 'Timeout' } }), ms)
       );
 
-      try {
-        const { error: rpcError } = await Promise.race([rpcPromise, timeoutPromise(3000)]);
+      let deletionSuccess = false;
 
-        if (rpcError) {
-          console.warn("RPC error/timeout, trying fallback:", rpcError);
-          // 2. Fallback: Manual delete of profile data if RPC fails
-          // Also wrapped in timeout to prevent hanging
-          const delPromise = api.profiles.delete(currentUser.id);
-          await Promise.race([delPromise, timeoutPromise(3000)]).catch(() => { });
+      try {
+        console.log("Attempting RPC delete...");
+        const result = await Promise.race([executeRpc(), timeoutPromise(5000)]);
+        
+        if (result.error) {
+           console.warn("RPC delete failed or timed out:", result.error);
+           throw result.error;
         }
-      } catch (err) {
-        // Fallback for any other error, try manual delete once more with timeout
-        const delPromise = api.profiles.delete(currentUser.id);
-        await Promise.race([delPromise, timeoutPromise(3000)]).catch(() => { });
+        
+        deletionSuccess = true;
+      } catch (rpcError) {
+        console.warn("RPC error/timeout, trying fallback profile delete:", rpcError);
+        
+        // 2. Fallback: Manual delete of profile data if RPC fails
+        try {
+           console.log("Attempting fallback profile delete...");
+           const delPromise = api.profiles.delete(currentUser.id);
+           await Promise.race([delPromise, timeoutPromise(5000)]);
+           deletionSuccess = true;
+        } catch (fallbackError) {
+           console.error("Fallback delete also failed:", fallbackError);
+        }
       }
 
-      addNotification('Conta Excluída', 'Seus dados foram removidos.', 'success');
-      await logout();
-      return true;
+      if (deletionSuccess) {
+         addNotification('Conta Excluída', 'Seus dados foram removidos.', 'success');
+         await logout();
+         return true;
+      } else {
+         throw new Error("Failed to delete account via both methods.");
+      }
+
     } catch (e: any) {
-      console.error("Delete Account Error", e);
+      console.error("Delete Account Final Error", e);
       addNotification('Erro', 'Falha ao excluir conta. Tente novamente.', 'warning');
       return false;
     }

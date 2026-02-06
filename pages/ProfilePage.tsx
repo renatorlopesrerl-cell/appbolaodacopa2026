@@ -428,15 +428,17 @@ export const ProfilePage: React.FC = () => {
             <p className="font-bold text-gray-800 dark:text-white mb-3">Tem certeza absoluta?</p>
             <div className="flex gap-3">
               <button
-                onClick={async () => {
+                onClick={async (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
                   if (isDeleting) return;
-                  console.log("Delete account requested");
+                  console.log("Delete account requested - Handler triggered");
                   try {
                     setIsDeleting(true);
                     await deleteAccount();
                     setIsDeleting(false);
                   } catch (e) {
-                    console.error("Delete error:", e);
+                    console.error("Delete error in UI:", e);
                     setIsDeleting(false);
                   }
                 }}
