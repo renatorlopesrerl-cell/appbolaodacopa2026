@@ -402,7 +402,7 @@ export const ProfilePage: React.FC = () => {
           className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-white px-4 py-2 rounded-lg font-bold text-sm transition-colors flex items-center gap-2 border border-gray-200 dark:border-gray-600"
         >
           <Lock size={16} />
-          Ir para Redefinir Senha
+          Redefinir Senha
         </button>
       </div>
 

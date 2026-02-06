@@ -9,8 +9,9 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
-  // If in recovery mode or on reset password page, do not render layout with navigation
-  if (isRecoveryMode || location.pathname === '/reset-password') return <div className="dark:bg-gray-900 min-h-screen">{children}</div>;
+  // Determine if we should show the full layout (Standard authenticated view)
+  // We must calculate this but NOT return early to avoid Hook Rule violations
+  const isMinimalLayout = isRecoveryMode || location.pathname === '/reset-password' || !currentUser;
 
   const notificationRef = useRef<HTMLDivElement>(null);
 
@@ -27,7 +28,9 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  if (!currentUser) return <div className="dark:bg-gray-900 min-h-screen">{children}</div>;
+  if (isMinimalLayout) {
+    return <div className="dark:bg-gray-900 min-h-screen">{children}</div>;
+  }
 
   // Count direct invites to the user
   const pendingInvites = invitations.filter(i => i.status === 'pending');
