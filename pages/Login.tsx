@@ -134,7 +134,7 @@ export const Login: React.FC = () => {
             setSuccessMessage('Enviamos um e-mail com instruções para redefinir sua senha.');
         } catch (err: any) {
             console.error(err);
-            setError('Erro ao enviar e-mail. Verifique o endereço informado.');
+            setError(err.message || 'Erro ao enviar e-mail. Verifique o endereço informado.');
         } finally {
             if (mountedRef.current) setLoading(false);
         }
