@@ -424,10 +424,11 @@ export const ProfilePage: React.FC = () => {
             Quero excluir minha conta
           </button>
         ) : (
-          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-red-200 dark:border-red-800 animate-in fade-in slide-in-from-top-2">
+          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-red-200 dark:border-red-800 relative z-50">
             <p className="font-bold text-gray-800 dark:text-white mb-3">Tem certeza absoluta?</p>
             <div className="flex gap-3">
               <button
+                type="button"
                 onClick={async (e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -448,6 +449,7 @@ export const ProfilePage: React.FC = () => {
                 Sim, excluir tudo
               </button>
               <button
+                type="button"
                 onClick={() => setShowDeleteConfirm(false)}
                 className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg font-bold text-sm hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
               >
