@@ -15,7 +15,7 @@ async function retry(fn, attempts = 3) {
 
 export const onRequest = async ({ request, env, next, data }) => {
     // Public routes (no auth required)
-    if (request.url.includes('/health') || request.url.includes('/webhook-mercadopago')) {
+    if (request.url.includes('/health')) {
         return next()
     }
 
