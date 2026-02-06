@@ -352,7 +352,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         }
 
         const user: User = {
-          id: data.id,
+          id: data.id, // Ensure we use the current Auth ID
           name: data.name || fallbackUser.name,
           email: data.email || email,
           avatar: data.avatar || fallbackUser.avatar,
@@ -560,8 +560,16 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const deleteAccount = async (): Promise<boolean> => {
     if (!currentUser) return false;
     try {
-      await api.profiles.delete(currentUser.id);
-      addNotification('Conta Excluída', 'Seus dados foram removidos.', 'info');
+      // 1. Try to delete via RPC (Hard Delete of Auth + Data)
+      const { error: rpcError } = await supabase.rpc('delete_own_user');
+
+      if (rpcError) {
+        console.warn("RPC delete_own_user error:", rpcError);
+        // 2. Fallback: Manual delete of profile data if RPC fails
+        await api.profiles.delete(currentUser.id);
+      }
+
+      addNotification('Conta Excluída', 'Seus dados foram removidos com sucesso.', 'success');
       await logout();
       return true;
     } catch (e: any) {

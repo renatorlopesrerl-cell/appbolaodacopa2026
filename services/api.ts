@@ -76,6 +76,15 @@ export const api = {
         list: () => apiFetch<any[]>('/profiles'),
         get: (id: string) => apiFetch<any>(`/profiles?id=${id}`),
         update: (data: any) => apiFetch('/profiles', { method: 'POST', body: JSON.stringify(data) }),
+        getByEmail: async (email: string) => {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('email', email)
+                .single();
+            if (error) return null;
+            return data;
+        },
         delete: async (id: string) => {
             const { error } = await supabase.from('profiles').delete().eq('id', id);
             if (error) throw error;

@@ -6,7 +6,7 @@ import { processImageForUpload } from '../services/dataService';
 
 export const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
-  const { currentUser, updateUserProfile, deleteAccount, loading: globalLoading, theme: globalTheme } = useStore();
+  const { currentUser, updateUserProfile, deleteAccount, loading: globalLoading, theme: globalTheme, logout } = useStore();
   const [name, setName] = useState('');
   const [avatar, setAvatar] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
