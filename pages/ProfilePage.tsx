@@ -381,7 +381,7 @@ export const ProfilePage: React.FC = () => {
 
                   <h4 className="font-bold text-gray-900 dark:text-white mt-2">7. Contato</h4>
                   <p>Em caso de dúvidas ou solicitações relacionadas a esta Política de Privacidade, entre em contato pelo e-mail:</p>
-                  <p className="font-bold text-brasil-blue dark:text-blue-400">📧 renatorlopes.rerl@gmail.com</p>
+                  <p className="font-bold text-brasil-blue dark:text-blue-400">📧 palpiteirodacopa@gmail.com</p>
                 </div>
               )}
             </div>

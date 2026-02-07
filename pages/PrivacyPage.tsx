@@ -79,7 +79,7 @@ export const PrivacyPage: React.FC = () => {
                     <div>
                         <strong className="block text-gray-800 dark:text-white mb-1">7. Contato</strong>
                         <p>Em caso de dúvidas ou solicitações relacionadas a esta Política de Privacidade, entre em contato pelo e-mail:</p>
-                        <p className="font-bold text-brasil-blue dark:text-blue-400 mt-1">📧 renatorlopes.rerl@gmail.com</p>
+                        <p className="font-bold text-brasil-blue dark:text-blue-400 mt-1">📧 palpiteirodacopa@gmail.com</p>
                     </div>
                 </div>
             </div>

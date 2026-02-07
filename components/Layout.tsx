@@ -14,13 +14,17 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const isMinimalLayout = isRecoveryMode || location.pathname === '/reset-password' || !currentUser;
 
   const notificationRef = useRef<HTMLDivElement>(null);
+  const mobileNotificationRef = useRef<HTMLDivElement>(null);
 
   const isActive = (path: string) => location.pathname === path ? 'bg-brasil-yellow text-brasil-blue font-bold' : 'text-white hover:bg-white/10';
 
   // Close notifications when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
+      const outsideDesktop = !notificationRef.current || !notificationRef.current.contains(event.target as Node);
+      const outsideMobile = !mobileNotificationRef.current || !mobileNotificationRef.current.contains(event.target as Node);
+
+      if (outsideDesktop && outsideMobile) {
         setShowNotifications(false);
       }
     };
@@ -241,7 +245,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           <div className="flex items-center gap-4 lg:hidden">
 
             {/* Mobile Notification Bell */}
-            <div className="relative">
+            <div className="relative" ref={mobileNotificationRef}>
               <button
                 className="relative p-1"
                 onClick={(e) => {

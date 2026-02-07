@@ -106,7 +106,7 @@ export const TermsPage: React.FC = () => {
                     <div>
                         <strong className="block text-gray-800 dark:text-white mb-1">10. Contato</strong>
                         <p>Para dúvidas, sugestões ou solicitações:</p>
-                        <p className="font-bold text-brasil-blue dark:text-blue-400 mt-1">📧 renatorlopes.rerl@gmail.com</p>
+                        <p className="font-bold text-brasil-blue dark:text-blue-400 mt-1">📧 palpiteirodacopa@gmail.com</p>
                     </div>
                 </div>
             </div>
