@@ -4,7 +4,7 @@ import { Trophy, Calendar, Users, LogOut, Menu, X, Settings, Check, Bell, Info, 
 import { useStore } from '../App';
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentUser, logout, notifications, removeNotification, invitations, leagues, users, connectionError, retryConnection, isRecoveryMode } = useStore();
+  const { currentUser, logout, notifications, removeNotification, invitations, leagues, users, connectionError, retryConnection, isRecoveryMode, approveUser, rejectUser } = useStore();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -94,24 +94,48 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                 </Link>
               );
             })}
-            {adminLeaguesWithRequests.map(l => {
-              const count = l.pendingRequests.filter(uid => users.some(u => u.id === uid)).length;
-              return (
-                <Link
-                  key={l.id}
-                  to={`/league/${l.id}?tab=admin`}
-                  onClick={() => { setShowNotifications(false); setIsMenuOpen(false); }}
-                  className="block p-3 hover:bg-white dark:hover:bg-gray-800 transition-colors group relative"
-                >
+            {adminLeaguesWithRequests.flatMap(l => {
+              const validRequests = l.pendingRequests
+                .map(uid => users.find(u => u.id === uid))
+                .filter((u): u is typeof users[0] => !!u);
+
+              return validRequests.map(user => (
+                <div key={`${l.id}-${user.id}`} className="block p-3 hover:bg-white dark:hover:bg-gray-800 transition-colors group relative">
                   <div className="absolute left-0 top-0 bottom-0 w-1 bg-brasil-green"></div>
-                  <p className="text-sm font-bold text-gray-800 dark:text-white flex items-center gap-2">
-                    <Users size={14} className="text-green-600" /> Solicitações Pendentes
-                  </p>
-                  <p className="text-xs text-gray-600 dark:text-gray-300 mt-1 pl-5">
-                    A liga <span className="font-bold text-brasil-blue dark:text-blue-400">{l.name}</span> possui <span className="font-bold">{count}</span> novo(s) pedido(s).
-                  </p>
-                </Link>
-              )
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <p className="text-sm font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                        <Users size={14} className="text-green-600" /> Solicitação
+                      </p>
+                      <p className="text-xs text-gray-600 dark:text-gray-300 mt-1 pl-5">
+                        <span className="font-bold">{user.name}</span> quer entrar na liga <span className="font-bold text-brasil-blue dark:text-blue-400">{l.name}</span>
+                      </p>
+                    </div>
+                  </div>
+                  <div className="pl-5 flex gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        approveUser(l.id, user.id);
+                      }}
+                      className="flex-1 bg-green-100 hover:bg-green-200 text-green-700 text-xs font-bold py-1.5 rounded flex items-center justify-center gap-1 transition-colors"
+                    >
+                      <Check size={12} /> Aceitar
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        rejectUser(l.id, user.id);
+                      }}
+                      className="flex-1 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-bold py-1.5 rounded flex items-center justify-center gap-1 transition-colors"
+                    >
+                      <X size={12} /> Recusar
+                    </button>
+                  </div>
+                </div>
+              ));
             })}
           </div>
         )}

@@ -50,9 +50,7 @@ export const api = {
             return { error: null };
         },
         delete: async (id: string) => {
-            const { error } = await supabase.from('leagues').delete().eq('id', id);
-            if (error) throw error;
-            return { error: null };
+            return apiFetch(`/leagues?id=${id}`, { method: 'DELETE' });
         },
 
         // Actions
