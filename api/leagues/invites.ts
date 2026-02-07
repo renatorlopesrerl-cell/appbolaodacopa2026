@@ -49,7 +49,7 @@ export default async function handler(req: Request) {
 
                 const { data: existingUser } = await userClient.from('profiles').select('id').eq('email', email).maybeSingle();
                 if (existingUser && league.participants.includes(existingUser.id)) {
-                    return jsonResponse({ success: false, message: "User already in league" }, 400);
+                    return errorResponse(new Error("Usuário já participa desta liga"), 400);
                 }
 
                 // Check for existing pending invite
@@ -61,11 +61,11 @@ export default async function handler(req: Request) {
                     .maybeSingle();
 
                 if (existingInvite) {
-                    return jsonResponse({ success: false, message: "Invite already pending" }, 400);
+                    return errorResponse(new Error("Convite já enviado para este usuário"), 400);
                 }
 
                 const limit = getLeagueLimit(league.settings);
-                if (league.participants.length >= limit) return jsonResponse({ success: false, message: "League limit reached" }, 400);
+                if (league.participants.length >= limit) return errorResponse(new Error("Limite de participantes da liga atingido"), 400);
 
                 const { error } = await userClient.from('league_invites').insert({
                     league_id: leagueId,

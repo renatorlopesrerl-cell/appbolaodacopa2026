@@ -811,13 +811,14 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       const league = leagues.find(l => l.id === invite.leagueId);
       if (league) {
         const limit = getLeagueLimit(league);
-        if (league.participants.length >= limit) { addNotification('Liga Cheia', 'Limite atingido.', 'warning'); return; }
-
-
-        const updatedParticipants = [...league.participants, currentUser.id];
-        const updatedPending = league.pendingRequests.filter(uid => uid !== currentUser.id);
-        setLeagues(prev => prev.map(l => l.id === league.id ? { ...l, participants: updatedParticipants, pendingRequests: updatedPending } : l));
-        addNotification('Sucesso', `Bem-vindo à liga ${league.name}!`, 'success');
+        if (league.participants.includes(currentUser.id)) {
+          addNotification('Aviso', 'Você já participa desta liga.', 'info');
+        } else {
+          const updatedParticipants = [...league.participants, currentUser.id];
+          const updatedPending = (league.pendingRequests || []).filter(uid => uid !== currentUser.id);
+          setLeagues(prev => prev.map(l => l.id === league.id ? { ...l, participants: updatedParticipants, pendingRequests: updatedPending } : l));
+          addNotification('Sucesso', `Bem-vindo à liga ${league.name}!`, 'success');
+        }
       }
     }
     setInvitations(prev => prev.filter(i => i.id !== inviteId));
