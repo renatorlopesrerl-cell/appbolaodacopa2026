@@ -4,7 +4,7 @@ import { Trophy, Calendar, Users, LogOut, Menu, X, Settings, Check, Bell, Info, 
 import { useStore } from '../App';
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentUser, logout, notifications, removeNotification, invitations, leagues, users, connectionError, retryConnection, isRecoveryMode, approveUser, rejectUser } = useStore();
+  const { currentUser, logout, notifications, removeNotification, invitations, leagues, users, connectionError, retryConnection, isRecoveryMode, approveUser, rejectUser, respondToInvite } = useStore();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -68,34 +68,33 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             {pendingInvites.map(invite => {
               const leagueName = leagues.find(l => l.id === invite.leagueId)?.name || 'Liga desconhecida';
               return (
-                <Link
-                  key={invite.id}
-                  to="/#invites-section"
-                  onClick={() => {
-                    setShowNotifications(false);
-                    setIsMenuOpen(false);
-
-                    // Force scroll if we are already on the home page
-                    // (React Router might not re-trigger scroll if only hash changes sometimes)
-                    if (window.location.pathname === '/') {
-                      setTimeout(() => {
-                        const element = document.getElementById('invites-section');
-                        if (element) {
-                          element.scrollIntoView({ behavior: 'smooth' });
-                        }
-                      }, 300);
-                    }
-                  }}
-                  className="block p-3 hover:bg-white dark:hover:bg-gray-800 transition-colors group relative"
-                >
+                <div key={invite.id} className="block p-3 hover:bg-white dark:hover:bg-gray-800 transition-colors group relative">
                   <div className="absolute left-0 top-0 bottom-0 w-1 bg-yellow-400"></div>
-                  <p className="text-sm font-bold text-gray-800 dark:text-white flex items-center gap-2">
-                    <Mail size={14} className="text-yellow-600" /> Convite de Liga
-                  </p>
-                  <p className="text-xs text-gray-600 dark:text-gray-300 mt-1 pl-5">
-                    Você foi convidado para entrar em: <span className="font-bold text-brasil-blue dark:text-blue-400">{leagueName}</span>
-                  </p>
-                </Link>
+                  <div className="flex justify-between items-start mb-2">
+                    <div>
+                      <p className="text-sm font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                        <Mail size={14} className="text-yellow-600" /> Convite de Liga
+                      </p>
+                      <p className="text-xs text-gray-600 dark:text-gray-300 mt-1 pl-5">
+                        Você foi convidado para entrar em: <span className="font-bold text-brasil-blue dark:text-blue-400">{leagueName}</span>
+                      </p>
+                    </div>
+                  </div>
+                  <div className="pl-5 flex gap-2">
+                    <button
+                      onClick={() => respondToInvite(invite.id, true)}
+                      className="flex-1 bg-green-100 hover:bg-green-200 text-green-700 text-xs font-bold py-1.5 rounded flex items-center justify-center gap-1 transition-colors"
+                    >
+                      <Check size={12} /> Aceitar
+                    </button>
+                    <button
+                      onClick={() => respondToInvite(invite.id, false)}
+                      className="flex-1 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-bold py-1.5 rounded flex items-center justify-center gap-1 transition-colors"
+                    >
+                      <X size={12} /> Recusar
+                    </button>
+                  </div>
+                </div>
               );
             })}
             {adminLeaguesWithRequests.flatMap(l => {
@@ -308,7 +307,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
       {/* Footer */}
       <footer className="bg-gray-800 dark:bg-black text-gray-400 py-6 text-center text-sm transition-colors duration-300">
-        <p>© 2026 Bolão da Copa.</p>
+        <p>© 2026 Palpiteiro da Copa.</p>
       </footer>
     </div>
   );

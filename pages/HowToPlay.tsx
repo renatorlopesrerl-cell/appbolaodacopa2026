@@ -77,7 +77,7 @@ export const HowToPlay: React.FC = () => {
                         <p>
                             Na aba <strong>Regras</strong> fica o Sistema de Pontuação e os critérios de desempate:
                             1º Maior Pontuação Total, 2º Maior número de Cravadas (Acerto Exato) e 3º Maior pontuação no Mata-Mata.
-                            Outra regra importante: em caso de empate no tempo normal que leve à prorrogação, <strong>vale o placar final após 120 minutos</strong> (Tempo Normal + Prorrogação). Disputa de pênaltis não conta para o placar do bolão.
+                            Outra regra importante: em caso de empate no tempo normal que leve à prorrogação, <strong>vale o placar final após 120 minutos</strong> (Tempo Normal + Prorrogação). Disputa de pênaltis não conta para o placar das ligas.
                         </p>
                         <p>
                             A aba <strong>Admin</strong> só aparece para o administrador da liga. É nela que ele aceita/envia convites, altera imagem/descrição e muda entre Privada/Pública. Também é onde pode fazer o Upgrade do plano da liga.

@@ -166,7 +166,7 @@ export const Login: React.FC = () => {
 
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg w-full max-w-md border-t-4 border-brasil-green overflow-hidden mt-12 md:mt-0 transition-colors duration-300">
                 <div className="p-8 pb-6 text-center">
-                    <h1 className="text-3xl font-bold mb-2 text-brasil-blue dark:text-blue-400">Bolão da Copa 2026</h1>
+                    <h1 className="text-3xl font-bold mb-2 text-brasil-blue dark:text-blue-400">Palpiteiro da Copa 2026</h1>
                     <p className="text-gray-500 dark:text-gray-400 text-sm">
                         {isForgotPassword
                             ? 'Informe seu e-mail para redefinir a senha'

@@ -254,6 +254,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           const user = session.user;
           const metadata = user.user_metadata || {};
 
+          const provider = user.app_metadata?.provider || 'email';
           const basicUser: User = {
             id: user.id,
             email: user.email || '',
@@ -262,14 +263,15 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             isAdmin: metadata.is_admin || user.email?.toLowerCase() === 'renatinhorlopes@hotmail.com',
             whatsapp: metadata.whatsapp || '',
             notificationSettings: { matchStart: true, matchEnd: true },
-            isPro: metadata.is_pro || false
+            isPro: metadata.is_pro || false,
+            provider
           };
 
           setCurrentUser(basicUser);
           currentUserRef.current = basicUser;
 
           await Promise.all([
-            fetchUserProfile(user.id, user.email || '', basicUser.avatar, basicUser.name, basicUser.whatsapp || ''),
+            fetchUserProfile(user.id, user.email || '', basicUser.avatar, basicUser.name, basicUser.whatsapp || '', provider),
             fetchAllData()
           ]);
         }
@@ -300,6 +302,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           const user = session.user;
           const metadata = user.user_metadata || {};
 
+          const provider = user.app_metadata?.provider || 'email';
           const basicUser: User = {
             id: user.id,
             email: user.email || '',
@@ -308,12 +311,13 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             isAdmin: metadata.is_admin || user.email?.toLowerCase() === 'renatinhorlopes@hotmail.com',
             whatsapp: metadata.whatsapp || '',
             notificationSettings: { matchStart: true, matchEnd: true },
-            isPro: metadata.is_pro || false
+            isPro: metadata.is_pro || false,
+            provider
           };
 
           setCurrentUser(basicUser);
           currentUserRef.current = basicUser;
-          fetchUserProfile(user.id, user.email || '', basicUser.avatar, basicUser.name, basicUser.whatsapp || '');
+          fetchUserProfile(user.id, user.email || '', basicUser.avatar, basicUser.name, basicUser.whatsapp || '', provider);
           fetchAllData();
         }
       }
@@ -325,7 +329,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     };
   }, []);
 
-  const fetchUserProfile = async (uid: string, email: string, photoURL: string, fullName: string = '', whatsappMeta: string = '') => {
+  const fetchUserProfile = async (uid: string, email: string, photoURL: string, fullName: string = '', whatsappMeta: string = '', provider: string = 'email') => {
     const savedPrefs = localStorage.getItem(`notify_${uid}`);
     const fallbackPrefs = savedPrefs ? JSON.parse(savedPrefs) : { matchStart: true, matchEnd: true, predictionReminder: true };
     const shouldBeAdmin = email.toLowerCase() === 'renatinhorlopes@hotmail.com';
@@ -340,7 +344,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       pix: '',
       notificationSettings: fallbackPrefs,
       theme: 'light',
-      isPro: false
+      isPro: false,
+      provider
     };
 
     try {
@@ -361,7 +366,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           pix: data.pix || '',
           notificationSettings: data.notification_settings || fallbackPrefs,
           theme: data.theme,
-          isPro: data.is_pro
+          isPro: data.is_pro,
+          provider
         };
 
         if (user.theme && (user.theme === 'light' || user.theme === 'dark')) setTheme(user.theme);

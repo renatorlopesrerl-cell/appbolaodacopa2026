@@ -49,6 +49,7 @@ export interface User {
   };
   isPro?: boolean;
   proExpiresAt?: string; // ISO Date String
+  provider?: string;
 }
 
 export interface Prediction {

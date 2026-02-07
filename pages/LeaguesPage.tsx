@@ -322,7 +322,7 @@ export const LeaguesPage: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nome da Liga</label>
-                <input required value={newLeagueName} onChange={e => setNewLeagueName(e.target.value)} className="w-full border border-gray-600 bg-gray-700 text-white rounded-lg p-2 focus:ring-2 focus:ring-brasil-green outline-none" placeholder="Ex: Bolão da Firma" />
+                <input required value={newLeagueName} onChange={e => setNewLeagueName(e.target.value)} className="w-full border border-gray-600 bg-gray-700 text-white rounded-lg p-2 focus:ring-2 focus:ring-brasil-green outline-none" placeholder="Ex: Palpiteiros da Firma" />
               </div>
 
               <div>
