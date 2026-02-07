@@ -29,6 +29,7 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
             // Sanitize input: Prevent is_admin escalation or Id spoofing
             const safeBody: any = {
                 id: authUser.id, // Enforce ID
+                email: body.email,
                 name: body.name,
                 avatar: body.avatar,
                 whatsapp: body.whatsapp,

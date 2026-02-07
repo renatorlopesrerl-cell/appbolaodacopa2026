@@ -303,7 +303,7 @@ export const LeagueDetails: React.FC = () => {
         if (editImage && !editImage.startsWith('http')) {
             try {
                 // showToast('Info', 'Enviando imagem...', 'info'); // Optimal: feedback
-                finalImage = await uploadBase64Image(editImage, 'leagues');
+                finalImage = await uploadBase64Image(editImage, 'leagues', league.image);
             } catch (e) {
                 console.error("Upload failed", e);
                 showToast('Erro', 'Falha ao enviar imagem. Tente novamente.', 'warning');

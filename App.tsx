@@ -501,7 +501,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         redirectTo: 'https://bolaodacopa2026.app/auth/callback',
         queryParams: {
           access_type: 'offline',
-          prompt: 'consent',
         },
       }
     });
@@ -588,29 +587,49 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   };
 
   const updateUserProfile = async (name: string, avatar: string, whatsapp: string, pix: string, notificationSettings: any, themePreference: 'light' | 'dark') => {
-    if (!currentUser) return;
+    if (!currentUser) {
+      addNotification('Erro', 'Usuário não autenticado.', 'warning');
+      return;
+    }
+
+    // addNotification('Aguarde', 'Salvando perfil...', 'info', 2000); // Optional feedback
+
     let finalAvatar = avatar;
     if (avatar && !avatar.startsWith('http')) {
       try {
         addNotification('Processando', 'Enviando imagem...', 'info');
-        finalAvatar = await uploadBase64Image(avatar, 'avatars');
+        finalAvatar = await uploadBase64Image(avatar, 'avatars', currentUser.avatar);
       } catch (e) {
         addNotification('Erro', 'Falha no upload da imagem.', 'warning');
         return;
       }
     }
     const updatedUser = { ...currentUser, name, avatar: finalAvatar, whatsapp, pix, notificationSettings, theme: themePreference };
+
+    // Optimistic update
     setCurrentUser(updatedUser);
     setUsers(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
     setTheme(themePreference);
     localStorage.setItem(`notify_${currentUser.id}`, JSON.stringify(notificationSettings));
+
     try {
+      console.log("Sending profile update to API...");
       await api.profiles.update({
-        id: currentUser.id, name, avatar: finalAvatar, whatsapp: whatsapp.trim() || null,
-        pix: pix.trim() || null, notification_settings: notificationSettings, theme: themePreference
+        id: currentUser.id,
+        email: currentUser.email,
+        name,
+        avatar: finalAvatar,
+        whatsapp: whatsapp.trim() || null,
+        pix: pix.trim() || null,
+        notification_settings: notificationSettings,
+        theme: themePreference
       });
-      addNotification('Perfil Atualizado', 'Seus dados foram salvos.', 'success');
-    } catch (e) { }
+      console.log("Profile update success");
+      addNotification('Perfil Atualizado', 'Seus dados foram salvos com sucesso.', 'success');
+    } catch (e: any) {
+      console.error("Failed to update profile", e);
+      addNotification('Erro ao Salvar', e.message || 'Não foi possível salvar as alterações.', 'warning');
+    }
   };
 
   const createLeague = async (name: string, isPrivate: boolean, settings: any, image: string, description: string): Promise<boolean> => {
