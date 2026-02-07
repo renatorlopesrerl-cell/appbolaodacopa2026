@@ -70,11 +70,16 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                   onClick={() => {
                     setShowNotifications(false);
                     setIsMenuOpen(false);
-                    // Force scroll check if already on page
-                    if (window.location.hash === '#invites-section') {
+
+                    // Force scroll if we are already on the home page
+                    // (React Router might not re-trigger scroll if only hash changes sometimes)
+                    if (window.location.pathname === '/') {
                       setTimeout(() => {
-                        document.getElementById('invites-section')?.scrollIntoView({ behavior: 'smooth' });
-                      }, 100);
+                        const element = document.getElementById('invites-section');
+                        if (element) {
+                          element.scrollIntoView({ behavior: 'smooth' });
+                        }
+                      }, 300);
                     }
                   }}
                   className="block p-3 hover:bg-white dark:hover:bg-gray-800 transition-colors group relative"

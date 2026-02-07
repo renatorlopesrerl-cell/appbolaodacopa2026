@@ -718,7 +718,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     setLeagues(prev => prev.map(l => l.id === leagueId ? updatedLeague : l));
     try {
       await api.leagues.join(leagueId);
-      addNotification('Sucesso', league.isPrivate ? 'Solicitação enviada.' : 'Você entrou na liga.', league.isPrivate ? 'info' : 'success');
+      addNotification('Sucesso', league.isPrivate ? 'Solicitação enviada.' : 'Você entrou na liga.', 'success');
     } catch (e: any) {
       addNotification('Erro', e.message || 'Falha ao entrar na liga.', 'warning');
     }
