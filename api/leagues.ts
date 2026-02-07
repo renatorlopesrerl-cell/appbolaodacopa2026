@@ -51,9 +51,7 @@ export default async function handler(req: Request) {
             if (league.admin_id !== authUser.id) return errorResponse(new Error("Forbidden"), 403);
 
             const { error } = await userClient.from('leagues').update({
-                name: `${league.name} [EXCLUÍDA]`,
-                participants: [],
-                pending_requests: []
+                name: `${league.name} [EXCLUÍDA]`
             }).eq('id', id);
 
             if (error) throw error;
