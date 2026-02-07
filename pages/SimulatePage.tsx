@@ -52,7 +52,7 @@ export const SimulatePage: React.FC = () => {
     const [exportLeagueId, setExportLeagueId] = useState<string>('');
     const [importLeagueId, setImportLeagueId] = useState<string>('');
     const [exportScope, setExportScope] = useState<'all' | 'group' | 'knockout'>('all');
-    const [exportGroup, setExportGroup] = useState<string>('A');
+    const [exportGroup, setExportGroup] = useState<string>('all');
     const [exportPhase, setExportPhase] = useState<string>('all');
 
     // Filter States for View
@@ -382,7 +382,7 @@ export const SimulatePage: React.FC = () => {
                         predsToExport.push({ matchId: mId, home: score.home, away: score.away });
                     } else if (exportScope === 'group') {
                         if (match.phase === Phase.GROUP) {
-                            if (match.group === exportGroup) predsToExport.push({ matchId: mId, home: score.home, away: score.away });
+                            if (exportGroup === 'all' || match.group === exportGroup) predsToExport.push({ matchId: mId, home: score.home, away: score.away });
                         }
                     } else if (exportScope === 'knockout') {
                         if (match.phase !== Phase.GROUP) {
