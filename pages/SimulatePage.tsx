@@ -355,6 +355,8 @@ export const SimulatePage: React.FC = () => {
         if (!exportLeagueId) { alert('Selecione uma liga.'); return; }
         if (Object.keys(simulatedScores).length === 0) { alert('Não há palpites simulados.'); return; }
 
+        if (!window.confirm('Exportar substituirá seus palpites atuais nesta liga para os jogos selecionados. Jogos bloqueados/finalizados não serão alterados. Continuar?')) return;
+
         setExporting(true);
         try {
             const predsToExport: { matchId: string, home: number, away: number }[] = [];
