@@ -47,6 +47,18 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                     return jsonResponse({ success: false, message: "User already in league" }, 400);
                 }
 
+                // Check for existing pending invite
+                const { data: existingInvite } = await userClient.from('league_invites')
+                    .select('id')
+                    .eq('league_id', leagueId)
+                    .eq('email', email.toLowerCase())
+                    .eq('status', 'pending')
+                    .maybeSingle();
+
+                if (existingInvite) {
+                    return jsonResponse({ success: false, message: "Invite already pending" }, 400);
+                }
+
                 const limit = getLeagueLimit(league.settings);
                 if (league.participants.length >= limit) return jsonResponse({ success: false, message: "League limit reached" }, 400);
 
@@ -75,11 +87,17 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                     const { data: league, error: fetchLeagueError } = await userClient.from('leagues').select('*').eq('id', invite.league_id).single();
                     if (fetchLeagueError || !league) return errorResponse(new Error("League not found"), 404);
 
+                    // Check if already in league
+                    if (league.participants.includes(authUser.id)) {
+                        await userClient.from('league_invites').update({ status: 'accepted' }).eq('id', inviteId);
+                        return jsonResponse({ success: true, message: "Joined league" });
+                    }
+
                     const limit = getLeagueLimit(league.settings);
                     if (league.participants.length >= limit) return jsonResponse({ success: false, message: "League limit reached" }, 400);
 
                     const updatedParticipants = Array.from(new Set([...league.participants, authUser.id]));
-                    const updatedPending = league.pending_requests.filter((id: string) => id !== authUser.id);
+                    const updatedPending = (league.pending_requests || []).filter((id: string) => id !== authUser.id);
 
                     await userClient.from('leagues').update({
                         participants: updatedParticipants,
