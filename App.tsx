@@ -498,7 +498,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: 'https://bolaodacopa2026.app/auth/callback',
+        redirectTo: window.location.origin,
         queryParams: {
           access_type: 'offline',
         },
