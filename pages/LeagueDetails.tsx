@@ -496,10 +496,43 @@ export const LeagueDetails: React.FC = () => {
                                         </div>
                                     </div>
                                     {
-                                        (match.status === MatchStatus.FINISHED || match.status === MatchStatus.IN_PROGRESS) && (
-                                            <div className={`p-2 rounded-lg text-center text-sm border mt-3 ${match.status === MatchStatus.IN_PROGRESS ? 'bg-green-50 dark:bg-green-900/30 border-green-200 dark:border-green-800' : 'bg-gray-50 dark:bg-gray-700/50 border-gray-100 dark:border-gray-600'}`}>
-                                                <p className={`${match.status === MatchStatus.IN_PROGRESS ? 'text-green-700 dark:text-green-400' : 'text-gray-600 dark:text-gray-300'}`}>{match.status === MatchStatus.IN_PROGRESS ? <span className="flex items-center justify-center gap-1 font-bold animate-pulse"><div className="w-2 h-2 rounded-full bg-red-500"></div> Ao Vivo: <span className="text-gray-900 dark:text-white ml-1 whitespace-nowrap">{match.homeScore} x {match.awayScore}</span></span> : <span>Placar: <span className="font-bold text-gray-900 dark:text-white text-base whitespace-nowrap">{match.homeScore} x {match.awayScore}</span></span>}</p>
-                                                {userPred && <p className="text-brasil-green dark:text-green-400 font-black text-base mt-1">{match.status === MatchStatus.IN_PROGRESS ? 'Parcial: ' : 'Pontos: '}+{displayPoints}</p>}
+                                        (match.status === MatchStatus.FINISHED || match.status === MatchStatus.IN_PROGRESS) && match.homeScore !== null && match.awayScore !== null && (
+                                            <div className="mt-3 flex gap-2">
+                                                {/* Placar Real */}
+                                                <div className={`flex-1 flex flex-col items-center justify-center p-2 rounded-lg border ${match.status === MatchStatus.IN_PROGRESS ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : 'bg-gray-50 dark:bg-gray-700/30 border-gray-100 dark:border-gray-600'}`}>
+                                                    <div className={`text-[10px] font-bold uppercase mb-1 flex items-center gap-1 ${match.status === MatchStatus.IN_PROGRESS ? 'text-green-700 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                                                        {match.status === MatchStatus.IN_PROGRESS ? (
+                                                            <><div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" /> Ao Vivo</>
+                                                        ) : (
+                                                            <><Target size={10} /> Placar Real</>
+                                                        )}
+                                                    </div>
+                                                    <div className="text-xl font-black text-gray-900 dark:text-white leading-none tracking-tight">
+                                                        {match.homeScore} <span className="text-xs text-gray-400 font-normal mx-0.5">x</span> {match.awayScore}
+                                                    </div>
+                                                </div>
+
+                                                {/* Pontuação do Usuário */}
+                                                {userPred ? (
+                                                    <div className={`flex-1 flex flex-col items-center justify-center p-2 rounded-lg border ${displayPoints > 0 ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-100 dark:border-indigo-800' : 'bg-gray-50 dark:bg-gray-700/30 border-gray-100 dark:border-gray-600'}`}>
+                                                        <div className="text-[10px] font-bold uppercase text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
+                                                            <Trophy size={10} className={displayPoints > 0 ? "text-indigo-500 dark:text-indigo-400" : ""} />
+                                                            {match.status === MatchStatus.IN_PROGRESS ? 'Parcial' : 'Pontos'}
+                                                        </div>
+                                                        <div className={`text-xl font-black leading-none tracking-tight ${displayPoints > 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                                                            +{displayPoints}
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex-1 flex flex-col items-center justify-center p-2 rounded-lg border bg-gray-50 dark:bg-gray-700/30 border-gray-100 dark:border-gray-600 opacity-60">
+                                                        <div className="text-[10px] font-bold uppercase text-gray-500 dark:text-gray-400 mb-1">
+                                                            Sem Palpite
+                                                        </div>
+                                                        <div className="text-xl font-black text-gray-400 dark:text-gray-500 leading-none">
+                                                            -
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         )
                                     }

@@ -48,7 +48,7 @@ export const HowToPlay: React.FC = () => {
                     </div>
                     <div className="prose dark:prose-invert max-w-none text-gray-600 dark:text-gray-300 leading-relaxed text-justify space-y-4">
                         <p>
-                            Para buscar uma liga por nome ou código vá até a página <strong>Ligas</strong>, caso queira criar uma liga clique no botão <strong>Criar Liga</strong>, vai abrir a janela de Criação de Liga. Nessa janela faça o upload de uma imagem e coloque o nome da liga que deseja (o nome da liga não poderá ser alterado no futuro). Logo abaixo tem a opção de colocar uma descrição.
+                            Para buscar uma liga por nome ou código vá até a página <strong>Ligas</strong>, faça a busca e assim que aparecer a liga que deseja participar, é só clicar em solicitar e aguardar o admin aceitar a solicitação, já se a liga for pública é só clicar em entrar. Caso queira criar uma liga clique no botão <strong>Criar Liga</strong>, vai abrir a janela de Criação de Liga. Nessa janela faça o upload de uma imagem e coloque o nome da liga que deseja (o nome da liga não poderá ser alterado no futuro). Logo abaixo tem a opção de colocar uma descrição.
                         </p>
                         <p>
                             Existem dois tipos de liga: a <strong>Privada</strong> (que já vem marcada), em que o usuário tem que solicitar convite para entrar na liga ou ser convidado pelo administrador; e a <strong>Pública</strong> (se deixar desmarcado), onde qualquer usuário pode entrar sem precisar de solicitação.
