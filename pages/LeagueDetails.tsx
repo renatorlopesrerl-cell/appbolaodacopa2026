@@ -514,12 +514,12 @@ export const LeagueDetails: React.FC = () => {
 
                                                 {/* Pontuação do Usuário */}
                                                 {userPred ? (
-                                                    <div className={`flex-1 flex flex-col items-center justify-center p-2 rounded-lg border ${displayPoints > 0 ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-100 dark:border-indigo-800' : 'bg-gray-50 dark:bg-gray-700/30 border-gray-100 dark:border-gray-600'}`}>
+                                                    <div className={`flex-1 flex flex-col items-center justify-center p-2 rounded-lg border ${displayPoints > 0 ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-800' : 'bg-gray-50 dark:bg-gray-700/30 border-gray-100 dark:border-gray-600'}`}>
                                                         <div className="text-[10px] font-bold uppercase text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
-                                                            <Trophy size={10} className={displayPoints > 0 ? "text-indigo-500 dark:text-indigo-400" : ""} />
+                                                            <Trophy size={10} className={displayPoints > 0 ? "text-emerald-500 dark:text-emerald-400" : ""} />
                                                             {match.status === MatchStatus.IN_PROGRESS ? 'Parcial' : 'Pontos'}
                                                         </div>
-                                                        <div className={`text-xl font-black leading-none tracking-tight ${displayPoints > 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                                                        <div className={`text-xl font-black leading-none tracking-tight ${displayPoints > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400 dark:text-gray-500'}`}>
                                                             +{displayPoints}
                                                         </div>
                                                     </div>

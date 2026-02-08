@@ -260,7 +260,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             email: user.email || '',
             name: metadata.full_name || metadata.name || user.email?.split('@')[0] || 'Usuário',
             avatar: metadata.avatar_url || metadata.picture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`,
-            isAdmin: metadata.is_admin || user.email?.toLowerCase() === 'renatinhorlopes@hotmail.com',
+            isAdmin: metadata.is_admin || false,
             whatsapp: metadata.whatsapp || '',
             notificationSettings: { matchStart: true, matchEnd: true },
             isPro: metadata.is_pro || false,
@@ -308,7 +308,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             email: user.email || '',
             name: metadata.full_name || metadata.name || user.email?.split('@')[0] || 'Usuário',
             avatar: metadata.avatar_url || metadata.picture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`,
-            isAdmin: metadata.is_admin || user.email?.toLowerCase() === 'renatinhorlopes@hotmail.com',
+            isAdmin: metadata.is_admin || false,
             whatsapp: metadata.whatsapp || '',
             notificationSettings: { matchStart: true, matchEnd: true },
             isPro: metadata.is_pro || false,
@@ -332,7 +332,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const fetchUserProfile = async (uid: string, email: string, photoURL: string, fullName: string = '', whatsappMeta: string = '', provider: string = 'email') => {
     const savedPrefs = localStorage.getItem(`notify_${uid}`);
     const fallbackPrefs = savedPrefs ? JSON.parse(savedPrefs) : { matchStart: true, matchEnd: true, predictionReminder: true };
-    const shouldBeAdmin = email.toLowerCase() === 'renatinhorlopes@hotmail.com';
+    const shouldBeAdmin = false;
 
     const fallbackUser: User = {
       id: uid,
