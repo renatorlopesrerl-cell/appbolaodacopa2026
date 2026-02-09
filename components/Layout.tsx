@@ -196,15 +196,15 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           </div>
 
           {/* Desktop Nav */}
-          <nav className="hidden lg:flex gap-4 items-center">
-            <Link to="/" className={`px-3 py-2 rounded-md transition-colors ${isActive('/')}`}>Início</Link>
-            <Link to="/table" className={`px-3 py-2 rounded-md transition-colors ${isActive('/table')}`}>Tabela</Link>
-            <Link to="/simulador" className={`px-3 py-2 rounded-md transition-colors ${isActive('/simulador')}`}>Simulador</Link>
-            <Link to="/leagues" className={`px-3 py-2 rounded-md transition-colors ${isActive('/leagues')}`}>Ligas</Link>
-            <Link to="/como-jogar" className={`px-3 py-2 rounded-md transition-colors ${isActive('/como-jogar')}`}>Como Funciona</Link>
+          <nav className="hidden xl:flex gap-4 items-center">
+            <Link to="/" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/')}`}>Início</Link>
+            <Link to="/table" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/table')}`}>Tabela</Link>
+            <Link to="/simulador" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/simulador')}`}>Simulador</Link>
+            <Link to="/leagues" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/leagues')}`}>Ligas</Link>
+            <Link to="/como-jogar" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/como-jogar')}`}>Como Funciona</Link>
 
             {currentUser.isAdmin && (
-              <Link to="/admin" className={`px-3 py-2 rounded-md transition-colors flex items-center gap-1 ${isActive('/admin')}`}>
+              <Link to="/admin" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap flex items-center gap-1 ${isActive('/admin')}`}>
                 <Settings size={16} />
                 Admin
               </Link>
@@ -241,7 +241,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           </nav>
 
           {/* Mobile Menu Toggle */}
-          <div className="flex items-center gap-4 lg:hidden">
+          <div className="flex items-center gap-4 xl:hidden">
 
             {/* Mobile Notification Bell */}
             <div className="relative" ref={mobileNotificationRef}>
@@ -270,7 +270,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
         {/* Mobile Nav */}
         {isMenuOpen && (
-          <nav className="lg:hidden bg-brasil-blue border-t border-white/10 p-4 flex flex-col gap-2 shadow-inner">
+          <nav className="xl:hidden bg-brasil-blue border-t border-white/10 p-4 flex flex-col gap-2 shadow-inner">
             <Link onClick={() => setIsMenuOpen(false)} to="/" className={`block px-3 py-2 rounded-md ${isActive('/')}`}>
               <div className="flex justify-between items-center">
                 Início
