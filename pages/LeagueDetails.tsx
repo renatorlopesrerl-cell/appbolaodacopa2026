@@ -498,13 +498,13 @@ export const LeagueDetails: React.FC = () => {
                                     {
                                         (match.status === MatchStatus.FINISHED || match.status === MatchStatus.IN_PROGRESS) && match.homeScore !== null && match.awayScore !== null && (
                                             <div className="mt-3 flex gap-2">
-                                                {/* Placar Real */}
+                                                {/* Placar Final */}
                                                 <div className={`flex-1 flex flex-col items-center justify-center p-2 rounded-lg border ${match.status === MatchStatus.IN_PROGRESS ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : 'bg-gray-50 dark:bg-gray-700/30 border-gray-100 dark:border-gray-600'}`}>
                                                     <div className={`text-[10px] font-bold uppercase mb-1 flex items-center gap-1 ${match.status === MatchStatus.IN_PROGRESS ? 'text-green-700 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
                                                         {match.status === MatchStatus.IN_PROGRESS ? (
                                                             <><div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" /> Ao Vivo</>
                                                         ) : (
-                                                            <><Target size={10} /> Placar Real</>
+                                                            <>Placar Final</>
                                                         )}
                                                     </div>
                                                     <div className="text-xl font-black text-gray-900 dark:text-white leading-none tracking-tight">
@@ -516,7 +516,7 @@ export const LeagueDetails: React.FC = () => {
                                                 {userPred ? (
                                                     <div className={`flex-1 flex flex-col items-center justify-center p-2 rounded-lg border ${displayPoints > 0 ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-100 dark:border-emerald-800' : 'bg-gray-50 dark:bg-gray-700/30 border-gray-100 dark:border-gray-600'}`}>
                                                         <div className="text-[10px] font-bold uppercase text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1">
-                                                            <Trophy size={10} className={displayPoints > 0 ? "text-emerald-500 dark:text-emerald-400" : ""} />
+
                                                             {match.status === MatchStatus.IN_PROGRESS ? 'Parcial' : 'Pontos'}
                                                         </div>
                                                         <div className={`text-xl font-black leading-none tracking-tight ${displayPoints > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400 dark:text-gray-500'}`}>

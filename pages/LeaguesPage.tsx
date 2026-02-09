@@ -114,8 +114,31 @@ export const LeaguesPage: React.FC = () => {
     l.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (l.leagueCode && l.leagueCode.toLowerCase().includes(searchTerm.toLowerCase()));
 
-  const filteredMyLeagues = myLeagues.filter(filterFn);
-  const filteredOtherLeagues = otherLeagues.filter(filterFn);
+  const filteredMyLeagues = myLeagues
+    .filter(filterFn)
+    .sort((a, b) => {
+      // 1. User is Admin first
+      const aIsAdmin = a.adminId === currentUser.id;
+      const bIsAdmin = b.adminId === currentUser.id;
+      if (aIsAdmin && !bIsAdmin) return -1;
+      if (!aIsAdmin && bIsAdmin) return 1;
+
+      // 2. Alphabetical order
+      return a.name.localeCompare(b.name);
+    });
+
+  const filteredOtherLeagues = otherLeagues
+    .filter(filterFn)
+    .sort((a, b) => {
+      // 1. "Palpiteiros" first
+      const aIsOfficial = a.name.trim().toLowerCase() === 'palpiteiros';
+      const bIsOfficial = b.name.trim().toLowerCase() === 'palpiteiros';
+      if (aIsOfficial && !bIsOfficial) return -1;
+      if (!aIsOfficial && bIsOfficial) return 1;
+
+      // 2. Alphabetical order
+      return a.name.localeCompare(b.name);
+    });
 
   return (
     <div className="space-y-6">
