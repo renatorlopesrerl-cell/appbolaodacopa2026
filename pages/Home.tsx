@@ -248,7 +248,7 @@ export const Home: React.FC = () => {
             <div className="p-3 bg-purple-50 dark:bg-purple-900/30 rounded-xl w-fit mb-4 group-hover:bg-purple-600 group-hover:text-white transition-colors">
               <Info className="w-6 h-6 text-purple-600 dark:text-purple-400 group-hover:text-white" />
             </div>
-            <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-1">Como Jogar</h2>
+            <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-1">Como Funciona</h2>
             <p className="text-gray-500 dark:text-gray-400 text-sm">
               Entenda as regras de pontuação e como funciona o simulador.
             </p>

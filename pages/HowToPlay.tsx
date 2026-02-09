@@ -22,7 +22,7 @@ export const HowToPlay: React.FC = () => {
 
                 <h1 className="text-2xl md:text-3xl font-black text-gray-800 dark:text-white uppercase tracking-tight flex items-center gap-3">
                     <BookOpen className="w-8 h-8 text-brasil-blue dark:text-blue-400" />
-                    Como Jogar
+                    Como Funciona
                 </h1>
             </div>
 
