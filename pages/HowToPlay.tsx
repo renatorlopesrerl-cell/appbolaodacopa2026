@@ -67,9 +67,9 @@ export const HowToPlay: React.FC = () => {
                         </p>
 
                         {/* Imagens Cria Liga */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-                            <img src="/img/tutorial/cria-liga-01.jpg" alt="Criar Liga Passo 1" className="rounded-xl shadow-md border border-gray-200 dark:border-gray-700 w-full" />
-                            <img src="/img/tutorial/cria-liga-02.jpg" alt="Criar Liga Passo 2" className="rounded-xl shadow-md border border-gray-200 dark:border-gray-700 w-full" />
+                        <div className="grid grid-cols-2 md:flex md:justify-center gap-4 mt-6">
+                            <img src="/img/tutorial/cria-liga-01.jpg" alt="Criar Liga Passo 1" className="rounded-xl shadow-md border border-gray-200 dark:border-gray-700 block w-full md:max-w-[220px]" />
+                            <img src="/img/tutorial/cria-liga-02.jpg" alt="Criar Liga Passo 2" className="rounded-xl shadow-md border border-gray-200 dark:border-gray-700 block w-full md:max-w-[220px]" />
                         </div>
                         <p>
                             Quando abrir a liga criada vai dar de cara com a opção de dar os palpites. É só palpitar quantos jogos quiser e clicar no botão <strong>Salvar Palpites</strong>. Após a confirmação, clique em <strong>Atualizar Palpites</strong> e verifique se onde estava 'Palpite Aberto' agora está 'Palpite Salvo'. Temos filtros para verificar palpites Pendentes ou Preenchidos, por Fases (Grupos ou Mata-Mata) ou por Rodada.
@@ -79,18 +79,18 @@ export const HowToPlay: React.FC = () => {
                         </p>
 
                         {/* Imagens Liga */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-                            <img src="/img/tutorial/liga-01.jpg" alt="Liga Passo 1" className="rounded-xl shadow-md border border-gray-200 dark:border-gray-700 w-full" />
-                            <img src="/img/tutorial/liga-02.jpg" alt="Liga Passo 2" className="rounded-xl shadow-md border border-gray-200 dark:border-gray-700 w-full" />
+                        <div className="grid grid-cols-2 md:flex md:justify-center gap-4 mt-6">
+                            <img src="/img/tutorial/liga-01.jpg" alt="Liga Passo 1" className="rounded-xl shadow-md border border-gray-200 dark:border-gray-700 block w-full md:max-w-[220px]" />
+                            <img src="/img/tutorial/liga-02.jpg" alt="Liga Passo 2" className="rounded-xl shadow-md border border-gray-200 dark:border-gray-700 block w-full md:max-w-[220px]" />
                         </div>
                         <p>
                             Na aba <strong>Classificação</strong>, a pontuação geral pode ser acompanhada em tempo real, com opção de visualizar Pontuação Total, por Rodada, Fase de Grupos completa ou Mata-Mata completo. Ao clicar em um participante, você vê todo o histórico de palpites dele (visível apenas 5 min antes do jogo).
                         </p>
 
                         {/* Imagens Classificação */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-                            <img src="/img/tutorial/classificacao-01.jpg" alt="Classificação Passo 1" className="rounded-xl shadow-md border border-gray-200 dark:border-gray-700 w-full" />
-                            <img src="/img/tutorial/classificacao-02.jpg" alt="Classificação Passo 2" className="rounded-xl shadow-md border border-gray-200 dark:border-gray-700 w-full" />
+                        <div className="grid grid-cols-2 md:flex md:justify-center gap-4 mt-6">
+                            <img src="/img/tutorial/classificacao-01.jpg" alt="Classificação Passo 1" className="rounded-xl shadow-md border border-gray-200 dark:border-gray-700 block w-full md:max-w-[220px]" />
+                            <img src="/img/tutorial/classificacao-02.jpg" alt="Classificação Passo 2" className="rounded-xl shadow-md border border-gray-200 dark:border-gray-700 block w-full md:max-w-[220px]" />
                         </div>
                         <p>
                             Na aba <strong>Regras</strong> fica o Sistema de Pontuação e os critérios de desempate:
@@ -128,9 +128,9 @@ export const HowToPlay: React.FC = () => {
                         </p>
 
                         {/* Imagens Simulador */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-                            <img src="/img/tutorial/simulador-01.jpg" alt="Simulador Passo 1" className="rounded-xl shadow-md border border-gray-200 dark:border-gray-700 w-full" />
-                            <img src="/img/tutorial/simulador-02.jpg" alt="Simulador Passo 2" className="rounded-xl shadow-md border border-gray-200 dark:border-gray-700 w-full" />
+                        <div className="grid grid-cols-2 md:flex md:justify-center gap-4 mt-6">
+                            <img src="/img/tutorial/simulador-01.jpg" alt="Simulador Passo 1" className="rounded-xl shadow-md border border-gray-200 dark:border-gray-700 block w-full md:max-w-[220px]" />
+                            <img src="/img/tutorial/simulador-02.jpg" alt="Simulador Passo 2" className="rounded-xl shadow-md border border-gray-200 dark:border-gray-700 block w-full md:max-w-[220px]" />
                         </div>
                     </div>
                 </section>
