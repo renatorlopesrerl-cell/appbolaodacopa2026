@@ -29,7 +29,7 @@ export const Home: React.FC = () => {
               PALPITEIRO DA COPA DO MUNDO FIFA 2026
             </h1>
             <h2 className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 font-medium max-w-lg mx-auto leading-relaxed">
-              Crie sua liga e desafie seus amigos.
+              Crie sua liga grátis e desafie seus amigos.
               <span className="block">A sua torcida começa aqui!</span>
             </h2>
           </div>
@@ -69,7 +69,12 @@ export const Home: React.FC = () => {
         {/* Feature Cards */}
         <div className="w-full max-w-5xl px-4 mt-8 flex flex-col gap-2 items-center text-center">
           <h2 className="text-lg font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider opacity-80">Copa do Mundo FIFA 2026</h2>
-          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400">Tabela, Simulador, Palpites e Ligas com Ranking em Tempo Real</h2>
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400">Tabela, Simulador, Palpites e Ligas com Ranking em Tempo Real.</h2>
+
+          <Link to="/como-jogar" className="text-brasil-blue dark:text-blue-400 hover:underline font-medium text-sm mt-1 flex items-center gap-1 transition-colors">
+            <Info size={16} />
+            Como Funciona
+          </Link>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8 w-full max-w-5xl px-4">
@@ -78,7 +83,7 @@ export const Home: React.FC = () => {
               <Users size={24} />
             </div>
             <h3 className="font-bold text-gray-800 dark:text-white text-lg">Crie Ligas</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Convide a galera do trabalho ou da família para grupos privados.</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Convide amigos para grupos de palpites privados.</p>
           </div>
           <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 hover:border-brasil-yellow hover:shadow-md transition-all">
             <div className="bg-yellow-100 dark:bg-yellow-900 w-12 h-12 rounded-xl flex items-center justify-center mb-4 text-yellow-700 dark:text-yellow-300">
@@ -104,7 +109,7 @@ export const Home: React.FC = () => {
 
         {/* Decorative Bottom Border */}
         <div className="w-full max-w-5xl mt-8 h-1.5 bg-gradient-to-r from-brasil-green via-brasil-yellow to-brasil-blue rounded-full opacity-60"></div>
-      </div>
+      </div >
     );
   }
 
