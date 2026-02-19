@@ -69,7 +69,7 @@ export const Home: React.FC = () => {
         {/* Feature Cards */}
         <div className="w-full max-w-5xl px-4 mt-8 flex flex-col gap-2 items-center text-center">
           <h2 className="text-lg font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider opacity-80">Copa do Mundo FIFA 2026</h2>
-          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400">Tabela, Simulador, Palpites e Ligas com Ranking em Tempo Real.</h2>
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400">Tabela, Simulador, Palpites e Ligas com Ranking em Tempo Real</h2>
 
           <Link to="/como-jogar" className="text-brasil-blue dark:text-blue-400 hover:underline font-bold text-lg mt-6 flex items-center gap-2 transition-colors">
             <Info size={20} />

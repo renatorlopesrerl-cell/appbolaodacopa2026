@@ -1,12 +1,34 @@
-import React from 'react';
-import { Trophy, Users, PlayCircle, Calendar, ShieldCheck, ArrowLeft, BookOpen } from 'lucide-react';
+import React, { useState } from 'react';
+import { Trophy, Users, PlayCircle, Calendar, ShieldCheck, ArrowLeft, BookOpen, X, ZoomIn } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export const HowToPlay: React.FC = () => {
     const navigate = useNavigate();
+    const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
     return (
-        <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500 pb-10">
+        <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500 pb-10 relative">
+
+            {/* Image Zoom Modal */}
+            {selectedImage && (
+                <div
+                    className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 animate-in fade-in duration-200"
+                    onClick={() => setSelectedImage(null)}
+                >
+                    <button
+                        onClick={() => setSelectedImage(null)}
+                        className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors bg-white/10 p-2 rounded-full backdrop-blur-sm"
+                    >
+                        <X size={32} />
+                    </button>
+                    <img
+                        src={selectedImage}
+                        alt="Zoom"
+                        className="max-w-full max-h-[90vh] rounded-lg shadow-2xl object-contain animate-in zoom-in-95 duration-300"
+                        onClick={(e) => e.stopPropagation()}
+                    />
+                </div>
+            )}
 
             {/* Header / Nav */}
             <div className="space-y-4">
@@ -67,9 +89,19 @@ export const HowToPlay: React.FC = () => {
                         </p>
 
                         {/* Imagens Cria Liga */}
-                        <div className="grid grid-cols-2 md:flex md:justify-center gap-4 mt-6">
-                            <img src="/img/tutorial/cria-liga-01.jpg" alt="Criar Liga Passo 1" className="rounded-xl shadow-md border border-gray-200 dark:border-gray-700 block w-full md:max-w-[220px]" />
-                            <img src="/img/tutorial/cria-liga-02.jpg" alt="Criar Liga Passo 2" className="rounded-xl shadow-md border border-gray-200 dark:border-gray-700 block w-full md:max-w-[220px]" />
+                        <div className="grid grid-cols-2 md:flex md:justify-center gap-4 md:gap-8 mt-6">
+                            <div className="relative group cursor-zoom-in" onClick={() => setSelectedImage('/img/tutorial/cria-liga-01.jpg')}>
+                                <img src="/img/tutorial/cria-liga-01.jpg" alt="Criar Liga Passo 1" className="rounded-xl shadow-md border border-gray-200 dark:border-gray-700 block w-full md:max-w-[220px] transition-transform duration-300 group-hover:scale-105" />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                    <ZoomIn className="text-white drop-shadow-lg" size={24} />
+                                </div>
+                            </div>
+                            <div className="relative group cursor-zoom-in" onClick={() => setSelectedImage('/img/tutorial/cria-liga-02.jpg')}>
+                                <img src="/img/tutorial/cria-liga-02.jpg" alt="Criar Liga Passo 2" className="rounded-xl shadow-md border border-gray-200 dark:border-gray-700 block w-full md:max-w-[220px] transition-transform duration-300 group-hover:scale-105" />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                    <ZoomIn className="text-white drop-shadow-lg" size={24} />
+                                </div>
+                            </div>
                         </div>
                         <p>
                             Quando abrir a liga criada vai dar de cara com a opção de dar os palpites. É só palpitar quantos jogos quiser e clicar no botão <strong>Salvar Palpites</strong>. Após a confirmação, clique em <strong>Atualizar Palpites</strong> e verifique se onde estava 'Palpite Aberto' agora está 'Palpite Salvo'. Temos filtros para verificar palpites Pendentes ou Preenchidos, por Fases (Grupos ou Mata-Mata) ou por Rodada.
@@ -79,18 +111,38 @@ export const HowToPlay: React.FC = () => {
                         </p>
 
                         {/* Imagens Liga */}
-                        <div className="grid grid-cols-2 md:flex md:justify-center gap-4 mt-6">
-                            <img src="/img/tutorial/liga-01.jpg" alt="Liga Passo 1" className="rounded-xl shadow-md border border-gray-200 dark:border-gray-700 block w-full md:max-w-[220px]" />
-                            <img src="/img/tutorial/liga-02.jpg" alt="Liga Passo 2" className="rounded-xl shadow-md border border-gray-200 dark:border-gray-700 block w-full md:max-w-[220px]" />
+                        <div className="grid grid-cols-2 md:flex md:justify-center gap-4 md:gap-8 mt-6">
+                            <div className="relative group cursor-zoom-in" onClick={() => setSelectedImage('/img/tutorial/liga-01.jpg')}>
+                                <img src="/img/tutorial/liga-01.jpg" alt="Liga Passo 1" className="rounded-xl shadow-md border border-gray-200 dark:border-gray-700 block w-full md:max-w-[220px] transition-transform duration-300 group-hover:scale-105" />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                    <ZoomIn className="text-white drop-shadow-lg" size={24} />
+                                </div>
+                            </div>
+                            <div className="relative group cursor-zoom-in" onClick={() => setSelectedImage('/img/tutorial/liga-02.jpg')}>
+                                <img src="/img/tutorial/liga-02.jpg" alt="Liga Passo 2" className="rounded-xl shadow-md border border-gray-200 dark:border-gray-700 block w-full md:max-w-[220px] transition-transform duration-300 group-hover:scale-105" />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                    <ZoomIn className="text-white drop-shadow-lg" size={24} />
+                                </div>
+                            </div>
                         </div>
                         <p>
                             Na aba <strong>Classificação</strong>, a pontuação geral pode ser acompanhada em tempo real, com opção de visualizar Pontuação Total, por Rodada, Fase de Grupos completa ou Mata-Mata completo. Ao clicar em um participante, você vê todo o histórico de palpites dele (visível apenas 5 min antes do jogo).
                         </p>
 
                         {/* Imagens Classificação */}
-                        <div className="grid grid-cols-2 md:flex md:justify-center gap-4 mt-6">
-                            <img src="/img/tutorial/classificacao-01.jpg" alt="Classificação Passo 1" className="rounded-xl shadow-md border border-gray-200 dark:border-gray-700 block w-full md:max-w-[220px]" />
-                            <img src="/img/tutorial/classificacao-02.jpg" alt="Classificação Passo 2" className="rounded-xl shadow-md border border-gray-200 dark:border-gray-700 block w-full md:max-w-[220px]" />
+                        <div className="grid grid-cols-2 md:flex md:justify-center gap-4 md:gap-8 mt-6">
+                            <div className="relative group cursor-zoom-in" onClick={() => setSelectedImage('/img/tutorial/classificacao-01.jpg')}>
+                                <img src="/img/tutorial/classificacao-01.jpg" alt="Classificação Passo 1" className="rounded-xl shadow-md border border-gray-200 dark:border-gray-700 block w-full md:max-w-[220px] transition-transform duration-300 group-hover:scale-105" />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                    <ZoomIn className="text-white drop-shadow-lg" size={24} />
+                                </div>
+                            </div>
+                            <div className="relative group cursor-zoom-in" onClick={() => setSelectedImage('/img/tutorial/classificacao-02.jpg')}>
+                                <img src="/img/tutorial/classificacao-02.jpg" alt="Classificação Passo 2" className="rounded-xl shadow-md border border-gray-200 dark:border-gray-700 block w-full md:max-w-[220px] transition-transform duration-300 group-hover:scale-105" />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                    <ZoomIn className="text-white drop-shadow-lg" size={24} />
+                                </div>
+                            </div>
                         </div>
                         <p>
                             Na aba <strong>Regras</strong> fica o Sistema de Pontuação e os critérios de desempate:
@@ -128,9 +180,19 @@ export const HowToPlay: React.FC = () => {
                         </p>
 
                         {/* Imagens Simulador */}
-                        <div className="grid grid-cols-2 md:flex md:justify-center gap-4 mt-6">
-                            <img src="/img/tutorial/simulador-01.jpg" alt="Simulador Passo 1" className="rounded-xl shadow-md border border-gray-200 dark:border-gray-700 block w-full md:max-w-[220px]" />
-                            <img src="/img/tutorial/simulador-02.jpg" alt="Simulador Passo 2" className="rounded-xl shadow-md border border-gray-200 dark:border-gray-700 block w-full md:max-w-[220px]" />
+                        <div className="grid grid-cols-2 md:flex md:justify-center gap-4 md:gap-8 mt-6">
+                            <div className="relative group cursor-zoom-in" onClick={() => setSelectedImage('/img/tutorial/simulador-01.jpg')}>
+                                <img src="/img/tutorial/simulador-01.jpg" alt="Simulador Passo 1" className="rounded-xl shadow-md border border-gray-200 dark:border-gray-700 block w-full md:max-w-[220px] transition-transform duration-300 group-hover:scale-105" />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                    <ZoomIn className="text-white drop-shadow-lg" size={24} />
+                                </div>
+                            </div>
+                            <div className="relative group cursor-zoom-in" onClick={() => setSelectedImage('/img/tutorial/simulador-02.jpg')}>
+                                <img src="/img/tutorial/simulador-02.jpg" alt="Simulador Passo 2" className="rounded-xl shadow-md border border-gray-200 dark:border-gray-700 block w-full md:max-w-[220px] transition-transform duration-300 group-hover:scale-105" />
+                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                    <ZoomIn className="text-white drop-shadow-lg" size={24} />
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </section>
