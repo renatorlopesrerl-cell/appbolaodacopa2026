@@ -71,9 +71,9 @@ export const Home: React.FC = () => {
           <h2 className="text-lg font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider opacity-80">Copa do Mundo FIFA 2026</h2>
           <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400">Tabela, Simulador, Palpites e Ligas com Ranking em Tempo Real.</h2>
 
-          <Link to="/como-jogar" className="text-brasil-blue dark:text-blue-400 hover:underline font-medium text-sm mt-1 flex items-center gap-1 transition-colors">
+          <Link to="/como-jogar" className="text-brasil-blue dark:text-blue-400 hover:underline font-bold text-sm mt-1 flex items-center gap-1 transition-colors">
             <Info size={16} />
-            Como Funciona
+            Clique Aqui e Saiba Como Funciona
           </Link>
         </div>
 
