@@ -55,6 +55,7 @@ export const SimulatePage: React.FC = () => {
     const [exportScope, setExportScope] = useState<'all' | 'group' | 'knockout'>('all');
     const [exportGroup, setExportGroup] = useState<string>('all');
     const [exportPhase, setExportPhase] = useState<string>('all');
+    const [isProcessing, setIsProcessing] = useState(false);
 
     // Filter States for View
     const [filterPhase, setFilterPhase] = useState<string>('all');
@@ -303,11 +304,20 @@ export const SimulatePage: React.FC = () => {
         });
 
         return currentMatches;
-
     }, [simulatedScores, matches]);
 
-    // Derived Standings for Visualization
-    const standings = calculateStandings(computedMatches);
+    // Derived Standings for Visualization - MEMOIZED to avoid recalculating every frame
+    const standings = useMemo(() => calculateStandings(computedMatches), [computedMatches]);
+
+    // Grouping matches - MEMOIZED
+    const matchesByPhase = useMemo(() => {
+        const groups: Record<string, Match[]> = {};
+        computedMatches.forEach(m => {
+            if (!groups[m.phase]) groups[m.phase] = [];
+            groups[m.phase].push(m);
+        });
+        return groups;
+    }, [computedMatches]);
 
     // --- ACTIONS ---
 
@@ -511,40 +521,28 @@ export const SimulatePage: React.FC = () => {
 
     // --- RENDER HELPERS ---
 
-    const renderMatchInput = (match: Match) => {
-        const sim = simulatedScores[match.id] || { home: '', away: '' };
-        // If match team is TBD/Placeholder, disable input?
-        // User wants to simulate group stage to generating knockout.
-        // Knockout inputs should be available once teams are known?
-        // Or always available?
-        // Let's enable if both teams are not generic placeholders like "Venc. X" (unless it's unresolved).
-        // Actually, if computedMatches resolved the ID to a name, we show the name.
-        // If it's still "Venc. R32...", we can't really score it meaningfully, but user might want to guess.
-        // Better to disable if teams are not resolved to avoid confusion.
-
+    // Memoized Match Row to prevent full list re-render on ogni keystroke
+    const MemoizedMatchInput = React.memo(({ match, sim, onScoreChange }: { match: Match, sim: { home: any, away: any }, onScoreChange: any }) => {
         const isResolved = !match.homeTeamId.includes('Venc.') && !match.homeTeamId.includes('Perd.') && !match.homeTeamId.includes('Grupo');
 
         return (
-            <div key={match.id} className="flex flex-col border-b border-gray-100 dark:border-gray-700 py-2">
+            <div className="flex flex-col border-b border-gray-100 dark:border-gray-700 py-2">
                 <div className="flex justify-between items-center text-xs text-gray-400 px-2 mb-1">
                     <span>{new Date(match.date).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
                     <span className="truncate max-w-[100px]">{match.location.split(',')[0]}</span>
                 </div>
-                {/* Back Button added in Header, this input render doesn't need changes but context for others */}
                 <div className="flex items-center justify-between px-2 gap-2">
-                    {/* Home */}
                     <div className="flex items-center gap-2 md:gap-3 flex-1 justify-end min-w-0">
                         <span className={`truncate leading-tight text-right ${!isResolved ? 'text-gray-400' : 'text-gray-900 dark:text-gray-200 font-bold'} text-sm md:text-base`}>{match.homeTeamId}</span>
-                        <img src={getTeamFlag(match.homeTeamId)} className="w-7 h-5 object-cover rounded shadow-sm flex-shrink-0" />
+                        <img src={getTeamFlag(match.homeTeamId)} className="w-7 h-5 object-cover rounded shadow-sm flex-shrink-0" loading="lazy" />
                     </div>
 
-                    {/* Inputs */}
                     <div className="flex items-center gap-1">
                         <input
                             type="number"
                             className="w-8 h-8 md:w-10 md:h-10 text-center border border-gray-300 dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white font-bold p-0 focus:ring-2 focus:ring-brasil-blue"
                             value={sim.home ?? ''}
-                            onChange={(e) => handleScoreChange(match.id, 'home', e.target.value)}
+                            onChange={(e) => onScoreChange(match.id, 'home', e.target.value)}
                             disabled={!isResolved}
                         />
                         <span className="text-gray-400 font-bold">-</span>
@@ -552,19 +550,23 @@ export const SimulatePage: React.FC = () => {
                             type="number"
                             className="w-8 h-8 md:w-10 md:h-10 text-center border border-gray-300 dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white font-bold p-0 focus:ring-2 focus:ring-brasil-blue"
                             value={sim.away ?? ''}
-                            onChange={(e) => handleScoreChange(match.id, 'away', e.target.value)}
+                            onChange={(e) => onScoreChange(match.id, 'away', e.target.value)}
                             disabled={!isResolved}
                         />
                     </div>
 
-                    {/* Away */}
                     <div className="flex items-center gap-2 md:gap-3 flex-1 justify-start min-w-0">
-                        <img src={getTeamFlag(match.awayTeamId)} className="w-7 h-5 object-cover rounded shadow-sm flex-shrink-0" />
+                        <img src={getTeamFlag(match.awayTeamId)} className="w-7 h-5 object-cover rounded shadow-sm flex-shrink-0" loading="lazy" />
                         <span className={`truncate leading-tight text-left ${!isResolved ? 'text-gray-400' : 'text-gray-900 dark:text-gray-200 font-bold'} text-sm md:text-base`}>{match.awayTeamId}</span>
                     </div>
                 </div>
             </div>
         );
+    });
+
+    const renderMatchInput = (match: Match) => {
+        const sim = simulatedScores[match.id] || { home: '', away: '' };
+        return <MemoizedMatchInput key={match.id} match={match} sim={sim} onScoreChange={handleScoreChange} />;
     };
 
 
@@ -778,6 +780,10 @@ export const SimulatePage: React.FC = () => {
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                     {groups.filter(g => filterGroup === 'all' || filterGroup === g).map(group => {
                         const teamStandings = standings[group] || [];
+                        const matchesInGroup = (matchesByPhase[Phase.GROUP] || [])
+                            .filter(m => m.group === group)
+                            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
                         return (
                             <div key={group} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
                                 <div className="bg-gray-200 dark:bg-gray-700 px-4 py-2 border-b border-gray-100 dark:border-gray-600 flex justify-between items-center">
@@ -803,7 +809,7 @@ export const SimulatePage: React.FC = () => {
                                             <tr key={t.teamId} className={`${i < 2 ? 'bg-blue-50 dark:bg-green-900/40' : (i === 2 ? 'bg-yellow-50/50 dark:bg-blue-900/20' : '')}`}>
                                                 <td className="pl-3 py-1.5 flex items-center gap-2 font-semibold text-gray-800 dark:text-gray-200">
                                                     <span className={`text-[10px] w-3 ${i < 2 ? 'text-blue-800 dark:text-green-300 font-bold' : (i === 2 ? 'text-yellow-800 dark:text-blue-400 font-bold' : 'text-gray-400')}`}>{i + 1}</span>
-                                                    <img src={getTeamFlag(t.teamId)} className="w-5 h-3.5 object-cover rounded shadow-sm" />
+                                                    <img src={getTeamFlag(t.teamId)} className="w-5 h-3.5 object-cover rounded shadow-sm" loading="lazy" />
                                                     <span className="truncate max-w-[100px]">{t.teamId}</span>
                                                 </td>
                                                 <td className="text-center font-bold px-1">{t.points}</td>
@@ -821,7 +827,7 @@ export const SimulatePage: React.FC = () => {
 
                                 {/* Matches */}
                                 <div className="bg-gray-50/30 dark:bg-gray-900/20 border-t border-gray-100 dark:border-gray-700">
-                                    {groupMatches.filter(m => m.group === group).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).map(renderMatchInput)}
+                                    {matchesInGroup.map(renderMatchInput)}
                                 </div>
                             </div>
                         );
@@ -836,7 +842,7 @@ export const SimulatePage: React.FC = () => {
                 {[Phase.ROUND_32, Phase.ROUND_16, Phase.QUARTER, Phase.SEMI, Phase.FINAL]
                     .filter(phase => filterPhase === 'all' || filterPhase === phase)
                     .map(phase => {
-                        const phaseMatches = computedMatches.filter(m => m.phase === phase);
+                        const phaseMatches = matchesByPhase[phase] || [];
                         if (phaseMatches.length === 0) return null;
 
                         return (
@@ -847,11 +853,7 @@ export const SimulatePage: React.FC = () => {
                                     <div className="h-px bg-gray-200 dark:bg-gray-700 flex-1"></div>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-6">
-                                    {phaseMatches.map(m => (
-                                        <div key={m.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-                                            {renderMatchInput(m)}
-                                        </div>
-                                    ))}
+                                    {phaseMatches.map(renderMatchInput)}
                                 </div>
                             </div>
                         );
