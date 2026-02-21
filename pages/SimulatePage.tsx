@@ -49,6 +49,7 @@ export const SimulatePage: React.FC = () => {
     const [loadingSim, setLoadingSim] = useState(false);
     const [saving, setSaving] = useState(false);
     const [exporting, setExporting] = useState(false);
+    const [showExportConfirm, setShowExportConfirm] = useState(false);
     const [exportLeagueId, setExportLeagueId] = useState<string>('');
     const [importLeagueId, setImportLeagueId] = useState<string>('');
     const [exportScope, setExportScope] = useState<'all' | 'group' | 'knockout'>('all');
@@ -351,12 +352,14 @@ export const SimulatePage: React.FC = () => {
         }
     };
 
-    const handleExport = async () => {
-        if (!exportLeagueId) { alert('Selecione uma liga.'); return; }
-        if (Object.keys(simulatedScores).length === 0) { alert('Não há palpites simulados.'); return; }
+    const handleExport = () => {
+        if (!exportLeagueId) { addNotification('Selecione uma Liga', 'Selecione uma liga para exportar seus palpites.', 'warning'); return; }
+        if (Object.keys(simulatedScores).length === 0) { addNotification('Sem Dados', 'Não há palpites simulados para exportar.', 'warning'); return; }
+        setShowExportConfirm(true);
+    };
 
-        if (!window.confirm('Exportar substituirá seus palpites atuais nesta liga para os jogos selecionados. Jogos bloqueados/finalizados não serão alterados. Continuar?')) return;
-
+    const doExport = async () => {
+        setShowExportConfirm(false);
         setExporting(true);
         try {
             const predsToExport: { matchId: string, home: number, away: number }[] = [];
@@ -396,24 +399,28 @@ export const SimulatePage: React.FC = () => {
 
             if (predsToExport.length === 0) {
                 if (lockedCount > 0) {
-                    alert(`Nenhum palpite exportado. ${lockedCount} jogos foram ignorados pois já estão bloqueados ou finalizados.`);
+                    addNotification('Exportação não realizada', `${lockedCount} jogos foram ignorados pois já estão bloqueados ou finalizados.`, 'info');
                 } else {
-                    alert('Nenhum jogo corresponde aos filtros selecionados.');
+                    addNotification('Aviso', 'Nenhum jogo corresponde aos filtros selecionados.', 'info');
                 }
                 setExporting(false);
                 return;
             }
 
-            await submitPredictions(predsToExport, exportLeagueId);
+            const success = await submitPredictions(predsToExport, exportLeagueId);
 
-            const leagueName = myLeagues.find(l => l.id === exportLeagueId)?.name || 'Liga';
-            let msg = `Os palpites foram SALVOS com sucesso na liga ${leagueName}! (${predsToExport.length} jogos exportados).`;
-            if (lockedCount > 0) msg += ` (${lockedCount} jogos ignorados pois já estavam bloqueados)`;
+            if (success) {
+                const leagueName = myLeagues.find(l => l.id === exportLeagueId)?.name || 'Liga';
+                let msg = `Os palpites foram SALVOS com sucesso na liga ${leagueName}! (${predsToExport.length} jogos exportados).`;
+                if (lockedCount > 0) msg += ` (${lockedCount} jogos ignorados pois já estavam bloqueados)`;
 
-            addNotification('Exportação Concluída', msg, 'success', 12000);
+                addNotification('Exportação Concluída', msg, 'success', 12000);
+            } else {
+                addNotification('Erro na Exportação', 'Ocorreu um erro ao tentar exportar os palpites.', 'warning');
+            }
         } catch (e) {
             console.error(e);
-            alert('Erro ao exportar.');
+            addNotification('Erro na Exportação', 'Ocorreu um erro ao tentar exportar os palpites.', 'warning');
         } finally {
             setExporting(false);
         }
@@ -499,7 +506,7 @@ export const SimulatePage: React.FC = () => {
             }
         });
         setSimulatedScores(newScores);
-        alert(`Atualizado com ${count} placares reais.`);
+        addNotification('Sincronizado', `${count} placares reais foram aplicados à sua simulação.`, 'success');
     };
 
     // --- RENDER HELPERS ---
@@ -682,6 +689,32 @@ export const SimulatePage: React.FC = () => {
                             </button>
                         </div>
                         {exporting && <span className="text-[10px] text-blue-600 font-bold animate-pulse">Exportando palpites...</span>}
+
+                        {showExportConfirm && (
+                            <div id="export-confirm-banner" className="bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-400 dark:border-yellow-700 rounded-lg p-4 flex flex-col gap-3">
+                                <p className="text-sm text-yellow-800 dark:text-yellow-200 font-bold">
+                                    Exportar substituirá seus palpites atuais nesta liga para os jogos selecionados. Jogos bloqueados/finalizados não serão alterados. Continuar?
+                                </p>
+                                <div className="flex gap-3">
+                                    <button
+                                        type="button"
+                                        id="export-confirm-yes"
+                                        onClick={doExport}
+                                        className="bg-brasil-green text-white px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-green-700 transition-colors shadow-sm"
+                                    >
+                                        Sim, Exportar
+                                    </button>
+                                    <button
+                                        type="button"
+                                        id="export-confirm-no"
+                                        onClick={() => setShowExportConfirm(false)}
+                                        className="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 px-6 py-2.5 rounded-lg text-sm font-bold hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"
+                                    >
+                                        Cancelar
+                                    </button>
+                                </div>
+                            </div>
+                        )}
 
                         <div className="bg-white dark:bg-gray-800 p-3 rounded-lg border border-blue-100 dark:border-blue-900/30 flex flex-col gap-2 shadow-sm">
                             <span className="text-[10px] uppercase font-black text-blue-600 dark:text-blue-400 tracking-wider">Filtros de Exportação</span>

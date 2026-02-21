@@ -20,12 +20,26 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
         if (request.method === 'POST') {
             const body = await request.json() as any;
 
+            if (!body.name || body.name.trim() === '') {
+                return errorResponse(new Error("League name is required"), 400);
+            }
+
+            const generatedId = `l-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+            const getLeagueCode = () => {
+                let code = '';
+                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+                for (let i = 0; i < 6; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+                return code;
+            };
+
             const safeLeague = {
+                id: body.id || generatedId,
+                league_code: body.league_code || getLeagueCode(),
                 name: body.name,
                 image: body.image,
                 description: body.description,
                 is_private: !!body.is_private,
-                settings: body.settings,
+                settings: body.settings || { isUnlimited: false, plan: 'FREE' },
                 admin_id: authUser.id, // Enforce admin to be creator
                 participants: [authUser.id], // Creator starts as participant
                 pending_requests: []
@@ -33,7 +47,7 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
 
             const { error } = await userClient.from('leagues').insert([safeLeague]);
             if (error) throw error;
-            return jsonResponse({ success: true }, 201);
+            return jsonResponse({ success: true, data: safeLeague }, 201);
         }
 
         if (request.method === 'PUT') {

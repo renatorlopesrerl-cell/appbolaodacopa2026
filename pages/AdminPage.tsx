@@ -38,6 +38,7 @@ export const AdminPage: React.FC = () => {
 
         {/* Card: Ligas */}
         <button
+          id="admin-leagues-btn"
           onClick={() => navigate('/admin/leagues')}
           className="group relative bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-md border-2 border-transparent hover:border-brasil-blue dark:hover:border-blue-500 transition-all hover:shadow-xl text-left overflow-hidden"
         >
@@ -61,6 +62,7 @@ export const AdminPage: React.FC = () => {
 
         {/* Card: Jogos */}
         <button
+          id="admin-matches-btn"
           onClick={() => navigate('/admin/matches')}
           className="group relative bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-md border-2 border-transparent hover:border-brasil-green dark:hover:border-green-500 transition-all hover:shadow-xl text-left overflow-hidden"
         >

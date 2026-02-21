@@ -52,6 +52,7 @@ export const Home: React.FC = () => {
           </div>
 
           <Link
+            id="email-login-link"
             to="/login"
             className="relative w-full group overflow-hidden bg-brasil-blue border-2 border-brasil-blue hover:bg-blue-900 text-white font-bold py-4 px-6 rounded-2xl transition-all shadow-lg hover:shadow-xl active:scale-95 flex items-center justify-center gap-3"
           >

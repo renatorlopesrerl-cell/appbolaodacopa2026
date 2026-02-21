@@ -11,7 +11,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
   // Determine if we should show the full layout (Standard authenticated view)
   // We must calculate this but NOT return early to avoid Hook Rule violations
-  const isMinimalLayout = isRecoveryMode || location.pathname === '/reset-password' || !currentUser;
+  const isMinimalLayout = isRecoveryMode || location.pathname === '/reset-password';
 
   const notificationRef = useRef<HTMLDivElement>(null);
   const mobileNotificationRef = useRef<HTMLDivElement>(null);
@@ -40,8 +40,9 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const pendingInvites = invitations.filter(i => i.status === 'pending');
 
   // Count pending requests in leagues where the current user is Admin
-  const adminLeaguesWithRequests = leagues
-    .filter(l => l.adminId === currentUser.id && l.pendingRequests.some(uid => users.some(u => u.id === uid)));
+  const adminLeaguesWithRequests = currentUser
+    ? leagues.filter(l => l.adminId === currentUser.id && l.pendingRequests.some(uid => users.some(u => u.id === uid)))
+    : [];
 
   const pendingLeagueRequestsCount = adminLeaguesWithRequests
     .reduce((acc, l) => {
@@ -203,8 +204,8 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             <Link to="/leagues" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/leagues')}`}>Ligas</Link>
             <Link to="/como-jogar" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/como-jogar')}`}>Como Funciona</Link>
 
-            {currentUser.isAdmin && (
-              <Link to="/admin" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap flex items-center gap-1 ${isActive('/admin')}`}>
+            {currentUser?.isAdmin && (
+              <Link id="admin-link" to="/admin" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap flex items-center gap-1 ${isActive('/admin')}`}>
                 <Settings size={16} />
                 Admin
               </Link>
@@ -213,30 +214,40 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             <div className="flex items-center gap-3 ml-4 border-l border-white/20 pl-4">
 
               {/* Notification Bell with Dropdown */}
-              <div className="relative" ref={notificationRef}>
-                <button
-                  className="relative p-2 rounded-full hover:bg-white/10 transition-colors"
-                  onClick={() => setShowNotifications(!showNotifications)}
-                >
-                  <Bell size={20} className="text-white" />
-                  {totalNotifications > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full border border-brasil-blue">
-                      {totalNotifications}
-                    </span>
-                  )}
-                </button>
-                {showNotifications && renderNotificationDropdown()}
-              </div>
-
-              <Link to="/profile" className="flex items-center gap-2 hover:bg-white/10 p-1 pr-3 rounded-full transition-colors" title="Meu Perfil">
-                <div className="relative">
-                  <img src={currentUser.avatar} alt="User" className="w-8 h-8 rounded-full border-2 border-brasil-yellow object-cover" />
+              {currentUser && (
+                <div className="relative" ref={notificationRef}>
+                  <button
+                    className="relative p-2 rounded-full hover:bg-white/10 transition-colors"
+                    onClick={() => setShowNotifications(!showNotifications)}
+                  >
+                    <Bell size={20} className="text-white" />
+                    {totalNotifications > 0 && (
+                      <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full border border-brasil-blue">
+                        {totalNotifications}
+                      </span>
+                    )}
+                  </button>
+                  {showNotifications && renderNotificationDropdown()}
                 </div>
-                <span className="text-sm font-medium max-w-[100px] truncate">{currentUser.name}</span>
-              </Link>
-              <button onClick={logout} className="p-1 hover:text-red-300 transition-colors" title="Sair">
-                <LogOut size={20} />
-              </button>
+              )}
+
+              {currentUser ? (
+                <>
+                  <Link to="/profile" className="flex items-center gap-2 hover:bg-white/10 p-1 pr-3 rounded-full transition-colors" title="Meu Perfil">
+                    <div className="relative">
+                      <img src={currentUser.avatar} alt="User" className="w-8 h-8 rounded-full border-2 border-brasil-yellow object-cover" />
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-bold max-w-[100px] truncate leading-none">{currentUser.name}</span>
+                    </div>
+                  </Link>
+                  <button onClick={logout} className="p-1 hover:text-red-300 transition-colors" title="Sair">
+                    <LogOut size={20} />
+                  </button>
+                </>
+              ) : (
+                <Link to="/login" className="bg-brasil-yellow text-blue-900 font-bold px-4 py-1.5 rounded-full hover:bg-yellow-400 transition-colors text-sm">Entrar</Link>
+              )}
             </div>
           </nav>
 
@@ -244,23 +255,25 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           <div className="flex items-center gap-4 xl:hidden">
 
             {/* Mobile Notification Bell */}
-            <div className="relative" ref={mobileNotificationRef}>
-              <button
-                className="relative p-1"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowNotifications(!showNotifications);
-                }}
-              >
-                <Bell size={20} className="text-white" />
-                {totalNotifications > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full border border-brasil-blue">
-                    {totalNotifications}
-                  </span>
-                )}
-              </button>
-              {showNotifications && renderNotificationDropdown()}
-            </div>
+            {currentUser && (
+              <div className="relative" ref={mobileNotificationRef}>
+                <button
+                  className="relative p-1"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowNotifications(!showNotifications);
+                  }}
+                >
+                  <Bell size={20} className="text-white" />
+                  {totalNotifications > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[10px] font-bold w-4 h-4 flex items-center justify-center rounded-full border border-brasil-blue">
+                      {totalNotifications}
+                    </span>
+                  )}
+                </button>
+                {showNotifications && renderNotificationDropdown()}
+              </div>
+            )}
 
             <button className="flex items-center" onClick={() => setIsMenuOpen(!isMenuOpen)}>
               {isMenuOpen ? <X /> : <Menu />}
@@ -280,21 +293,27 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             <Link onClick={() => setIsMenuOpen(false)} to="/simulador" className={`block px-3 py-2 rounded-md ${isActive('/simulador')}`}>Simulador</Link>
             <Link onClick={() => setIsMenuOpen(false)} to="/leagues" className={`block px-3 py-2 rounded-md ${isActive('/leagues')}`}>Ligas</Link>
             <Link onClick={() => setIsMenuOpen(false)} to="/como-jogar" className={`block px-3 py-2 rounded-md ${isActive('/como-jogar')}`}>Como Funciona</Link>
-            {currentUser.isAdmin && (
-              <Link onClick={() => setIsMenuOpen(false)} to="/admin" className={`block px-3 py-2 rounded-md ${isActive('/admin')}`}>Admin Painel</Link>
+            {currentUser?.isAdmin && (
+              <Link id="admin-link-mobile" onClick={() => setIsMenuOpen(false)} to="/admin" className={`block px-3 py-2 rounded-md ${isActive('/admin')}`}>Admin Painel</Link>
             )}
             <div className="mt-4 pt-4 border-t border-white/10">
-              <Link onClick={() => setIsMenuOpen(false)} to="/profile" className={`flex items-center gap-2 px-3 py-2 rounded-md mb-2 ${isActive('/profile')}`}>
-                <User size={18} />
-                Meu Perfil
-              </Link>
-              <div className="flex justify-between items-center px-3">
-                <div className="flex items-center gap-2">
-                  <img src={currentUser.avatar} alt="User" className="w-8 h-8 rounded-full object-cover" />
-                  <span className="font-medium text-sm">{currentUser.name}</span>
-                </div>
-                <button onClick={() => { logout(); setIsMenuOpen(false); }} className="text-red-300 text-sm font-bold">Sair</button>
-              </div>
+              {currentUser ? (
+                <>
+                  <Link onClick={() => setIsMenuOpen(false)} to="/profile" className={`flex items-center gap-2 px-3 py-2 rounded-md mb-2 ${isActive('/profile')}`}>
+                    <User size={18} />
+                    Meu Perfil
+                  </Link>
+                  <div className="flex justify-between items-center px-3">
+                    <div className="flex items-center gap-2">
+                      <img src={currentUser.avatar} alt="User" className="w-8 h-8 rounded-full object-cover" />
+                      <span className="font-medium text-sm">{currentUser.name}</span>
+                    </div>
+                    <button onClick={() => { logout(); setIsMenuOpen(false); }} className="text-red-300 text-sm font-bold">Sair</button>
+                  </div>
+                </>
+              ) : (
+                <Link onClick={() => setIsMenuOpen(false)} to="/login" className="block text-center bg-brasil-yellow text-blue-900 font-bold px-4 py-2 rounded-md hover:bg-yellow-400 mx-3">Entrar ou Cadastrar</Link>
+              )}
             </div>
           </nav>
         )}

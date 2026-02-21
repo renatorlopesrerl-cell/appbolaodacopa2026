@@ -40,7 +40,6 @@ export interface User {
   avatar: string;
   isAdmin?: boolean;
   whatsapp?: string;
-  pix?: string;
   theme?: 'light' | 'dark'; // New field for theme preference
   notificationSettings?: {
     matchStart: boolean;

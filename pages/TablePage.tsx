@@ -27,8 +27,7 @@ export const TablePage: React.FC = () => {
     return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin text-brasil-green" size={48} /></div>;
   }
 
-  // Guaranteed by ProtectedRoute
-  if (!currentUser) return <Navigate to="/" replace />;
+  // Removed public redirect
 
   // Filter Logic
   const showGroupStage = filterPhase === 'all' || filterPhase === Phase.GROUP;
@@ -38,7 +37,7 @@ export const TablePage: React.FC = () => {
     : groups.filter(g => g === filterGroup);
 
   const visibleKnockoutPhases = KNOCKOUT_PHASES.filter(p =>
-    filterPhase === 'all' || filterPhase === p
+    (filterPhase === 'all' || filterPhase === p) && filterGroup === 'all'
   );
 
   const hasFilters = filterPhase !== 'all' || filterGroup !== 'all';
@@ -163,7 +162,6 @@ export const TablePage: React.FC = () => {
                 value={filterPhase}
                 onChange={(e) => {
                   setFilterPhase(e.target.value);
-                  if (e.target.value !== Phase.GROUP) setFilterGroup('all');
                 }}
                 className="w-full md:w-48 appearance-none bg-gray-700 text-white border border-gray-600 text-xs font-bold rounded-lg focus:ring-brasil-green focus:border-brasil-green block p-2.5 pr-8"
               >
@@ -175,28 +173,48 @@ export const TablePage: React.FC = () => {
               <ChevronDown size={14} className="absolute right-3 top-3 text-gray-300 pointer-events-none" />
             </div>
 
-            {/* Group Select (Conditional) */}
-            {(filterPhase === 'all' || filterPhase === Phase.GROUP) && (
-              <div className="relative w-full md:w-auto">
-                <select
-                  value={filterGroup}
-                  onChange={(e) => setFilterGroup(e.target.value)}
-                  className="w-full md:w-32 appearance-none bg-gray-700 text-white border border-gray-600 text-xs font-bold rounded-lg focus:ring-brasil-green focus:border-brasil-green block p-2.5 pr-8"
-                >
-                  <option value="all">Todos Grupos</option>
-                  {groups.map(g => (
-                    <option key={g} value={g}>Grupo {g}</option>
-                  ))}
-                </select>
-                <ChevronDown size={14} className="absolute right-3 top-3 text-gray-300 pointer-events-none" />
-              </div>
-            )}
+            {/* Group Select (Always visible) */}
+            <div className="relative w-full md:w-auto">
+              <select
+                value={filterGroup}
+                onChange={(e) => setFilterGroup(e.target.value)}
+                className="w-full md:w-32 appearance-none bg-gray-700 text-white border border-gray-600 text-xs font-bold rounded-lg focus:ring-brasil-green focus:border-brasil-green block p-2.5 pr-8"
+              >
+                <option value="all">Todos Grupos</option>
+                {groups.map(g => (
+                  <option key={g} value={g}>Grupo {g}</option>
+                ))}
+              </select>
+              <ChevronDown size={14} className="absolute right-3 top-3 text-gray-300 pointer-events-none" />
+            </div>
           </div>
         </div>
       </div>
 
       {/* FILTERS SECTION */}
 
+      {/* Empty State when filters produce no results */}
+      {hasFilters && (() => {
+        const groupMatches = showGroupStage ? visibleGroups.flatMap(g => matches.filter(m => m.group === g)) : [];
+        const knockoutMatches = visibleKnockoutPhases.flatMap(p => matches.filter(m => m.phase === p));
+        const totalVisible = groupMatches.length + knockoutMatches.length;
+        if (totalVisible === 0) {
+          return (
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center">
+              <Filter size={32} className="mx-auto text-gray-300 dark:text-gray-600 mb-3" />
+              <p className="text-gray-500 dark:text-gray-400 font-bold mb-1">Nenhum jogo encontrado</p>
+              <p className="text-sm text-gray-400 dark:text-gray-500">Nenhum resultado para os filtros selecionados. Tente outra combinação.</p>
+              <button
+                onClick={clearFilters}
+                className="mt-4 text-sm font-bold text-brasil-blue dark:text-blue-400 hover:underline"
+              >
+                Limpar filtros
+              </button>
+            </div>
+          );
+        }
+        return null;
+      })()}
 
       {/* --- FASE DE GRUPOS --- */}
       {showGroupStage && (

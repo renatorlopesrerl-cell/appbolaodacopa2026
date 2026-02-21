@@ -33,7 +33,6 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                 name: body.name,
                 avatar: body.avatar,
                 whatsapp: body.whatsapp,
-                pix: body.pix,
                 theme: body.theme,
                 notification_settings: body.notification_settings
             };

@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:all": "wrangler pages dev --compatibility-date=2024-04-01 --proxy 3000 -- npm run dev",
     "build": "vite build",
     "preview": "wrangler pages dev dist"
   },

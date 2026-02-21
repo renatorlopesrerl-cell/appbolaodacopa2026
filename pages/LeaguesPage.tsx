@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
 import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { useStore } from '../App';
-import { Plus, Lock, Globe, ArrowRight, Search, ArrowLeft, Upload, Camera, Trophy, Loader2, X } from 'lucide-react';
+import { Plus, Lock, Globe, ArrowRight, Search, ArrowLeft, Upload, Camera, Trophy, Loader2, X, Star } from 'lucide-react';
 import { processImageForUpload } from '../services/dataService';
+import { LeaguePlan } from '../types';
 
 export const LeaguesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -12,6 +13,7 @@ export const LeaguesPage: React.FC = () => {
   const [newLeagueDescription, setNewLeagueDescription] = useState('');
   const [isPrivate, setIsPrivate] = useState(true);
   const [leagueImage, setLeagueImage] = useState('');
+  const [leaguePlan, setLeaguePlan] = useState<LeaguePlan>('FREE');
   const [searchTerm, setSearchTerm] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [imageProcessing, setImageProcessing] = useState(false);
@@ -37,6 +39,7 @@ export const LeaguesPage: React.FC = () => {
     setNewLeagueDescription('');
     setLeagueImage('');
     setIsPrivate(true);
+    setLeaguePlan('FREE');
     setSettings({ exactScore: 10, winnerAndDiff: 7, winner: 5, draw: 7 });
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
@@ -60,7 +63,7 @@ export const LeaguesPage: React.FC = () => {
         draw: Number(settings.draw)
       };
 
-      const success = await createLeague(newLeagueName, isPrivate, finalSettings, leagueImage, newLeagueDescription);
+      const success = await createLeague(newLeagueName, isPrivate, finalSettings, leagueImage, newLeagueDescription, leaguePlan);
 
       if (success) {
         resetForm();
@@ -168,8 +171,9 @@ export const LeaguesPage: React.FC = () => {
               <Search className="h-4 w-4 text-gray-400" />
             </div>
             <input
+              id="leagues-search"
               type="text"
-              className="block w-full pl-10 pr-8 py-2 border border-gray-600 rounded-lg leading-5 bg-gray-700 placeholder-gray-400 focus:outline-none focus:placeholder-gray-300 focus:ring-1 focus:ring-brasil-blue focus:border-brasil-blue sm:text-sm transition-all shadow-sm text-white"
+              className="block w-full pl-10 pr-8 py-2 border border-gray-300 dark:border-gray-600 rounded-lg leading-5 bg-white dark:bg-gray-700 placeholder-gray-400 focus:outline-none focus:placeholder-gray-300 focus:ring-1 focus:ring-brasil-blue focus:border-brasil-blue sm:text-sm transition-all shadow-sm text-gray-800 dark:text-white"
               placeholder="Buscar por nome ou código..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -185,6 +189,7 @@ export const LeaguesPage: React.FC = () => {
           </div>
 
           <button
+            id="create-league-btn"
             onClick={() => setShowCreateModal(true)}
             className="bg-brasil-yellow text-brasil-blue px-4 py-2 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-yellow-300 transition-colors shadow-sm whitespace-nowrap"
           >
@@ -282,6 +287,7 @@ export const LeaguesPage: React.FC = () => {
                     <span className="text-xs font-bold text-yellow-600 bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400 px-3 py-1 rounded-full">Solicitado</span>
                   ) : (
                     <button
+                      id={`join-league-${l.id}`}
                       onClick={() => joinLeague(l.id)}
                       className="text-sm font-bold text-brasil-blue dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-3 py-1.5 rounded hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
                     >
@@ -345,7 +351,7 @@ export const LeaguesPage: React.FC = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nome da Liga</label>
-                <input required value={newLeagueName} onChange={e => setNewLeagueName(e.target.value)} className="w-full border border-gray-600 bg-gray-700 text-white rounded-lg p-2 focus:ring-2 focus:ring-brasil-green outline-none" placeholder="Ex: Palpiteiros da Firma" />
+                <input id="league-name" required value={newLeagueName} onChange={e => setNewLeagueName(e.target.value)} className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white rounded-lg p-2 focus:ring-2 focus:ring-brasil-green outline-none" placeholder="Ex: Palpiteiros da Firma" />
               </div>
 
               <div>
@@ -353,7 +359,7 @@ export const LeaguesPage: React.FC = () => {
                 <textarea
                   value={newLeagueDescription}
                   onChange={e => setNewLeagueDescription(e.target.value)}
-                  className="w-full border border-gray-600 bg-gray-700 text-white rounded-lg p-2 focus:ring-2 focus:ring-brasil-green outline-none h-20 resize-none text-sm"
+                  className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white rounded-lg p-2 focus:ring-2 focus:ring-brasil-green outline-none h-20 resize-none text-sm"
                   placeholder="Escreva sobre sua liga..."
                 />
               </div>
@@ -362,6 +368,8 @@ export const LeaguesPage: React.FC = () => {
                 <input type="checkbox" id="private" checked={isPrivate} onChange={e => setIsPrivate(e.target.checked)} className="rounded text-brasil-green focus:ring-brasil-green" />
                 <label htmlFor="private" className="text-sm text-gray-700 dark:text-gray-300 select-none cursor-pointer">Liga Privada (Requer aprovação)</label>
               </div>
+
+
 
               <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg space-y-3">
                 <p className="text-xs font-bold uppercase text-gray-400">Regras de Pontuação</p>
@@ -373,7 +381,7 @@ export const LeaguesPage: React.FC = () => {
                       min="0"
                       value={settings.exactScore}
                       onChange={e => setSettings({ ...settings, exactScore: e.target.value === '' ? '' : parseInt(e.target.value) })}
-                      className="w-full border border-gray-600 bg-gray-700 text-white p-1 rounded"
+                      className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white p-1 rounded"
                     />
                   </div>
                   <div>
@@ -383,7 +391,7 @@ export const LeaguesPage: React.FC = () => {
                       min="0"
                       value={settings.winnerAndDiff}
                       onChange={e => setSettings({ ...settings, winnerAndDiff: e.target.value === '' ? '' : parseInt(e.target.value) })}
-                      className="w-full border border-gray-600 bg-gray-700 text-white p-1 rounded"
+                      className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white p-1 rounded"
                     />
                   </div>
                   <div>
@@ -393,7 +401,7 @@ export const LeaguesPage: React.FC = () => {
                       min="0"
                       value={settings.winner}
                       onChange={e => setSettings({ ...settings, winner: e.target.value === '' ? '' : parseInt(e.target.value) })}
-                      className="w-full border border-gray-600 bg-gray-700 text-white p-1 rounded"
+                      className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white p-1 rounded"
                     />
                   </div>
                   <div>
@@ -403,7 +411,7 @@ export const LeaguesPage: React.FC = () => {
                       min="0"
                       value={settings.draw}
                       onChange={e => setSettings({ ...settings, draw: e.target.value === '' ? '' : parseInt(e.target.value) })}
-                      className="w-full border border-gray-600 bg-gray-700 text-white p-1 rounded"
+                      className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white p-1 rounded"
                     />
                   </div>
                 </div>
@@ -419,6 +427,7 @@ export const LeaguesPage: React.FC = () => {
                   Cancelar
                 </button>
                 <button
+                  id="create-league-submit"
                   type="submit"
                   disabled={isCreating || imageProcessing}
                   className="px-4 py-2 bg-brasil-green text-white font-bold rounded-lg hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"

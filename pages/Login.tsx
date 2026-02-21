@@ -98,10 +98,10 @@ export const Login: React.FC = () => {
                     // até que o redirecionamento (via useEffect do currentUser) aconteça.
                     // Isso evita que o botão volte ao estado normal antes da página mudar.
 
-                    // Timeout de segurança: caso o redirect não aconteça em 8 segundos, liberamos o botão
+                    // Timeout de segurança: caso o redirect não aconteça em 4 segundos, liberamos o botão
                     setTimeout(() => {
                         if (mountedRef.current) setLoading(false);
-                    }, 8000);
+                    }, 4000);
                 }
             }
         } catch (err) {
@@ -201,10 +201,11 @@ export const Login: React.FC = () => {
                                     <Mail className="h-5 w-5 text-gray-400" />
                                 </div>
                                 <input
+                                    id="forgot-email"
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="block w-full pl-10 pr-3 py-3 border border-gray-600 bg-gray-700 rounded-lg focus:ring-2 focus:ring-brasil-green focus:border-brasil-green outline-none transition-all placeholder-gray-400 text-white"
+                                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg focus:ring-2 focus:ring-brasil-green focus:border-brasil-green outline-none transition-all placeholder-gray-400 text-gray-800 dark:text-white"
                                     placeholder="seu@email.com"
                                 />
                             </div>
@@ -242,7 +243,7 @@ export const Login: React.FC = () => {
                                         type="text"
                                         value={name}
                                         onChange={(e) => setName(e.target.value)}
-                                        className="block w-full pl-10 pr-3 py-3 border border-gray-600 bg-gray-700 rounded-lg focus:ring-2 focus:ring-brasil-green focus:border-brasil-green outline-none transition-all placeholder-gray-400 text-white"
+                                        className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg focus:ring-2 focus:ring-brasil-green focus:border-brasil-green outline-none transition-all placeholder-gray-400 text-gray-800 dark:text-white"
                                         placeholder="Apelido (Nome Exibido nas Classificações)"
                                     />
                                 </div>
@@ -253,10 +254,11 @@ export const Login: React.FC = () => {
                                     <Mail className="h-5 w-5 text-gray-400" />
                                 </div>
                                 <input
+                                    id="login-email"
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="block w-full pl-10 pr-3 py-3 border border-gray-600 bg-gray-700 rounded-lg focus:ring-2 focus:ring-brasil-green focus:border-brasil-green outline-none transition-all placeholder-gray-400 text-white"
+                                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg focus:ring-2 focus:ring-brasil-green focus:border-brasil-green outline-none transition-all placeholder-gray-400 text-gray-800 dark:text-white"
                                     placeholder="seu@email.com"
                                 />
                             </div>
@@ -266,10 +268,11 @@ export const Login: React.FC = () => {
                                     <Lock className="h-5 w-5 text-gray-400" />
                                 </div>
                                 <input
+                                    id="login-password"
                                     type={showPassword ? "text" : "password"}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="block w-full pl-10 pr-10 py-3 border border-gray-600 bg-gray-700 rounded-lg focus:ring-2 focus:ring-brasil-green focus:border-brasil-green outline-none transition-all placeholder-gray-400 text-white"
+                                    className="block w-full pl-10 pr-10 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg focus:ring-2 focus:ring-brasil-green focus:border-brasil-green outline-none transition-all placeholder-gray-400 text-gray-800 dark:text-white"
                                     placeholder="Sua senha secreta (min. 8 caracteres)"
                                 />
                                 <button
@@ -291,7 +294,7 @@ export const Login: React.FC = () => {
                                             type={showConfirmPassword ? "text" : "password"}
                                             value={confirmPassword}
                                             onChange={(e) => setConfirmPassword(e.target.value)}
-                                            className={`block w-full pl-10 pr-10 py-3 border bg-gray-700 rounded-lg focus:ring-2 outline-none transition-all placeholder-gray-400 text-white ${confirmPassword && password !== confirmPassword
+                                            className={`block w-full pl-10 pr-10 py-3 border bg-white dark:bg-gray-700 rounded-lg focus:ring-2 outline-none transition-all placeholder-gray-400 text-gray-800 dark:text-white ${confirmPassword && password !== confirmPassword
                                                 ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
                                                 : 'border-gray-600 focus:ring-brasil-green focus:border-brasil-green'
                                                 }`}
@@ -315,7 +318,7 @@ export const Login: React.FC = () => {
                                             type="text"
                                             value={whatsapp}
                                             onChange={(e) => setWhatsapp(e.target.value)}
-                                            className="block w-full pl-10 pr-3 py-3 border border-gray-600 bg-gray-700 rounded-lg focus:ring-2 focus:ring-brasil-green focus:border-brasil-green outline-none transition-all placeholder-gray-400 text-white"
+                                            className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg focus:ring-2 focus:ring-brasil-green focus:border-brasil-green outline-none transition-all placeholder-gray-400 text-gray-800 dark:text-white"
                                             placeholder="WhatsApp (Opcional)"
                                         />
                                     </div>
@@ -323,6 +326,7 @@ export const Login: React.FC = () => {
                             )}
 
                             <button
+                                id="login-submit"
                                 type="submit"
                                 disabled={loading}
                                 className="w-full bg-brasil-blue hover:bg-blue-900 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-lg shadow-blue-900/20 active:scale-95 transform"

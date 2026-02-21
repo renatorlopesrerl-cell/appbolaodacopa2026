@@ -253,6 +253,8 @@ export const LeagueDetails: React.FC = () => {
             if (success) {
                 setPendingEdits({});
                 showToast('Sucesso!', `${predsToSave.length} palpite(s) salvo(s).`, 'success');
+            } else {
+                showToast('Erro', 'Ocorreu um erro ao salvar os palpites.', 'warning');
             }
         }
     };
@@ -312,13 +314,16 @@ export const LeagueDetails: React.FC = () => {
             }
         }
 
-        await updateLeague(league.id, { image: finalImage, description: editDescription, settings: league.settings, isPrivate: editIsPrivate });
-
-        // Update local state to the new URL to avoid re-uploading
-        setEditImage(finalImage);
-
-        showToast('Sucesso', 'Alterações salvas.', 'success');
-        setIsSavingSettings(false);
+        try {
+            await updateLeague(league.id, { image: finalImage, description: editDescription, settings: league.settings, isPrivate: editIsPrivate });
+            setEditImage(finalImage);
+            showToast('Sucesso', 'Alterações salvas.', 'success');
+        } catch (e) {
+            console.error(e);
+            showToast('Erro', 'Falha ao salvar as alterações.', 'warning');
+        } finally {
+            setIsSavingSettings(false);
+        }
     };
     const handleSearchUser = (e: React.FormEvent) => {
         e.preventDefault();

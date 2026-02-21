@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useStore } from '../App';
-import { User as UserIcon, Save, Camera, Upload, AlertCircle, ArrowLeft, Phone, Loader2, Bell, PlayCircle, Flag, Sun, Moon, Clock, Trash2, Lock } from 'lucide-react';
+import { User as UserIcon, Save, Camera, Upload, AlertCircle, ArrowLeft, Phone, Loader2, Bell, PlayCircle, Flag, Sun, Moon, Clock, Trash2, Lock, Trophy, CheckCircle2, X } from 'lucide-react';
 import { processImageForUpload } from '../services/dataService';
 
 export const ProfilePage: React.FC = () => {
@@ -11,6 +11,8 @@ export const ProfilePage: React.FC = () => {
   const [avatar, setAvatar] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [error, setError] = useState('');
+  const [nameError, setNameError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [imageProcessing, setImageProcessing] = useState(false);
@@ -51,26 +53,33 @@ export const ProfilePage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      setError('O nome não pode estar vazio.');
+      setNameError('Campo obrigatório: O nome não pode estar vazio.');
+      setError('Campo obrigatório: O nome não pode estar vazio.');
+      setSuccessMessage('');
       return;
     }
+    setNameError('');
     if (!avatar.trim()) {
       setError('A foto é obrigatória. Por favor, faça o upload de uma imagem.');
+      setSuccessMessage('');
       return;
     }
     setError('');
+    setSuccessMessage('');
     setLoading(true);
     try {
       await updateUserProfile(
         name,
         avatar,
         whatsapp,
-        currentUser.pix || '',
-        { matchStart: notifyStart, matchEnd: notifyEnd, predictionReminder: notifyPrediction }, // Pass notification settings
-        selectedTheme // Pass theme preference
+        { matchStart: notifyStart, matchEnd: notifyEnd, predictionReminder: notifyPrediction },
+        selectedTheme
       );
+      setSuccessMessage('Perfil salvo com sucesso!');
+      setTimeout(() => setSuccessMessage(''), 5000);
     } catch (e) {
       console.error(e);
+      setError('Erro ao salvar perfil.');
     } finally {
       setLoading(false);
     }
@@ -117,11 +126,17 @@ export const ProfilePage: React.FC = () => {
         </button>
       </div>
 
-      <div className="flex items-center gap-2 mb-4">
-        <div className="p-2 bg-brasil-blue text-white rounded-lg">
-          <UserIcon size={24} />
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div className="p-2 bg-brasil-blue text-white rounded-lg">
+            <UserIcon size={24} />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Meu Perfil</h1>
         </div>
-        <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Meu Perfil</h1>
+
+        <div className={`px-4 py-1.5 rounded-full text-sm font-bold border-2 ${currentUser.isPro ? 'bg-brasil-yellow text-brasil-blue border-brasil-yellow shadow-md' : 'bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700'}`}>
+          Plano: {currentUser.isPro ? 'PRO ⭐️' : 'FREE'}
+        </div>
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -130,7 +145,7 @@ export const ProfilePage: React.FC = () => {
 
         <div className="px-8 pb-8">
           {/* Avatar Preview & Upload Trigger */}
-          <div className="relative -mt-12 mb-6 flex justify-center sm:justify-start">
+          <div className="relative -mt-12 mb-6 flex justify-center sm:justify-start items-end gap-4">
             <div
               className="relative group cursor-pointer"
               onClick={triggerFileInput}
@@ -139,7 +154,7 @@ export const ProfilePage: React.FC = () => {
               <img
                 src={avatar || 'https://via.placeholder.com/150'}
                 alt="Avatar"
-                className={`w-24 h-24 rounded-full border-4 border-white dark:border-gray-800 shadow-lg object-cover bg-gray-200 dark:bg-gray-700 group-hover:brightness-75 transition-all ${imageProcessing ? 'opacity-50' : ''}`}
+                className={`w-28 h-28 rounded-full border-4 border-white dark:border-gray-800 shadow-lg object-cover bg-gray-200 dark:bg-gray-700 group-hover:brightness-75 transition-all ${imageProcessing ? 'opacity-50' : ''}`}
                 onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/150?text=Error'; }}
               />
               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
@@ -154,9 +169,10 @@ export const ProfilePage: React.FC = () => {
                 <Camera size={14} />
               </div>
             </div>
+
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-6" id="profile-form">
             {error && (
               <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-300 p-3 rounded-lg text-sm flex items-center gap-2 animate-pulse border border-red-100 dark:border-red-800">
                 <AlertCircle size={16} />
@@ -164,16 +180,41 @@ export const ProfilePage: React.FC = () => {
               </div>
             )}
 
+            {successMessage && (
+              <div id="profile-success" className="bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 p-3 rounded-lg text-sm flex items-center gap-2 border border-green-200 dark:border-green-800 animate-in fade-in slide-in-from-top-2">
+                <CheckCircle2 size={16} />
+                {successMessage}
+              </div>
+            )}
+
             {/* Basic Info */}
             <div>
               <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Apelido (Nome Exibido)</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full border border-gray-600 bg-gray-700 rounded-lg p-3 focus:ring-2 focus:ring-brasil-blue focus:border-brasil-blue outline-none transition-all text-white placeholder-gray-400"
-                placeholder="Seu nome ou apelido"
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => { setName(e.target.value); if (e.target.value.trim()) setNameError(''); }}
+                  onBlur={() => { if (!name.trim()) setNameError('Campo obrigatório: O nome não pode estar vazio.'); }}
+                  className={`w-full border ${nameError ? 'border-red-400 dark:border-red-500' : 'border-gray-300 dark:border-gray-600'} bg-white dark:bg-gray-700 rounded-lg p-3 pr-10 focus:ring-2 focus:ring-brasil-blue focus:border-brasil-blue outline-none transition-all text-gray-800 dark:text-white placeholder-gray-400`}
+                  placeholder="Seu nome ou apelido"
+                  required
+                  aria-required="true"
+                />
+                {name && (
+                  <button
+                    type="button"
+                    onClick={() => { setName(''); setNameError('Campo obrigatório: O nome não pode estar vazio.'); }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 transition-colors p-1"
+                    title="Limpar nome"
+                  >
+                    <X size={16} />
+                  </button>
+                )}
+              </div>
+              {nameError && (
+                <p className="text-xs text-red-500 mt-1 font-bold" role="alert">{nameError}</p>
+              )}
               <p className="text-xs text-gray-400 mt-1">Este nome aparecerá nas tabelas de classificação.</p>
             </div>
 
@@ -212,10 +253,11 @@ export const ProfilePage: React.FC = () => {
                 type="text"
                 value={whatsapp}
                 onChange={(e) => setWhatsapp(e.target.value)}
-                className="w-full border border-gray-600 bg-gray-700 rounded-lg p-3 focus:ring-2 focus:ring-brasil-blue focus:border-brasil-blue outline-none transition-all text-white placeholder-gray-400"
+                className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg p-3 focus:ring-2 focus:ring-brasil-blue focus:border-brasil-blue outline-none transition-all text-gray-800 dark:text-white placeholder-gray-400"
                 placeholder="(00) 00000-0000"
               />
             </div>
+
 
             {/* Theme Settings */}
             <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
@@ -316,6 +358,7 @@ export const ProfilePage: React.FC = () => {
             <div className="pt-4 border-t border-gray-100 dark:border-gray-700 flex flex-col gap-4">
               <div className="flex justify-end">
                 <button
+                  id="profile-save-btn"
                   type="submit"
                   disabled={loading || imageProcessing || isDeleting}
                   className="bg-brasil-green text-white px-6 py-2.5 rounded-lg font-bold shadow-sm hover:bg-green-700 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"

@@ -15,7 +15,9 @@ import {
   Lock,
   Globe,
   Bell,
-  User as UserIcon
+  User as UserIcon,
+  RefreshCw,
+  Home as HomeIcon
 } from 'lucide-react';
 
 // Components & Views
@@ -72,7 +74,7 @@ interface AppState {
   signInWithEmail: (email: string, pass: string) => Promise<boolean>;
   signUpWithEmail: (email: string, pass: string, name: string, whatsapp?: string) => Promise<boolean>;
   logout: () => Promise<void>;
-  createLeague: (name: string, isPrivate: boolean, settings: any, image: string, description: string) => Promise<boolean>;
+  createLeague: (name: string, isPrivate: boolean, settings: any, image: string, description: string, plan?: string) => Promise<boolean>;
   updateLeague: (id: string, updates: Partial<League>) => Promise<void>;
   joinLeague: (leagueId: string) => Promise<void>;
   deleteLeague: (leagueId: string) => Promise<boolean>;
@@ -84,7 +86,7 @@ interface AppState {
   simulateMatchResult: (matchId: string, home: number, away: number) => void;
   updateMatch: (match: Match) => Promise<boolean>;
   removeNotification: (id: number) => void;
-  updateUserProfile: (name: string, avatar: string, whatsapp: string, pix: string, notificationSettings: any, themePreference: 'light' | 'dark') => Promise<void>;
+  updateUserProfile: (name: string, avatar: string, whatsapp: string, notificationSettings: any, themePreference: 'light' | 'dark') => Promise<void>;
   syncInitialMatches: () => Promise<void>;
   sendLeagueInvite: (leagueId: string, email: string) => Promise<boolean>;
   respondToInvite: (inviteId: string, accept: boolean) => Promise<void>;
@@ -117,6 +119,76 @@ export const getLeagueLimit = (league: League): number => {
     case 'FREE':
     default: return 5;
   }
+};
+
+// --- ERROR BOUNDARY ---
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() { return { hasError: true }; }
+  componentDidCatch(error: any, errorInfo: any) { console.error("Uncaught error:", error, errorInfo); }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 p-6 text-center">
+          <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 max-w-md w-full">
+            <AlertCircle size={48} className="text-red-500 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">Ops! Algo deu errado.</h1>
+            <p className="text-gray-600 dark:text-gray-300 mb-6">Ocorreu um erro inesperado na aplicação.</p>
+            <button
+              onClick={() => window.location.href = '/'}
+              className="bg-brasil-blue hover:bg-blue-900 text-white font-bold py-3 px-8 rounded-xl transition-all flex items-center justify-center gap-2 mx-auto"
+            >
+              <HomeIcon size={20} /> Ir para o Início
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+const AppLoading: React.FC = () => (
+  <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-500">
+    <div className="relative">
+      <div className="w-16 h-16 border-4 border-brasil-blue border-t-brasil-yellow rounded-full animate-spin"></div>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="w-8 h-8 bg-white dark:bg-gray-800 rounded-full"></div>
+      </div>
+    </div>
+    <p className="mt-4 text-gray-500 dark:text-gray-400 font-medium animate-pulse">Carregando...</p>
+  </div>
+);
+
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { currentUser, loading } = useStore();
+  if (loading) return <AppLoading />;
+  if (!currentUser) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+};
+
+const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { currentUser, loading } = useStore();
+  if (loading) return <AppLoading />;
+  if (!currentUser) return <Navigate to="/login" replace />;
+  if (!currentUser.isAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 p-6 text-center">
+        <div className="bg-red-50 dark:bg-red-900/20 p-6 rounded-2xl max-w-md w-full border border-red-100 dark:border-red-800">
+          <AlertCircle size={48} className="text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2">Não Autorizado</h2>
+          <p className="text-gray-600 dark:text-gray-300 mb-6">Você não tem permissão para acessar esta página.</p>
+          <button onClick={() => window.location.href = '/'} className="bg-brasil-blue hover:bg-blue-800 text-white font-bold py-3 px-8 rounded-xl transition-colors">
+            Voltar ao Início
+          </button>
+        </div>
+      </div>
+    );
+  }
+  return <>{children}</>;
 };
 
 const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -169,7 +241,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     setTheme(prev => {
       const newTheme = prev === 'light' ? 'dark' : 'light';
       if (currentUser) {
-        updateUserProfile(currentUser.name, currentUser.avatar, currentUser.whatsapp || '', currentUser.pix || '', currentUser.notificationSettings || { matchStart: true, matchEnd: true, predictionReminder: true }, newTheme).catch(() => { });
+        updateUserProfile(currentUser.name, currentUser.avatar, currentUser.whatsapp || '', currentUser.notificationSettings || { matchStart: true, matchEnd: true, predictionReminder: true }, newTheme).catch(() => { });
       }
       return newTheme;
     });
@@ -341,7 +413,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       avatar: photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${uid}`,
       isAdmin: shouldBeAdmin,
       whatsapp: whatsappMeta || '',
-      pix: '',
       notificationSettings: fallbackPrefs,
       theme: 'light',
       isPro: false,
@@ -363,7 +434,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           avatar: data.avatar || fallbackUser.avatar,
           isAdmin: data.is_admin === true,
           whatsapp: data.whatsapp || '',
-          pix: data.pix || '',
           notificationSettings: data.notification_settings || fallbackPrefs,
           theme: data.theme,
           isPro: data.is_pro,
@@ -476,7 +546,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       if (profilesData) {
         const mappedUsers: User[] = profilesData.map((p: any) => ({
           id: p.id, name: p.name, email: p.email, avatar: p.avatar, isAdmin: p.is_admin,
-          whatsapp: p.whatsapp || '', pix: p.pix || '', notificationSettings: p.notification_settings, theme: p.theme, isPro: p.is_pro
+          whatsapp: p.whatsapp || '', notificationSettings: p.notification_settings, theme: p.theme, isPro: p.is_pro
         }));
         setUsers(mappedUsers);
       }
@@ -533,7 +603,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         is_admin: false, whatsapp: whatsapp || null, notification_settings: { matchStart: true, matchEnd: true, predictionReminder: true }
       };
       api.profiles.update(newUserDB).catch((err) => console.warn(err));
-      const newUser: User = { ...newUserDB, isAdmin: false, whatsapp: whatsapp || '', pix: '', notificationSettings: newUserDB.notification_settings };
+      const newUser: User = { ...newUserDB, isAdmin: false, whatsapp: whatsapp || '', notificationSettings: newUserDB.notification_settings };
       setCurrentUser(newUser);
       setUsers(prev => prev.some(u => u.id === newUser.id) ? prev : [...prev, newUser]);
     }
@@ -586,7 +656,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     }
   };
 
-  const updateUserProfile = async (name: string, avatar: string, whatsapp: string, pix: string, notificationSettings: any, themePreference: 'light' | 'dark') => {
+  const updateUserProfile = async (name: string, avatar: string, whatsapp: string, notificationSettings: any, themePreference: 'light' | 'dark') => {
     if (!currentUser) {
       addNotification('Erro', 'Usuário não autenticado.', 'warning');
       return;
@@ -604,7 +674,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         return;
       }
     }
-    const updatedUser = { ...currentUser, name, avatar: finalAvatar, whatsapp, pix, notificationSettings, theme: themePreference };
+    const updatedUser = { ...currentUser, name, avatar: finalAvatar, whatsapp, notificationSettings, theme: themePreference };
 
     // Optimistic update
     setCurrentUser(updatedUser);
@@ -620,7 +690,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         name,
         avatar: finalAvatar,
         whatsapp: whatsapp.trim() || null,
-        pix: pix.trim() || null,
         notification_settings: notificationSettings,
         theme: themePreference
       });
@@ -632,7 +701,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     }
   };
 
-  const createLeague = async (name: string, isPrivate: boolean, settings: any, image: string, description: string): Promise<boolean> => {
+  const createLeague = async (name: string, isPrivate: boolean, settings: any, image: string, description: string, plan?: string): Promise<boolean> => {
     if (!currentUser) return false;
 
     // Check for existing league with same name
@@ -661,7 +730,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           addNotification('Aviso', 'Erro ao enviar imagem. Criando com imagem padrão.', 'info');
         }
       }
-      const finalSettings = { ...settings, isUnlimited: false, plan: 'FREE' };
+      const finalSettings = { ...settings, isUnlimited: false, plan: plan || 'FREE' };
       const newLeagueApp: League = {
         id: newLeagueId, name, image: finalImage, description: description || '',
         leagueCode: leagueCode, adminId: currentUser.id, isPrivate, participants: [currentUser.id],
@@ -920,35 +989,11 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   );
 };
 
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentUser, loading } = useStore();
-  if (loading) return null;
-  if (!currentUser) return <Navigate to="/" replace />;
-  return <>{children}</>;
-};
-
-const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentUser, loading } = useStore();
-  if (loading) return null;
-  if (!currentUser?.isAdmin) return <Navigate to="/" replace />;
-  return <>{children}</>;
-};
-
 const AppRoutes: React.FC = () => {
   const { currentUser, loading, connectionError, retryConnection, isRecoveryMode } = useStore();
 
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-500">
-        <div className="relative">
-          <div className="w-16 h-16 border-4 border-brasil-blue border-t-brasil-yellow rounded-full animate-spin"></div>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-8 h-8 bg-white dark:bg-gray-800 rounded-full"></div>
-          </div>
-        </div>
-        <p className="mt-4 text-gray-500 dark:text-gray-400 font-medium animate-pulse">Carregando...</p>
-      </div>
-    );
+    return <AppLoading />;
   }
 
   if (connectionError) {
@@ -971,7 +1016,7 @@ const AppRoutes: React.FC = () => {
       <Layout>
         <Routes>
           <Route path="/" element={isRecoveryMode ? <Navigate to="/reset-password" /> : <Home />} />
-          <Route path="/table" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <TablePage /> : <Navigate to="/" />)} />
+          <Route path="/table" element={isRecoveryMode ? <Navigate to="/reset-password" /> : <TablePage />} />
           <Route path="/leagues" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <LeaguesPage /> : <Navigate to="/" />)} />
           <Route path="/league/:id" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <LeagueDetails /> : <Navigate to="/" />)} />
           <Route path="/simulador" element={currentUser ? <SimulatePage /> : <Navigate to="/" />} />
@@ -999,9 +1044,11 @@ const AppRoutes: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    <AppProvider>
-      <AppRoutes />
-    </AppProvider>
+    <ErrorBoundary>
+      <AppProvider>
+        <AppRoutes />
+      </AppProvider>
+    </ErrorBoundary>
   );
 };
 
