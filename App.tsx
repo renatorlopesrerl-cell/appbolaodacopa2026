@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, createContext, useContext, useCallback } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Trophy,
   Settings,
@@ -989,6 +989,35 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   );
 };
 
+const CapacitorBackButtonHandler: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    let backListener: any;
+
+    const setupListener = async () => {
+      const { App: CapApp } = await import('@capacitor/app');
+      backListener = await CapApp.addListener('backButton', ({ canGoBack }) => {
+        if (location.pathname === '/') {
+          CapApp.exitApp();
+        } else {
+          // React Router back
+          window.history.back();
+        }
+      });
+    };
+
+    setupListener();
+
+    return () => {
+      if (backListener) backListener.remove();
+    };
+  }, [location]);
+
+  return null;
+};
+
 const AppRoutes: React.FC = () => {
   const { currentUser, loading, connectionError, retryConnection, isRecoveryMode } = useStore();
 
@@ -1013,6 +1042,7 @@ const AppRoutes: React.FC = () => {
 
   return (
     <BrowserRouter>
+      <CapacitorBackButtonHandler />
       <Layout>
         <Routes>
           <Route path="/" element={isRecoveryMode ? <Navigate to="/reset-password" /> : <Home />} />
