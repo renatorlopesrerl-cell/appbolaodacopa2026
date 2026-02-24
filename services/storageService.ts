@@ -16,8 +16,12 @@ export const uploadBase64Image = async (base64: string, folder: string, oldImage
         deleteImage(oldImageUrl).catch(err => console.warn("Background delete failed", err));
     }
 
-    console.log(`Sending upload request to /api/storage for folder: ${folder}...`);
-    const response = await fetch('/api/storage', {
+    const isCapacitor = (window as any).Capacitor !== undefined;
+    const PRODUCAO_URL = 'https://bolaodacopa2026.app';
+    const storageEndpoint = isCapacitor ? `${PRODUCAO_URL}/api/storage` : '/api/storage';
+
+    console.log(`Sending upload request to ${storageEndpoint} for folder: ${folder}...`);
+    const response = await fetch(storageEndpoint, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -52,9 +56,13 @@ export const deleteImage = async (publicUrl: string): Promise<void> => {
     const { data: { session } } = await supabase.auth.getSession();
     const token = session?.access_token;
 
-    console.log(`Sending delete request to /api/storage/delete for URL: ${publicUrl}...`);
+    const isCapacitor = (window as any).Capacitor !== undefined;
+    const PRODUCAO_URL = 'https://appbolaodacopa2026.app';
+    const deleteEndpoint = isCapacitor ? `${PRODUCAO_URL}/api/storage/delete` : '/api/storage/delete';
+
+    console.log(`Sending delete request to ${deleteEndpoint} for URL: ${publicUrl}...`);
     try {
-        const response = await fetch('/api/storage/delete', {
+        const response = await fetch(deleteEndpoint, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

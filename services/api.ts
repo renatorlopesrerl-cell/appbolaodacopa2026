@@ -1,6 +1,16 @@
 import { supabase } from './supabase'; // Only for Auth Session
 
-const API_BASE = '/api';
+// Detect if we are running in a Capacitor (Native) environment
+const isCapacitor = (window as any).Capacitor !== undefined;
+
+// Use the production URL when in APK/Capacitor, otherwise use relative /api
+const PRODUCAO_URL = 'https://bolaodacopa2026.app';
+const API_BASE = isCapacitor
+    ? `${PRODUCAO_URL}/api`
+    : (import.meta.env.VITE_API_URL || '/api');
+
+console.log(`API initialized with BASE: ${API_BASE} (Capacitor: ${isCapacitor})`);
+
 
 /**
  * Helper to fetch from Vercel API

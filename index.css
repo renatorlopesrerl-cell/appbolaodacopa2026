@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brasil-green: #009c3b;
+  --color-brasil-yellow: #ffdf00;
+  --color-brasil-blue: #002776;
+  --color-brasil-white: #ffffff;
+}
+
+@layer base {
+  body {
+    @apply bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-300;
+  }
+}

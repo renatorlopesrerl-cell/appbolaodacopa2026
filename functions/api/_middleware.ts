@@ -14,59 +14,83 @@ async function retry(fn, attempts = 3) {
 }
 
 export const onRequest = async ({ request, env, next, data }) => {
-    // Public routes (no auth required)
-    if (request.url.includes('/health')) {
-        return next()
+    const origin = request.headers.get('Origin') || '*';
+
+    // Handle OPTIONS Preflight
+    if (request.method === 'OPTIONS') {
+        return new Response(null, {
+            headers: {
+                'Access-Control-Allow-Origin': origin,
+                'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+                'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-requested-with',
+                'Access-Control-Allow-Credentials': 'true',
+                'Access-Control-Max-Age': '86400',
+            }
+        });
     }
 
-    const supabase = createClient(
-        env.SUPABASE_URL,
-        env.SUPABASE_ANON_KEY
-    )
+    // Helper to add CORS to any response
+    const withCors = (response) => {
+        const res = new Response(response.body, response);
+        res.headers.set('Access-Control-Allow-Origin', origin);
+        res.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+        res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-requested-with');
+        res.headers.set('Access-Control-Allow-Credentials', 'true');
+        return res;
+    };
 
-    const authHeader = request.headers.get('Authorization')
+    try {
+        // Public routes (no auth required)
+        if (request.url.includes('/health')) {
+            const response = await next();
+            return withCors(response);
+        }
 
-    if (!authHeader) {
-        return new Response(JSON.stringify({ error: 'Not authenticated' }), { status: 401 })
-    }
-
-    const token = authHeader.replace('Bearer ', '')
-
-    const { data: userData, error } = await retry(() =>
-        supabase.auth.getUser(token)
-    )
-
-    if (error || !userData?.user) {
-        return new Response(JSON.stringify({ error: 'Invalid token' }), { status: 401 })
-    }
-
-    // Admin protection
-    if (request.url.includes('/admin')) {
-        const { data: profile } = await retry(() =>
-            supabase
-                .from('profiles')
-                .select('is_admin')
-                .eq('id', userData.user.id)
-                .single()
+        const supabase = createClient(
+            env.SUPABASE_URL,
+            env.SUPABASE_ANON_KEY
         )
 
-        if (!profile?.is_admin) {
-            return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403 })
+        const authHeader = request.headers.get('Authorization')
+
+        if (!authHeader) {
+            return withCors(new Response(JSON.stringify({ error: 'Not authenticated' }), { status: 401 }));
         }
+
+        const token = authHeader.replace('Bearer ', '')
+
+        const { data: userData, error } = await retry(() =>
+            supabase.auth.getUser(token)
+        )
+
+        if (error || !userData?.user) {
+            return withCors(new Response(JSON.stringify({ error: 'Invalid token' }), { status: 401 }));
+        }
+
+        // Admin protection
+        if (request.url.includes('/admin')) {
+            const { data: profile } = await retry(() =>
+                supabase
+                    .from('profiles')
+                    .select('is_admin')
+                    .eq('id', userData.user.id)
+                    .single()
+            )
+
+            if (!profile?.is_admin) {
+                return withCors(new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403 }));
+            }
+        }
+
+        // Pass user to next handler
+        if (data) {
+            data.user = userData.user;
+        }
+
+        const response = await next();
+        return withCors(response);
+    } catch (err) {
+        return withCors(new Response(JSON.stringify({ error: err.message }), { status: 500 }));
     }
-
-    // Pass user to next handler via 'data'
-    // Note: Cloudflare Pages uses 'data' for middleware context
-    const nextRequest = next as Function; // Type casting to avoid ts error in this context if needed
-    // Actually in Pages: ({ request, env, params, data, next })
-
-    // We can just assign to data if it is available in arguments, or just define it.
-    // However, the signature I used was ({ request, env, next }).
-    // I need to change signature to ({ request, env, next, data }).
-
-    if (data) {
-        data.user = userData.user;
-    }
-
-    return next();
 }
+
