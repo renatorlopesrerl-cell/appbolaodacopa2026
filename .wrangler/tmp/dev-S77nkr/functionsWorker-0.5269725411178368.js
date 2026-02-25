@@ -80,7 +80,7 @@ function checkURL2(request, init) {
 __name(checkURL2, "checkURL");
 var urls2;
 var init_checked_fetch = __esm({
-  "../.wrangler/tmp/bundle-ld12HM/checked-fetch.js"() {
+  "../.wrangler/tmp/bundle-gPG0Av/checked-fetch.js"() {
     urls2 = /* @__PURE__ */ new Set();
     __name2(checkURL2, "checkURL");
     globalThis.fetch = new Proxy(globalThis.fetch, {
@@ -12887,15 +12887,44 @@ var init_debug = __esm({
   "api/debug.ts"() {
     init_functionsRoutes_0_25198053012443267();
     init_checked_fetch();
+    init_module4();
     onRequest7 = /* @__PURE__ */ __name2(async ({ env }) => {
+      const url = env.SUPABASE_URL || "";
+      const key = env.SUPABASE_ANON_KEY || "";
+      const fcm = env.FCM_SERVER_KEY || "";
+      let supabaseError = null;
+      try {
+        const supabase = createClient(url, key);
+        const { error } = await supabase.from("profiles").select("id").limit(1);
+        supabaseError = error ? error.message : "Connection Success";
+      } catch (e) {
+        supabaseError = e.message;
+      }
       const status = {
-        SUPABASE_URL: !!env.SUPABASE_URL,
-        SUPABASE_ANON_KEY: !!env.SUPABASE_ANON_KEY,
-        FCM_SERVER_KEY: !!env.FCM_SERVER_KEY,
+        SUPABASE_URL: {
+          present: !!url,
+          length: url.length,
+          startsWithHttps: url.startsWith("https://"),
+          hasWhitespace: url !== url.trim()
+        },
+        SUPABASE_ANON_KEY: {
+          present: !!key,
+          length: key.length,
+          hasWhitespace: key !== key.trim()
+        },
+        FCM_SERVER_KEY: {
+          present: !!fcm,
+          length: fcm.length,
+          hasWhitespace: fcm !== fcm.trim()
+        },
+        TEST_CONNECTION: supabaseError,
         NODE_VERSION: env.NODE_VERSION || "unknown"
       };
       return new Response(JSON.stringify(status, null, 2), {
-        headers: { "Content-Type": "application/json" }
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*"
+        }
       });
     }, "onRequest");
   }
@@ -13077,8 +13106,12 @@ var init_profiles = __esm({
             notification_settings: body.notification_settings,
             fcm_token: body.fcm_token
           };
-          Object.keys(safeBody).forEach((key) => safeBody[key] === void 0 && delete safeBody[key]);
-          const { error } = await userClient.from("profiles").upsert(safeBody);
+          Object.keys(safeBody).forEach((key) => {
+            if (safeBody[key] === void 0 || safeBody[key] === null) {
+              delete safeBody[key];
+            }
+          });
+          const { error } = await userClient.from("profiles").upsert(safeBody, { onConflict: "id" });
           if (error) throw error;
           return jsonResponse({ success: true });
         }

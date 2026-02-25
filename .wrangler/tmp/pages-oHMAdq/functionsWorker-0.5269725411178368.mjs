@@ -33,7 +33,7 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 ));
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-// ../.wrangler/tmp/bundle-ld12HM/checked-fetch.js
+// ../.wrangler/tmp/bundle-gPG0Av/checked-fetch.js
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
     (typeof request === "string" ? new Request(request, init) : request).url
@@ -51,7 +51,7 @@ function checkURL(request, init) {
 }
 var urls;
 var init_checked_fetch = __esm({
-  "../.wrangler/tmp/bundle-ld12HM/checked-fetch.js"() {
+  "../.wrangler/tmp/bundle-gPG0Av/checked-fetch.js"() {
     urls = /* @__PURE__ */ new Set();
     __name(checkURL, "checkURL");
     globalThis.fetch = new Proxy(globalThis.fetch, {
@@ -12555,15 +12555,44 @@ var init_debug = __esm({
   "api/debug.ts"() {
     init_functionsRoutes_0_25198053012443267();
     init_checked_fetch();
+    init_module4();
     onRequest7 = /* @__PURE__ */ __name(async ({ env }) => {
+      const url = env.SUPABASE_URL || "";
+      const key = env.SUPABASE_ANON_KEY || "";
+      const fcm = env.FCM_SERVER_KEY || "";
+      let supabaseError = null;
+      try {
+        const supabase = createClient(url, key);
+        const { error } = await supabase.from("profiles").select("id").limit(1);
+        supabaseError = error ? error.message : "Connection Success";
+      } catch (e) {
+        supabaseError = e.message;
+      }
       const status = {
-        SUPABASE_URL: !!env.SUPABASE_URL,
-        SUPABASE_ANON_KEY: !!env.SUPABASE_ANON_KEY,
-        FCM_SERVER_KEY: !!env.FCM_SERVER_KEY,
+        SUPABASE_URL: {
+          present: !!url,
+          length: url.length,
+          startsWithHttps: url.startsWith("https://"),
+          hasWhitespace: url !== url.trim()
+        },
+        SUPABASE_ANON_KEY: {
+          present: !!key,
+          length: key.length,
+          hasWhitespace: key !== key.trim()
+        },
+        FCM_SERVER_KEY: {
+          present: !!fcm,
+          length: fcm.length,
+          hasWhitespace: fcm !== fcm.trim()
+        },
+        TEST_CONNECTION: supabaseError,
         NODE_VERSION: env.NODE_VERSION || "unknown"
       };
       return new Response(JSON.stringify(status, null, 2), {
-        headers: { "Content-Type": "application/json" }
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*"
+        }
       });
     }, "onRequest");
   }
@@ -12753,8 +12782,12 @@ var init_profiles = __esm({
             notification_settings: body.notification_settings,
             fcm_token: body.fcm_token
           };
-          Object.keys(safeBody).forEach((key) => safeBody[key] === void 0 && delete safeBody[key]);
-          const { error } = await userClient.from("profiles").upsert(safeBody);
+          Object.keys(safeBody).forEach((key) => {
+            if (safeBody[key] === void 0 || safeBody[key] === null) {
+              delete safeBody[key];
+            }
+          });
+          const { error } = await userClient.from("profiles").upsert(safeBody, { onConflict: "id" });
           if (error) throw error;
           return jsonResponse({ success: true });
         }
@@ -13018,11 +13051,11 @@ var init_functionsRoutes_0_25198053012443267 = __esm({
   }
 });
 
-// ../.wrangler/tmp/bundle-ld12HM/middleware-loader.entry.ts
+// ../.wrangler/tmp/bundle-gPG0Av/middleware-loader.entry.ts
 init_functionsRoutes_0_25198053012443267();
 init_checked_fetch();
 
-// ../.wrangler/tmp/bundle-ld12HM/middleware-insertion-facade.js
+// ../.wrangler/tmp/bundle-gPG0Av/middleware-insertion-facade.js
 init_functionsRoutes_0_25198053012443267();
 init_checked_fetch();
 
@@ -13523,7 +13556,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// ../.wrangler/tmp/bundle-ld12HM/middleware-insertion-facade.js
+// ../.wrangler/tmp/bundle-gPG0Av/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -13557,7 +13590,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// ../.wrangler/tmp/bundle-ld12HM/middleware-loader.entry.ts
+// ../.wrangler/tmp/bundle-gPG0Av/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;

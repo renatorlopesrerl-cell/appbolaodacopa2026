@@ -1,7 +1,8 @@
 import { supabase } from './supabase'; // Only for Auth Session
 
 // Detect if we are running in a Capacitor (Native) environment
-const isCapacitor = (window as any).Capacitor !== undefined;
+// We check for both window.Capacitor and that it's actually a native platform
+const isCapacitor = (window as any).Capacitor?.isNativePlatform?.() || false;
 
 // Use the production URL when in APK/Capacitor, otherwise use relative /api
 const PRODUCAO_URL = 'https://bolaodacopa2026.app';
@@ -29,22 +30,35 @@ async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise
         headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const res = await fetch(`${API_BASE}${endpoint}`, {
-        ...options,
-        headers
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
-    if (!res.ok) {
-        // Handle 503 Service Unavailable specifically if needed by UI
-        if (res.status === 503) {
-            console.error("API Service Unavailable (Retries exhausted)");
+    try {
+        const res = await fetch(`${API_BASE}${endpoint}`, {
+            ...options,
+            headers,
+            signal: controller.signal
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!res.ok) {
+            // Handle 503 Service Unavailable specifically if needed by UI
+            if (res.status === 503) {
+                console.error("API Service Unavailable (Retries exhausted)");
+            }
+            const errorData = await res.json().catch(() => ({ error: res.statusText }));
+            throw new Error(errorData.error || `API Error: ${res.status}`);
         }
-        const errorData = await res.json().catch(() => ({ error: res.statusText }));
-        throw new Error(errorData.error || `API Error: ${res.status}`);
-    }
 
-    return res.json();
+        return res.json();
+    } catch (error: any) {
+        clearTimeout(timeoutId);
+        if (error.name === 'AbortError') throw new Error('Timeout na conexão');
+        throw error;
+    }
 }
+
 
 export const api = {
     leagues: {
