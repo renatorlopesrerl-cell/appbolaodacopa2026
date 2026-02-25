@@ -3,6 +3,7 @@ import { useNavigate, Navigate } from 'react-router-dom';
 import { useStore } from '../App';
 import { User as UserIcon, Save, Camera, Upload, AlertCircle, ArrowLeft, Phone, Loader2, Bell, PlayCircle, Flag, Sun, Moon, Clock, Trash2, Lock, Trophy, CheckCircle2, X } from 'lucide-react';
 import { processImageForUpload } from '../services/dataService';
+import { OptimizedImage } from '../components/OptimizedImage';
 
 export const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
@@ -151,12 +152,12 @@ export const ProfilePage: React.FC = () => {
               onClick={triggerFileInput}
               title="Alterar foto"
             >
-              <img
-                src={avatar || 'https://via.placeholder.com/150'}
+              <OptimizedImage
+                src={avatar}
                 alt="Avatar"
-                referrerPolicy="no-referrer"
-                className={`w-28 h-28 rounded-full border-4 border-white dark:border-gray-800 shadow-lg object-cover bg-gray-200 dark:bg-gray-700 group-hover:brightness-75 transition-all ${imageProcessing ? 'opacity-50' : ''}`}
-                onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/150?text=Error'; }}
+                fallback="https://via.placeholder.com/150?text=Avatar"
+                containerClassName="w-28 h-28 rounded-full border-4 border-white dark:border-gray-800 shadow-lg"
+                className={`w-full h-full object-cover bg-gray-200 dark:bg-gray-700 group-hover:brightness-75 transition-all ${imageProcessing ? 'opacity-50' : ''}`}
               />
               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
                 <Camera className="text-white drop-shadow-md" size={32} />

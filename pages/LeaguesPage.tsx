@@ -4,6 +4,7 @@ import { useStore } from '../App';
 import { Plus, Lock, Globe, ArrowRight, Search, ArrowLeft, Upload, Camera, Trophy, Loader2, X, Star } from 'lucide-react';
 import { processImageForUpload } from '../services/dataService';
 import { LeaguePlan } from '../types';
+import { OptimizedImage } from '../components/OptimizedImage';
 
 export const LeaguesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -217,7 +218,12 @@ export const LeaguesPage: React.FC = () => {
                   <div className="flex justify-between items-start">
                     <div className="flex items-center gap-3">
                       {l.image ? (
-                        <img src={l.image} alt={l.name} className="w-12 h-12 rounded-full object-cover border-2 border-gray-100 dark:border-gray-600" />
+                        <OptimizedImage
+                          src={l.image}
+                          alt={l.name}
+                          containerClassName="w-12 h-12 rounded-full border-2 border-gray-100 dark:border-gray-600 shadow-sm"
+                          className="w-full h-full object-cover"
+                        />
                       ) : (
                         <div className="w-12 h-12 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-brasil-blue dark:text-blue-400">
                           <Trophy size={20} />
@@ -265,7 +271,12 @@ export const LeaguesPage: React.FC = () => {
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex items-center gap-3">
                     {l.image ? (
-                      <img src={l.image} alt={l.name} className="w-12 h-12 rounded-full object-cover border-2 border-gray-100 dark:border-gray-600" />
+                      <OptimizedImage
+                        src={l.image}
+                        alt={l.name}
+                        containerClassName="w-12 h-12 rounded-full border-2 border-gray-100 dark:border-gray-600 shadow-sm"
+                        className="w-full h-full object-cover"
+                      />
                     ) : (
                       <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-400">
                         <Trophy size={20} />

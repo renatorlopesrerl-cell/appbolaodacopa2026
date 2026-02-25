@@ -1,24 +1,24 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Trophy, Calendar, Users, LogOut, Menu, X, Settings, Check, Bell, Info, User, Mail, WifiOff } from 'lucide-react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
+import {
+  Trophy, Home, Users, User, LogOut, Menu, X, Bell, Layout as LayoutIcon,
+  Settings, HelpCircle, ChevronRight, Moon, Sun, ShieldCheck, Zap, Mail, Check, Info, WifiOff
+} from 'lucide-react';
+import { OptimizedImage } from './OptimizedImage';
 import { useStore } from '../App';
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentUser, logout, notifications, removeNotification, invitations, leagues, users, connectionError, retryConnection, isRecoveryMode, approveUser, rejectUser, respondToInvite } = useStore();
+  const { currentUser, logout, invitations, leagues, users, connectionError, retryConnection, isRecoveryMode, approveUser, rejectUser, respondToInvite, notifications, removeNotification } = useStore();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
-  // Determine if we should show the full layout (Standard authenticated view)
-  // We must calculate this but NOT return early to avoid Hook Rule violations
   const isMinimalLayout = isRecoveryMode || location.pathname === '/reset-password';
-
   const notificationRef = useRef<HTMLDivElement>(null);
   const mobileNotificationRef = useRef<HTMLDivElement>(null);
 
   const isActive = (path: string) => location.pathname === path ? 'bg-brasil-yellow text-brasil-blue font-bold' : 'text-white hover:bg-white/10';
 
-  // Close notifications when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const outsideDesktop = !notificationRef.current || !notificationRef.current.contains(event.target as Node);
@@ -36,10 +36,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     return <div className="dark:bg-gray-900 min-h-screen">{children}</div>;
   }
 
-  // Count direct invites to the user
   const pendingInvites = invitations.filter(i => i.status === 'pending');
-
-  // Count pending requests in leagues where the current user is Admin
   const adminLeaguesWithRequests = currentUser
     ? leagues.filter(l => l.adminId === currentUser.id && l.pendingRequests.some(uid => users.some(u => u.id === uid)))
     : [];
@@ -234,9 +231,12 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               {currentUser ? (
                 <>
                   <Link to="/profile" className="flex items-center gap-2 hover:bg-white/10 p-1 pr-3 rounded-full transition-colors" title="Meu Perfil">
-                    <div className="relative">
-                      <img src={currentUser.avatar} alt="User" referrerPolicy="no-referrer" className="w-8 h-8 rounded-full border-2 border-brasil-yellow object-cover" />
-                    </div>
+                    <OptimizedImage
+                      src={currentUser.avatar}
+                      alt="User"
+                      containerClassName="w-8 h-8 rounded-full border-2 border-brasil-yellow"
+                      className="w-full h-full object-cover"
+                    />
                     <div className="flex flex-col">
                       <span className="text-sm font-bold max-w-[100px] truncate leading-none">{currentUser.name}</span>
                     </div>
@@ -305,7 +305,12 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                   </Link>
                   <div className="flex justify-between items-center px-3">
                     <div className="flex items-center gap-2">
-                      <img src={currentUser.avatar} alt="User" referrerPolicy="no-referrer" className="w-8 h-8 rounded-full object-cover" />
+                      <OptimizedImage
+                        src={currentUser.avatar}
+                        alt="User"
+                        containerClassName="w-8 h-8 rounded-full"
+                        className="w-full h-full object-cover"
+                      />
                       <span className="font-medium text-sm">{currentUser.name}</span>
                     </div>
                     <button onClick={() => { logout(); setIsMenuOpen(false); }} className="text-red-300 text-sm font-bold">Sair</button>

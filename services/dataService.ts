@@ -305,8 +305,8 @@ export const processImageForUpload = (file: File): Promise<string> => {
       img.src = event.target?.result as string;
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 800;
-        const MAX_HEIGHT = 800;
+        const MAX_WIDTH = 400;
+        const MAX_HEIGHT = 400;
         let width = img.width;
         let height = img.height;
 
@@ -338,8 +338,8 @@ export const processImageForUpload = (file: File): Promise<string> => {
         ctx.drawImage(img, 0, 0, width, height);
 
         // Quality reduction loop
-        // Target: ~500KB (approx 680,000 base64 chars)
-        const MAX_CHARS = 680000;
+        // Target: ~150KB (approx 200,000 base64 chars)
+        const MAX_CHARS = 200000;
         let quality = 0.9;
         let dataUrl = canvas.toDataURL('image/jpeg', quality);
 
