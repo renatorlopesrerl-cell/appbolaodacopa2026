@@ -13,4 +13,18 @@
   body {
     @apply bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-300;
   }
+
+  button,
+  [role="button"],
+  .cursor-pointer,
+  a,
+  select,
+  input,
+  label {
+    cursor: pointer !important;
+  }
+
+  img {
+    @apply max-w-full h-auto;
+  }
 }

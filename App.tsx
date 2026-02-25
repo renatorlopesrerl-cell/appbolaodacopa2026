@@ -325,12 +325,14 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           const user = session.user;
           const metadata = user.user_metadata || {};
 
+          const avatarUrl = metadata.avatar_url || metadata.picture || metadata.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`;
+
           const provider = user.app_metadata?.provider || 'email';
           const basicUser: User = {
             id: user.id,
             email: user.email || '',
             name: metadata.full_name || metadata.name || user.email?.split('@')[0] || 'Usuário',
-            avatar: metadata.avatar_url || metadata.picture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`,
+            avatar: avatarUrl,
             isAdmin: metadata.is_admin || false,
             whatsapp: metadata.whatsapp || '',
             notificationSettings: { matchStart: true, matchEnd: true },
@@ -374,12 +376,13 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           const user = session.user;
           const metadata = user.user_metadata || {};
 
+          const avatarUrl = metadata.avatar_url || metadata.picture || metadata.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`;
           const provider = user.app_metadata?.provider || 'email';
           const basicUser: User = {
             id: user.id,
             email: user.email || '',
             name: metadata.full_name || metadata.name || user.email?.split('@')[0] || 'Usuário',
-            avatar: metadata.avatar_url || metadata.picture || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`,
+            avatar: avatarUrl,
             isAdmin: metadata.is_admin || false,
             whatsapp: metadata.whatsapp || '',
             notificationSettings: { matchStart: true, matchEnd: true },
@@ -431,11 +434,12 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           data.is_admin = true;
         }
 
+        console.log("Avatar Sync - DB:", data.avatar, "Fallback:", fallbackUser.avatar);
         const user: User = {
           id: data.id, // Ensure we use the current Auth ID
           name: data.name || fallbackUser.name,
           email: data.email || email,
-          avatar: data.avatar || fallbackUser.avatar,
+          avatar: (data.avatar && data.avatar.trim() !== "") ? data.avatar : fallbackUser.avatar,
           isAdmin: data.is_admin === true,
           whatsapp: data.whatsapp || '',
           notificationSettings: data.notification_settings || fallbackPrefs,

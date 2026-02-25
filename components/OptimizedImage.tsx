@@ -23,14 +23,17 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
         <div className={`relative overflow-hidden flex-shrink-0 ${containerClassName}`}>
             {/* Skeleton Loader */}
             {!isLoaded && !hasError && src && (
-                <div className="absolute inset-0 animate-pulse bg-gray-200 dark:bg-gray-700" />
+                <div className="absolute inset-0 animate-pulse bg-gray-200 dark:bg-gray-700 pointer-events-none" />
             )}
 
             <img
                 src={finalSrc}
                 alt={alt}
                 onLoad={() => setIsLoaded(true)}
-                onError={() => setHasError(true)}
+                onError={(e) => {
+                    console.warn("Image load error:", src);
+                    setHasError(true);
+                }}
                 className={`${className} transition-opacity duration-500 ${isLoaded || hasError || !src ? 'opacity-100' : 'opacity-0'}`}
                 referrerPolicy="no-referrer"
                 loading="lazy"
