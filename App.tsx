@@ -44,6 +44,7 @@ import { ConfirmacaoCadastro } from './pages/ConfirmacaoCadastro';
 import { supabase } from './services/supabase'; // Auth Only
 import { api } from './services/api';
 import { uploadBase64Image } from './services/storageService';
+import { setupPushNotifications, scheduleMatchReminder } from './services/pushService';
 
 // Types
 import { User, Match, League, Prediction, Invitation, MatchStatus } from './types';
@@ -284,22 +285,18 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       const notifyTime = matchTime - (30 * 60 * 1000);
       const timeUntilNotify = notifyTime - now;
 
-      // Only schedule if it's in the future (and reasonable time, e.g. < 24h? No user said 35 min before.
-      // If the app is open right now, and the notification time is 2 hours from now, we schedule it.
-      // If the notification time was 5 minutes ago, we skip (don't notify late).
-      if (timeUntilNotify > 0 && timeUntilNotify < 24 * 60 * 60 * 1000) { // Limit to next 24h to avoid millions of timers
-        const timer = setTimeout(() => {
-          // RE-CHECK condition explicitly at trigger time
-          // We need fresh state. 'predictions' from closure might be stale.
-          // Best way: use functional update or ref.
-          // Since this effect depends on 'predictions', it re-runs when predictions change.
-          // That might clear/reset timers.
-          // Actually, let's look at dependencies.
+      // Only schedule if it's in the future (and reasonable time, e.g. < 24h)
+      if (timeUntilNotify > 0 && timeUntilNotify < 24 * 60 * 60 * 1000) {
+        // Native: Schedule Local Notification (Android/iOS)
+        const hasPrediction = predictions.some(p => p.matchId === match.id && p.userId === currentUser.id);
+        if (!hasPrediction) {
+          scheduleMatchReminder(match.id, `${match.homeTeamId} x ${match.awayTeamId}`, match.date).catch(() => { });
+        }
 
-          // We'll perform the check here.
-          const hasPrediction = predictions.some(p => p.matchId === match.id && p.userId === currentUser.id);
-          if (!hasPrediction) {
-            // Double check we are still enabled (user might have toggled off in the meantime, though effect would cleanup)
+        // Web/App open: Existing Timeout logic (Already in UI)
+        const timer = setTimeout(() => {
+          const stillNoPrediction = predictions.some(p => p.matchId === match.id && p.userId === currentUser.id);
+          if (!stillNoPrediction) {
             addNotification('Lembrete ⏳', `Faltam 30 min para encerrar palpites de: ${match.homeTeamId} x ${match.awayTeamId}`, 'warning');
           }
         }, timeUntilNotify);
@@ -341,6 +338,9 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
           setCurrentUser(basicUser);
           currentUserRef.current = basicUser;
+
+          // Setup Push Notifications
+          setupPushNotifications(user.id).catch(e => console.error("Push Setup Error:", e));
 
           await Promise.all([
             fetchUserProfile(user.id, user.email || '', basicUser.avatar, basicUser.name, basicUser.whatsapp || '', provider),
@@ -389,6 +389,10 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
           setCurrentUser(basicUser);
           currentUserRef.current = basicUser;
+
+          // Setup Push Notifications
+          setupPushNotifications(user.id).catch(e => console.error("Push Setup Error:", e));
+
           fetchUserProfile(user.id, user.email || '', basicUser.avatar, basicUser.name, basicUser.whatsapp || '', provider);
           fetchAllData();
         }
@@ -998,12 +1002,12 @@ const CapacitorBackButtonHandler: React.FC = () => {
 
     const setupListener = async () => {
       const { App: CapApp } = await import('@capacitor/app');
-      backListener = await CapApp.addListener('backButton', ({ canGoBack }) => {
+      backListener = await CapApp.addListener('backButton', () => {
         if (location.pathname === '/') {
           CapApp.exitApp();
         } else {
           // React Router back
-          window.history.back();
+          navigate(-1);
         }
       });
     };

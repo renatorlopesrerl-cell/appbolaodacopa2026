@@ -34,7 +34,8 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                 avatar: body.avatar,
                 whatsapp: body.whatsapp,
                 theme: body.theme,
-                notification_settings: body.notification_settings
+                notification_settings: body.notification_settings,
+                fcm_token: body.fcm_token
             };
 
             // Remove undefined keys

@@ -56,3 +56,43 @@ export async function withRetry<T>(fn: () => Promise<{ data: T | null; error: an
         throw error;
     }
 }
+// ---- Push Notifications ----
+
+export async function sendPushNotificationToUser(env: any, userId: string, title: string, body: string, data?: any) {
+    const supabase = getSupabaseClient(env);
+
+    // 1. Get user's FCM token
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('fcm_token')
+        .eq('id', userId)
+        .single();
+
+    if (!profile?.fcm_token) return;
+
+    // 2. Send via FCM (Placeholder for actual FCM v1 call)
+    // In a real environment, you'd use a service account and JWT to get an access token
+    // or use a library that works in Cloudflare Workers.
+    console.log(`Sending Push to ${userId}: ${title} - ${body}`);
+
+    try {
+        // This is a simplified call. For FCM v1, you need an OAuth2 token.
+        // If the user has FCM_SERVER_KEY (legacy) or FCM_SERVICE_ACCOUNT (v1) configured:
+        if (env.FCM_SERVER_KEY) {
+            await fetch('https://fcm.googleapis.com/fcm/send', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `key=${env.FCM_SERVER_KEY}`
+                },
+                body: JSON.stringify({
+                    to: profile.fcm_token,
+                    notification: { title, body },
+                    data: data || {}
+                })
+            });
+        }
+    } catch (e) {
+        console.error("Push send error:", e);
+    }
+}

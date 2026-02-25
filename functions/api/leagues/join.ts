@@ -1,5 +1,5 @@
 
-import { getUserClient, jsonResponse, errorResponse } from '../_shared';
+import { getUserClient, jsonResponse, errorResponse, sendPushNotificationToUser } from '../_shared';
 
 const getLeagueLimit = (settings: any) => {
     if (settings?.isUnlimited) return Infinity;
@@ -49,6 +49,17 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
 
         const { error } = await userClient.from('leagues').update(updates).eq('id', id);
         if (error) throw error;
+
+        // If private, notify Admin
+        if (league.is_private) {
+            sendPushNotificationToUser(
+                env,
+                league.admin_id,
+                "Nova Solicitação 🔔",
+                `${authUser.user_metadata?.full_name || authUser.email} quer entrar na liga: ${league.name}`,
+                { url: `/league/${id}?tab=admin` }
+            ).catch(e => console.error("Push Error:", e));
+        }
 
         return jsonResponse({ success: true, message: league.is_private ? "Request sent" : "Joined successfully" });
 

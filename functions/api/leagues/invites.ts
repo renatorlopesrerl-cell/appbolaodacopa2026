@@ -1,5 +1,5 @@
 
-import { getUserClient, jsonResponse, errorResponse } from '../_shared';
+import { getUserClient, jsonResponse, errorResponse, sendPushNotificationToUser } from '../_shared';
 
 const getLeagueLimit = (settings: any) => {
     if (settings?.isUnlimited) return Infinity;
@@ -68,6 +68,17 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                     status: 'pending'
                 });
                 if (error) throw error;
+
+                // Send Push Notification if user exists
+                if (existingUser) {
+                    sendPushNotificationToUser(
+                        env,
+                        existingUser.id,
+                        "Novo Convite! 🏆",
+                        `Você foi convidado para participar da liga: ${league.name}`,
+                        { url: `/league/${leagueId}` }
+                    ).catch(e => console.error("Push Error:", e));
+                }
 
                 return jsonResponse({ success: true, message: "Invite sent" });
             }
