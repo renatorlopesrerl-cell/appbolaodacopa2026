@@ -154,6 +154,7 @@ export const ProfilePage: React.FC = () => {
               <img
                 src={avatar || 'https://via.placeholder.com/150'}
                 alt="Avatar"
+                referrerPolicy="no-referrer"
                 className={`w-28 h-28 rounded-full border-4 border-white dark:border-gray-800 shadow-lg object-cover bg-gray-200 dark:bg-gray-700 group-hover:brightness-75 transition-all ${imageProcessing ? 'opacity-50' : ''}`}
                 onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/150?text=Error'; }}
               />

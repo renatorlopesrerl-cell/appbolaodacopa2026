@@ -235,7 +235,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                 <>
                   <Link to="/profile" className="flex items-center gap-2 hover:bg-white/10 p-1 pr-3 rounded-full transition-colors" title="Meu Perfil">
                     <div className="relative">
-                      <img src={currentUser.avatar} alt="User" className="w-8 h-8 rounded-full border-2 border-brasil-yellow object-cover" />
+                      <img src={currentUser.avatar} alt="User" referrerPolicy="no-referrer" className="w-8 h-8 rounded-full border-2 border-brasil-yellow object-cover" />
                     </div>
                     <div className="flex flex-col">
                       <span className="text-sm font-bold max-w-[100px] truncate leading-none">{currentUser.name}</span>
@@ -305,7 +305,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                   </Link>
                   <div className="flex justify-between items-center px-3">
                     <div className="flex items-center gap-2">
-                      <img src={currentUser.avatar} alt="User" className="w-8 h-8 rounded-full object-cover" />
+                      <img src={currentUser.avatar} alt="User" referrerPolicy="no-referrer" className="w-8 h-8 rounded-full object-cover" />
                       <span className="font-medium text-sm">{currentUser.name}</span>
                     </div>
                     <button onClick={() => { logout(); setIsMenuOpen(false); }} className="text-red-300 text-sm font-bold">Sair</button>
