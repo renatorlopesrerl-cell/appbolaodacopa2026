@@ -41,7 +41,7 @@ export const onRequest = async ({ request, env, next, data }) => {
 
     try {
         // Public routes (no auth required)
-        if (request.url.includes('/health')) {
+        if (request.url.includes('/health') || request.url.includes('/api/debug')) {
             const response = await next();
             return withCors(response);
         }
