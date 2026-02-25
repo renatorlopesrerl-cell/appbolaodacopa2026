@@ -207,7 +207,9 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const savedTheme = localStorage.getItem('app-theme');
-    return (savedTheme as 'light' | 'dark') || 'light';
+    if (savedTheme === 'light' || savedTheme === 'dark') return savedTheme;
+    // Default to light for new users
+    return 'light';
   });
 
   const fetchingRef = useRef(false);
@@ -442,23 +444,36 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           provider
         };
 
-        if (user.theme && (user.theme === 'light' || user.theme === 'dark')) setTheme(user.theme);
+        if (user.theme && (user.theme === 'light' || user.theme === 'dark')) {
+          setTheme(user.theme);
+        } else {
+          // If database has no theme, save the current local theme to database
+          api.profiles.update({ id: uid, theme }).catch(() => { });
+        }
         setCurrentUser(user);
         setConnectionError(false);
         failureCountRef.current = 0;
         fetchInvitations(user.email);
       } else {
+        console.log("Profile not found, creating new profile for:", uid);
         const newUserDB = {
           id: uid, email: email, name: fallbackUser.name, avatar: fallbackUser.avatar,
-          is_admin: shouldBeAdmin, whatsapp: whatsappMeta || null, notification_settings: fallbackPrefs
+          is_admin: shouldBeAdmin, whatsapp: whatsappMeta || null, notification_settings: fallbackPrefs,
+          theme: theme // Save current theme preference
         };
-        await api.profiles.update(newUserDB);
+        try {
+          await api.profiles.update(newUserDB);
+          console.log("New profile created successfully");
+        } catch (updateErr: any) {
+          console.error("Failed to create new profile during sync:", updateErr.message);
+          // Don't throw, let the user proceed with fallbackUser
+        }
         setCurrentUser(fallbackUser);
         fetchInvitations(fallbackUser.email);
         setUsers(prev => prev.some(u => u.id === fallbackUser.id) ? prev : [...prev, fallbackUser]);
       }
     } catch (e: any) {
-      if (e.message !== 'Failed to fetch') console.error("Fetch profile error", e);
+      console.error("fetchUserProfile critical error:", e.message);
       setCurrentUser(fallbackUser);
       if (e.message === 'Failed to fetch') setConnectionError(true);
     } finally {
@@ -641,8 +656,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     setPredictions([]);
     setInvitations([]);
 
-    // 4. Force hard navigation to clear all memory state
-    window.location.href = '/login';
+    // 4. Force hard navigation to clear all memory state and go to HOME
+    window.location.href = '/';
   };
 
   const deleteAccount = async (): Promise<boolean> => {
