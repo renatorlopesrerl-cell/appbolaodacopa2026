@@ -19,9 +19,17 @@
   .cursor-pointer,
   a,
   select,
-  input,
+  input[type="submit"],
+  input[type="button"],
+  input[type="checkbox"],
+  input[type="radio"],
   label {
     cursor: pointer !important;
+  }
+
+  input:not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"]),
+  textarea {
+    cursor: text !important;
   }
 
   img {
