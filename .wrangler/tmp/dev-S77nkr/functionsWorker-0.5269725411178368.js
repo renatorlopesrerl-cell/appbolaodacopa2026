@@ -80,7 +80,7 @@ function checkURL2(request, init) {
 __name(checkURL2, "checkURL");
 var urls2;
 var init_checked_fetch = __esm({
-  "../.wrangler/tmp/bundle-etQAjf/checked-fetch.js"() {
+  "../.wrangler/tmp/bundle-ld12HM/checked-fetch.js"() {
     urls2 = /* @__PURE__ */ new Set();
     __name2(checkURL2, "checkURL");
     globalThis.fetch = new Proxy(globalThis.fetch, {
@@ -13179,7 +13179,7 @@ var init_middleware = __esm({
         return res;
       }, "withCors");
       try {
-        if (request.url.includes("/health")) {
+        if (request.url.includes("/health") || request.url.includes("/api/debug")) {
           const response2 = await next();
           return withCors(response2);
         }

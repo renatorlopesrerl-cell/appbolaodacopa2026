@@ -33,7 +33,7 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 ));
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-// ../.wrangler/tmp/bundle-etQAjf/checked-fetch.js
+// ../.wrangler/tmp/bundle-ld12HM/checked-fetch.js
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
     (typeof request === "string" ? new Request(request, init) : request).url
@@ -51,7 +51,7 @@ function checkURL(request, init) {
 }
 var urls;
 var init_checked_fetch = __esm({
-  "../.wrangler/tmp/bundle-etQAjf/checked-fetch.js"() {
+  "../.wrangler/tmp/bundle-ld12HM/checked-fetch.js"() {
     urls = /* @__PURE__ */ new Set();
     __name(checkURL, "checkURL");
     globalThis.fetch = new Proxy(globalThis.fetch, {
@@ -12858,7 +12858,7 @@ var init_middleware = __esm({
         return res;
       }, "withCors");
       try {
-        if (request.url.includes("/health")) {
+        if (request.url.includes("/health") || request.url.includes("/api/debug")) {
           const response2 = await next();
           return withCors(response2);
         }
@@ -13018,11 +13018,11 @@ var init_functionsRoutes_0_25198053012443267 = __esm({
   }
 });
 
-// ../.wrangler/tmp/bundle-etQAjf/middleware-loader.entry.ts
+// ../.wrangler/tmp/bundle-ld12HM/middleware-loader.entry.ts
 init_functionsRoutes_0_25198053012443267();
 init_checked_fetch();
 
-// ../.wrangler/tmp/bundle-etQAjf/middleware-insertion-facade.js
+// ../.wrangler/tmp/bundle-ld12HM/middleware-insertion-facade.js
 init_functionsRoutes_0_25198053012443267();
 init_checked_fetch();
 
@@ -13523,7 +13523,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// ../.wrangler/tmp/bundle-etQAjf/middleware-insertion-facade.js
+// ../.wrangler/tmp/bundle-ld12HM/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -13557,7 +13557,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// ../.wrangler/tmp/bundle-etQAjf/middleware-loader.entry.ts
+// ../.wrangler/tmp/bundle-ld12HM/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;
