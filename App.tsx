@@ -619,19 +619,30 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   const logout = async () => {
     console.log("Logout triggered.");
+    try {
+      // 1. Sign out from Supabase first
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.warn("Sign out error", e);
+    }
+
+    // 2. Clear all local storage related to the app
+    const keysToRemove = ['bolao-copa-native-v1', 'app-theme'];
+    Object.keys(localStorage).forEach(key => {
+      if (key.includes('supabase.auth.token') || key.startsWith('sb-') || key.startsWith('notify_')) {
+        keysToRemove.push(key);
+      }
+    });
+    keysToRemove.forEach(k => localStorage.removeItem(k));
+
+    // 3. Reset state
     setCurrentUser(null);
     setLeagues([]);
     setPredictions([]);
     setInvitations([]);
-    setLoading(false);
-    Object.keys(localStorage).forEach(key => {
-      if (key.includes('supabase.auth.token') || key.startsWith('sb-')) localStorage.removeItem(key);
-    });
-    try {
-      supabase.auth.signOut({ scope: 'global' }).catch(err => console.warn("Background signout issue:", err));
-    } catch (e) { }
-    // Force hard navigation to clear all state
-    window.location.href = '/';
+
+    // 4. Force hard navigation to clear all memory state
+    window.location.href = '/login';
   };
 
   const deleteAccount = async (): Promise<boolean> => {
