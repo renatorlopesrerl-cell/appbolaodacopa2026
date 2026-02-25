@@ -38,10 +38,15 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                 fcm_token: body.fcm_token
             };
 
-            // Remove undefined keys
-            Object.keys(safeBody).forEach(key => safeBody[key] === undefined && delete safeBody[key]);
+            // Remove undefined or null keys to avoid overwriting existing data with empty values
+            Object.keys(safeBody).forEach(key => {
+                if (safeBody[key] === undefined || safeBody[key] === null) {
+                    delete safeBody[key];
+                }
+            });
 
-            const { error } = await userClient.from('profiles').upsert(safeBody);
+            // Use upsert with explicit merge behavior if supported, or just rely on partial object
+            const { error } = await userClient.from('profiles').upsert(safeBody, { onConflict: 'id' });
             if (error) throw error;
 
             return jsonResponse({ success: true });

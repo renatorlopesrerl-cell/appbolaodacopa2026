@@ -339,13 +339,14 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           setCurrentUser(basicUser);
           currentUserRef.current = basicUser;
 
-          // Setup Push Notifications
-          setupPushNotifications(user.id).catch(e => console.error("Push Setup Error:", e));
-
+          // 1. First ensure profile and essential data are loaded/synced
           await Promise.all([
             fetchUserProfile(user.id, user.email || '', basicUser.avatar, basicUser.name, basicUser.whatsapp || '', provider),
             fetchAllData()
           ]);
+
+          // 2. ONLY THEN setup notifications (to avoid race conditions with profile update)
+          setupPushNotifications(user.id).catch(e => console.error("Push Setup Error:", e));
         }
       } catch (err: any) {
         console.warn("Init Auth Error:", err.message);
@@ -390,11 +391,14 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           setCurrentUser(basicUser);
           currentUserRef.current = basicUser;
 
-          // Setup Push Notifications
-          setupPushNotifications(user.id).catch(e => console.error("Push Setup Error:", e));
+          // 1. Sync profile and data first
+          await Promise.all([
+            fetchUserProfile(user.id, user.email || '', basicUser.avatar, basicUser.name, basicUser.whatsapp || '', provider),
+            fetchAllData()
+          ]);
 
-          fetchUserProfile(user.id, user.email || '', basicUser.avatar, basicUser.name, basicUser.whatsapp || '', provider);
-          fetchAllData();
+          // 2. Then setup notifications
+          setupPushNotifications(user.id).catch(e => console.error("Push Setup Error:", e));
         }
       }
     });
