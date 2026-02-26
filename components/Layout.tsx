@@ -327,9 +327,13 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
       {/* Main Content */}
       <main className="flex-1 container mx-auto px-4 py-6">
-        <PullToRefresh onRefresh={refreshAllData}>
-          {children}
-        </PullToRefresh>
+        {currentUser ? (
+          <PullToRefresh onRefresh={refreshAllData}>
+            {children}
+          </PullToRefresh>
+        ) : (
+          children
+        )}
       </main>
 
       {/* Footer */}

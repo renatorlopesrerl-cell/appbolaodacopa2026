@@ -1044,14 +1044,16 @@ const CapacitorBackButtonHandler: React.FC = () => {
 
         backListener = await CapApp.addListener('backButton', () => {
           const currentPath = locationRef.current.pathname;
-          console.log('Back button pressed at React Router path:', currentPath);
+          const currentKey = locationRef.current.key;
 
-          // Only exit if we are at the Home or Login screen
-          // We avoid checking window.location.pathname as it may point to /index.html in native apps
-          if (currentPath === '/' || currentPath === '/login') {
+          console.log('Native Back Pressed. React Path:', currentPath, 'Key:', currentKey);
+
+          // Only exit if at login, or at home with no history (key is 'default')
+          if (currentPath === '/login' || (currentPath === '/' && currentKey === 'default')) {
+            console.log('Exiting App...');
             CapApp.exitApp();
           } else {
-            // Navigate back using React Router's internal history
+            console.log('Navigating back internally...');
             navigate(-1);
           }
         });
