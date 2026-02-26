@@ -96,6 +96,7 @@ interface AppState {
   retryConnection: () => void;
   addNotification: (title: string, message: string, type: 'success' | 'info' | 'warning', duration?: number) => void;
   refreshPredictions: () => Promise<void>;
+  refreshAllData: () => Promise<void>;
   deleteAccount: () => Promise<boolean>;
   isRecoveryMode: boolean;
 }
@@ -497,7 +498,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     } catch (e) { }
   };
 
-  const fetchAllData = async () => {
+  const fetchAllData = async (silent: boolean = false) => {
     if (typeof navigator !== 'undefined' && !navigator.onLine) {
       if (!connectionError) setConnectionError(true);
       if (mountedRef.current) setLoading(false);
@@ -511,22 +512,22 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       const [leaguesData, matchesData, predsData, profilesData] = await Promise.all([
         api.leagues.list().catch(e => {
           console.error("Leagues error", e);
-          addNotification('Erro', `Falha ao carregar Ligas: ${e.message}`, 'warning');
+          if (!silent) addNotification('Erro', `Falha ao carregar Ligas: ${e.message}`, 'warning');
           return [];
         }),
         api.matches.list().catch(e => {
           console.error("Matches error", e);
-          addNotification('Erro', `Falha ao carregar Partidas: ${e.message}`, 'warning');
+          if (!silent) addNotification('Erro', `Falha ao carregar Partidas: ${e.message}`, 'warning');
           return [];
         }),
         api.predictions.list().catch(e => {
           console.error("Preds error", e);
-          addNotification('Erro', `Falha ao carregar Palpites: ${e.message}`, 'warning');
+          if (!silent) addNotification('Erro', `Falha ao carregar Palpites: ${e.message}`, 'warning');
           return [];
         }),
         api.profiles.list().catch(e => {
           console.error("Profiles error", e);
-          addNotification('Erro', `Falha ao carregar Perfis: ${e.message}`, 'warning');
+          if (!silent) addNotification('Erro', `Falha ao carregar Perfis: ${e.message}`, 'warning');
           return [];
         })
       ]);
@@ -1014,7 +1015,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       currentUser, users, matches, leagues, predictions, currentTime, notifications, loading, invitations,
       setCurrentTime, loginGoogle, signInWithEmail, signUpWithEmail, logout, createLeague, updateLeague, joinLeague, deleteLeague, approveUser, rejectUser, deleteAccount,
       removeUserFromLeague, submitPrediction, submitPredictions, simulateMatchResult, updateMatch, removeNotification, updateUserProfile, syncInitialMatches,
-      sendLeagueInvite, respondToInvite, theme, toggleTheme, connectionError, retryConnection, addNotification, refreshPredictions, isRecoveryMode
+      sendLeagueInvite, respondToInvite, theme, toggleTheme, connectionError, retryConnection, addNotification, refreshPredictions, refreshAllData: () => fetchAllData(false), isRecoveryMode
     }}>
       {children}
     </AppContext.Provider>
@@ -1022,24 +1023,41 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 };
 
 const CapacitorBackButtonHandler: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const locationRef = useRef(location);
+
+  // Update ref whenever location changes
+  useEffect(() => {
+    locationRef.current = location;
+  }, [location]);
+
   useEffect(() => {
     let backListener: any;
 
     const setupListener = async () => {
-      const { App: CapApp } = await import('@capacitor/app');
-      backListener = await CapApp.addListener('backButton', () => {
-        const path = window.location.pathname;
-        console.log('Back button pressed at path:', path);
+      try {
+        const { App: CapApp } = await import('@capacitor/app');
 
-        // If at landing page or login, exit app. 
-        // Note: Capacitor often maps the root to /index.html or /
-        if (path === '/' || path === '/login' || path === '/index.html' || path.endsWith('index.html')) {
-          CapApp.exitApp();
-        } else {
-          // Go back in history
-          window.history.back();
-        }
-      });
+        // Remove any previous listener just in case
+        if (backListener) await backListener.remove();
+
+        backListener = await CapApp.addListener('backButton', () => {
+          const currentPath = locationRef.current.pathname;
+          console.log('Back button pressed at React Router path:', currentPath);
+
+          // Only exit if we are at the Home or Login screen
+          // We avoid checking window.location.pathname as it may point to /index.html in native apps
+          if (currentPath === '/' || currentPath === '/login') {
+            CapApp.exitApp();
+          } else {
+            // Navigate back using React Router's internal history
+            navigate(-1);
+          }
+        });
+      } catch (e) {
+        console.error('Error setting up Capacitor backButton listener:', e);
+      }
     };
 
     setupListener();
@@ -1047,7 +1065,7 @@ const CapacitorBackButtonHandler: React.FC = () => {
     return () => {
       if (backListener) backListener.remove();
     };
-  }, []);
+  }, [navigate]);
 
   return null;
 };

@@ -6,9 +6,10 @@ import {
 } from 'lucide-react';
 import { OptimizedImage } from './OptimizedImage';
 import { useStore } from '../App';
+import { PullToRefresh } from './PullToRefresh';
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentUser, logout, invitations, leagues, users, connectionError, retryConnection, isRecoveryMode, approveUser, rejectUser, respondToInvite, notifications, removeNotification } = useStore();
+  const { currentUser, logout, invitations, leagues, users, connectionError, retryConnection, isRecoveryMode, approveUser, rejectUser, respondToInvite, notifications, removeNotification, refreshAllData } = useStore();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -326,7 +327,9 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
       {/* Main Content */}
       <main className="flex-1 container mx-auto px-4 py-6">
-        {children}
+        <PullToRefresh onRefresh={refreshAllData}>
+          {children}
+        </PullToRefresh>
       </main>
 
       {/* Footer */}

@@ -68,18 +68,20 @@ export async function sendPushNotificationToUser(env: any, userId: string, title
         .eq('id', userId)
         .single();
 
-    if (!profile?.fcm_token) return;
+    if (!profile?.fcm_token) {
+        console.warn(`Push skipped for ${userId}: No FCM token found in profile.`);
+        return;
+    }
 
-    // 2. Send via FCM (Placeholder for actual FCM v1 call)
-    // In a real environment, you'd use a service account and JWT to get an access token
-    // or use a library that works in Cloudflare Workers.
-    console.log(`Sending Push to ${userId}: ${title} - ${body}`);
+    // 2. Send via FCM
+    // Note: Cloudflare environment needs FCM_SERVER_KEY or FCM_SERVICE_ACCOUNT
+    console.log(`Attempting to send push to ${userId} (Token: ${profile.fcm_token.substring(0, 10)}...)`);
 
     try {
         // This is a simplified call. For FCM v1, you need an OAuth2 token.
         // If the user has FCM_SERVER_KEY (legacy) or FCM_SERVICE_ACCOUNT (v1) configured:
         if (env.FCM_SERVER_KEY) {
-            await fetch('https://fcm.googleapis.com/fcm/send', {
+            const response = await fetch('https://fcm.googleapis.com/fcm/send', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -87,12 +89,26 @@ export async function sendPushNotificationToUser(env: any, userId: string, title
                 },
                 body: JSON.stringify({
                     to: profile.fcm_token,
-                    notification: { title, body },
-                    data: data || {}
+                    notification: {
+                        title,
+                        body,
+                        sound: "default",
+                        badge: 1
+                    },
+                    data: {
+                        ...(data || {}),
+                        click_action: "FLUTTER_NOTIFICATION_CLICK" // Standard for many libraries
+                    },
+                    priority: "high"
                 })
             });
+
+            const result = await response.text();
+            console.log(`FCM Sent Result: ${response.status} - ${result}`);
+        } else {
+            console.warn("FCM_SERVER_KEY is not defined in the environment variables (Cloudflare).");
         }
-    } catch (e) {
-        console.error("Push send error:", e);
+    } catch (e: any) {
+        console.error("Critical Push send error:", e.message || e);
     }
 }
