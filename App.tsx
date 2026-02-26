@@ -1022,20 +1022,22 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 };
 
 const CapacitorBackButtonHandler: React.FC = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
-
   useEffect(() => {
     let backListener: any;
 
     const setupListener = async () => {
       const { App: CapApp } = await import('@capacitor/app');
       backListener = await CapApp.addListener('backButton', () => {
-        if (location.pathname === '/') {
+        const path = window.location.pathname;
+        console.log('Back button pressed at path:', path);
+
+        // If at landing page or login, exit app. 
+        // Note: Capacitor often maps the root to /index.html or /
+        if (path === '/' || path === '/login' || path === '/index.html' || path.endsWith('index.html')) {
           CapApp.exitApp();
         } else {
-          // React Router back
-          navigate(-1);
+          // Go back in history
+          window.history.back();
         }
       });
     };
@@ -1045,7 +1047,7 @@ const CapacitorBackButtonHandler: React.FC = () => {
     return () => {
       if (backListener) backListener.remove();
     };
-  }, [location]);
+  }, []);
 
   return null;
 };

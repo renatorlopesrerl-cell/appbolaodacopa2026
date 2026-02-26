@@ -135,9 +135,7 @@ export const ProfilePage: React.FC = () => {
           <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Meu Perfil</h1>
         </div>
 
-        <div className={`px-4 py-1.5 rounded-full text-sm font-bold border-2 ${currentUser.isPro ? 'bg-brasil-yellow text-brasil-blue border-brasil-yellow shadow-md' : 'bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700'}`}>
-          Plano: {currentUser.isPro ? 'PRO ⭐️' : 'FREE'}
-        </div>
+
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">

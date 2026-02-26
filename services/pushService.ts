@@ -19,33 +19,43 @@ export const setupPushNotifications = async (userId: string) => {
 
     // 2. Register for Push
     if (pushPerms.receive === 'granted') {
-        await PushNotifications.register();
-
+        // Add listeners BEFORE registering to avoid missing events
         await PushNotifications.addListener('registration', async (token) => {
-            console.log('Push token:', token.value);
+            console.log('Push token successfully generated:', token.value);
             try {
                 await api.profiles.update({ id: userId, fcm_token: token.value });
+                console.log('Push token saved to profile');
             } catch (e) {
-                console.error('Error saving FCM token:', e);
+                console.error('Error saving FCM token to API:', e);
             }
         });
 
+        await PushNotifications.addListener('registrationError', (error) => {
+            console.error('Push registration error:', error.error);
+        });
+
         await PushNotifications.addListener('pushNotificationReceived', (notification) => {
+            console.log('Push notification received:', notification);
             // Show as local notification if app is in foreground
             LocalNotifications.schedule({
                 notifications: [{
                     title: notification.title || "Notificação",
                     body: notification.body || "",
                     id: Date.now(),
-                    extra: notification.data
+                    extra: notification.data,
+                    actionTypeId: 'OPEN_URL'
                 }]
             });
         });
 
         await PushNotifications.addListener('pushNotificationActionPerformed', (notification) => {
+            console.log('Push action performed:', notification.actionId, notification.notification.data);
             const data = notification.notification.data;
             if (data?.url) window.location.href = data.url;
         });
+
+        // Now register
+        await PushNotifications.register();
     }
 
     // 3. Setup Local Notifications (Reminders)
