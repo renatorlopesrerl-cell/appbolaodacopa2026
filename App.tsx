@@ -1042,17 +1042,16 @@ const CapacitorBackButtonHandler: React.FC = () => {
         // Remove any previous listener just in case
         if (backListener) await backListener.remove();
 
-        backListener = await CapApp.addListener('backButton', ({ canGoBack }) => {
-          const currentPath = locationRef.current.pathname;
+        backListener = await CapApp.addListener('backButton', () => {
+          const pathname = window.location.pathname;
 
-          console.log('Native Back Pressed. Path:', currentPath, 'Can go back:', canGoBack);
+          console.log('Native Back Pressed. Pathname:', pathname);
 
-          // If history allows going back and not at the home/initial route
-          if (canGoBack && currentPath !== '/' && currentPath !== '/home') {
-            console.log('Navigating back internally...');
+          // Se não estiver na home, volta uma página
+          if (pathname !== '/' && pathname !== '/home') {
             window.history.back();
           } else {
-            console.log('Exiting App...');
+            // Se estiver na home, aí sim minimiza/sai
             CapApp.exitApp();
           }
         });
