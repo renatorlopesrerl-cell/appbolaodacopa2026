@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { RefreshCw } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
 
 interface PullToRefreshProps {
     onRefresh: () => Promise<void>;
@@ -11,6 +12,11 @@ interface PullToRefreshProps {
  * Optimized for mobile APKs where browser pull-to-refresh might be disabled
  */
 export const PullToRefresh: React.FC<PullToRefreshProps> = ({ onRefresh, children }) => {
+    // If running on WEB, just render children (browser has its own pull-to-refresh)
+    if (Capacitor.getPlatform() === 'web') {
+        return <>{children}</>;
+    }
+
     const [pullDistance, setPullDistance] = useState(0);
     const [isRefreshing, setIsRefreshing] = useState(false);
     const [isPulling, setIsPulling] = useState(false);

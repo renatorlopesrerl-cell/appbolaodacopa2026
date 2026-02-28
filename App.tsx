@@ -1042,19 +1042,18 @@ const CapacitorBackButtonHandler: React.FC = () => {
         // Remove any previous listener just in case
         if (backListener) await backListener.remove();
 
-        backListener = await CapApp.addListener('backButton', () => {
+        backListener = await CapApp.addListener('backButton', ({ canGoBack }) => {
           const currentPath = locationRef.current.pathname;
-          const currentKey = locationRef.current.key;
 
-          console.log('Native Back Pressed. React Path:', currentPath, 'Key:', currentKey);
+          console.log('Native Back Pressed. Path:', currentPath, 'Can go back:', canGoBack);
 
-          // Only exit if at login, or at home with no history (key is 'default')
-          if (currentPath === '/login' || (currentPath === '/' && currentKey === 'default')) {
+          // If history allows going back and not at the home/initial route
+          if (canGoBack && currentPath !== '/' && currentPath !== '/home') {
+            console.log('Navigating back internally...');
+            window.history.back();
+          } else {
             console.log('Exiting App...');
             CapApp.exitApp();
-          } else {
-            console.log('Navigating back internally...');
-            navigate(-1);
           }
         });
       } catch (e) {
