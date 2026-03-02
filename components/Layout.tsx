@@ -1,4 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import {
   Trophy, Home, Users, User, LogOut, Menu, X, Bell, Layout as LayoutIcon,
@@ -163,28 +164,31 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       )}
 
       {/* Global Toast Container */}
-      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[99999] flex flex-col gap-3 w-[90%] max-w-sm pointer-events-none">
-        {notifications.map((note) => (
-          <div
-            key={note.id}
-            className="pointer-events-auto bg-white dark:bg-gray-800 border-l-4 shadow-2xl rounded-r-lg p-5 animate-in fade-in zoom-in-95 duration-300 flex items-start gap-3 transform transition-all"
-            style={{ borderColor: note.type === 'success' ? '#009c3b' : note.type === 'info' ? '#002776' : '#ffdf00' }}
-          >
-            <div className="mt-0.5">
-              {note.type === 'success' && <div className="bg-green-100 dark:bg-green-900 p-1.5 rounded-full text-brasil-green dark:text-green-300"><Check size={16} /></div>}
-              {note.type === 'info' && <div className="bg-blue-100 dark:bg-blue-900 p-1.5 rounded-full text-brasil-blue dark:text-blue-300"><Info size={16} /></div>}
-              {note.type === 'warning' && <div className="bg-yellow-100 dark:bg-yellow-900 p-1.5 rounded-full text-yellow-700 dark:text-yellow-300"><Bell size={16} /></div>}
+      {createPortal(
+        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[99999] flex flex-col gap-3 w-[90%] max-w-sm pointer-events-none">
+          {notifications.map((note) => (
+            <div
+              key={note.id}
+              className="pointer-events-auto bg-white dark:bg-gray-800 border-l-4 shadow-2xl rounded-r-lg p-5 animate-in fade-in zoom-in-95 duration-300 flex items-start gap-3 transform transition-all"
+              style={{ borderColor: note.type === 'success' ? '#009c3b' : note.type === 'info' ? '#002776' : '#ffdf00' }}
+            >
+              <div className="mt-0.5">
+                {note.type === 'success' && <div className="bg-green-100 dark:bg-green-900 p-1.5 rounded-full text-brasil-green dark:text-green-300"><Check size={16} /></div>}
+                {note.type === 'info' && <div className="bg-blue-100 dark:bg-blue-900 p-1.5 rounded-full text-brasil-blue dark:text-blue-300"><Info size={16} /></div>}
+                {note.type === 'warning' && <div className="bg-yellow-100 dark:bg-yellow-900 p-1.5 rounded-full text-yellow-700 dark:text-yellow-300"><Bell size={16} /></div>}
+              </div>
+              <div className="flex-1">
+                <h3 className="font-bold text-gray-800 dark:text-white text-sm">{note.title}</h3>
+                <p className="text-gray-600 dark:text-gray-300 text-xs mt-0.5">{note.message}</p>
+              </div>
+              <button onClick={() => removeNotification(note.id)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+                <X size={14} />
+              </button>
             </div>
-            <div className="flex-1">
-              <h3 className="font-bold text-gray-800 dark:text-white text-sm">{note.title}</h3>
-              <p className="text-gray-600 dark:text-gray-300 text-xs mt-0.5">{note.message}</p>
-            </div>
-            <button onClick={() => removeNotification(note.id)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-              <X size={14} />
-            </button>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>,
+        document.body
+      )}
 
       {/* Header */}
       <header className="bg-gradient-to-r from-brasil-green to-brasil-blue text-white shadow-md sticky top-0 z-50">

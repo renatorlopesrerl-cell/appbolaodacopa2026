@@ -5,11 +5,11 @@ const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
-        flowType: 'pkce',
-        detectSessionInUrl: true,
+        storage: window.localStorage, // Capacitor persists via standard localStorage
         autoRefreshToken: true,
         persistSession: true,
-        storageKey: 'bolao-copa-native-v1',
-        storage: window.localStorage
+        detectSessionInUrl: true,    // Essential for OAuth/Magic Link callbacks
+        flowType: 'pkce',
+        storageKey: 'bolao-copa-native-v1'
     }
 });
