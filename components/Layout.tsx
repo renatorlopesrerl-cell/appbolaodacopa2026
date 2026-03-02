@@ -163,11 +163,11 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       )}
 
       {/* Global Toast Container */}
-      <div className="fixed top-24 right-4 z-[9999] flex flex-col gap-2 w-full max-w-sm pointer-events-none">
+      <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[99999] flex flex-col gap-3 w-[90%] max-w-sm pointer-events-none">
         {notifications.map((note) => (
           <div
             key={note.id}
-            className="pointer-events-auto bg-white dark:bg-gray-800 border-l-4 shadow-xl rounded-r-lg p-4 animate-[slideIn_0.3s_ease-out] flex items-start gap-3 transform transition-all"
+            className="pointer-events-auto bg-white dark:bg-gray-800 border-l-4 shadow-2xl rounded-r-lg p-5 animate-in fade-in zoom-in-95 duration-300 flex items-start gap-3 transform transition-all"
             style={{ borderColor: note.type === 'success' ? '#009c3b' : note.type === 'info' ? '#002776' : '#ffdf00' }}
           >
             <div className="mt-0.5">

@@ -14,16 +14,41 @@ async function retry(fn, attempts = 3) {
 }
 
 export const onRequest = async ({ request, env, next, data }) => {
-    const origin = request.headers.get('Origin') || '*';
+    const originHeader = request.headers.get('Origin');
+    const url = new URL(request.url);
+    const isPushTest = url.pathname.includes('/admin/test-push');
+
+    // CORS Configuration (Updated for APK/Supabase compatibility)
+    // 1. If it's the push test route, allow '*'
+    // 2. If it's a localhost origin (standard for Capacitor Android/iOS), echo it back.
+    // 3. Otherwise default to '*' (disables credentials security).
+    let allowedOrigin = '*';
+    let allowCredentials = 'false';
+
+    if (isPushTest) {
+        allowedOrigin = '*';
+        allowCredentials = 'false';
+    } else if (originHeader) {
+        if (originHeader.includes('localhost') || originHeader.includes('127.0.0.1')) {
+            allowedOrigin = originHeader;
+            allowCredentials = 'true';
+        } else {
+            allowedOrigin = '*';
+            allowCredentials = 'false';
+        }
+    }
+
+    // Common Supabase and Auth headers used in web and mobile
+    const allowHeaders = 'Content-Type, Authorization, x-requested-with, apikey, x-client-info, x-supabase-auth';
 
     // Handle OPTIONS Preflight
     if (request.method === 'OPTIONS') {
         return new Response(null, {
             headers: {
-                'Access-Control-Allow-Origin': origin,
+                'Access-Control-Allow-Origin': allowedOrigin,
                 'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-requested-with',
-                'Access-Control-Allow-Credentials': 'true',
+                'Access-Control-Allow-Headers': allowHeaders,
+                'Access-Control-Allow-Credentials': allowCredentials,
                 'Access-Control-Max-Age': '86400',
             }
         });
@@ -32,10 +57,10 @@ export const onRequest = async ({ request, env, next, data }) => {
     // Helper to add CORS to any response
     const withCors = (response) => {
         const res = new Response(response.body, response);
-        res.headers.set('Access-Control-Allow-Origin', origin);
+        res.headers.set('Access-Control-Allow-Origin', allowedOrigin);
         res.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-        res.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-requested-with');
-        res.headers.set('Access-Control-Allow-Credentials', 'true');
+        res.headers.set('Access-Control-Allow-Headers', allowHeaders);
+        res.headers.set('Access-Control-Allow-Credentials', allowCredentials);
         return res;
     };
 

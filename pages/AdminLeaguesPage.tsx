@@ -67,7 +67,7 @@ export const AdminLeaguesPage: React.FC = () => {
     return (
         <div className="space-y-6 pb-20">
             {toast && (
-                <div className="fixed top-24 right-4 z-[100] bg-green-600 text-white px-6 py-3 rounded-lg shadow-xl animate-[slideIn_0.3s_ease-out] font-bold">
+                <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[99999] bg-brasil-green text-white px-8 py-5 rounded-xl shadow-2xl animate-in fade-in zoom-in-95 duration-300 font-bold max-w-xs text-center border-2 border-white/20 backdrop-blur-sm">
                     {toast}
                 </div>
             )}

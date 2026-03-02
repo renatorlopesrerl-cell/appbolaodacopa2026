@@ -1043,16 +1043,17 @@ const CapacitorBackButtonHandler: React.FC = () => {
         if (backListener) await backListener.remove();
 
         backListener = await CapApp.addListener('backButton', () => {
-          const pathname = window.location.pathname;
+          const path = window.location.pathname;
 
-          console.log('Native Back Pressed. Pathname:', pathname);
+          console.log('Native Back Pressed. Current path:', path);
 
-          // Se não estiver na home, volta uma página
-          if (pathname !== '/' && pathname !== '/home') {
-            window.history.back();
-          } else {
-            // Se estiver na home, aí sim minimiza/sai
+          // Se estiver na raiz ou na home, sai do app
+          // Adicionamos check para paths vazios ou index.html que podem ocorrer no APK
+          if (path === '/' || path === '/home' || path === '' || path.endsWith('index.html')) {
             CapApp.exitApp();
+          } else {
+            // Para qualquer outra rota dinâmica (leagues, profile, admin), ele volta no histórico
+            window.history.back();
           }
         });
       } catch (e) {
