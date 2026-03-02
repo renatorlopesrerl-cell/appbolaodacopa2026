@@ -163,9 +163,9 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         </div>
       )}
 
-      {/* Global Toast Container */}
+      {/* Global Toast Container - CSS Nuclear Refinement */}
       {createPortal(
-        <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[99999] flex flex-col gap-3 w-[90%] max-w-sm pointer-events-none">
+        <div className="fixed top-[50vh] left-[50vw] -translate-x-1/2 -translate-y-1/2 z-[999999] flex flex-col gap-3 w-[85%] max-w-sm pointer-events-none">
           {notifications.map((note) => (
             <div
               key={note.id}
