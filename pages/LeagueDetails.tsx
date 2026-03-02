@@ -726,7 +726,7 @@ export const LeagueDetails: React.FC = () => {
         <div>
             {toast && createPortal(
                 <div
-                    className={`fixed top-[50vh] left-[50vw] -translate-x-1/2 -translate-y-1/2 z-[999999] max-w-xs w-[85%] bg-white dark:bg-gray-800 border-l-4 shadow-2xl rounded-r-lg p-5 animate-in fade-in zoom-in-95 duration-300 flex items-start gap-3 transition-all ${toast.type === 'warning' ? 'border-yellow-500' : toast.type === 'success' ? 'border-brasil-green' : 'border-brasil-blue'
+                    className={`fixed top-[50vh] left-[50vw] -translate-x-1/2 -translate-y-1/2 z-[999999] max-w-[85vw] w-[85%] max-h-[80vh] overflow-y-auto bg-white dark:bg-gray-800 border-l-4 shadow-2xl rounded-r-lg p-5 animate-in fade-in zoom-in-95 duration-300 flex items-start gap-3 transition-all ${toast.type === 'warning' ? 'border-yellow-500' : toast.type === 'success' ? 'border-brasil-green' : 'border-brasil-blue'
                         }`}
                 ><div className="mt-0.5"><div className={`p-1.5 rounded-full ${toast.type === 'warning' ? 'bg-yellow-100 text-yellow-700' : toast.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-brasil-blue'}`}>{toast.type === 'warning' ? <AlertTriangle size={16} /> : toast.type === 'success' ? <Check size={16} /> : <Info size={16} />}</div></div><div className="flex-1"><h3 className="font-bold text-gray-800 text-sm">{toast.title}</h3><p className="text-gray-600 text-xs mt-0.5">{toast.message}</p></div><button onClick={() => setToast(null)} className="text-gray-400 hover:text-gray-600"><X size={14} /></button></div>,
                 document.body

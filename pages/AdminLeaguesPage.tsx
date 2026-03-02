@@ -68,7 +68,7 @@ export const AdminLeaguesPage: React.FC = () => {
     return (
         <div className="space-y-6 pb-20">
             {toast && createPortal(
-                <div className="fixed top-[50vh] left-[50vw] -translate-x-1/2 -translate-y-1/2 z-[999999] bg-brasil-green text-white px-8 py-5 rounded-xl shadow-2xl animate-in fade-in zoom-in-95 duration-300 font-bold max-w-xs text-center border-2 border-white/20 backdrop-blur-sm">
+                <div className="fixed top-[50vh] left-[50vw] -translate-x-1/2 -translate-y-1/2 z-[999999] bg-brasil-green text-white px-8 py-5 rounded-xl shadow-2xl animate-in fade-in zoom-in-95 duration-300 font-bold max-w-[85vw] max-h-[80vh] overflow-y-auto text-center border-2 border-white/20 backdrop-blur-sm">
                     {toast}
                 </div>,
                 document.body
