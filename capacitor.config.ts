@@ -7,6 +7,16 @@ const config: CapacitorConfig = {
   server: {
     androidScheme: 'https',
     allowNavigation: ['bolaodacopa2026.app', '*.supabase.co']
+  },
+  plugins: {
+    PushNotifications: {
+      presentationOptions: ["badge", "sound", "alert"]
+    },
+    LocalNotifications: {
+      smallIcon: "ic_stat_icon_config_sample", // Ensure a valid icon exists or use default
+      iconColor: "#488AFF",
+      sound: "beep.wav"
+    }
   }
 };
 

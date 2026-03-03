@@ -43,6 +43,8 @@ export const setupPushNotifications = async (userId: string) => {
                     body: notification.body || "",
                     id: Date.now(),
                     extra: notification.data,
+                    channelId: 'meu_canal',
+                    smallIcon: 'ic_stat_icon_config_sample',
                     actionTypeId: 'OPEN_URL'
                 }]
             });
@@ -53,6 +55,27 @@ export const setupPushNotifications = async (userId: string) => {
             const data = notification.notification.data;
             if (data?.url) window.location.href = data.url;
         });
+
+        // Create channels for Android (Important for modern Android versions)
+        if (Capacitor.getPlatform() === 'android') {
+            await PushNotifications.createChannel({
+                id: 'meu_canal',
+                name: 'Palpiteiro da Copa',
+                description: 'Canal principal para notificações',
+                importance: 5, // High
+                visibility: 1,
+                vibration: true,
+            });
+
+            await LocalNotifications.createChannel({
+                id: 'meu_canal',
+                name: 'Palpiteiro da Copa',
+                description: 'Canal para lembretes locais',
+                importance: 5,
+                visibility: 1,
+                vibration: true,
+            });
+        }
 
         // Now register
         await PushNotifications.register();
@@ -89,6 +112,8 @@ export const scheduleMatchReminder = async (matchId: string, matchName: string, 
             body: `Faltam 30 minutos para ${matchName}! Faça seu palpite agora.`,
             id: getNumericId(matchId),
             schedule: { at: reminderTime },
+            channelId: 'meu_canal',
+            smallIcon: 'ic_stat_icon_config_sample',
             extra: { url: '/table' }
         }]
     });
