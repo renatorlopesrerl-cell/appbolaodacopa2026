@@ -111,7 +111,7 @@ export async function sendPushNotificationToUser(env: any, userId: string, title
                 return {
                     success: false,
                     message: "Firebase retornou 404 (Não Encontrado).",
-                    details: "Isso geralmente significa que a API Legada do Cloud Messaging está desativada no Console do Google Cloud para este projeto."
+                    details: `Resposta bruta do Google: "${resultTex.substring(0, 100)}" | Certifique-se de que a API Legada está ativa.`
                 };
             }
             if (response.ok) {
