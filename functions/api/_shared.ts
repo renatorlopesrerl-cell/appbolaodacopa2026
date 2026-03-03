@@ -83,7 +83,7 @@ export async function sendPushNotificationToUser(env: any, userId: string, title
     // 2. Send via FCM
     try {
         if (env.FCM_SERVER_KEY) {
-            const response = await fetch('https://fcm.googleapis.com/fcm/send', {
+            const response = await fetch(`https://fcm.googleapis.com/fcm/send`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -91,13 +91,29 @@ export async function sendPushNotificationToUser(env: any, userId: string, title
                 },
                 body: JSON.stringify({
                     to: profile.fcm_token,
-                    notification: { title, body, sound: "default", badge: 1 },
-                    data: { ...(data || {}), click_action: "FLUTTER_NOTIFICATION_CLICK" },
+                    notification: {
+                        title,
+                        body,
+                        sound: "default",
+                        badge: 1
+                    },
+                    data: {
+                        ...(data || {}),
+                        click_action: "FLUTTER_NOTIFICATION_CLICK"
+                    },
                     priority: "high"
                 })
             });
 
             const resultTex = await response.text();
+
+            if (response.status === 404) {
+                return {
+                    success: false,
+                    message: "Firebase retornou 404 (Não Encontrado).",
+                    details: "Isso geralmente significa que a API Legada do Cloud Messaging está desativada no Console do Google Cloud para este projeto."
+                };
+            }
             if (response.ok) {
                 return { success: true, message: "Notificação enviada com sucesso!", details: resultTex };
             } else {
