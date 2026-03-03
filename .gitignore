@@ -6,6 +6,7 @@ dist
 # Env
 .env
 .env.*
+.dev.vars
 
 # Supabase
 .supabase
