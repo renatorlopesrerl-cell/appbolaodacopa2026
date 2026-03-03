@@ -13,21 +13,6 @@ import {
 } from 'lucide-react';
 import { OptimizedImage } from '../components/OptimizedImage';
 
-// Returns window.innerHeight/2 — works correctly in the Android APK WebView,
-// unlike `50vh` which measures the full document height.
-function useViewportCenterY() {
-    const [centerY, setCenterY] = useState(() => window.innerHeight / 2);
-    useEffect(() => {
-        const update = () => setCenterY(window.innerHeight / 2);
-        window.addEventListener('resize', update);
-        window.addEventListener('orientationchange', update);
-        return () => {
-            window.removeEventListener('resize', update);
-            window.removeEventListener('orientationchange', update);
-        };
-    }, []);
-    return centerY;
-}
 
 export const LeagueDetails: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -51,7 +36,6 @@ export const LeagueDetails: React.FC = () => {
 
     // --- GLOBAL STATE (HOISTED) ---
 
-    const viewportCenterY = useViewportCenterY();
     const [toast, setToast] = useState<{ title: string; message: string; type: 'success' | 'info' | 'warning' } | null>(null);
     const [userToRemove, setUserToRemove] = useState<{ id: string; name: string } | null>(null);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -743,10 +727,31 @@ export const LeagueDetails: React.FC = () => {
         <div>
             {toast && createPortal(
                 <div
-                    className={`fixed left-1/2 z-[999999] max-w-[85vw] w-[85%] max-h-[80vh] overflow-y-auto bg-white dark:bg-gray-800 border-l-4 shadow-2xl rounded-r-lg p-5 animate-in fade-in zoom-in-95 duration-300 flex items-start gap-3 transition-all ${toast.type === 'warning' ? 'border-yellow-500' : toast.type === 'success' ? 'border-brasil-green' : 'border-brasil-blue'
-                        }`}
-                    style={{ top: viewportCenterY, transform: 'translate(-50%, -50%)' }}
-                ><div className="mt-0.5"><div className={`p-1.5 rounded-full ${toast.type === 'warning' ? 'bg-yellow-100 text-yellow-700' : toast.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-brasil-blue'}`}>{toast.type === 'warning' ? <AlertTriangle size={16} /> : toast.type === 'success' ? <Check size={16} /> : <Info size={16} />}</div></div><div className="flex-1"><h3 className="font-bold text-gray-800 text-sm">{toast.title}</h3><p className="text-gray-600 text-xs mt-0.5">{toast.message}</p></div><button onClick={() => setToast(null)} className="text-gray-400 hover:text-gray-600"><X size={14} /></button></div>,
+                    style={{
+                        position: 'fixed',
+                        top: 0, left: 0, right: 0, bottom: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 999999,
+                        pointerEvents: 'none',
+                        padding: '16px',
+                    }}
+                >
+                    <div
+                        className={`bg-white dark:bg-gray-800 shadow-2xl rounded-r-lg p-5 animate-in fade-in zoom-in-95 duration-300 flex items-start gap-3 transition-all`}
+                        style={{
+                            pointerEvents: 'auto',
+                            width: '85vw',
+                            maxWidth: '384px',
+                            borderLeftWidth: '4px',
+                            borderLeftStyle: 'solid',
+                            borderColor: toast.type === 'warning' ? '#f59e0b' : toast.type === 'success' ? '#009c3b' : '#002776',
+                        }}
+                    >
+                        <div className="mt-0.5"><div className={`p-1.5 rounded-full ${toast.type === 'warning' ? 'bg-yellow-100 text-yellow-700' : toast.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-brasil-blue'}`}>{toast.type === 'warning' ? <AlertTriangle size={16} /> : toast.type === 'success' ? <Check size={16} /> : <Info size={16} />}</div></div><div className="flex-1"><h3 className="font-bold text-gray-800 text-sm">{toast.title}</h3><p className="text-gray-600 text-xs mt-0.5">{toast.message}</p></div><button onClick={() => setToast(null)} className="text-gray-400 hover:text-gray-600"><X size={14} /></button>
+                    </div>
+                </div>,
                 document.body
             )}
             {userToRemove && (<div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200"><div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 w-full max-w-sm animate-in zoom-in-95 duration-200 border border-gray-100 dark:border-gray-700"><div className="flex items-center gap-3 mb-4 text-red-600"><div className="bg-red-100 p-2 rounded-full"><AlertTriangle size={24} /></div><h3 className="text-lg font-bold text-gray-800 dark:text-white">Remover Participante?</h3></div><p className="text-gray-600 dark:text-gray-300 mb-6 text-sm leading-relaxed">Você tem certeza que deseja remover <strong>{userToRemove.name}</strong> desta liga? Essa ação removerá o acesso do usuário e não poderá ser desfeita imediatamente.</p><div className="flex gap-3"><button onClick={() => setUserToRemove(null)} className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 font-bold text-gray-600 dark:text-gray-300 transition-colors text-sm">Cancelar</button><button onClick={confirmRemoveUser} className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 font-bold shadow-md shadow-red-200 transition-all active:scale-95 text-sm">Confirmar</button></div></div></div>)}

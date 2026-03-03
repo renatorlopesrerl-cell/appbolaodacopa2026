@@ -9,23 +9,6 @@ import { OptimizedImage } from './OptimizedImage';
 import { useStore } from '../App';
 import { PullToRefresh } from './PullToRefresh';
 
-// Hook that returns a stable window.innerHeight-based top offset
-// This fixes the Android APK bug where `vh` measures the full document height
-// instead of the visible viewport, causing toasts to appear off-screen.
-function useViewportCenterY() {
-  const [centerY, setCenterY] = useState(() => window.innerHeight / 2);
-  useEffect(() => {
-    const update = () => setCenterY(window.innerHeight / 2);
-    window.addEventListener('resize', update);
-    window.addEventListener('orientationchange', update);
-    return () => {
-      window.removeEventListener('resize', update);
-      window.removeEventListener('orientationchange', update);
-    };
-  }, []);
-  return centerY;
-}
-
 interface ToastNote {
   id: number;
   title: string;
@@ -33,21 +16,52 @@ interface ToastNote {
   type: 'success' | 'info' | 'warning';
 }
 
+/**
+ * ToastContainer - Solução compatível com Capacitor Android WebView.
+ *
+ * NÃO usa `vh`, `top: 50%` nem `window.innerHeight` porque no Android WebView:
+ *   - `vh` pode medir o documento inteiro (não a viewport visível)
+ *   - `transform` em ancestrais quebra `position: fixed`
+ *
+ * Abordagem: overlay `fixed inset-0` com flexbox centering.
+ * O elemento cobre toda a viewport e usa `align-items: center` para
+ * posicionar o toast no centro visual real da tela.
+ */
 const ToastContainer: React.FC<{
   notifications: ToastNote[];
   removeNotification: (id: number) => void;
 }> = ({ notifications, removeNotification }) => {
-  const centerY = useViewportCenterY();
+  if (!notifications.length) return null;
   return (
     <div
-      className="fixed left-1/2 z-[999999] flex flex-col gap-3 w-[85vw] max-w-sm max-h-[80vh] overflow-y-auto pointer-events-none p-4"
-      style={{ top: centerY, transform: 'translate(-50%, -50%)' }}
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 999999,
+        pointerEvents: 'none',
+        padding: '16px',
+        gap: '12px',
+      }}
     >
       {notifications.map((note) => (
         <div
           key={note.id}
-          className="pointer-events-auto bg-white dark:bg-gray-800 border-l-4 shadow-2xl rounded-r-lg p-5 animate-in fade-in zoom-in-95 duration-300 flex items-start gap-3 transform transition-all"
-          style={{ borderColor: note.type === 'success' ? '#009c3b' : note.type === 'info' ? '#002776' : '#ffdf00' }}
+          style={{
+            pointerEvents: 'auto',
+            width: '85vw',
+            maxWidth: '384px',
+            borderLeftWidth: '4px',
+            borderLeftStyle: 'solid',
+            borderColor: note.type === 'success' ? '#009c3b' : note.type === 'info' ? '#002776' : '#ffdf00',
+          }}
+          className="bg-white dark:bg-gray-800 shadow-2xl rounded-r-lg p-5 animate-in fade-in zoom-in-95 duration-300 flex items-start gap-3"
         >
           <div className="mt-0.5">
             {note.type === 'success' && <div className="bg-green-100 dark:bg-green-900 p-1.5 rounded-full text-brasil-green dark:text-green-300"><Check size={16} /></div>}
@@ -66,6 +80,7 @@ const ToastContainer: React.FC<{
     </div>
   );
 };
+
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentUser, logout, invitations, leagues, users, connectionError, retryConnection, isRecoveryMode, approveUser, rejectUser, respondToInvite, notifications, removeNotification, refreshAllData } = useStore();

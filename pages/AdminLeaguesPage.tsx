@@ -1,30 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useStore } from '../App';
 import { Shield, Crown, Search, ArrowLeft, Star, StarHalf, Infinity as InfinityIcon, Users, Trash2, AlertCircle } from 'lucide-react';
 import { LeaguePlan } from '../types';
 
-// Returns window.innerHeight/2 — correct on Android APK WebView where `vh` = full document height
-function useViewportCenterY() {
-    const [centerY, setCenterY] = useState(() => window.innerHeight / 2);
-    useEffect(() => {
-        const update = () => setCenterY(window.innerHeight / 2);
-        window.addEventListener('resize', update);
-        window.addEventListener('orientationchange', update);
-        return () => {
-            window.removeEventListener('resize', update);
-            window.removeEventListener('orientationchange', update);
-        };
-    }, []);
-    return centerY;
-}
-
 export const AdminLeaguesPage: React.FC = () => {
     const navigate = useNavigate();
     const { currentUser, users, leagues, updateLeague, deleteLeague } = useStore();
     const [leagueSearch, setLeagueSearch] = useState('');
-    const viewportCenterY = useViewportCenterY();
 
     const [toast, setToast] = useState<string | null>(null);
     const [deletingLeagueId, setDeletingLeagueId] = useState<string | null>(null);
@@ -85,10 +69,23 @@ export const AdminLeaguesPage: React.FC = () => {
         <div className="space-y-6 pb-20">
             {toast && createPortal(
                 <div
-                    className="fixed left-1/2 z-[999999] bg-brasil-green text-white px-8 py-5 rounded-xl shadow-2xl animate-in fade-in zoom-in-95 duration-300 font-bold max-w-[85vw] max-h-[80vh] overflow-y-auto text-center border-2 border-white/20 backdrop-blur-sm"
-                    style={{ top: viewportCenterY, transform: 'translate(-50%, -50%)' }}
+                    style={{
+                        position: 'fixed',
+                        top: 0, left: 0, right: 0, bottom: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 999999,
+                        pointerEvents: 'none',
+                        padding: '16px',
+                    }}
                 >
-                    {toast}
+                    <div
+                        style={{ pointerEvents: 'auto' }}
+                        className="bg-brasil-green text-white px-8 py-5 rounded-xl shadow-2xl animate-in fade-in zoom-in-95 duration-300 font-bold max-w-[85vw] text-center border-2 border-white/20 backdrop-blur-sm"
+                    >
+                        {toast}
+                    </div>
                 </div>,
                 document.body
             )}
