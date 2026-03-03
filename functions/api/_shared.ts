@@ -1,5 +1,5 @@
 
-// Last update: 2026-03-03T02:55
+// Last update: 2026-03-03T03:00 (Triggering build with new env vars)
 import { createClient } from '@supabase/supabase-js';
 
 // ---- Response Helpers ----
