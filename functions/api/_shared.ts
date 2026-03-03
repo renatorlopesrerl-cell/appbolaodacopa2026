@@ -82,12 +82,13 @@ export async function sendPushNotificationToUser(env: any, userId: string, title
 
     // 2. Send via FCM
     try {
-        if (env.FCM_SERVER_KEY) {
+        const fcmKey = env.FCM_SERVER_KEY?.trim();
+        if (fcmKey) {
             const response = await fetch(`https://fcm.googleapis.com/fcm/send`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `key=${env.FCM_SERVER_KEY}`
+                    'Authorization': `key=${fcmKey}`
                 },
                 body: JSON.stringify({
                     to: profile.fcm_token,
