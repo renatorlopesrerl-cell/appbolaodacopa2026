@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useStore } from '../App';
+import { api } from '../services/api';
 import { Settings, Shield, Database, ArrowLeft, Users, Bell } from 'lucide-react';
 
 export const AdminPage: React.FC = () => {
@@ -11,12 +12,8 @@ export const AdminPage: React.FC = () => {
   const handleTestPush = async () => {
     setTestPushLoading(true);
     try {
-      const response = await fetch(`${window.location.origin}/api/admin/test-push`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('sb-sjianpqzozufnobftksp-auth-token') ? JSON.parse(localStorage.getItem('sb-sjianpqzozufnobftksp-auth-token')!).access_token : ''}`
-        }
-      });
-      const data = await response.json();
+      const data = await api.admin.testPush();
+
       if (data.success) {
         addNotification('Sucesso', data.message, 'success');
       } else {
@@ -24,7 +21,8 @@ export const AdminPage: React.FC = () => {
         addNotification('Erro no Servidor', errorMsg, 'warning');
       }
     } catch (e: any) {
-      addNotification('Erro de Conexão', 'Não foi possível contatar o servidor. Verifique sua rede.', 'warning');
+      console.error("Test Push Error:", e);
+      addNotification('Erro de Conexão', e.message || 'Não foi possível contatar o servidor. Verifique sua rede.', 'warning');
     } finally {
       setTestPushLoading(false);
     }

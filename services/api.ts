@@ -154,6 +154,7 @@ export const api = {
                 .update({ is_pro: isPro })
                 .eq('id', userId);
             if (error) throw error;
-        }
+        },
+        testPush: () => apiFetch<any>('/admin/test-push')
     }
 };
