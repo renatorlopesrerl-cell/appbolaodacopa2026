@@ -20,6 +20,10 @@ import {
   Home as HomeIcon
 } from 'lucide-react';
 
+// Capacitor Plugins
+import { App as CapApp } from '@capacitor/app';
+import { Browser } from '@capacitor/browser';
+
 // Components & Views
 import { Layout } from './components/Layout';
 import { Home } from './pages/Home';
@@ -409,6 +413,55 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     };
   }, []);
 
+  // --- NATIVE DEEP LINK LISTENER (OAuth) ---
+  useEffect(() => {
+    const handleDeepLink = async (event: { url: string }) => {
+      // O Supabase usa fragmento (#) para passar os tokens
+      const url = new URL(event.url);
+      const hash = url.hash;
+
+      if (hash) {
+        console.log("Deep link detected with hash, setting session...");
+        const params = new URLSearchParams(hash.substring(1));
+        const access_token = params.get('access_token');
+        const refresh_token = params.get('refresh_token');
+
+        if (access_token && refresh_token) {
+          const { error } = await supabase.auth.setSession({
+            access_token,
+            refresh_token,
+          });
+
+          if (error) {
+            console.error("Error setting session from deep link:", error.message);
+          } else {
+            console.log("Session set successfully from native deep link");
+            // Fechar o browser caso esteja aberto
+            await Browser.close();
+            // Refresh data
+            fetchAllData();
+          }
+        }
+      }
+    };
+
+    const setupDeepLink = async () => {
+      try {
+        const listener = await CapApp.addListener('appUrlOpen', handleDeepLink);
+        return listener;
+      } catch (e) {
+        console.warn("Deep link listener not available (web?)");
+        return null;
+      }
+    };
+
+    const listenerPromise = setupDeepLink();
+
+    return () => {
+      listenerPromise.then(l => l?.remove());
+    };
+  }, []);
+
   const fetchUserProfile = async (uid: string, email: string, photoURL: string, fullName: string = '', whatsappMeta: string = '', provider: string = 'email') => {
     const savedPrefs = localStorage.getItem(`notify_${uid}`);
     const fallbackPrefs = savedPrefs ? JSON.parse(savedPrefs) : { matchStart: true, matchEnd: true, predictionReminder: true };
@@ -587,18 +640,32 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   const loginGoogle = async () => {
     setLoading(true);
-    const { error } = await supabase.auth.signInWithOAuth({
+
+    // Detectar se está rodando no Capacitor (Nativo)
+    const isNative = (window as any).Capacitor?.isNative;
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: window.location.origin,
+        redirectTo: isNative ? 'app.palpiteirodacopa://login-callback' : window.location.origin,
+        skipBrowserRedirect: isNative, // Impede o redirecionamento automático da página atual no nativo
         queryParams: {
           access_type: 'offline',
         },
       }
     });
+
     if (error) {
       addNotification('Erro no Login Google', error.message, 'warning');
       setLoading(false);
+      return;
+    }
+
+    // No Nativo, abrimos a URL retornada pelo Supabase via Capacitor Browser
+    if (isNative && data?.url) {
+      console.log("Opening native browser for Google login:", data.url);
+      await Browser.open({ url: data.url });
+      setLoading(false); // Liberar loading porque o browser abriu por cima
     }
   };
 
