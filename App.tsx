@@ -319,6 +319,15 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     mountedRef.current = true;
 
     const initAuth = async () => {
+      // Limite de segurança: Se o auth demorar mais de 10s para responder, encerramos o loading
+      // para não travar o usuário na tela de splash infinita.
+      const safetyTimeout = setTimeout(() => {
+        if (mountedRef.current) {
+          console.warn("Auth initialization safety timeout reached.");
+          setLoading(false);
+        }
+      }, 10000);
+
       try {
         setLoading(true);
         console.log("Initializing Auth...");
@@ -357,6 +366,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       } catch (err: any) {
         console.warn("Init Auth Error:", err.message);
       } finally {
+        clearTimeout(safetyTimeout);
         if (mountedRef.current) setLoading(false);
       }
     };
@@ -421,26 +431,24 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       try {
         console.log("Setting up Native Deep Link Listener...");
         sub = await CapApp.addListener('appUrlOpen', async (event: { url: string }) => {
-          const url = new URL(event.url);
           console.log("Native App opened via URL:", event.url);
 
-          // O Supabase usa fragmento (#) ou query (?) dependendo do fluxo
-          if (url.hash || url.search) {
-            const params = new URLSearchParams(url.hash ? url.hash.substring(1) : url.search);
-            const access_token = params.get('access_token');
-            const refresh_token = params.get('refresh_token');
+          // 1. Converte a URL recebida trocando '#' por '?' para facilitar a leitura via URLSearchParams
+          // O Android muitas vezes devolve tokens após o hash
+          const normalizedUrl = new URL(event.url.replace('#', '?'));
+          const access_token = normalizedUrl.searchParams.get('access_token');
+          const refresh_token = normalizedUrl.searchParams.get('refresh_token');
 
-            if (access_token && refresh_token) {
-              console.log("Tokens found in deep link, setting session and redirecting...");
-              const { data, error } = await supabase.auth.setSession({ access_token, refresh_token });
+          if (access_token && refresh_token) {
+            console.log("Tokens found in deep link, setting session manually...");
+            const { data, error } = await supabase.auth.setSession({ access_token, refresh_token });
 
-              if (data.session) {
-                console.log("Login realized with success! Redirecting to home...");
-                await Browser.close();
-                window.location.href = '/'; // Forçar recarregamento na home para garantir estado limpo
-              } else if (error) {
-                console.error("SetSession error:", error.message);
-              }
+            if (data.session) {
+              console.log("Login realized with success! Force redirecting to home...");
+              await Browser.close();
+              window.location.href = '/'; // Forçar recarregamento na home para garantir estado limpo
+            } else if (error) {
+              console.error("SetSession error from deep link:", error.message);
             }
           }
         });
