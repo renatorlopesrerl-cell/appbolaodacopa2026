@@ -1,5 +1,5 @@
 
-// Last update: 2026-03-03T02:45
+// Last update: 2026-03-03T02:55
 import { createClient } from '@supabase/supabase-js';
 
 // ---- Response Helpers ----
@@ -57,6 +57,87 @@ export async function withRetry<T>(fn: () => Promise<{ data: T | null; error: an
         throw error;
     }
 }
+
+// ---- OAuth2 / JWT Helpers for FCM v1 (Web Crypto) ----
+
+async function getAccessToken(env: any) {
+    const clientEmail = env.FCM_CLIENT_EMAIL;
+    const rawKey = env.FCM_PRIVATE_KEY;
+
+    if (!clientEmail || !rawKey) {
+        throw new Error("FCM_CLIENT_EMAIL ou FCM_PRIVATE_KEY não configurados.");
+    }
+
+    const privateKey = rawKey.replace(/\\n/g, '\n');
+    const header = { alg: "RS256", typ: "JWT" };
+    const now = Math.floor(Date.now() / 1000);
+    const payload = {
+        iss: clientEmail,
+        scope: "https://www.googleapis.com/auth/cloud-platform",
+        aud: "https://oauth2.googleapis.com/token",
+        exp: now + 3600,
+        iat: now,
+    };
+
+    const encodedHeader = b64url_utf8(JSON.stringify(header));
+    const encodedPayload = b64url_utf8(JSON.stringify(payload));
+    const unsignedJwt = `${encodedHeader}.${encodedPayload}`;
+
+    // Import the PKCS#8 private key
+    // We strip headers and convert from base64 string to ArrayBuffer
+    const lines = privateKey.split('\n');
+    const b64Data = lines.filter(line => !line.startsWith('-----')).join('');
+    const binaryKey = str2ab(atob(b64Data));
+
+    const cryptoKey = await crypto.subtle.importKey(
+        "pkcs8",
+        binaryKey,
+        { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+        false,
+        ["sign"]
+    );
+
+    const signature = await crypto.subtle.sign(
+        "RSASSA-PKCS1-v1_5",
+        cryptoKey,
+        new TextEncoder().encode(unsignedJwt)
+    );
+
+    const encodedSignature = b64url_buffer(signature);
+    const jwt = `${unsignedJwt}.${encodedSignature}`;
+
+    const response = await fetch("https://oauth2.googleapis.com/token", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
+    });
+
+    const data = await response.json() as any;
+    if (!response.ok) {
+        throw new Error(`Google OAuth2 Error: ${JSON.stringify(data)}`);
+    }
+    return data.access_token;
+}
+
+function str2ab(str: string) {
+    const buf = new Uint8Array(str.length);
+    for (let i = 0; i < str.length; i++) {
+        buf[i] = str.charCodeAt(i);
+    }
+    return buf.buffer;
+}
+
+function b64url_utf8(str: string) {
+    const uint8 = new TextEncoder().encode(str);
+    const binary = String.fromCharCode(...uint8);
+    return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function b64url_buffer(buf: ArrayBuffer) {
+    const binary = String.fromCharCode(...new Uint8Array(buf));
+    return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
 // ---- Push Notifications ----
 
 export async function sendPushNotificationToUser(env: any, userId: string, title: string, body: string, data?: any) {
@@ -81,51 +162,48 @@ export async function sendPushNotificationToUser(env: any, userId: string, title
         };
     }
 
-    // 2. Send via FCM
+    // 2. Send via FCM v1
     try {
-        const fcmKey = env.FCM_SERVER_KEY?.trim();
-        if (fcmKey) {
-            const response = await fetch(`https://fcm.googleapis.com/fcm/send`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `key=${fcmKey}`
-                },
-                body: JSON.stringify({
-                    to: profile.fcm_token,
+        const accessToken = await getAccessToken(env);
+        const projectId = env.FCM_PROJECT_ID || "batepapobase";
+
+        const response = await fetch(`https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}`
+            },
+            body: JSON.stringify({
+                message: {
+                    token: profile.fcm_token,
                     notification: {
                         title,
-                        body,
-                        sound: "default",
-                        badge: 1
+                        body
                     },
                     data: {
                         ...(data || {}),
                         click_action: "FLUTTER_NOTIFICATION_CLICK"
                     },
-                    priority: "high"
-                })
-            });
+                    android: {
+                        priority: "high",
+                        notification: {
+                            sound: "default",
+                            notification_priority: "PRIORITY_HIGH"
+                        }
+                    }
+                }
+            })
+        });
 
-            const resultTex = await response.text();
+        const result = await response.json() as any;
 
-            if (response.status === 404) {
-                return {
-                    success: false,
-                    message: "Firebase retornou 404 (Não Encontrado).",
-                    details: `Resposta bruta do Google: "${resultTex.substring(0, 100)}" | Certifique-se de que a API Legada está ativa.`
-                };
-            }
-            if (response.ok) {
-                return { success: true, message: "Notificação enviada com sucesso!", details: resultTex };
-            } else {
-                return { success: false, message: `Erro no Firebase: ${response.status}`, details: resultTex };
-            }
+        if (response.ok) {
+            return { success: true, message: "Notificação enviada com sucesso!", details: JSON.stringify(result) };
         } else {
-            return { success: false, message: "FCM_SERVER_KEY não configurada na Cloudflare." };
+            return { success: false, message: `Erro no Firebase v1: ${response.status}`, details: JSON.stringify(result) };
         }
     } catch (e: any) {
-        console.error("Critical Push error:", e);
+        console.error("Critical Push v1 error:", e);
         return { success: false, message: `Erro crítico: ${e.message}` };
     }
 }
