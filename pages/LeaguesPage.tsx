@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { useStore } from '../App';
 import { Plus, Lock, Globe, ArrowRight, Search, ArrowLeft, Upload, Camera, Trophy, Loader2, X, Star } from 'lucide-react';
@@ -318,9 +319,9 @@ export const LeaguesPage: React.FC = () => {
       </section>
 
       {/* Create Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md shadow-2xl overflow-y-auto max-h-[90vh] border border-gray-200 dark:border-gray-700">
+      {showCreateModal && createPortal(
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md shadow-2xl overflow-y-auto max-h-[90vh] border border-gray-200 dark:border-gray-700 animate-in zoom-in-95 duration-200">
             <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">Criar Nova Liga</h2>
             <form onSubmit={handleCreate} className="space-y-4">
 
@@ -449,7 +450,7 @@ export const LeaguesPage: React.FC = () => {
               </div>
             </form>
           </div>
-        </div>
+        </div>, document.body
       )}
     </div>
   );

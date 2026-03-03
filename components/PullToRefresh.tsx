@@ -115,10 +115,16 @@ export const PullToRefresh: React.FC<PullToRefreshProps> = ({ onRefresh, childre
                 </div>
             </div>
 
-            {/* Content Area */}
+            {/* Content Area
+                IMPORTANT: Use marginTop instead of transform: translateY().
+                CSS `transform` creates a new stacking context, which breaks
+                `position: fixed` for ALL descendant elements in Android WebView —
+                making modals scroll with the page instead of staying on screen.
+                `marginTop` achieves the same visual push-down effect without
+                breaking the fixed positioning context. */}
             <div
-                className="transition-transform duration-200"
-                style={{ transform: `translateY(${pullDistance}px)` }}
+                className="transition-[margin] duration-200"
+                style={{ marginTop: pullDistance > 0 ? `${pullDistance}px` : undefined }}
             >
                 {children}
             </div>

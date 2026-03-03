@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Trophy, Users, PlayCircle, Calendar, ShieldCheck, ArrowLeft, BookOpen, X, ZoomIn } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -10,9 +11,9 @@ export const HowToPlay: React.FC = () => {
         <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500 pb-10 relative">
 
             {/* Image Zoom Modal */}
-            {selectedImage && (
+            {selectedImage && createPortal(
                 <div
-                    className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 animate-in fade-in duration-200"
+                    className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center p-4 animate-in fade-in duration-200"
                     onClick={() => setSelectedImage(null)}
                 >
                     <button
@@ -27,7 +28,7 @@ export const HowToPlay: React.FC = () => {
                         className="max-w-full max-h-[90vh] rounded-lg shadow-2xl object-contain animate-in zoom-in-95 duration-300"
                         onClick={(e) => e.stopPropagation()}
                     />
-                </div>
+                </div>, document.body
             )}
 
             {/* Header / Nav */}

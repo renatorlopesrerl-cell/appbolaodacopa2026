@@ -277,9 +277,9 @@ export const AdminLeaguesPage: React.FC = () => {
             </div>
 
             {/* Delete Confirmation Modal */}
-            {deletingLeagueId && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-sm shadow-2xl border border-gray-200 dark:border-gray-700">
+            {deletingLeagueId && createPortal(
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setDeletingLeagueId(null)}>
+                    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-sm shadow-2xl border border-gray-200 dark:border-gray-700 animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-3 mb-4">
                             <div className="bg-red-100 dark:bg-red-900/50 p-2 rounded-full">
                                 <AlertCircle size={24} className="text-red-600 dark:text-red-400" />
@@ -307,7 +307,8 @@ export const AdminLeaguesPage: React.FC = () => {
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );

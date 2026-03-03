@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useStore } from '../App';
 import { Match, MatchStatus, Phase } from '../types';
@@ -323,13 +324,13 @@ export const AdminMatchesPage: React.FC = () => {
       </div>
 
       {/* Edit Modal - Optimized for Mobile */}
-      {editingMatch && (
+      {editingMatch && createPortal(
         <div
-          className="fixed inset-0 bg-black/80 flex items-end md:items-center justify-center z-[9999] p-0 md:p-4 backdrop-blur-sm"
+          className="fixed inset-0 bg-black/80 flex items-end md:items-center justify-center z-[9999] p-0 md:p-4 backdrop-blur-sm animate-in fade-in duration-200"
           onClick={(e) => { if (e.target === e.currentTarget && !isSaving) setEditingMatch(null); }}
         >
           <div
-            className="bg-white dark:bg-gray-800 rounded-t-2xl md:rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] md:max-h-auto"
+            className="bg-white dark:bg-gray-800 rounded-t-2xl md:rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] md:max-h-auto animate-in slide-in-from-bottom-5 duration-300"
             onClick={e => e.stopPropagation()}
           >
             <div className="bg-brasil-blue text-white p-4 flex justify-between items-center shrink-0">
@@ -456,7 +457,7 @@ export const AdminMatchesPage: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>, document.body
       )}
     </div>
   );
