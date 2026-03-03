@@ -415,50 +415,60 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   // --- NATIVE DEEP LINK LISTENER (OAuth) ---
   useEffect(() => {
-    const handleDeepLink = async (event: { url: string }) => {
-      // O Supabase usa fragmento (#) para passar os tokens
-      const url = new URL(event.url);
-      const hash = url.hash;
-
-      if (hash) {
-        console.log("Deep link detected with hash, setting session...");
-        const params = new URLSearchParams(hash.substring(1));
-        const access_token = params.get('access_token');
-        const refresh_token = params.get('refresh_token');
-
-        if (access_token && refresh_token) {
-          const { error } = await supabase.auth.setSession({
-            access_token,
-            refresh_token,
-          });
-
-          if (error) {
-            console.error("Error setting session from deep link:", error.message);
-          } else {
-            console.log("Session set successfully from native deep link");
-            // Fechar o browser caso esteja aberto
-            await Browser.close();
-            // Refresh data
-            fetchAllData();
-          }
-        }
-      }
-    };
+    let sub: any;
 
     const setupDeepLink = async () => {
       try {
-        const listener = await CapApp.addListener('appUrlOpen', handleDeepLink);
-        return listener;
+        console.log("Setting up Native Deep Link Listener...");
+        sub = await CapApp.addListener('appUrlOpen', async (event: { url: string }) => {
+          const url = new URL(event.url);
+          console.log("Native App opened via URL:", event.url);
+
+          // O Supabase usa fragmento (#) ou query (?) dependendo do fluxo (PKCE usa search)
+          if (url.hash || url.search) {
+            const params = new URLSearchParams(url.hash ? url.hash.substring(1) : url.search);
+            const access_token = params.get('access_token');
+            const refresh_token = params.get('refresh_token');
+            // Para PKCE, pode vir um 'code' que o Supabase client lidaria via detectSession
+            const code = params.get('code');
+
+            if (access_token && refresh_token) {
+              console.log("Tokens found in deep link, setting session...");
+              const { error } = await supabase.auth.setSession({ access_token, refresh_token });
+              if (!error) {
+                console.log("Session set from tokens successfully");
+                await Browser.close();
+                fetchAllData();
+              } else {
+                console.error("SetSession error:", error.message);
+              }
+            } else if (code) {
+              console.log("Auth code found in deep link for PKCE flow.");
+              // Para o PKCE, o Supabase geralmente precisa processar a URL. 
+              // Como não estamos mudando a URL da página, vamos apenas chamar getSession
+              // ou forçar a troca do token se o client não capturar automaticamente.
+              // Mas geralmente, o fluxo PKCE nativo é melhor processado via setSession se possível.
+              // Aqui, vamos tentar o getSession() que no nativo pode precisar de ajuda se detectSessionInUrl estiver true.
+              const { data, error } = await supabase.auth.getSession();
+              if (data.session) {
+                console.log("Session verified for PKCE flow.");
+                await Browser.close();
+                fetchAllData();
+              } else if (error) {
+                console.warn("PKCE verify error:", error.message);
+              }
+            }
+          }
+        });
       } catch (e) {
-        console.warn("Deep link listener not available (web?)");
-        return null;
+        console.warn("Deep link listener setup failed (web environment?)");
       }
     };
 
-    const listenerPromise = setupDeepLink();
+    setupDeepLink();
 
     return () => {
-      listenerPromise.then(l => l?.remove());
+      if (sub) sub.remove();
     };
   }, []);
 
