@@ -319,29 +319,32 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     mountedRef.current = true;
 
     const initAuth = async () => {
-      // Limite de segurança: Se o auth demorar mais de 10s para responder, encerramos o loading
-      // para não travar o usuário na tela de splash infinita.
+      // Limite de segurança: Se o auth demorar muito na rede nativa, liberamos a UI
       const safetyTimeout = setTimeout(() => {
         if (mountedRef.current) {
-          console.warn("Auth initialization safety timeout reached.");
+          console.warn("Auth initialization safety timeout.");
           setLoading(false);
         }
-      }, 10000);
+      }, 8000);
 
       try {
         setLoading(true);
-        console.log("Initializing Auth...");
+        console.log("Starting Auth Initialization...");
 
         const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) throw error;
+        if (error) {
+          console.warn("Session retrieval error:", error.message);
+          if (mountedRef.current) setLoading(false);
+          return;
+        }
 
         if (session?.user) {
+          console.log("Session found for user:", session.user.id);
           const user = session.user;
           const metadata = user.user_metadata || {};
-
           const avatarUrl = metadata.avatar_url || metadata.picture || metadata.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`;
-
           const provider = user.app_metadata?.provider || 'email';
+
           const basicUser: User = {
             id: user.id,
             email: user.email || '',
@@ -357,17 +360,24 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           setCurrentUser(basicUser);
           currentUserRef.current = basicUser;
 
-          // Background sync (don't block UI)
+          // Background sync
           fetchUserProfile(user.id, user.email || '', basicUser.avatar, basicUser.name, basicUser.whatsapp || '', provider);
           fetchAllData();
-
-          setupPushNotifications(user.id).catch(e => console.error("Push Setup Error:", e));
+          setupPushNotifications(user.id).catch(() => { });
+        } else {
+          console.log("No active session found.");
+          setCurrentUser(null);
+          currentUserRef.current = null;
         }
       } catch (err: any) {
-        console.warn("Init Auth Error:", err.message);
+        console.warn("Critical Init Auth Error:", err.message);
+        setCurrentUser(null);
       } finally {
         clearTimeout(safetyTimeout);
-        if (mountedRef.current) setLoading(false);
+        if (mountedRef.current) {
+          console.log("Auth Initialization Finished, loading=false");
+          setLoading(false);
+        }
       }
     };
 
@@ -414,6 +424,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
           setupPushNotifications(user.id).catch(e => console.error("Push Setup Error:", e));
         }
+        // Sempre liberar o loading quando o usuário for processador ou já existir
+        setLoading(false);
       }
     });
 
@@ -431,24 +443,53 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       try {
         console.log("Setting up Native Deep Link Listener...");
         sub = await CapApp.addListener('appUrlOpen', async (event: { url: string }) => {
-          console.log("Native App opened via URL:", event.url);
+          console.log("Deep Link Captured:", event.url);
 
-          // 1. Converte a URL recebida trocando '#' por '?' para facilitar a leitura via URLSearchParams
-          // O Android muitas vezes devolve tokens após o hash
-          const normalizedUrl = new URL(event.url.replace('#', '?'));
-          const access_token = normalizedUrl.searchParams.get('access_token');
-          const refresh_token = normalizedUrl.searchParams.get('refresh_token');
+          // 1. Processamento Robusto da URL
+          let url: URL;
+          try {
+            const urlStr = event.url.replace('#', '?');
+            url = new URL(urlStr);
+          } catch (e) {
+            console.error("Malformed Deep Link URL:", event.url);
+            return;
+          }
+
+          const access_token = url.searchParams.get('access_token');
+          const refresh_token = url.searchParams.get('refresh_token');
+          const code = url.searchParams.get('code');
 
           if (access_token && refresh_token) {
-            console.log("Tokens found in deep link, setting session manually...");
-            const { data, error } = await supabase.auth.setSession({ access_token, refresh_token });
-
-            if (data.session) {
-              console.log("Login realized with success! Force redirecting to home...");
-              await Browser.close();
-              window.location.href = '/'; // Forçar recarregamento na home para garantir estado limpo
-            } else if (error) {
-              console.error("SetSession error from deep link:", error.message);
+            console.log("Tokens found in Deep Link. Setting Session...");
+            setLoading(true);
+            try {
+              const { data, error } = await supabase.auth.setSession({ access_token, refresh_token });
+              if (!error && data.session) {
+                console.log("Session set from deep link. Closing browser.");
+                await Browser.close();
+                // O onAuthStateChange vai cuidar do resto (setar usuário, carregar dados)
+                // Mas forçamos um fetch para garantir que a UI atualize rápido
+                await fetchAllData();
+              }
+            } catch (e: any) {
+              console.error("Deep link setSession error:", e.message);
+            } finally {
+              setLoading(false);
+            }
+          } else if (code) {
+            console.log("OAuth Code found (PKCE). Exchanging...");
+            setLoading(true);
+            try {
+              const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+              if (!error && data.session) {
+                console.log("Code Exchange Success.");
+                await Browser.close();
+                await fetchAllData();
+              }
+            } catch (e: any) {
+              console.error("Deep link code exchange error:", e.message);
+            } finally {
+              setLoading(false);
             }
           }
         });
