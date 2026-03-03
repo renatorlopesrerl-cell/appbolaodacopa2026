@@ -62,24 +62,26 @@ export async function sendPushNotificationToUser(env: any, userId: string, title
     const supabase = getSupabaseClient(env);
 
     // 1. Get user's FCM token
-    const { data: profile } = await supabase
+    const { data: profile, error: dbError } = await supabase
         .from('profiles')
         .select('fcm_token')
         .eq('id', userId)
         .single();
 
+    if (dbError) {
+        return { success: false, message: `Erro ao buscar perfil: ${dbError.message}` };
+    }
+
     if (!profile?.fcm_token) {
-        console.warn(`Push skipped for ${userId}: No FCM token found in profile.`);
-        return;
+        return {
+            success: false,
+            message: "Você não possui um token FCM registrado.",
+            details: "Abra o aplicativo no Android para registrar o dispositivo."
+        };
     }
 
     // 2. Send via FCM
-    // Note: Cloudflare environment needs FCM_SERVER_KEY or FCM_SERVICE_ACCOUNT
-    console.log(`Attempting to send push to ${userId} (Token: ${profile.fcm_token.substring(0, 10)}...)`);
-
     try {
-        // This is a simplified call. For FCM v1, you need an OAuth2 token.
-        // If the user has FCM_SERVER_KEY (legacy) or FCM_SERVICE_ACCOUNT (v1) configured:
         if (env.FCM_SERVER_KEY) {
             const response = await fetch('https://fcm.googleapis.com/fcm/send', {
                 method: 'POST',
@@ -89,26 +91,23 @@ export async function sendPushNotificationToUser(env: any, userId: string, title
                 },
                 body: JSON.stringify({
                     to: profile.fcm_token,
-                    notification: {
-                        title,
-                        body,
-                        sound: "default",
-                        badge: 1
-                    },
-                    data: {
-                        ...(data || {}),
-                        click_action: "FLUTTER_NOTIFICATION_CLICK" // Standard for many libraries
-                    },
+                    notification: { title, body, sound: "default", badge: 1 },
+                    data: { ...(data || {}), click_action: "FLUTTER_NOTIFICATION_CLICK" },
                     priority: "high"
                 })
             });
 
-            const result = await response.text();
-            console.log(`FCM Sent Result: ${response.status} - ${result}`);
+            const resultTex = await response.text();
+            if (response.ok) {
+                return { success: true, message: "Notificação enviada com sucesso!", details: resultTex };
+            } else {
+                return { success: false, message: `Erro no Firebase: ${response.status}`, details: resultTex };
+            }
         } else {
-            console.warn("FCM_SERVER_KEY is not defined in the environment variables (Cloudflare).");
+            return { success: false, message: "FCM_SERVER_KEY não configurada na Cloudflare." };
         }
     } catch (e: any) {
-        console.error("Critical Push send error:", e.message || e);
+        console.error("Critical Push error:", e);
+        return { success: false, message: `Erro crítico: ${e.message}` };
     }
 }

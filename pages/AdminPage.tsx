@@ -20,10 +20,11 @@ export const AdminPage: React.FC = () => {
       if (data.success) {
         addNotification('Sucesso', data.message, 'success');
       } else {
-        addNotification('Erro no Servidor', data.message, 'warning');
+        const errorMsg = data.message || data.error || "Erro desconhecido no servidor.";
+        addNotification('Erro no Servidor', errorMsg, 'warning');
       }
     } catch (e: any) {
-      addNotification('Erro de Conexão', 'Não foi possível contatar o servidor das Cloudflare Functions.', 'warning');
+      addNotification('Erro de Conexão', 'Não foi possível contatar o servidor. Verifique sua rede.', 'warning');
     } finally {
       setTestPushLoading(false);
     }

@@ -16,20 +16,14 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
             }, 200);
         }
 
-        console.log(`Manual Test Push requested by ${authUser.id}`);
-
-        await sendPushNotificationToUser(
+        const result = await sendPushNotificationToUser(
             env,
             authUser.id,
             "Teste de Notificação 🚀",
             "Se você está vendo isso, o sistema de Push está funcionando!"
         );
 
-        return jsonResponse({
-            success: true,
-            message: "Comando de teste enviado com sucesso!",
-            details: "Verifique o log do Cloudflare para confirmar o resultado do FCM."
-        });
+        return jsonResponse(result);
 
     } catch (e: any) {
         return errorResponse(e);
