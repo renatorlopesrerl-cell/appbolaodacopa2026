@@ -48,7 +48,7 @@ import { ConfirmacaoCadastro } from './pages/ConfirmacaoCadastro';
 import { supabase } from './services/supabase'; // Auth Only
 import { api } from './services/api';
 import { uploadBase64Image } from './services/storageService';
-import { setupPushNotifications, scheduleMatchReminder } from './services/pushService';
+import { setupPushNotifications, scheduleMatchReminder, cancelMatchReminder } from './services/pushService';
 
 // Types
 import { User, Match, League, Prediction, Invitation, MatchStatus } from './types';
@@ -292,22 +292,27 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       const notifyTime = matchTime - (30 * 60 * 1000);
       const timeUntilNotify = notifyTime - now;
 
-      // Only schedule if it's in the future (and reasonable time, e.g. < 24h)
-      if (timeUntilNotify > 0 && timeUntilNotify < 24 * 60 * 60 * 1000) {
+      // Only schedule if it's in the future
+      if (timeUntilNotify > 0) {
         // Native: Schedule Local Notification (Android/iOS)
         const hasPrediction = predictions.some(p => p.matchId === match.id && p.userId === currentUser.id);
         if (!hasPrediction) {
           scheduleMatchReminder(match.id, `${match.homeTeamId} x ${match.awayTeamId}`, match.date).catch(() => { });
+        } else {
+          cancelMatchReminder(match.id).catch(() => { });
         }
 
-        // Web/App open: Existing Timeout logic (Already in UI)
-        const timer = setTimeout(() => {
-          const stillNoPrediction = predictions.some(p => p.matchId === match.id && p.userId === currentUser.id);
-          if (!stillNoPrediction) {
-            addNotification('Lembrete ⏳', `Faltam 30 min para encerrar palpites de: ${match.homeTeamId} x ${match.awayTeamId}`, 'warning');
-          }
-        }, timeUntilNotify);
-        timers.push(timer);
+        // Web/App open: Existing Timeout logic (For the very next match if open)
+        // We only keep the timeout for matches in the next hour to avoid too many JS timers
+        if (timeUntilNotify < 60 * 60 * 1000) {
+          const timer = setTimeout(() => {
+            const hasPredNow = predictions.some(p => p.matchId === match.id && p.userId === currentUser.id);
+            if (!hasPredNow) {
+              addNotification('Lembrete ⏳', `Faltam 30 min para encerrar palpites de: ${match.homeTeamId} x ${match.awayTeamId}`, 'warning');
+            }
+          }, timeUntilNotify);
+          timers.push(timer);
+        }
       }
     });
 

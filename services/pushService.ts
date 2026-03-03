@@ -118,3 +118,10 @@ export const scheduleMatchReminder = async (matchId: string, matchName: string, 
         }]
     });
 };
+
+export const cancelMatchReminder = async (matchId: string) => {
+    if (Capacitor.getPlatform() === 'web') return;
+    await LocalNotifications.cancel({
+        notifications: [{ id: getNumericId(matchId) }]
+    });
+};
