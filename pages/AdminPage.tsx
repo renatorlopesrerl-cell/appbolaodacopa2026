@@ -18,7 +18,8 @@ export const AdminPage: React.FC = () => {
         addNotification('Sucesso', data.message, 'success');
       } else {
         const errorMsg = data.message || data.error || "Erro desconhecido no servidor.";
-        addNotification('Erro no Servidor', errorMsg, 'warning');
+        const fullMsg = data.details ? `${errorMsg} - ${data.details}` : errorMsg;
+        addNotification('Erro no Servidor', fullMsg, 'warning');
       }
     } catch (e: any) {
       console.error("Test Push Error:", e);
