@@ -52,13 +52,13 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
 
         // If private, notify Admin
         if (league.is_private) {
-            sendPushNotificationToUser(
+            await sendPushNotificationToUser(
                 env,
                 league.admin_id,
                 "Nova Solicitação 🔔",
                 `${authUser.user_metadata?.full_name || authUser.email} quer entrar na liga: ${league.name}`,
                 { url: `/league/${id}?tab=admin` }
-            ).catch(e => console.error("Push Error:", e));
+            );
         }
 
         return jsonResponse({ success: true, message: league.is_private ? "Request sent" : "Joined successfully" });

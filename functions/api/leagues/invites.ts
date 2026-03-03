@@ -71,13 +71,13 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
 
                 // Send Push Notification if user exists
                 if (existingUser) {
-                    sendPushNotificationToUser(
+                    await sendPushNotificationToUser(
                         env,
                         existingUser.id,
                         "Novo Convite! 🏆",
                         `Você foi convidado para participar da liga: ${league.name}`,
                         { url: `/league/${leagueId}` }
-                    ).catch(e => console.error("Push Error:", e));
+                    );
                 }
 
                 return jsonResponse({ success: true, message: "Invite sent" });
