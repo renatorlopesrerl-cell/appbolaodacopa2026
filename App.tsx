@@ -424,38 +424,22 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           const url = new URL(event.url);
           console.log("Native App opened via URL:", event.url);
 
-          // O Supabase usa fragmento (#) ou query (?) dependendo do fluxo (PKCE usa search)
+          // O Supabase usa fragmento (#) ou query (?) dependendo do fluxo
           if (url.hash || url.search) {
             const params = new URLSearchParams(url.hash ? url.hash.substring(1) : url.search);
             const access_token = params.get('access_token');
             const refresh_token = params.get('refresh_token');
-            // Para PKCE, pode vir um 'code' que o Supabase client lidaria via detectSession
-            const code = params.get('code');
 
             if (access_token && refresh_token) {
-              console.log("Tokens found in deep link, setting session...");
-              const { error } = await supabase.auth.setSession({ access_token, refresh_token });
-              if (!error) {
-                console.log("Session set from tokens successfully");
-                await Browser.close();
-                fetchAllData();
-              } else {
-                console.error("SetSession error:", error.message);
-              }
-            } else if (code) {
-              console.log("Auth code found in deep link for PKCE flow.");
-              // Para o PKCE, o Supabase geralmente precisa processar a URL. 
-              // Como não estamos mudando a URL da página, vamos apenas chamar getSession
-              // ou forçar a troca do token se o client não capturar automaticamente.
-              // Mas geralmente, o fluxo PKCE nativo é melhor processado via setSession se possível.
-              // Aqui, vamos tentar o getSession() que no nativo pode precisar de ajuda se detectSessionInUrl estiver true.
-              const { data, error } = await supabase.auth.getSession();
+              console.log("Tokens found in deep link, setting session and redirecting...");
+              const { data, error } = await supabase.auth.setSession({ access_token, refresh_token });
+
               if (data.session) {
-                console.log("Session verified for PKCE flow.");
+                console.log("Login realized with success! Redirecting to home...");
                 await Browser.close();
-                fetchAllData();
+                window.location.href = '/'; // Forçar recarregamento na home para garantir estado limpo
               } else if (error) {
-                console.warn("PKCE verify error:", error.message);
+                console.error("SetSession error:", error.message);
               }
             }
           }
