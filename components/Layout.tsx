@@ -8,6 +8,7 @@ import {
 import { OptimizedImage } from './OptimizedImage';
 import { useStore } from '../App';
 import { PullToRefresh } from './PullToRefresh';
+import { Capacitor } from '@capacitor/core';
 
 interface ToastNote {
   id: number;
@@ -88,6 +89,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
+  const isNative = Capacitor.getPlatform() !== 'web';
   const isMinimalLayout = isRecoveryMode || location.pathname === '/reset-password';
   const notificationRef = useRef<HTMLDivElement>(null);
   const mobileNotificationRef = useRef<HTMLDivElement>(null);
@@ -393,9 +395,46 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       </main>
 
       {/* Footer */}
-      <footer className="bg-gray-800 dark:bg-black text-gray-400 py-6 text-center text-sm transition-colors duration-300">
-        <p>© 2026 Palpiteiro da Copa.</p>
-      </footer>
+      {!currentUser && !isNative ? (
+        <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-8 px-4 transition-colors duration-300">
+          <div className="container mx-auto max-w-6xl">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8 text-left">
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <Trophy className="w-5 h-5 text-brasil-green" />
+                  <span className="font-bold text-gray-800 dark:text-white">Palpiteiro da Copa 2026</span>
+                </div>
+                <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+                  O melhor simulador e gerenciador de bolão para a Copa do Mundo 2026. Crie sua liga e vença seus amigos!
+                </p>
+              </div>
+              <div>
+                <h4 className="font-bold text-gray-800 dark:text-white mb-4 text-sm uppercase tracking-wider">Recursos</h4>
+                <ul className="space-y-2 text-sm">
+                  <li><Link to="/bolao-copa-2026" className="text-gray-500 dark:text-gray-400 hover:text-brasil-blue transition-colors">Bolão Copa 2026</Link></li>
+                  <li><Link to="/simulador-copa-2026" className="text-gray-500 dark:text-gray-400 hover:text-brasil-blue transition-colors">Simulador Copa 2026</Link></li>
+                  <li><Link to="/tabela-copa-2026" className="text-gray-500 dark:text-gray-400 hover:text-brasil-blue transition-colors">Tabela Copa 2026</Link></li>
+                  <li><Link to="/como-jogar" className="text-gray-500 dark:text-gray-400 hover:text-brasil-blue transition-colors">Como Jogar</Link></li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-bold text-gray-800 dark:text-white mb-4 text-sm uppercase tracking-wider">Legal</h4>
+                <ul className="space-y-2 text-sm">
+                  <li><Link to="/termos" className="text-gray-500 dark:text-gray-400 hover:text-brasil-blue transition-colors">Termos de Uso</Link></li>
+                  <li><Link to="/privacidade" className="text-gray-500 dark:text-gray-400 hover:text-brasil-blue transition-colors">Política de Privacidade</Link></li>
+                </ul>
+              </div>
+            </div>
+            <div className="pt-8 border-t border-gray-100 dark:border-gray-700 text-center">
+              <p className="text-xs text-gray-400">© 2026 Palpiteiro da Copa. Todos os direitos reservados.</p>
+            </div>
+          </div>
+        </footer>
+      ) : (
+        <footer className="bg-gray-800 dark:bg-black text-gray-400 py-6 text-center text-sm transition-colors duration-300">
+          <p>© 2026 Palpiteiro da Copa.</p>
+        </footer>
+      )}
     </div>
   );
 };

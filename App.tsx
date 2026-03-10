@@ -41,6 +41,7 @@ import { TermsPage } from './pages/TermsPage';
 import { PrivacyPage } from './pages/PrivacyPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { ConfirmacaoCadastro } from './pages/ConfirmacaoCadastro';
+import { SEOLanding } from './pages/SEOLanding';
 
 
 
@@ -1219,6 +1220,9 @@ const AppRoutes: React.FC = () => {
           <Route path="/league/:id" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <LeagueDetails /> : <Navigate to="/" />)} />
           <Route path="/simulador" element={currentUser ? <SimulatePage /> : <Navigate to="/" />} />
           <Route path="/como-jogar" element={<HowToPlay />} />
+          <Route path="/bolao-copa-2026" element={<SEOLanding variant="bolao" />} />
+          <Route path="/simulador-copa-2026" element={<SEOLanding variant="simulador" />} />
+          <Route path="/tabela-copa-2026" element={<SEOLanding variant="tabela" />} />
           <Route path="/termos" element={<TermsPage />} />
           <Route path="/privacidade" element={<PrivacyPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
