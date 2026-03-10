@@ -226,7 +226,7 @@ export const Login: React.FC = () => {
                                     setError('');
                                     setSuccessMessage('');
                                 }}
-                                className="w-full text-center text-sm text-gray-500 hover:text-white mt-2"
+                                className="w-full text-center text-sm text-gray-500 hover:text-brasil-blue dark:hover:text-blue-400 mt-2 transition-colors"
                             >
                                 Voltar para o Login
                             </button>
@@ -278,7 +278,7 @@ export const Login: React.FC = () => {
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white transition-colors focus:outline-none"
+                                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-brasil-blue dark:hover:text-blue-400 transition-colors focus:outline-none"
                                 >
                                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                                 </button>
@@ -303,7 +303,7 @@ export const Login: React.FC = () => {
                                         <button
                                             type="button"
                                             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white transition-colors focus:outline-none"
+                                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-brasil-blue dark:hover:text-blue-400 transition-colors focus:outline-none"
                                         >
                                             {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                                         </button>
@@ -360,14 +360,24 @@ export const Login: React.FC = () => {
                         </p>
                     )}
 
-                    <div className="text-center">
+                    <div className="text-center space-y-2">
                         <button
                             type="button"
                             onClick={toggleMode}
-                            className="text-sm text-gray-600 hover:text-brasil-blue dark:text-gray-400 dark:hover:text-blue-300 font-medium transition-colors"
+                            className="text-base text-gray-600 hover:text-brasil-blue dark:text-gray-400 dark:hover:text-blue-300 font-medium transition-colors"
                         >
-                            {isForgotPassword ? null : (isRegistering ? 'Já tem uma conta? Faça login' : 'Não tem conta? Cadastre-se agora')}
+                            {isForgotPassword ? null : (isRegistering ? 'Já tem uma conta? Faça login' : <>Não tem conta? <span className="font-bold">Cadastre-se agora</span></>)}
                         </button>
+
+                        {!isForgotPassword && (
+                            <button
+                                type="button"
+                                onClick={() => navigate('/')}
+                                className="block mx-auto text-sm text-gray-600 hover:text-brasil-blue dark:text-gray-400 dark:hover:text-blue-300 font-medium transition-colors"
+                            >
+                                Faça Login com o Google
+                            </button>
+                        )}
                     </div>
                 </div>
 

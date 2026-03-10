@@ -43,15 +43,19 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                         .not('fcm_token', 'is', null);
 
                     if (profiles) {
-                        for (const profile of profiles) {
-                            const settings = profile.notification_settings || {};
-                            const wantsStart = updates.status === 'IN_PROGRESS' && settings.matchStart !== false;
-                            const wantsEnd = updates.status === 'FINISHED' && settings.matchEnd !== false;
+                        const tasks = profiles
+                            .filter(profile => {
+                                const settings = profile.notification_settings || {};
+                                const wantsStart = updates.status === 'IN_PROGRESS' && settings.matchStart !== false;
+                                const wantsEnd = updates.status === 'FINISHED' && settings.matchEnd !== false;
+                                return wantsStart || wantsEnd;
+                            })
+                            .map(profile =>
+                                sendPushNotificationToUser(env, profile.id, title, bodyText, { url: '/table' })
+                                    .catch(err => console.error(`Push failed for ${profile.id}:`, err))
+                            );
 
-                            if (wantsStart || wantsEnd) {
-                                sendPushNotificationToUser(env, profile.id, title, bodyText, { url: '/table' }).catch(() => { });
-                            }
-                        }
+                        await Promise.all(tasks);
                     }
                 }
             }
