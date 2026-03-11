@@ -273,54 +273,57 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   // --- PREDICTION REMINDER SCHEDULER ---
   useEffect(() => {
-    // Clear any existing timeouts if re-running (not easily possible with anonymous timeouts, 
-    // but calculating fresh is fine if we check "already notified" or just standard behavior.
-    // Ideally we track timeouts in a ref, but for simplicity/performance in this specific constraint:
-    // We will just run this logic. Note: Setting many timeouts is cheap.
-    // To prevent dupes, we can check if the time is VERY close to the trigger point?
-    // Or just let the timeout fire. The timeout callback will check the condition (prediction exists) AT THAT MOMENT.
+    if (!currentUser?.notificationSettings?.predictionReminder || loading) return;
 
-    if (!currentUser?.notificationSettings?.predictionReminder) return;
+    const timer = setTimeout(async () => {
+      const isNative = (window as any).Capacitor?.isNativePlatform?.() || false;
+      const now = new Date().getTime();
 
-    const timers: NodeJS.Timeout[] = [];
-    const now = new Date().getTime();
+      if (!isNative) {
+        // Fallback for web: only schedule timers for matches in the next 1 hour
+        matches.forEach(match => {
+          if (match.status !== MatchStatus.SCHEDULED) return;
+          const matchTime = new Date(match.date).getTime();
+          const notifyTime = matchTime - (30 * 60 * 1000);
+          const timeUntilNotify = notifyTime - now;
 
-    matches.forEach(match => {
-      if (match.status !== MatchStatus.SCHEDULED) return;
+          if (timeUntilNotify > 0 && timeUntilNotify < 3600000) {
+            const hasPred = predictions.some(p => p.matchId === match.id && p.userId === currentUser.id);
+            if (!hasPred) {
+              setTimeout(() => {
+                addNotification('Lembrete ⏳', `Faltam 30 min para encerrar palpites de: ${match.homeTeamId} x ${match.awayTeamId}`, 'warning');
+              }, timeUntilNotify);
+            }
+          }
+        });
+        return;
+      }
 
-      const matchTime = new Date(match.date).getTime();
-      // Notify 30 minutes before
-      const notifyTime = matchTime - (30 * 60 * 1000);
-      const timeUntilNotify = notifyTime - now;
+      // Native logic: Sync scheduled reminders
+      console.log("Push Reminder Sync: Starting logic for next matches...");
 
-      // Only schedule if it's in the future
-      if (timeUntilNotify > 0) {
-        // Native: Schedule Local Notification (Android/iOS)
+      const upcomingMatches = matches
+        .filter(m => m.status === MatchStatus.SCHEDULED)
+        .filter(m => {
+          const mTime = new Date(m.date).getTime();
+          // reminderTime is 30 mins before. Only schedule if it's still in the future.
+          return (mTime - (30 * 60 * 1000)) > now;
+        })
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+        .slice(0, 15); // Sync next 15 matches to respect OS limits
+
+      for (const match of upcomingMatches) {
         const hasPrediction = predictions.some(p => p.matchId === match.id && p.userId === currentUser.id);
         if (!hasPrediction) {
           scheduleMatchReminder(match.id, `${match.homeTeamId} x ${match.awayTeamId}`, match.date).catch(() => { });
         } else {
           cancelMatchReminder(match.id).catch(() => { });
         }
-
-        // Web/App open: Existing Timeout logic (For the very next match if open)
-        // We only keep the timeout for matches in the next hour to avoid too many JS timers
-        if (timeUntilNotify < 60 * 60 * 1000) {
-          const timer = setTimeout(() => {
-            const hasPredNow = predictions.some(p => p.matchId === match.id && p.userId === currentUser.id);
-            if (!hasPredNow) {
-              addNotification('Lembrete ⏳', `Faltam 30 min para encerrar palpites de: ${match.homeTeamId} x ${match.awayTeamId}`, 'warning');
-            }
-          }, timeUntilNotify);
-          timers.push(timer);
-        }
       }
-    });
+    }, 5000); // 5-second debounce ensures it doesn't run while user is actively making multiple predictions
 
-    return () => {
-      timers.forEach(t => clearTimeout(t));
-    };
-  }, [matches, predictions, currentUser]); // Re-schedules if any data changes, which ensures correctness.
+    return () => clearTimeout(timer);
+  }, [matches.length, predictions.length, currentUser?.id, currentUser?.notificationSettings?.predictionReminder]);
   useEffect(() => {
     mountedRef.current = true;
 
@@ -1195,15 +1198,34 @@ const AppRoutes: React.FC = () => {
   }
 
   if (connectionError) {
+    const isNative = (window as any).Capacitor?.isNativePlatform?.() || false;
+
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 p-6 text-center">
-        <div className="bg-red-50 dark:bg-red-900/20 p-6 rounded-2xl max-w-md w-full border border-red-100 dark:border-red-800">
-          <AlertCircle size={48} className="text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2">Erro de Conexão</h2>
-          <p className="text-gray-600 dark:text-gray-300 mb-6">Não foi possível conectar ao servidor. Verifique sua internet.</p>
-          <button onClick={retryConnection} className="bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-8 rounded-xl transition-colors">
-            Tentar Novamente
-          </button>
+        <div className="bg-red-50 dark:bg-red-900/20 p-8 rounded-3xl max-w-md w-full border border-red-100 dark:border-red-800 shadow-2xl">
+          <AlertCircle size={64} className="text-red-500 mx-auto mb-6 animate-bounce" />
+          <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">Erro de Conexão</h2>
+          <p className="text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">
+            {isNative
+              ? 'Não foi possível conectar ao banco de dados. Se o problema persistir, tente sair e fazer login novamente para renovar sua sessão.'
+              : 'Não foi possível conectar ao servidor. Verifique sua conexão com a internet.'}
+          </p>
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={retryConnection}
+              className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-8 rounded-2xl transition-all active:scale-95 shadow-lg shadow-red-500/30"
+            >
+              Tentar Novamente
+            </button>
+            {isNative && (
+              <button
+                onClick={() => window.location.href = '/login'}
+                className="w-full bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-bold py-4 px-8 rounded-2xl border border-gray-200 dark:border-gray-700 transition-all active:scale-95"
+              >
+                Ir para Login
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );

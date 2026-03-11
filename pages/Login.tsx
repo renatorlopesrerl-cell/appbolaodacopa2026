@@ -125,13 +125,22 @@ export const Login: React.FC = () => {
 
         setLoading(true);
         try {
-            const { error } = await supabase.auth.resetPasswordForEmail(email.trim().replace(/\s/g, ''), {
+            const trimmedEmail = email.trim().replace(/\s/g, '');
+            const { error } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
                 redirectTo: `${window.location.origin}/reset-password`
             });
 
             if (error) throw error;
 
-            setSuccessMessage('Enviamos um e-mail com instruções para redefinir sua senha.');
+            setSuccessMessage('Enviamos um código de 6 dígitos para o seu e-mail.');
+
+            // Redirect to the Reset Password page after a short delay so they can see the message
+            setTimeout(() => {
+                if (mountedRef.current) {
+                    navigate(`/reset-password?email=${encodeURIComponent(trimmedEmail)}`);
+                }
+            }, 2000);
+
         } catch (err: any) {
             console.error(err);
             setError(err.message || 'Erro ao enviar e-mail. Verifique o endereço informado.');
