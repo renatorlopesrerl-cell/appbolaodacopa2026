@@ -200,6 +200,14 @@ export async function sendPushNotificationToUser(env: any, userId: string, title
         if (response.ok) {
             return { success: true, message: "Notificação enviada com sucesso!", details: JSON.stringify(result) };
         } else {
+            // Se o token for inválido (404 NotRegistered ou 400 Invalid), limpamos do banco para não tentar mais
+            if (response.status === 404 || response.status === 400) {
+                await supabase
+                    .from('profiles')
+                    .update({ fcm_token: null })
+                    .eq('id', userId);
+                return { success: false, message: `Token expirado ou inválido (removido): ${response.status}`, details: JSON.stringify(result) };
+            }
             return { success: false, message: `Erro no Firebase v1: ${response.status}`, details: JSON.stringify(result) };
         }
     } catch (e: any) {

@@ -34,16 +34,23 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
             .gte('date', windowStart)
             .lte('date', windowEnd);
 
+        console.log(`Checking reminders for window: ${windowStart} to ${windowEnd}. Found: ${upcomingMatches?.length || 0}`);
+
         if (matchError) {
             console.error("Error fetching upcoming matches:", matchError);
             return errorResponse(matchError);
         }
 
         if (!upcomingMatches || upcomingMatches.length === 0) {
-            return jsonResponse({ success: true, message: "No matches in reminder window", sent: 0 });
+            return jsonResponse({
+                success: true,
+                message: "No matches in reminder window",
+                window: { start: windowStart, end: windowEnd },
+                sent: 0
+            });
         }
 
-        // Get all users with push tokens who want prediction reminders
+        // ... (rest of the fetching logic) ...
         const { data: profiles } = await supabase
             .from('profiles')
             .select('id, notification_settings')
@@ -53,17 +60,11 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
             return jsonResponse({ success: true, message: "No profiles with tokens", sent: 0 });
         }
 
-        // Filter profiles that want prediction reminders
         const wantsReminder = profiles.filter(p => {
             const settings = p.notification_settings || {};
             return settings.predictionReminder !== false;
         });
 
-        if (wantsReminder.length === 0) {
-            return jsonResponse({ success: true, message: "No users want reminders", sent: 0 });
-        }
-
-        // Get all predictions for these matches
         const matchIds = upcomingMatches.map(m => m.id);
         const userIds = wantsReminder.map(p => p.id);
 
@@ -73,7 +74,6 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
             .in('match_id', matchIds)
             .in('user_id', userIds);
 
-        // Build a set of "userId:matchId" for quick lookup
         const predictionSet = new Set(
             (existingPredictions || []).map(p => `${p.user_id}:${p.match_id}`)
         );
@@ -87,7 +87,6 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
             for (const profile of wantsReminder) {
                 const key = `${profile.id}:${match.id}`;
                 if (!predictionSet.has(key)) {
-                    // User doesn't have a prediction for this match in any league
                     tasks.push(
                         sendPushNotificationToUser(
                             env,
@@ -95,9 +94,14 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
                             "Lembrete de Palpite ⏳",
                             `Faltam 30 min! Faça seu palpite para ${matchLabel}`,
                             { url: '/table' }
-                        ).catch(err => console.error(`Reminder push failed for ${profile.id}:`, err))
+                        ).then(res => {
+                            if (res.success) sentCount++;
+                            return res;
+                        }).catch(err => {
+                            console.error(`Reminder push failed for ${profile.id}:`, err);
+                            return { success: false };
+                        })
                     );
-                    sentCount++;
                 }
             }
         }
@@ -106,8 +110,9 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
 
         return jsonResponse({
             success: true,
-            message: `Reminders sent`,
-            matches: upcomingMatches.length,
+            message: `Process finished`,
+            window: { start: windowStart, end: windowEnd },
+            matches: upcomingMatches.map(m => `${m.home_team_id} x ${m.away_team_id}`),
             sent: sentCount
         });
 
