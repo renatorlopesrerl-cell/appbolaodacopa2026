@@ -50,6 +50,8 @@ import { supabase } from './services/supabase'; // Auth Only
 import { api } from './services/api';
 import { uploadBase64Image } from './services/storageService';
 import { setupPushNotifications, scheduleMatchReminder, cancelMatchReminder } from './services/pushService';
+import { onForegroundMessage } from './services/firebaseWeb';
+import { Capacitor } from '@capacitor/core';
 
 // Types
 import { User, Match, League, Prediction, Invitation, MatchStatus } from './types';
@@ -435,6 +437,19 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       subscription.unsubscribe();
     };
   }, []);
+
+  // --- WEB PWA FOREGROUND PUSH LISTENER ---
+  useEffect(() => {
+    if (Capacitor.getPlatform() === 'web') {
+      const unsubscribe = onForegroundMessage((payload) => {
+        console.log("Foreground Push Received:", payload);
+        const title = payload.notification?.title || "Notificação";
+        const body = payload.notification?.body || "Você tem uma nova mensagem";
+        addNotification(title, body, 'info');
+      });
+      return () => unsubscribe();
+    }
+  }, [currentUser]);
 
   // --- NATIVE DEEP LINK LISTENER (OAuth) ---
   useEffect(() => {

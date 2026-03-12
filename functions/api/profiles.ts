@@ -26,6 +26,19 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
         if (request.method === 'POST') {
             const body = await request.json() as any;
 
+            // NEW: Handle multiple tokens per user
+            if (body.targetTable === 'user_fcm_tokens') {
+                const { error: tokenError } = await userClient.from('user_fcm_tokens').upsert({
+                    user_id: authUser.id,
+                    token: body.token,
+                    device_type: body.device_type,
+                    last_seen: new Date().toISOString()
+                }, { onConflict: 'user_id, token' });
+
+                if (tokenError) throw tokenError;
+                return jsonResponse({ success: true, message: "Token registered" });
+            }
+
             // Sanitize input: Prevent is_admin escalation or Id spoofing
             const safeBody: any = {
                 id: authUser.id, // Enforce ID

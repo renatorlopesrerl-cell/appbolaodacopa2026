@@ -98,6 +98,16 @@ export const api = {
         list: () => apiFetch<any[]>('/profiles'),
         get: (id: string) => apiFetch<any>(`/profiles?id=${id}`),
         update: (data: any) => apiFetch('/profiles', { method: 'POST', body: JSON.stringify(data) }),
+        saveFcmToken: (userId: string, token: string, deviceType: string) => 
+            apiFetch('/profiles', { 
+                method: 'POST', 
+                body: JSON.stringify({ 
+                    id: userId, 
+                    token: token, 
+                    device_type: deviceType,
+                    targetTable: 'user_fcm_tokens' // Signal to the backend to use the specific table
+                }) 
+            }),
         getByEmail: async (email: string) => {
             const { data, error } = await supabase
                 .from('profiles')

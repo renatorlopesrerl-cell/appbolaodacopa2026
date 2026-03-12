@@ -143,73 +143,93 @@ function b64url_buffer(buf: ArrayBuffer) {
 export async function sendPushNotificationToUser(env: any, userId: string, title: string, body: string, data?: any) {
     const supabase = getSupabaseClient(env);
 
-    // 1. Get user's FCM token
-    const { data: profile, error: dbError } = await supabase
-        .from('profiles')
-        .select('fcm_token')
-        .eq('id', userId)
-        .single();
+    // 1. Get user's FCM tokens (supporting multiple devices)
+    const { data: tokenRows, error: tokenError } = await supabase
+        .from('user_fcm_tokens')
+        .select('token')
+        .eq('user_id', userId);
 
-    if (dbError) {
-        return { success: false, message: `Erro ao buscar perfil: ${dbError.message}` };
+    let tokens: string[] = [];
+    if (!tokenError && tokenRows && tokenRows.length > 0) {
+        tokens = tokenRows.map(r => r.token);
+    } else {
+        // Fallback or legacy: Check the main profile field
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('fcm_token')
+            .eq('id', userId)
+            .single();
+        if (profile?.fcm_token) {
+            tokens = [profile.fcm_token];
+        }
     }
 
-    if (!profile?.fcm_token) {
+    if (tokens.length === 0) {
         return {
             success: false,
-            message: "Você não possui um token FCM registrado.",
-            details: "Abra o aplicativo no Android para registrar o dispositivo."
+            message: "Nenhum token FCM encontrado para este usuário.",
+            details: "O usuário precisa registrar o dispositivo (Web ou Android)."
         };
     }
 
-    // 2. Send via FCM v1
+    // 2. Send via FCM v1 to ALL registered tokens
+    const results = [];
     try {
         const accessToken = await getAccessToken(env);
         const projectId = env.FCM_PROJECT_ID || "batepapobase";
 
-        const response = await fetch(`https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${accessToken}`
-            },
-            body: JSON.stringify({
-                message: {
-                    token: profile.fcm_token,
-                    notification: {
-                        title,
-                        body
-                    },
-                    data: {
-                        ...(data || {}),
-                        click_action: "FLUTTER_NOTIFICATION_CLICK"
-                    },
-                    android: {
-                        priority: "high",
-                        notification: {
-                            sound: "default",
-                            notification_priority: "PRIORITY_HIGH"
+        for (const token of tokens) {
+            const response = await fetch(`https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${accessToken}`
+                },
+                body: JSON.stringify({
+                    message: {
+                        token: token,
+                        notification: { title, body },
+                        data: {
+                            ...(data || {}),
+                            click_action: "FLUTTER_NOTIFICATION_CLICK"
+                        },
+                        android: {
+                            priority: "high",
+                            notification: {
+                                sound: "default",
+                                notification_priority: "PRIORITY_HIGH"
+                            }
+                        },
+                        webpush: {
+                            fcm_options: {
+                                link: data?.url ? `https://bolaodacopa2026.app${data.url}` : "https://bolaodacopa2026.app/"
+                            }
                         }
                     }
+                })
+            });
+
+            const result = await response.json() as any;
+            if (response.ok) {
+                results.push({ token, success: true, details: result });
+            } else {
+                // If token is invalid, remove it from the new table
+                if (response.status === 404 || response.status === 400) {
+                    await supabase.from('user_fcm_tokens').delete().eq('token', token);
+                    results.push({ token, success: false, message: "Token removido por ser inválido" });
+                } else {
+                    results.push({ token, success: false, message: `Erro FCM: ${response.status}` });
                 }
-            })
-        });
-
-        const result = await response.json() as any;
-
-        if (response.ok) {
-            return { success: true, message: "Notificação enviada com sucesso!", details: JSON.stringify(result) };
-        } else {
-            // Se o token for inválido (404 NotRegistered ou 400 Invalid), limpamos do banco para não tentar mais
-            if (response.status === 404 || response.status === 400) {
-                await supabase
-                    .from('profiles')
-                    .update({ fcm_token: null })
-                    .eq('id', userId);
-                return { success: false, message: `Token expirado ou inválido (removido): ${response.status}`, details: JSON.stringify(result) };
             }
-            return { success: false, message: `Erro no Firebase v1: ${response.status}`, details: JSON.stringify(result) };
         }
+
+        const anySuccess = results.some(r => r.success);
+        return { 
+            success: anySuccess, 
+            message: anySuccess ? "Notificação processada" : "Falha ao enviar para todos os dispositivos", 
+            results 
+        };
+
     } catch (e: any) {
         console.error("Critical Push v1 error:", e);
         return { success: false, message: `Erro crítico: ${e.message}` };

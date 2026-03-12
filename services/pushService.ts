@@ -11,8 +11,8 @@ export const setupPushNotifications = async (userId: string) => {
         try {
             const token = await requestWebPushToken();
             if (token) {
-                await api.profiles.update({ id: userId, fcm_token: token });
-                console.log('Web Push Token salvo com sucesso.');
+                await api.profiles.saveFcmToken(userId, token, 'web');
+                console.log('Web Push Token salvo com sucesso na tabela de dispositivos.');
             }
         } catch (e) {
             console.error('Erro ao configurar Web Push:', e);
@@ -48,8 +48,9 @@ export const setupPushNotifications = async (userId: string) => {
             await PushNotifications.addListener('registration', async (token) => {
                 console.log('Push token successfully generated:', token.value);
                 try {
-                    await api.profiles.update({ id: userId, fcm_token: token.value });
-                    console.log('Push token saved to profile');
+                    const deviceType = Capacitor.getPlatform() === 'ios' ? 'ios' : 'android';
+                    await api.profiles.saveFcmToken(userId, token.value, deviceType);
+                    console.log(`Push token (${deviceType}) saved to device tokens table`);
                 } catch (e) {
                     console.error('Error saving FCM token:', e);
                 }
