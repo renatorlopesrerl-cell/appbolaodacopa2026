@@ -197,10 +197,17 @@ export async function sendPushNotificationToUser(env: any, userId: string, title
                             priority: "high",
                             notification: {
                                 sound: "default",
+                                icon: "ic_notification", // Native icon
                                 notification_priority: "PRIORITY_HIGH"
                             }
                         },
                         webpush: {
+                            notification: {
+                                title: title,
+                                body: body,
+                                icon: "/favicon.png",
+                                badge: "/favicon.png"
+                            },
                             fcm_options: {
                                 link: data?.url ? `https://bolaodacopa2026.app${data.url}` : "https://bolaodacopa2026.app/"
                             }
