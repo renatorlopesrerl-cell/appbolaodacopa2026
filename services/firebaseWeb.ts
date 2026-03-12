@@ -64,31 +64,12 @@ export const requestWebPushToken = async () => {
     console.log('Sender ID:', firebaseConfig.messagingSenderId);
     console.log('App ID:', firebaseConfig.appId);
     
-    // Assegura que o Service Worker está registrado explicitamente (evita bugs no Android Chrome
-    // onde a falta de escopo customizado falha na avaliação do script global do firebase)
-    let registration = await navigator.serviceWorker.getRegistration();
-    
-    // Se não tiver registro ou estiver instalando forçamos o registro limpo sem query params
-    if (!registration) {
-      console.log('Nenhum SW encontrado, registrando agora...');
-      registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-    }
-
-    // Se estiver no estado instalando, pausa e espera ele ficar ativo pra não bugar o FCM
-    if (registration.installing) {
-        console.log('Service Worker instalando, aguardando ativação...');
-        await new Promise<void>((resolve) => {
-            registration!.installing!.addEventListener('statechange', (e: any) => {
-                if (e.target.state === 'activated') resolve();
-            });
-        });
-    }
-
-    // Aqui o iOS/Safari vai funcionar de boa porque chamamos o SW original (sem query params), e
-    //  o Android Chrome vai achar o script correto na raiz, não vai se engasgar.
+    // Como agora já garantimos no index.tsx que o /firebase-messaging-sw.js é o Service Worker oficial,
+    // nós delegamos 100% para o Firebase a verificação dele nativamente.
+    // Isso evita o erro no Safari onde registrar ou recuperar Service Workers para repassar 
+    // manualmente quebra o ciclo de vida e a geração do Token.
     const token = await getToken(messaging, {
-      vapidKey: vapidKey,
-      serviceWorkerRegistration: registration
+      vapidKey: vapidKey
     });
 
     if (token) {
