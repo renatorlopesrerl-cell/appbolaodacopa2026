@@ -60,7 +60,7 @@ export const requestWebPushToken = async () => {
     
     if (!registration) {
       console.log('Nenhum SW encontrado, registrando agora...');
-      registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js?v=5');
+      registration = await navigator.serviceWorker.register('/sw-v6.js');
     }
 
     // Aguarda o SW ficar ativo (se estiver instalando)

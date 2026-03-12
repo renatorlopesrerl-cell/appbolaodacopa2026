@@ -1,5 +1,6 @@
-# Exceção explícita para o Service Worker (não redirecionar)
-/firebase-messaging-sw.js /firebase-messaging-sw.js 200
+# Static Assets Explicit
+/sw-v6.js /sw-v6.js 200
+/manifest.json /manifest.json 200
 
-# Regra para o PWA funcionar
+# PWA SPA Rule
 /* /index.html 200
