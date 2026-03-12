@@ -33,6 +33,7 @@
     }
   ],
   "orientation": "portrait",
-  "scope": "/"
+  "scope": "/",
+  "gcm_sender_id": "567474314433"
 }
 

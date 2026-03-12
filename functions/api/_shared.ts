@@ -216,8 +216,9 @@ export async function sendPushNotificationToUser(env: any, userId: string, title
                             notification: {
                                 title: title,
                                 body: body,
-                                icon: "/favicon.png",
-                                badge: "/favicon.png"
+                                icon: "https://bolaodacopa2026.app/favicon.png",
+                                badge: "https://bolaodacopa2026.app/favicon.png",
+                                vibrate: [200, 100, 200]
                             },
                             fcm_options: {
                                 link: data?.url ? `https://bolaodacopa2026.app${data.url}` : "https://bolaodacopa2026.app/"
