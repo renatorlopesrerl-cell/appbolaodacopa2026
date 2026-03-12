@@ -778,14 +778,21 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const logout = async () => {
     console.log("Logout triggered.");
     try {
-      // 1. Sign out from Supabase (Global scope invalidates session on all devices)
+      // 1. Remove current FCM token from database to avoid cross-account notifications
+      const activeToken = localStorage.getItem('active_fcm_token');
+      if (activeToken) {
+        console.log("Removing FCM token on logout...");
+        await api.profiles.removeFcmToken(activeToken).catch(e => console.warn("Failed to remove FCM token", e));
+      }
+
+      // 2. Sign out from Supabase (Global scope invalidates session on all devices)
       await supabase.auth.signOut({ scope: 'global' });
     } catch (e) {
       console.warn("Sign out error", e);
     }
 
-    // 2. Clear all local storage related to the app
-    const keysToRemove = ['bolao-copa-native-v1', 'app-theme'];
+    // 3. Clear all local storage related to the app
+    const keysToRemove = ['bolao-copa-native-v1', 'app-theme', 'active_fcm_token'];
     Object.keys(localStorage).forEach(key => {
       if (key.includes('supabase.auth.token') || key.startsWith('sb-') || key.startsWith('notify_')) {
         keysToRemove.push(key);

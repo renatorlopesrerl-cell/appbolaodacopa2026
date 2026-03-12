@@ -108,6 +108,8 @@ export const api = {
                     targetTable: 'user_fcm_tokens' // Signal to the backend to use the specific table
                 }) 
             }),
+        removeFcmToken: (token: string) => 
+            apiFetch(`/profiles?token=${encodeURIComponent(token)}`, { method: 'DELETE' }),
         getByEmail: async (email: string) => {
             const { data, error } = await supabase
                 .from('profiles')

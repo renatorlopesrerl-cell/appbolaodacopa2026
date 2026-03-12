@@ -65,6 +65,32 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
             return jsonResponse({ success: true });
         }
 
+        if (request.method === 'DELETE') {
+            const url = new URL(request.url);
+            const token = url.searchParams.get('token');
+
+            if (token) {
+                // Remove specific device token from the new table
+                const { error } = await userClient
+                    .from('user_fcm_tokens')
+                    .delete()
+                    .eq('user_id', authUser.id)
+                    .eq('token', token);
+                
+                if (error) throw error;
+
+                // Also clear from legacy profile column just in case it's there
+                await userClient
+                    .from('profiles')
+                    .update({ fcm_token: null })
+                    .eq('id', authUser.id)
+                    .eq('fcm_token', token);
+
+                return jsonResponse({ success: true, message: "Token removed" });
+            }
+            return errorResponse(new Error("Token required"), 400);
+        }
+
         return new Response("Method not allowed", { status: 405 });
     } catch (e: any) {
         return errorResponse(e);
