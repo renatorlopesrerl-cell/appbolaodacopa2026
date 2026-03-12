@@ -54,28 +54,6 @@ export const requestWebPushToken = async () => {
       return null;
     }
 
-    // Get token - ensures service worker is registered and active
-    console.log('Verificando registro do Service Worker...');
-    let registration = await navigator.serviceWorker.getRegistration();
-    
-    if (!registration) {
-      console.log('Nenhum SW encontrado, registrando agora...');
-      const swUrl = `/sw-v6.js?apiKey=${import.meta.env.VITE_FCM_API_KEY}&authDomain=${import.meta.env.VITE_FCM_AUTH_DOMAIN}&databaseURL=${import.meta.env.VITE_FCM_DATABASE_URL}&projectId=${import.meta.env.VITE_FCM_PROJECT_ID}&storageBucket=${import.meta.env.VITE_FCM_STORAGE_BUCKET}&messagingSenderId=${import.meta.env.VITE_FCM_MESSAGING_SENDER_ID}&appId=${import.meta.env.VITE_FCM_APP_ID}`;
-      registration = await navigator.serviceWorker.register(swUrl);
-    }
-
-    // Aguarda o SW ficar ativo (se estiver instalando)
-    if (registration.installing) {
-        console.log('Service Worker instalando...');
-        await new Promise<void>((resolve) => {
-            registration!.installing!.addEventListener('statechange', (e: any) => {
-                if (e.target.state === 'activated') resolve();
-            });
-        });
-    }
-    
-    console.log('Service Worker pronto para receber Token');
-
     const vapidKey = import.meta.env.VITE_FCM_VAPID_KEY;
     if (!vapidKey) {
         throw new Error('VAPID Key do Firebase não encontrada nas variáveis de ambiente (.env).');
@@ -86,9 +64,11 @@ export const requestWebPushToken = async () => {
     console.log('Sender ID:', firebaseConfig.messagingSenderId);
     console.log('App ID:', firebaseConfig.appId);
     
+    // Deixamos o Firebase registrar automaticamente o /firebase-messaging-sw.js nativamente.
+    // O Safari tem bugs ao registrar Service Workers com query parameters e recusa gerar Token, 
+    // enquanto a forma nativa no root directory funciona perfeitamente no iOS/Safari 16.4+ Web Push.
     const token = await getToken(messaging, {
-      vapidKey: vapidKey,
-      serviceWorkerRegistration: registration
+      vapidKey: vapidKey
     });
 
     if (token) {

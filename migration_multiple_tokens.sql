@@ -25,5 +25,10 @@ CREATE POLICY "Usuários podem deletar seus próprios tokens"
     ON user_fcm_tokens FOR DELETE 
     USING (auth.uid() = user_id);
 
+CREATE POLICY "Usuários podem atualizar seus próprios tokens" 
+    ON user_fcm_tokens FOR UPDATE 
+    USING (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id);
+
 -- Índice para busca rápida
 CREATE INDEX IF NOT EXISTS idx_user_fcm_tokens_user_id ON user_fcm_tokens(user_id);

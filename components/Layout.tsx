@@ -8,6 +8,7 @@ import {
 import { OptimizedImage } from './OptimizedImage';
 import { useStore } from '../App';
 import { PullToRefresh } from './PullToRefresh';
+import { IosInstallPrompt } from './IosInstallPrompt';
 import { Capacitor } from '@capacitor/core';
 
 interface ToastNote {
@@ -435,6 +436,8 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           <p>© 2026 Palpiteiro da Copa.</p>
         </footer>
       )}
+      
+      <IosInstallPrompt />
     </div>
   );
 };

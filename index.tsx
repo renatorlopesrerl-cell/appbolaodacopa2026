@@ -3,6 +3,11 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
 
+// Bloqueia o prompt padrão de instalação "Adicionar à Tela Inicial" do Android (Chrome)
+// porque o apk Android será lançado futuramente via Play Store, e não queremos confundir os usuários no navegador.
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+});
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
