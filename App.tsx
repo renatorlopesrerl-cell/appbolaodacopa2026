@@ -288,12 +288,9 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           const timeUntilNotify = notifyTime - now;
 
           if (timeUntilNotify > 0 && timeUntilNotify < 3600000) {
-            const hasPred = predictions.some(p => p.matchId === match.id && p.userId === currentUser.id);
-            if (!hasPred) {
-              setTimeout(() => {
-                addNotification('Lembrete ⏳', `Faltam 30 min para encerrar palpites de: ${match.homeTeamId} x ${match.awayTeamId}`, 'warning');
-              }, timeUntilNotify);
-            }
+            setTimeout(() => {
+              addNotification('Lembrete ⏳', `O jogo ${match.homeTeamId} x ${match.awayTeamId} vai começar em 30 minutos. Revise ou faça seu palpite!`, 'warning');
+            }, timeUntilNotify);
           }
         });
         return;
@@ -313,12 +310,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         .slice(0, 15); // Sync next 15 matches to respect OS limits
 
       for (const match of upcomingMatches) {
-        const hasPrediction = predictions.some(p => p.matchId === match.id && p.userId === currentUser.id);
-        if (!hasPrediction) {
-          scheduleMatchReminder(match.id, `${match.homeTeamId} x ${match.awayTeamId}`, match.date).catch(() => { });
-        } else {
-          cancelMatchReminder(match.id).catch(() => { });
-        }
+        scheduleMatchReminder(match.id, `${match.homeTeamId} x ${match.awayTeamId}`, match.date).catch(() => { });
       }
     }, 5000); // 5-second debounce ensures it doesn't run while user is actively making multiple predictions
 

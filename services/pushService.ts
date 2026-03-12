@@ -3,9 +3,20 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
 import { api } from './api';
 
+import { requestWebPushToken } from './firebaseWeb';
+
 export const setupPushNotifications = async (userId: string) => {
     if (Capacitor.getPlatform() === 'web') {
-        console.log('Push notifications not supported on web');
+        console.log('Iniciando configuração de Push para Web PWA...');
+        try {
+            const token = await requestWebPushToken();
+            if (token) {
+                await api.profiles.update({ id: userId, fcm_token: token });
+                console.log('Web Push Token salvo com sucesso.');
+            }
+        } catch (e) {
+            console.error('Erro ao configurar Web Push:', e);
+        }
         return;
     }
 
@@ -138,7 +149,7 @@ export const scheduleMatchReminder = async (matchId: string, matchName: string, 
         await LocalNotifications.schedule({
             notifications: [{
                 title: "Lembrete de Jogo ⏳",
-                body: `Faltam 30 minutos para ${matchName}! Faça seu palpite agora.`,
+                body: `O jogo ${matchName} vai começar em 30 minutos. Revise ou faça seu palpite!`,
                 id: id,
                 schedule: { at: reminderTime },
                 channelId: 'meu_canal',

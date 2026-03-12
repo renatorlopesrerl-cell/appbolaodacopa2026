@@ -22,10 +22,10 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
 
         const supabase = getSupabaseClient(env);
 
-        // Find matches starting in the next 25-35 minutes
+        // Find matches starting in the next ~30 minutes (window of 27-32 to avoid multiple triggers if cron is every 5m)
         const now = new Date();
-        const windowStart = new Date(now.getTime() + 25 * 60 * 1000).toISOString();
-        const windowEnd = new Date(now.getTime() + 35 * 60 * 1000).toISOString();
+        const windowStart = new Date(now.getTime() + 27 * 60 * 1000).toISOString();
+        const windowEnd = new Date(now.getTime() + 32 * 60 * 1000).toISOString();
 
         const { data: upcomingMatches, error: matchError } = await supabase
             .from('matches')
@@ -50,7 +50,7 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
             });
         }
 
-        // ... (rest of the fetching logic) ...
+        // Fetch profiles who have a token and want reminders
         const { data: profiles } = await supabase
             .from('profiles')
             .select('id, notification_settings')
@@ -65,19 +65,6 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
             return settings.predictionReminder !== false;
         });
 
-        const matchIds = upcomingMatches.map(m => m.id);
-        const userIds = wantsReminder.map(p => p.id);
-
-        const { data: existingPredictions } = await supabase
-            .from('predictions')
-            .select('user_id, match_id')
-            .in('match_id', matchIds)
-            .in('user_id', userIds);
-
-        const predictionSet = new Set(
-            (existingPredictions || []).map(p => `${p.user_id}:${p.match_id}`)
-        );
-
         let sentCount = 0;
         const tasks: Promise<any>[] = [];
 
@@ -85,24 +72,21 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
             const matchLabel = `${match.home_team_id} x ${match.away_team_id}`;
 
             for (const profile of wantsReminder) {
-                const key = `${profile.id}:${match.id}`;
-                if (!predictionSet.has(key)) {
-                    tasks.push(
-                        sendPushNotificationToUser(
-                            env,
-                            profile.id,
-                            "Lembrete de Palpite ⏳",
-                            `Faltam 30 min! Faça seu palpite para ${matchLabel}`,
-                            { url: '/table' }
-                        ).then(res => {
-                            if (res.success) sentCount++;
-                            return res;
-                        }).catch(err => {
-                            console.error(`Reminder push failed for ${profile.id}:`, err);
-                            return { success: false };
-                        })
-                    );
-                }
+                tasks.push(
+                    sendPushNotificationToUser(
+                        env,
+                        profile.id,
+                        "Lembrete de Palpite ⏳",
+                        `O jogo ${matchLabel} vai começar em 30 minutos. Revise ou faça seu palpite!`,
+                        { url: '/table' }
+                    ).then(res => {
+                        if (res.success) sentCount++;
+                        return res;
+                    }).catch(err => {
+                        console.error(`Reminder push failed for ${profile.id}:`, err);
+                        return { success: false };
+                    })
+                );
             }
         }
 
