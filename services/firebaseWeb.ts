@@ -65,23 +65,30 @@ export const requestWebPushToken = async () => {
 
     const vapidKey = import.meta.env.VITE_FCM_VAPID_KEY;
     if (!vapidKey) {
-        throw new Error('VAPID Key do Firebase não configurada nas variáveis de ambiente.');
+        throw new Error('VAPID Key do Firebase não encontrada nas variáveis de ambiente (.env).');
     }
 
-    console.log('Obtendo token com VAPID Key:', vapidKey);
+    console.log('--- DEBUG FCM ---');
+    console.log('VAPID Key:', vapidKey);
+    console.log('Sender ID:', firebaseConfig.messagingSenderId);
+    console.log('App ID:', firebaseConfig.appId);
+    
     const token = await getToken(messaging, {
       vapidKey: vapidKey,
       serviceWorkerRegistration: registration
     });
 
     if (token) {
+      console.log('Token gerado com sucesso!');
       return token;
     } else {
-      return null;
+      throw new Error('O Firebase retornou um token vazio. Verifique se as chaves VAPID e SenderID correspondem ao projeto no Firebase Console.');
     }
   } catch (err: any) {
-    console.error('Erro detalhado ao obter token web:', err);
-    throw new Error(`Erro Firebase: ${err.message || 'Falha ao gerar token'}`);
+    console.error('Erro crítico no Firebase Web:', err);
+    // Extraímos a mensagem original do Firebase se existir
+    const msg = err.message || 'Erro desconhecido';
+    throw new Error(`Firebase Error: ${msg}`);
   }
 };
 
