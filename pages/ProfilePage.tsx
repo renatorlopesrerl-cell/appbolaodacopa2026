@@ -4,6 +4,7 @@ import { useStore } from '../App';
 import { User as UserIcon, Save, Camera, Upload, AlertCircle, ArrowLeft, Phone, Loader2, Bell, PlayCircle, Flag, Sun, Moon, Clock, Trash2, Lock, Trophy, CheckCircle2, X } from 'lucide-react';
 import { processImageForUpload } from '../services/dataService';
 import { OptimizedImage } from '../components/OptimizedImage';
+import { Capacitor } from '@capacitor/core';
 
 export const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
@@ -291,6 +292,35 @@ export const ProfilePage: React.FC = () => {
                 <Bell size={20} className="text-brasil-blue dark:text-blue-400" />
                 Configurar Notificações
               </h3>
+
+              {/* Botão para Ativar Notificações no PWA (Chrome/iOS) */}
+              {Capacitor.getPlatform() === 'web' && Notification.permission !== 'granted' && (
+                <div className="mb-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 p-4 rounded-xl animate-in fade-in slide-in-from-top-2">
+                  <div className="flex items-start gap-4">
+                    <div className="bg-brasil-blue text-white p-2 rounded-lg shrink-0">
+                      <Bell size={20} />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-bold text-gray-800 dark:text-white mb-1">Deseja receber notificações?</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
+                        Para receber os lembretes de 30 minutos na Web ou iPhone, você precisa autorizar o navegador.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const { setupPushNotifications } = await import('../services/pushService');
+                          await setupPushNotifications(currentUser.id);
+                          // Forçamos o re-render para ocultar o banner se for concedido
+                          window.location.reload();
+                        }}
+                        className="bg-brasil-blue text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-blue-900 transition-colors shadow-sm"
+                      >
+                        Ativar Notificações agora
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-4">
                 {/* Match Start Toggle */}

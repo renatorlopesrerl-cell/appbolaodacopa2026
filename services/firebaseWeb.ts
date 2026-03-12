@@ -29,7 +29,10 @@ try {
  * Requests permission and returns the FCM token for Web PWA
  */
 export const requestWebPushToken = async () => {
-  if (!messaging) return null;
+  if (!messaging) {
+    console.log('FCM Messaging não inicializado.');
+    return null;
+  }
   
   try {
     // Check if notifications are supported
@@ -38,12 +41,20 @@ export const requestWebPushToken = async () => {
         return null;
     }
 
-    const permission = await Notification.requestPermission();
-    if (permission !== 'granted') {
-      console.log('Permissão de notificação negada');
+    // Explicitly check current permission
+    if (Notification.permission === 'denied') {
+      console.log('Permissão de notificação já foi negada pelo usuário no navegador.');
       return null;
     }
 
+    const permission = await Notification.requestPermission();
+    console.log('Resultado do pedido de permissão:', permission);
+
+    if (permission !== 'granted') {
+      return null;
+    }
+
+    // Get token - requires service worker to be ready
     const token = await getToken(messaging, {
       vapidKey: import.meta.env.VITE_FCM_VAPID_KEY
     });

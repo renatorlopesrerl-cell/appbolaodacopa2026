@@ -375,7 +375,7 @@ export const Login: React.FC = () => {
                             onClick={toggleMode}
                             className="text-base text-gray-600 hover:text-brasil-blue dark:text-gray-400 dark:hover:text-blue-300 font-medium transition-colors"
                         >
-                            {isForgotPassword ? null : (isRegistering ? 'Já tem uma conta? Faça login' : <>Não tem conta? <span className="font-bold">Cadastre-se agora</span></>)}
+                            {isForgotPassword ? null : (isRegistering ? 'Já tem uma conta? Faça login' : <>Não tem conta? <span className="font-bold">Cadastre-se</span></>)}
                         </button>
 
                         {!isForgotPassword && (
