@@ -20,14 +20,21 @@ if (firebaseConfig.apiKey) {
     var messaging = firebase.messaging();
 
     messaging.onBackgroundMessage(function(payload) {
-      var title = payload.notification.title || 'Bolão da Copa';
+      console.log('[SW] Mensagem recebida:', payload);
+      var title = (payload.notification && payload.notification.title) || (payload.data && payload.data.title) || 'Bolão da Copa 2026';
+      var body = (payload.notification && payload.notification.body) || (payload.data && payload.data.body) || 'Confira as novidades no seu bolão!';
+      
       var options = {
-        body: payload.notification.body || 'Nova atualização disponível!',
-        icon: '/favicon.png',
-        badge: '/favicon.png',
-        data: payload.data
+        body: body,
+        icon: 'https://bolaodacopa2026.app/favicon.png',
+        badge: 'https://bolaodacopa2026.app/favicon.png',
+        data: payload.data,
+        vibrate: [200, 100, 200],
+        tag: 'bolao-notification-' + Date.now(),
+        renotify: true
       };
-      self.registration.showNotification(title, options);
+      
+      return self.registration.showNotification(title, options);
     });
   } catch (e) {
     console.error('SW Init Error:', e);
@@ -35,6 +42,6 @@ if (firebaseConfig.apiKey) {
 }
 
 // Minimal Cache
-var CACHE_NAME = 'sw-v6';
+var CACHE_NAME = 'sw-v7';
 self.addEventListener('install', function(e) { self.skipWaiting(); });
 self.addEventListener('activate', function(e) { e.waitUntil(self.clients.claim()); });
