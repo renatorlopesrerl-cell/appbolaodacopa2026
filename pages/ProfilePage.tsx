@@ -318,17 +318,28 @@ export const ProfilePage: React.FC = () => {
                         type="button"
                         onClick={async () => {
                           try {
+                            const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+                            const isInStandaloneMode = ('standalone' in window.navigator) && (window.navigator as any).standalone;
+
+                            if (isIos && !isInStandaloneMode) {
+                              alert('No iOS (iPhone/iPad), você precisa primeiro adicionar o aplicativo à sua "Tela de Início" (compartilhar > Adicionar à Tela de Início) e depois abri-lo por lá para ativar as notificações.');
+                              return;
+                            }
+
                             if (!('Notification' in window)) {
-                                alert('Este navegador não suporta notificações Push.');
+                                alert('Este navegador não suporta notificações PWA (talvez precise atualizar ou não é compatível).');
                                 return;
                             }
+                            
                             const permission = await Notification.requestPermission();
                             if (permission === 'granted') {
                                 await setupPushNotifications(currentUser.id);
                                 alert('Dispositivo sincronizado com sucesso para receber notificações!');
                                 window.location.reload();
                             } else if (permission === 'denied') {
-                                alert('A permissão foi negada. Redefina as permissões no seu navegador.');
+                                alert('A permissão foi negada. Redefina as permissões nas configurações do seu navegador ou sistema.');
+                            } else {
+                                alert('A permissão para enviar notificações foi ignorada.');
                             }
                           } catch (err) {
                             console.error('Erro ao ativar notificações:', err);
