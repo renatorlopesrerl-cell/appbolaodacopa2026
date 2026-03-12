@@ -150,17 +150,28 @@ export async function sendPushNotificationToUser(env: any, userId: string, title
         .eq('user_id', userId);
 
     let tokens: string[] = [];
+    
+    // Se encontrou tokens na nova tabela, usa eles
     if (!tokenError && tokenRows && tokenRows.length > 0) {
         tokens = tokenRows.map(r => r.token);
-    } else {
-        // Fallback or legacy: Check the main profile field
-        const { data: profile } = await supabase
+        console.log(`Encontrados ${tokens.length} tokens para o usuário ${userId} na nova tabela.`);
+    } 
+    
+    // Se a nova tabela estiver vazia OU der erro (ex: RLS), tenta a tabela antiga como plano B
+    if (tokens.length === 0) {
+        const { data: profile, error: profError } = await supabase
             .from('profiles')
             .select('fcm_token')
             .eq('id', userId)
             .single();
+            
         if (profile?.fcm_token) {
             tokens = [profile.fcm_token];
+            console.log(`Usando token legado da tabela profiles para o usuário ${userId}.`);
+        }
+        
+        if (tokenError && tokens.length === 0) {
+            console.warn("Erro ao buscar na nova tabela e nada encontrado na antiga:", tokenError.message);
         }
     }
 
