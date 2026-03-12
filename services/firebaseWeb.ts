@@ -79,9 +79,9 @@ export const requestWebPushToken = async () => {
     } else {
       return null;
     }
-  } catch (err) {
-    console.error('Erro ao obter token web:', err);
-    return null;
+  } catch (err: any) {
+    console.error('Erro detalhado ao obter token web:', err);
+    throw new Error(`Erro Firebase: ${err.message || 'Falha ao gerar token'}`);
   }
 };
 
