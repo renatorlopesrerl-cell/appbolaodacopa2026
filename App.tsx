@@ -785,8 +785,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         await api.profiles.removeFcmToken(activeToken).catch(e => console.warn("Failed to remove FCM token", e));
       }
 
-      // 2. Sign out from Supabase (Local scope allows other devices to stay logged in)
-      await supabase.auth.signOut();
+      // 2. Sign out from Supabase (Explicitly set to local so other devices stay logged in)
+      await supabase.auth.signOut({ scope: 'local' });
     } catch (e) {
       console.warn("Sign out error", e);
     }
