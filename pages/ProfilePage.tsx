@@ -310,13 +310,20 @@ export const ProfilePage: React.FC = () => {
                         type="button"
                         onClick={async () => {
                           try {
+                            if (!('Notification' in window)) {
+                                alert('Este navegador não suporta notificações Push.');
+                                return;
+                            }
                             const permission = await Notification.requestPermission();
+                            console.log('Permission requested. Result:', permission);
                             if (permission === 'granted') {
                                 await setupPushNotifications(currentUser.id);
                                 alert('Notificações ativadas com sucesso!');
                                 window.location.reload();
                             } else if (permission === 'denied') {
                                 alert('A permissão foi negada. Você precisará resetar as permissões nas configurações do seu navegador para ativar.');
+                            } else {
+                                alert('A permissão de notificação não foi concedida.');
                             }
                           } catch (err) {
                             console.error('Erro ao pedir permissão:', err);

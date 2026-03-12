@@ -54,13 +54,23 @@ export const requestWebPushToken = async () => {
       return null;
     }
 
-    // Get token - requires service worker to be ready
-    const registration = await navigator.serviceWorker.ready;
+    // Get token - requires service worker to be ready with a safety timeout
+    console.log('Aguardando Service Worker ficar pronto...');
+    const registration = await Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout: O Service Worker não respondeu em 10 segundos.')), 10000))
+    ]) as ServiceWorkerRegistration;
+    
     console.log('Service Worker pronto para receber Token');
 
-    console.log('Obtendo token com VAPID Key:', import.meta.env.VITE_FCM_VAPID_KEY);
+    const vapidKey = import.meta.env.VITE_FCM_VAPID_KEY;
+    if (!vapidKey) {
+        throw new Error('VAPID Key do Firebase não configurada nas variáveis de ambiente.');
+    }
+
+    console.log('Obtendo token com VAPID Key:', vapidKey);
     const token = await getToken(messaging, {
-      vapidKey: import.meta.env.VITE_FCM_VAPID_KEY,
+      vapidKey: vapidKey,
       serviceWorkerRegistration: registration
     });
 

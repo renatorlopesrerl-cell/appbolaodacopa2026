@@ -14,11 +14,14 @@ export const setupPushNotifications = async (userId: string) => {
                 localStorage.setItem('active_fcm_token', token);
                 await api.profiles.saveFcmToken(userId, token, 'web');
                 console.log('Web Push Token salvo com sucesso na tabela de dispositivos.');
+                return true;
+            } else {
+                throw new Error('Não foi possível gerar um token de notificação para este navegador.');
             }
-        } catch (e) {
+        } catch (e: any) {
             console.error('Erro ao configurar Web Push:', e);
+            throw e;
         }
-        return;
     }
 
     try {
