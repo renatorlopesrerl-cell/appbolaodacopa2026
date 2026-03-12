@@ -303,15 +303,25 @@ export const ProfilePage: React.FC = () => {
                     <div className="flex-1">
                       <p className="text-sm font-bold text-gray-800 dark:text-white mb-1">Deseja receber notificações?</p>
                       <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
-                        Para receber os lembretes de 30 minutos na Web ou iPhone, você precisa autorizar o navegador.
+                        Para receber as notificações push no seu navegador ou iPhone, você precisa autorizar o acesso.
                       </p>
                       <button
                         type="button"
                         onClick={async () => {
-                          const { setupPushNotifications } = await import('../services/pushService');
-                          await setupPushNotifications(currentUser.id);
-                          // Forçamos o re-render para ocultar o banner se for concedido
-                          window.location.reload();
+                          try {
+                            const permission = await Notification.requestPermission();
+                            if (permission === 'granted') {
+                                const { setupPushNotifications } = await import('../services/pushService');
+                                await setupPushNotifications(currentUser.id);
+                                alert('Notificações ativadas com sucesso!');
+                                window.location.reload();
+                            } else if (permission === 'denied') {
+                                alert('A permissão foi negada. Você precisará resetar as permissões nas configurações do seu navegador para ativar.');
+                            }
+                          } catch (err) {
+                            console.error('Erro ao pedir permissão:', err);
+                            alert('Erro ao ativar notificações: ' + (err as Error).message);
+                          }
                         }}
                         className="bg-brasil-blue text-white px-4 py-2 rounded-lg text-xs font-bold hover:bg-blue-900 transition-colors shadow-sm"
                       >
