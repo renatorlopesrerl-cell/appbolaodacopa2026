@@ -689,6 +689,18 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       failureCountRef.current = 0;
     } catch (e: any) {
       console.error("API Fetch Error", e);
+
+      // Se o erro for de autenticação (401), a sessão provavelmente expirou ou foi invalidada em outro dispositivo
+      const isAuthError = e.message?.includes('401') || 
+                         e.message?.toLowerCase().includes('unauthorized') || 
+                         e.message?.toLowerCase().includes('jwt');
+
+      if (isAuthError) {
+        console.warn("Sessão inválida detectada. Deslogando...");
+        logout();
+        return;
+      }
+
       failureCountRef.current += 1;
       if (failureCountRef.current > 3 && !connectionError) setConnectionError(true);
     } finally {
@@ -766,8 +778,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const logout = async () => {
     console.log("Logout triggered.");
     try {
-      // 1. Sign out from Supabase first
-      await supabase.auth.signOut();
+      // 1. Sign out from Supabase (Global scope invalidates session on all devices)
+      await supabase.auth.signOut({ scope: 'global' });
     } catch (e) {
       console.warn("Sign out error", e);
     }
