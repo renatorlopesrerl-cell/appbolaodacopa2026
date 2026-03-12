@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useStore } from '../App';
 import { User as UserIcon, Save, Camera, Upload, AlertCircle, ArrowLeft, Phone, Loader2, Bell, PlayCircle, Flag, Sun, Moon, Clock, Trash2, Lock, Trophy, CheckCircle2, X } from 'lucide-react';
+import { setupPushNotifications } from '../services/pushService';
 import { processImageForUpload } from '../services/dataService';
 import { OptimizedImage } from '../components/OptimizedImage';
 import { Capacitor } from '@capacitor/core';
@@ -311,7 +312,6 @@ export const ProfilePage: React.FC = () => {
                           try {
                             const permission = await Notification.requestPermission();
                             if (permission === 'granted') {
-                                const { setupPushNotifications } = await import('../services/pushService');
                                 await setupPushNotifications(currentUser.id);
                                 alert('Notificações ativadas com sucesso!');
                                 window.location.reload();
