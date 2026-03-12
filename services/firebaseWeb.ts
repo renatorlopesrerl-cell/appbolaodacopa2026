@@ -58,6 +58,7 @@ export const requestWebPushToken = async () => {
     const registration = await navigator.serviceWorker.ready;
     console.log('Service Worker pronto para receber Token');
 
+    console.log('Obtendo token com VAPID Key:', import.meta.env.VITE_FCM_VAPID_KEY);
     const token = await getToken(messaging, {
       vapidKey: import.meta.env.VITE_FCM_VAPID_KEY,
       serviceWorkerRegistration: registration
