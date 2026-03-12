@@ -1,5 +1,5 @@
-import { initializeApp } from "firebase/app";
-import { getMessaging, getToken, onMessage } from "firebase/messaging";
+import { initializeApp, getApp, getApps } from "firebase/app";
+import { getMessaging, getToken, onMessage, Messaging } from "firebase/messaging";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FCM_API_KEY,
@@ -11,18 +11,30 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FCM_APP_ID
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-export const messaging = getMessaging(app);
+// Initialize Firebase lazily to prevent crash if config is missing during startup
+let messaging: Messaging | null = null;
+
+try {
+  if (firebaseConfig.apiKey) {
+    const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+    messaging = getMessaging(app);
+  } else {
+    console.warn("Firebase config is missing. Web push notifications will be disabled.");
+  }
+} catch (error) {
+  console.error("Error initializing Firebase:", error);
+}
 
 /**
  * Requests permission and returns the FCM token for Web PWA
  */
 export const requestWebPushToken = async () => {
+  if (!messaging) return null;
+  
   try {
     // Check if notifications are supported
-    if (!('Notification' in window)) {
-        console.log('Este navegador não suporta notificações desktop');
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+        console.log('Este navegador não suporta notificações PWA');
         return null;
     }
 
@@ -37,10 +49,8 @@ export const requestWebPushToken = async () => {
     });
 
     if (token) {
-      console.log('FCM Web Token:', token);
       return token;
     } else {
-      console.log('Nenhum token disponível. Verifique as configurações.');
       return null;
     }
   } catch (err) {
@@ -53,6 +63,7 @@ export const requestWebPushToken = async () => {
  * Listen for foreground messages
  */
 export const onForegroundMessage = (callback: (payload: any) => void) => {
+  if (!messaging) return () => {};
   return onMessage(messaging, (payload) => {
     console.log('Mensagem recebida em primeiro plano:', payload);
     callback(payload);
