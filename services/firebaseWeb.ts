@@ -60,7 +60,8 @@ export const requestWebPushToken = async () => {
     
     if (!registration) {
       console.log('Nenhum SW encontrado, registrando agora...');
-      registration = await navigator.serviceWorker.register('/sw-v6.js');
+      const swUrl = `/sw-v6.js?apiKey=${import.meta.env.VITE_FCM_API_KEY}&authDomain=${import.meta.env.VITE_FCM_AUTH_DOMAIN}&databaseURL=${import.meta.env.VITE_FCM_DATABASE_URL}&projectId=${import.meta.env.VITE_FCM_PROJECT_ID}&storageBucket=${import.meta.env.VITE_FCM_STORAGE_BUCKET}&messagingSenderId=${import.meta.env.VITE_FCM_MESSAGING_SENDER_ID}&appId=${import.meta.env.VITE_FCM_APP_ID}`;
+      registration = await navigator.serviceWorker.register(swUrl);
     }
 
     // Aguarda o SW ficar ativo (se estiver instalando)
