@@ -54,12 +54,24 @@ export const requestWebPushToken = async () => {
       return null;
     }
 
-    // Get token - requires service worker to be ready with a safety timeout
-    console.log('Aguardando Service Worker ficar pronto...');
-    const registration = await Promise.race([
-        navigator.serviceWorker.ready,
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout: O Service Worker não respondeu em 10 segundos.')), 10000))
-    ]) as ServiceWorkerRegistration;
+    // Get token - ensures service worker is registered and active
+    console.log('Verificando registro do Service Worker...');
+    let registration = await navigator.serviceWorker.getRegistration();
+    
+    if (!registration) {
+      console.log('Nenhum SW encontrado, registrando agora...');
+      registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+    }
+
+    // Aguarda o SW ficar ativo (se estiver instalando)
+    if (registration.installing) {
+        console.log('Service Worker instalando...');
+        await new Promise<void>((resolve) => {
+            registration!.installing!.addEventListener('statechange', (e: any) => {
+                if (e.target.state === 'activated') resolve();
+            });
+        });
+    }
     
     console.log('Service Worker pronto para receber Token');
 
