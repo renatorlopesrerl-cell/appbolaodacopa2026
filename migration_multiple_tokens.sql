@@ -13,18 +13,22 @@ CREATE TABLE IF NOT EXISTS user_fcm_tokens (
 ALTER TABLE user_fcm_tokens ENABLE ROW LEVEL SECURITY;
 
 -- Políticas de RLS
+DROP POLICY IF EXISTS "Usuários podem ver seus próprios tokens" ON user_fcm_tokens;
 CREATE POLICY "Usuários podem ver seus próprios tokens" 
     ON user_fcm_tokens FOR SELECT 
     USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Usuários podem inserir seus próprios tokens" ON user_fcm_tokens;
 CREATE POLICY "Usuários podem inserir seus próprios tokens" 
     ON user_fcm_tokens FOR INSERT 
     WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Usuários podem deletar seus próprios tokens" ON user_fcm_tokens;
 CREATE POLICY "Usuários podem deletar seus próprios tokens" 
     ON user_fcm_tokens FOR DELETE 
     USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Usuários podem atualizar seus próprios tokens" ON user_fcm_tokens;
 CREATE POLICY "Usuários podem atualizar seus próprios tokens" 
     ON user_fcm_tokens FOR UPDATE 
     USING (auth.uid() = user_id)
