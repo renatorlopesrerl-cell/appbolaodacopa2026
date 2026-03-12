@@ -1,1 +1,5 @@
+# Exceção explícita para o Service Worker (não redirecionar)
+/firebase-messaging-sw.js /firebase-messaging-sw.js 200
+
+# Regra para o PWA funcionar
 /* /index.html 200
