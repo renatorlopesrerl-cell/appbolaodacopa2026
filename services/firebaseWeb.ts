@@ -64,12 +64,19 @@ export const requestWebPushToken = async () => {
     console.log('Sender ID:', firebaseConfig.messagingSenderId);
     console.log('App ID:', firebaseConfig.appId);
     
-    // Como agora já garantimos no index.tsx que o /firebase-messaging-sw.js é o Service Worker oficial,
-    // nós delegamos 100% para o Firebase a verificação dele nativamente.
-    // Isso evita o erro no Safari onde registrar ou recuperar Service Workers para repassar 
-    // manualmente quebra o ciclo de vida e a geração do Token.
+    // Usar o .ready previne registrar um novo e força o Firebase a usar o ServiceWorker 
+    // principal ('/firebase-messaging-sw.js' com escopo '/') registrado no index.tsx.
+    // Isso conserta:
+    // 1. Android: Cancela o erro "unable to register default service worker" porque nós mesmos o fornecemos.
+    // 2. iOS Safari: Impede o conflito do gerador de chaves garantindo que o SW está ativo antes do getToken.
+    let activeRegistration;
+    if ('serviceWorker' in navigator) {
+         activeRegistration = await navigator.serviceWorker.ready;
+    }
+
     const token = await getToken(messaging, {
-      vapidKey: vapidKey
+      vapidKey: vapidKey,
+      serviceWorkerRegistration: activeRegistration
     });
 
     if (token) {
