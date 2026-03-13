@@ -319,7 +319,7 @@ export const ProfilePage: React.FC = () => {
                         onClick={async () => {
                           try {
                             const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
-                            const isInStandaloneMode = ('standalone' in window.navigator) && (window.navigator as any).standalone;
+                            const isInStandaloneMode = (window.navigator as any).standalone || window.matchMedia('(display-mode: standalone)').matches;
 
                             if (isIos && !isInStandaloneMode) {
                               alert('No iOS (iPhone/iPad), você precisa primeiro adicionar o aplicativo à sua "Tela de Início" (compartilhar > Adicionar à Tela de Início) e depois abri-lo por lá para ativar as notificações.');
@@ -331,15 +331,20 @@ export const ProfilePage: React.FC = () => {
                                 return;
                             }
                             
-                            const permission = await Notification.requestPermission();
-                            if (permission === 'granted') {
-                                await setupPushNotifications(currentUser.id);
+                            // Ativamos o modo "force" para disparar o pedido de permissão nativo
+                            // O setupPushNotifications agora lida internamente com o User Gesture se force=true
+                            const success = await setupPushNotifications(currentUser.id, true);
+                            
+                            if (success) {
                                 alert('Dispositivo sincronizado com sucesso para receber notificações!');
                                 window.location.reload();
-                            } else if (permission === 'denied') {
-                                alert('A permissão foi negada. Redefina as permissões nas configurações do seu navegador ou sistema.');
                             } else {
-                                alert('A permissão para enviar notificações foi ignorada.');
+                                const permission = Notification.permission;
+                                if (permission === 'denied') {
+                                    alert('A permissão foi negada. Redefina as permissões nas configurações do seu navegador ou sistema.');
+                                } else {
+                                    alert('Não foi possível ativar as notificações. Verifique se o app está na Tela de Início.');
+                                }
                             }
                           } catch (err) {
                             console.error('Erro ao ativar notificações:', err);

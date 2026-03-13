@@ -5,17 +5,19 @@ import { api } from './api';
 
 import { requestWebPushToken } from './firebaseWeb';
 
-export const setupPushNotifications = async (userId: string) => {
+export const setupPushNotifications = async (userId: string, force: boolean = false) => {
     if (Capacitor.getPlatform() === 'web') {
-        console.log('Iniciando configuração de Push para Web PWA...');
+        console.log(`Iniciando configuração de Push para Web PWA (force=${force})...`);
         try {
-            const token = await requestWebPushToken();
+            const token = await requestWebPushToken(force);
             if (token) {
                 localStorage.setItem('active_fcm_token', token);
                 await api.profiles.saveFcmToken(userId, token, 'web');
                 console.log('Web Push Token salvo com sucesso na tabela de dispositivos.');
                 return true;
             } else {
+                // If not forced and token is null, it might be waiting for user gesture (iOS)
+                if (!force) return false;
                 throw new Error('Não foi possível gerar um token de notificação para este navegador.');
             }
         } catch (e: any) {

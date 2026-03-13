@@ -27,8 +27,9 @@ try {
 
 /**
  * Requests permission and returns the FCM token for Web PWA
+ * @param force If true, will trigger the native permission prompt (must be called from a user gesture)
  */
-export const requestWebPushToken = async () => {
+export const requestWebPushToken = async (force: boolean = false) => {
   if (!messaging) {
     console.log('FCM Messaging não inicializado.');
     return null;
@@ -42,16 +43,29 @@ export const requestWebPushToken = async () => {
     }
 
     // Explicitly check current permission
-    if (Notification.permission === 'denied') {
+    const currentPermission = Notification.permission;
+    console.log('Permissão atual de notificação:', currentPermission);
+
+    if (currentPermission === 'denied') {
       console.log('Permissão de notificação já foi negada pelo usuário no navegador.');
       return null;
     }
 
-    const permission = await Notification.requestPermission();
-    console.log('Resultado do pedido de permissão:', permission);
+    // iOS/Safari: We should ONLY call requestPermission if it was a user click (force=true)
+    // or if the browser allows it (Android/Chrome usually allow it on load if not denied)
+    if (currentPermission === 'default') {
+      if (!force) {
+        console.log('Notificações em modo "default". Aguardando clique do usuário para solicitar permissão (iOS compliance).');
+        return null;
+      }
+      
+      console.log('Solicitando permissão de notificação (User Gesture)...');
+      const permission = await Notification.requestPermission();
+      console.log('Resultado do pedido de permissão:', permission);
 
-    if (permission !== 'granted') {
-      return null;
+      if (permission !== 'granted') {
+        return null;
+      }
     }
 
     const vapidKey = import.meta.env.VITE_FCM_VAPID_KEY;
@@ -65,10 +79,8 @@ export const requestWebPushToken = async () => {
     console.log('App ID:', firebaseConfig.appId);
     
     // Para o Safari iOS, o registro do Service Worker DEVE ser o mais direto possível.
-    // Qualquer 'await' em limpezas de workers antigos pode quebrar a cadeia de 'User Gesture'.
     let registration;
     if ('serviceWorker' in navigator) {
-        // Já garantimos o registro no index.tsx, aqui apenas pegamos o que está pronto.
         registration = await navigator.serviceWorker.ready;
     } else {
         throw new Error("Service Worker não suportado neste navegador.");
@@ -76,7 +88,7 @@ export const requestWebPushToken = async () => {
 
     console.log('FCM: Solicitando inscrição via Push API...');
     
-    // Promise.race para forçar um tempo limite e não congelar o botão do usuário se o Firebase bugar na rede
+    // Promise.race para forçar um tempo limite
     const token = await Promise.race([
       getToken(messaging, {
         vapidKey: vapidKey,
