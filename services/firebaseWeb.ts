@@ -79,7 +79,9 @@ export const requestWebPushToken = async () => {
 
     let registration;
     if ('serviceWorker' in navigator) {
-         registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/' });
+         // O parâmetro ?v=2 anula o cache local do navegador onde a primeira versão sem try/catch 
+         // estava falhando ao iniciar o IndexedDB.
+         registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js?v=2', { scope: '/' });
          await navigator.serviceWorker.ready;
     } else {
          throw new Error("Service Worker não suportado neste navegador.");
