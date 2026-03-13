@@ -64,28 +64,17 @@ export const requestWebPushToken = async () => {
     console.log('Sender ID:', firebaseConfig.messagingSenderId);
     console.log('App ID:', firebaseConfig.appId);
     
-    // Tática Nuclear de Reset com Cuidado: Desregistra qualquer lixo ou SW fantasma
-    if ('serviceWorker' in navigator) {
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      for (const reg of registrations) {
-        const scriptURL = reg.active?.scriptURL || reg.installing?.scriptURL || reg.waiting?.scriptURL;
-        // Não desregistra se já for o nosso oficial perfeito (mesmo se estiver só instalando ainda)
-        if (!scriptURL || !scriptURL.includes('firebase-messaging-sw.js')) {
-            console.log('Unregistering conflicting or stale SW:', reg.scope);
-            try { await reg.unregister(); } catch(e) {}
-        }
-      }
-    }
-
+    // Para o Safari iOS, o registro do Service Worker DEVE ser o mais direto possível.
+    // Qualquer 'await' em limpezas de workers antigos pode quebrar a cadeia de 'User Gesture'.
     let registration;
     if ('serviceWorker' in navigator) {
-         registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/' });
-         await navigator.serviceWorker.ready;
+        // Já garantimos o registro no index.tsx, aqui apenas pegamos o que está pronto.
+        registration = await navigator.serviceWorker.ready;
     } else {
-         throw new Error("Service Worker não suportado neste navegador.");
+        throw new Error("Service Worker não suportado neste navegador.");
     }
 
-    console.log('FCM: Tentando gerar o Token...');
+    console.log('FCM: Solicitando inscrição via Push API...');
     
     // Promise.race para forçar um tempo limite e não congelar o botão do usuário se o Firebase bugar na rede
     const token = await Promise.race([

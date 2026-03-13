@@ -12,8 +12,12 @@ interface PullToRefreshProps {
  * Optimized for mobile APKs where browser pull-to-refresh might be disabled
  */
 export const PullToRefresh: React.FC<PullToRefreshProps> = ({ onRefresh, children }) => {
-    // If running on WEB, just render children (browser has its own pull-to-refresh)
-    if (Capacitor.getPlatform() === 'web') {
+    // Optimized for iOS PWA and Native. Standard web browsers usually have native pull-to-refresh.
+    const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+    const isStandalone = ('standalone' in window.navigator) && (window.navigator as any).standalone;
+    const isPwaIos = isIos && isStandalone;
+
+    if (Capacitor.getPlatform() === 'web' && !isPwaIos) {
         return <>{children}</>;
     }
 
