@@ -52,11 +52,20 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
 
         // If private, notify Admin
         if (league.is_private) {
+            // Get requester's nickname/name from profiles
+            const { data: requesterProfile } = await userClient
+                .from('profiles')
+                .select('name')
+                .eq('id', authUser.id)
+                .single();
+
+            const requesterName = requesterProfile?.name || authUser.user_metadata?.full_name || authUser.email;
+
             await sendPushNotificationToUser(
                 env,
                 league.admin_id,
                 "Nova Solicitação 🔔",
-                `${authUser.user_metadata?.full_name || authUser.email} quer entrar na liga: ${league.name}`,
+                `${requesterName} quer entrar na liga: ${league.name}`,
                 { url: `/league/${id}?tab=admin` }
             );
         }
