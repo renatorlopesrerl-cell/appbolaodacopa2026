@@ -33,7 +33,7 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                     token: body.token,
                     device_type: body.device_type,
                     last_seen: new Date().toISOString()
-                }, { onConflict: 'user_id, token' });
+                }, { onConflict: 'user_id,token' });
 
                 if (tokenError) throw tokenError;
                 return jsonResponse({ success: true, message: "Token registered" });

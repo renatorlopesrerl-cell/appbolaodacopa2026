@@ -159,7 +159,7 @@ export const scheduleMatchReminder = async (matchId: string, matchName: string, 
                 id: id,
                 schedule: { at: reminderTime },
                 channelId: 'meu_canal',
-                extra: { url: '/table' }
+                extra: { url: '/leagues' }
             }]
         });
         console.log(`Reminder scheduled for ${matchName} at ${reminderTime.toLocaleString()}`);

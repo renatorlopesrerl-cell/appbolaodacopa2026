@@ -64,20 +64,39 @@ export const requestWebPushToken = async () => {
     console.log('Sender ID:', firebaseConfig.messagingSenderId);
     console.log('App ID:', firebaseConfig.appId);
     
-    // Usar o .ready previne registrar um novo e força o Firebase a usar o ServiceWorker 
-    // principal ('/firebase-messaging-sw.js' com escopo '/') registrado no index.tsx.
-    // Isso conserta:
-    // 1. Android: Cancela o erro "unable to register default service worker" porque nós mesmos o fornecemos.
-    // 2. iOS Safari: Impede o conflito do gerador de chaves garantindo que o SW está ativo antes do getToken.
-    let activeRegistration;
+    // Tática Nuclear de Reset: Desregistra qualquer lixo ou SW fantasma (como o /firebase-cloud-messaging-push-scope)
+    // Isso garante que o navegador acorde sem workers em loop ou com escopos conflitantes.
     if ('serviceWorker' in navigator) {
-         activeRegistration = await navigator.serviceWorker.ready;
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for (const reg of registrations) {
+        // Não desregistra se já for o nosso oficial perfeito
+        if (!reg.active || !reg.active.scriptURL.includes('firebase-messaging-sw.js')) {
+            console.log('Unregistering conflicting or stale SW:', reg.scope);
+            await reg.unregister();
+        }
+      }
     }
 
-    const token = await getToken(messaging, {
-      vapidKey: vapidKey,
-      serviceWorkerRegistration: activeRegistration
-    });
+    let registration;
+    if ('serviceWorker' in navigator) {
+         registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/' });
+         await navigator.serviceWorker.ready;
+    } else {
+         throw new Error("Service Worker não suportado neste navegador.");
+    }
+
+    console.log('FCM: Tentando gerar o Token...');
+    
+    // Promise.race para forçar um tempo limite e não congelar o botão do usuário se o Firebase bugar na rede
+    const token = await Promise.race([
+      getToken(messaging, {
+        vapidKey: vapidKey,
+        serviceWorkerRegistration: registration
+      }),
+      new Promise<string>((_, reject) => 
+        setTimeout(() => reject(new Error("Timeout (10s) atingido ao solicitar Token do Firebase. O Service Worker ou a rede podem estar travados.")), 10000)
+      )
+    ]);
 
     if (token) {
       console.log('Token gerado com sucesso!');
