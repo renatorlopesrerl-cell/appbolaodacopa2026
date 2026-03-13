@@ -64,24 +64,22 @@ export const requestWebPushToken = async () => {
     console.log('Sender ID:', firebaseConfig.messagingSenderId);
     console.log('App ID:', firebaseConfig.appId);
     
-    // Tática Nuclear de Reset: Desregistra qualquer lixo ou SW fantasma (como o /firebase-cloud-messaging-push-scope)
-    // Isso garante que o navegador acorde sem workers em loop ou com escopos conflitantes.
+    // Tática Nuclear de Reset com Cuidado: Desregistra qualquer lixo ou SW fantasma
     if ('serviceWorker' in navigator) {
       const registrations = await navigator.serviceWorker.getRegistrations();
       for (const reg of registrations) {
-        // Não desregistra se já for o nosso oficial perfeito
-        if (!reg.active || !reg.active.scriptURL.includes('firebase-messaging-sw.js')) {
+        const scriptURL = reg.active?.scriptURL || reg.installing?.scriptURL || reg.waiting?.scriptURL;
+        // Não desregistra se já for o nosso oficial perfeito (mesmo se estiver só instalando ainda)
+        if (!scriptURL || !scriptURL.includes('firebase-messaging-sw.js')) {
             console.log('Unregistering conflicting or stale SW:', reg.scope);
-            await reg.unregister();
+            try { await reg.unregister(); } catch(e) {}
         }
       }
     }
 
     let registration;
     if ('serviceWorker' in navigator) {
-         // O parâmetro ?v=2 anula o cache local do navegador onde a primeira versão sem try/catch 
-         // estava falhando ao iniciar o IndexedDB.
-         registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js?v=2', { scope: '/' });
+         registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/' });
          await navigator.serviceWorker.ready;
     } else {
          throw new Error("Service Worker não suportado neste navegador.");

@@ -26,3 +26,4 @@ ios
 
 # Firebase PWA
 public/firebase-messaging-sw.js
+# Mantido ignorado porque agora usaremos um template para gerar este arquivo com as chaves do .env
