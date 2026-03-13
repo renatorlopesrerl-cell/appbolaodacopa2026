@@ -127,7 +127,7 @@ export const HowToPlay: React.FC = () => {
                             </div>
                         </div>
                         <p>
-                            Na aba <strong>Classificação</strong>, a pontuação geral pode ser acompanhada em tempo real, com opção de visualizar Pontuação Total, por Rodada, Fase de Grupos completa ou Mata-Mata completo. Ao clicar em um participante, você vê todo o histórico de palpites dele (visível apenas 5 min antes do jogo).
+                            Na aba <strong>Classificação</strong>, a pontuação geral pode ser acompanhada em tempo real, com opção de visualizar Pontuação Total, por Rodada, Fase de Grupos completa, Fase 16-avos, Oitavas de Final, Fase Final ou Mata-Mata completo. Ao clicar em um participante, você vê todo o histórico de palpites dele (visível apenas 5 min antes do jogo).
                         </p>
 
                         {/* Imagens Classificação */}
@@ -147,7 +147,7 @@ export const HowToPlay: React.FC = () => {
                         </div>
                         <p>
                             Na aba <strong>Regras</strong> fica o Sistema de Pontuação e os critérios de desempate:
-                            1º Maior Pontuação Total, 2º Maior número de Cravadas (Acerto Exato) e 3º Maior pontuação no Mata-Mata.
+                            1º Maior Pontuação Total, 2º Maior número de Cravadas (Acerto Exato), 3º Maior número de acertos em <strong>Vencedor + Saldo</strong> e 4º Maior pontuação no Mata-Mata.
                             Outra regra importante: em caso de empate no tempo normal que leve à prorrogação, <strong>vale o placar final após 120 minutos</strong> (Tempo Normal + Prorrogação). Disputa de pênaltis não conta para o placar das ligas.
                         </p>
                         <p>
