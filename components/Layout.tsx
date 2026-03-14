@@ -142,21 +142,30 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         ) : (
           <div className="divide-y divide-gray-100 dark:divide-gray-700">
             {pendingInvites.map(invite => {
-              const leagueName = leagues.find(l => l.id === invite.leagueId)?.name || 'Liga desconhecida';
+              const league = leagues.find(l => l.id === invite.leagueId);
+              const leagueName = league?.name || 'Liga desconhecida';
+              const leagueImage = league?.image || `https://api.dicebear.com/7.x/identicon/svg?seed=${invite.leagueId}`;
+
               return (
                 <div key={invite.id} className="block p-3 hover:bg-white dark:hover:bg-gray-800 transition-colors group relative">
                   <div className="absolute left-0 top-0 bottom-0 w-1 bg-yellow-400"></div>
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
+                  <div className="flex gap-3 mb-2">
+                    <OptimizedImage
+                      src={leagueImage}
+                      alt={leagueName}
+                      containerClassName="w-10 h-10 rounded-lg flex-shrink-0 border border-gray-100 dark:border-gray-700 shadow-sm"
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold text-gray-800 dark:text-white flex items-center gap-2">
-                        <Mail size={14} className="text-yellow-600" /> Convite de Liga
+                        <Mail size={14} className="text-yellow-600 flex-shrink-0" /> Convite de Liga
                       </p>
-                      <p className="text-xs text-gray-600 dark:text-gray-300 mt-1 pl-5">
-                        Você foi convidado para entrar em: <span className="font-bold text-brasil-blue dark:text-blue-400">{leagueName}</span>
+                      <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">
+                        Convidado para: <span className="font-bold text-brasil-blue dark:text-blue-400">{leagueName}</span>
                       </p>
                     </div>
                   </div>
-                  <div className="pl-5 flex gap-2">
+                  <div className="pl-[52px] flex gap-2">
                     <button
                       onClick={() => respondToInvite(invite.id, true)}
                       className="flex-1 bg-green-100 hover:bg-green-200 text-green-700 text-xs font-bold py-1.5 rounded flex items-center justify-center gap-1 transition-colors"
@@ -181,17 +190,23 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               return validRequests.map(user => (
                 <div key={`${l.id}-${user.id}`} className="block p-3 hover:bg-white dark:hover:bg-gray-800 transition-colors group relative">
                   <div className="absolute left-0 top-0 bottom-0 w-1 bg-brasil-green"></div>
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
+                  <div className="flex gap-3 mb-2">
+                    <OptimizedImage
+                      src={user.avatar}
+                      alt={user.name}
+                      containerClassName="w-10 h-10 rounded-full flex-shrink-0 border border-gray-100 dark:border-gray-700 shadow-sm"
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold text-gray-800 dark:text-white flex items-center gap-2">
-                        <Users size={14} className="text-green-600" /> Solicitação
+                        <Users size={14} className="text-green-600 flex-shrink-0" /> Solicitação
                       </p>
-                      <p className="text-xs text-gray-600 dark:text-gray-300 mt-1 pl-5">
+                      <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">
                         <span className="font-bold">{user.name}</span> quer entrar na liga <span className="font-bold text-brasil-blue dark:text-blue-400">{l.name}</span>
                       </p>
                     </div>
                   </div>
-                  <div className="pl-5 flex gap-2">
+                  <div className="pl-[52px] flex gap-2">
                     <button
                       onClick={(e) => {
                         e.preventDefault();
