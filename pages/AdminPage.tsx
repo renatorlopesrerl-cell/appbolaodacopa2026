@@ -131,54 +131,6 @@ export const AdminPage: React.FC = () => {
           </div>
         </button>
 
-        {/* Card: Manutenção do Sistema (Reminders & Auto-Start) */}
-        <button
-          id="admin-maintenance-btn"
-          onClick={async () => {
-            if (testPushLoading) return;
-            setTestPushLoading(true);
-            try {
-              const res = await fetch('https://bolaodacopa2026.app/api/push/reminder', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ secret: 'bolao2026_secure_webhook_key' })
-              });
-              const data = await res.json();
-              if (data.success) {
-                const results = data.results;
-                addNotification('Manutenção Concluída', `Jogos iniciados: ${results.startedMatches}. Lembretes enviados: ${results.remindersSent}.`, 'success');
-              } else {
-                addNotification('Erro na Manutenção', data.error || 'Erro no servidor.', 'warning');
-              }
-            } catch (e: any) {
-              addNotification('Erro de Conexão', e.message, 'warning');
-            } finally {
-              setTestPushLoading(false);
-            }
-          }}
-          disabled={testPushLoading}
-          className="group relative bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-md border-2 border-transparent hover:border-orange-500 transition-all hover:shadow-xl text-left overflow-hidden disabled:opacity-50"
-        >
-          <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 group-hover:scale-110 transition-all duration-500">
-            <RefreshCw size={120} className="text-orange-500 dark:text-orange-400" />
-          </div>
-
-          <div className="relative z-10">
-            <div className="w-16 h-16 bg-orange-50 dark:bg-orange-900/30 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-orange-500 transition-colors">
-              <RefreshCw size={32} className="text-orange-600 dark:text-orange-400 group-hover:text-white" />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">Forçar Manutenção</h2>
-            <p className="text-gray-500 dark:text-gray-400 font-medium leading-relaxed">
-              Executa manualmente o robô: inicia jogos no horário e envia lembretes. Use se o robô automático falhar.
-            </p>
-            <div className="mt-6 flex items-center gap-2 text-orange-600 dark:text-orange-400 font-bold">
-              Executar agora <ArrowLeft size={16} className="rotate-180" />
-            </div>
-          </div>
-        </button>
-
-
-
       </div>
     </div >
   );
