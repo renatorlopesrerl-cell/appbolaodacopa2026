@@ -99,10 +99,16 @@ ALTER TABLE predictions ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "Public read predictions" ON predictions;
 DROP POLICY IF EXISTS "Self manage predictions" ON predictions;
-DROP POLICY IF EXISTS "Admin calc points" ON predictions;
 
--- Todos podem ver palpites
-CREATE POLICY "Public read predictions" ON predictions FOR SELECT USING (true);
+-- Só pode ver palpites de outros se faltarem menos de 5 minutos para o jogo ou se o jogo já começou
+CREATE POLICY "Viewable predictions" ON predictions FOR SELECT USING (
+    auth.uid() = user_id OR 
+    EXISTS (
+        SELECT 1 FROM matches 
+        WHERE id = match_id 
+        AND (date - interval '5 minutes') <= now()
+    )
+);
 
 -- Usuários gerenciam APENAS seus próprios palpites
 CREATE POLICY "Self manage predictions" ON predictions 
@@ -180,9 +186,27 @@ FOR EACH ROW
 EXECUTE FUNCTION prevent_prediction_tampering();
 
 -- ==============================================================================
--- PERMISSÕES
+-- PERMISSÕES GRANULARES (SEGURANÇA PLAY STORE)
 -- ==============================================================================
-GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
-GRANT ALL ON ALL TABLES IN SCHEMA public TO anon, authenticated, service_role;
-GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO anon, authenticated, service_role;
-GRANT ALL ON ALL ROUTINES IN SCHEMA public TO anon, authenticated, service_role;
+-- 1. Esquema Público
+GRANT USAGE ON SCHEMA public TO anon, authenticated;
+
+-- 2. Permissões de Leitura (Geral)
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO authenticated;
+GRANT SELECT ON matches TO anon; -- Público pode ver jogos e times
+
+-- 3. Permissões de Escrita (Específicas)
+-- Perfis: Usuário insere/atualiza o seu
+GRANT INSERT, UPDATE ON profiles TO authenticated;
+
+-- Ligas: Usuário cria e entra em ligas
+GRANT INSERT, UPDATE ON leagues TO authenticated;
+
+-- Palpites: Usuário cria e edita os seus
+GRANT INSERT, UPDATE, DELETE ON predictions TO authenticated;
+
+-- Convites e Dispositivos
+GRANT INSERT, UPDATE, DELETE ON user_fcm_tokens TO authenticated;
+
+-- 4. Sequências (Necessário para inserts)
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO authenticated;
