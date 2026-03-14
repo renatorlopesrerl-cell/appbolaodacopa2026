@@ -24,36 +24,10 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
             remindersSent: 0
         };
 
-        // --- 1. NOTIFY RECENTLY STARTED MATCHES ---
-        // We look for matches that are IN_PROGRESS but started very recently
-        const recentWindow = new Date(Date.now() - 10 * 60 * 1000).toISOString(); 
-        
-        const { data: recentStarted } = await supabase
-            .from('matches')
-            .select('id, home_team_id, away_team_id')
-            .eq('status', 'IN_PROGRESS')
-            .gte('date', recentWindow);
+        // Match Started notifications are handled by the database trigger calling webhook.ts
+        // This worker focuses on prediction reminders (30m before kickoff).
 
-        if (recentStarted && recentStarted.length > 0) {
-            // Fetch all users who want start notifications
-            const { data: users } = await supabase.from('profiles').select('id, notification_settings');
-            
-            if (users) {
-                for (const match of recentStarted) {
-                    const title = "Jogo Iniciado! ⚽";
-                    const bodyText = `A partida entre ${match.home_team_id} x ${match.away_team_id} começou!`;
-                    
-                    const tasks = users
-                        .filter(u => (u.notification_settings?.matchStart ?? true) !== false)
-                        .map(u => sendPushNotificationToUser(env, u.id, title, bodyText, { url: '/table' }));
-                    
-                    await Promise.allSettled(tasks);
-                    results.startedNotifications += tasks.length;
-                }
-            }
-        }
-
-        // --- 2. PREDICTION REMINDERS (30m before) ---
+        // --- 1. PREDICTION REMINDERS (30m before) ---
         const windowStart = new Date(Date.now() + 20 * 60 * 1000).toISOString();
         const windowEnd = new Date(Date.now() + 40 * 60 * 1000).toISOString();
 

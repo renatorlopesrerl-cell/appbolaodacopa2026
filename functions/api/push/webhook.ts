@@ -84,26 +84,24 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
             }
 
             if (title) {
-                // To avoid overloading, we'll only send to profiles with tokens
+                // Fetch all profiles to check settings. 
+                // The sendPushNotificationToUser function will handle finding the correct tokens (new table or old column).
                 const { data: profiles } = await supabase
                     .from('profiles')
-                    .select('id, notification_settings')
-                    .not('fcm_token', 'is', null);
+                    .select('id, notification_settings');
 
                 if (profiles) {
-                    // Send in parallel batches to handle high volume
-                    const tasks = profiles.map(profile => {
-                        const settings = profile.notification_settings || {};
-                        const wantsStart = status === 'IN_PROGRESS' && settings.matchStart !== false;
-                        const wantsEnd = status === 'FINISHED' && settings.matchEnd !== false;
+                    // Send in parallel batches
+                    const tasks = profiles
+                        .filter(profile => {
+                            const settings = profile.notification_settings || {};
+                            const wantsStart = status === 'IN_PROGRESS' && settings.matchStart !== false;
+                            const wantsEnd = status === 'FINISHED' && settings.matchEnd !== false;
+                            return wantsStart || wantsEnd;
+                        })
+                        .map(profile => sendPushNotificationToUser(env, profile.id, title, bodyText, { url: '/table' }));
 
-                        if (wantsStart || wantsEnd) {
-                            return sendPushNotificationToUser(env, profile.id, title, bodyText, { url: '/table' });
-                        }
-                        return null;
-                    }).filter(t => t !== null);
-
-                    await Promise.all(tasks);
+                    await Promise.allSettled(tasks);
                 }
             }
         }
