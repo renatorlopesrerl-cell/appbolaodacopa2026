@@ -750,29 +750,53 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   };
 
   const signUpWithEmail = async (email: string, pass: string, name: string, whatsapp?: string): Promise<boolean> => {
-    const { data, error } = await supabase.auth.signUp({
-      email, password: pass, options: { data: { name, full_name: name, whatsapp: whatsapp || null } }
-    });
-    if (error) {
-      addNotification('Erro no Cadastro', error.message, 'warning');
+    try {
+      // 1. Verificar se o e-mail já está cadastrado na tabela de perfis para dar um aviso amigável
+      const existingProfile = await api.profiles.getByEmail(email).catch(() => null);
+      if (existingProfile) {
+        addNotification('E-mail já cadastrado', 'Este e-mail já possui uma conta. Por favor, use a opção de login.', 'warning');
+        return false;
+      }
+
+      const { data, error } = await supabase.auth.signUp({
+        email, password: pass, options: { data: { name, full_name: name, whatsapp: whatsapp || null } }
+      });
+
+      if (error) {
+        addNotification('Erro no Cadastro', error.message, 'warning');
+        return false;
+      }
+
+      // 2. Se o Supabase retornar sucesso mas sem identidades, significa que o usuário já existe no Auth
+      // (Isso acontece quando o usuário já está no Auth mas não no Profiles, por exemplo)
+      if (data.user && (!data.user.identities || data.user.identities.length === 0)) {
+        addNotification('E-mail já cadastrado', 'Este e-mail já está em uso. Tente fazer login ou recuperar sua senha.', 'warning');
+        return false;
+      }
+
+      if (data.user && data.session) {
+        const newUserDB = {
+          id: data.user.id, email, name, avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.user.id}`,
+          is_admin: false, whatsapp: whatsapp || null, notification_settings: { matchStart: true, matchEnd: true, predictionReminder: true }
+        };
+        api.profiles.update(newUserDB).catch((err) => console.warn(err));
+        const newUser: User = { ...newUserDB, isAdmin: false, whatsapp: whatsapp || '', notificationSettings: newUserDB.notification_settings };
+        setCurrentUser(newUser);
+        setUsers(prev => prev.some(u => u.id === newUser.id) ? prev : [...prev, newUser]);
+      }
+      
+      if (!data.session) {
+        addNotification('Verifique seu E-mail', 'Enviamos um link de confirmação para o seu e-mail.', 'info');
+        return true;
+      }
+      
+      addNotification('Bem-vindo!', 'Cadastro realizado com sucesso.', 'success');
+      return true;
+    } catch (err: any) {
+      console.error("SignUp Error:", err);
+      addNotification('Erro no Cadastro', 'Ocorreu um erro inesperado. Tente novamente.', 'warning');
       return false;
     }
-    if (data.user && data.session) {
-      const newUserDB = {
-        id: data.user.id, email, name, avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.user.id}`,
-        is_admin: false, whatsapp: whatsapp || null, notification_settings: { matchStart: true, matchEnd: true, predictionReminder: true }
-      };
-      api.profiles.update(newUserDB).catch((err) => console.warn(err));
-      const newUser: User = { ...newUserDB, isAdmin: false, whatsapp: whatsapp || '', notificationSettings: newUserDB.notification_settings };
-      setCurrentUser(newUser);
-      setUsers(prev => prev.some(u => u.id === newUser.id) ? prev : [...prev, newUser]);
-    }
-    if (!data.session) {
-      addNotification('Verifique seu E-mail', 'Enviamos um link de confirmação.', 'info');
-      return true;
-    }
-    addNotification('Bem-vindo!', 'Cadastro realizado.', 'success');
-    return true;
   };
 
   const logout = async () => {
