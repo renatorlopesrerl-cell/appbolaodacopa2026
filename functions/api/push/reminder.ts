@@ -2,10 +2,11 @@
 import { jsonResponse, errorResponse, sendPushNotificationToUser, getSupabaseClient } from '../_shared';
 
 /**
- * Prediction Reminder Push Endpoint
- * Called by Supabase pg_cron or external CRON service every 5 minutes
- * Checks for matches starting in ~30 minutes and sends reminders
- * to users who haven't made predictions yet
+ * Maintenance & Reminder Worker
+ * Called by pg_cron every 5 minutes.
+ * 1. Automatically transitions matches to IN_PROGRESS when time is reached.
+ * 2. Sends "Match Started" push notifications.
+ * 3. Sends "Prediction Reminder" push notifications 30m before kickoff.
  */
 export const onRequest = async ({ request, env }: { request: Request, env: any }) => {
     if (request.method !== 'POST') return new Response("Method not allowed", { status: 405 });
@@ -14,18 +15,78 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
         const body = await request.json() as any;
         const { secret } = body;
 
-        // Security Check (same as webhook)
+        // Security Check
         const WEBHOOK_SECRET = env.WEBHOOK_SECRET || "bolao2026_secure_webhook_key";
         if (secret !== WEBHOOK_SECRET) {
             return errorResponse(new Error("Unauthorized"), 401);
         }
 
         const supabase = getSupabaseClient(env);
+        const nowUtc = new Date().toISOString();
+        const results = {
+            startedMatches: 0,
+            remindersSent: 0,
+            errors: [] as string[]
+        };
 
-        // Find matches starting in the next ~30 minutes (window of 27-32 to avoid multiple triggers if cron is every 5m)
-        const now = new Date();
-        const windowStart = new Date(now.getTime() + 27 * 60 * 1000).toISOString();
-        const windowEnd = new Date(now.getTime() + 32 * 60 * 1000).toISOString();
+        // --- 1. AUTO-START MATCHES & NOTIFY ---
+        const { data: matchesToStart, error: startError } = await supabase
+            .from('matches')
+            .select('id, home_team_id, away_team_id, date')
+            .eq('status', 'SCHEDULED')
+            .lte('date', nowUtc);
+
+        if (startError) {
+            console.error("Error fetching matches to start:", startError);
+            results.errors.push(`Fetch Start Error: ${startError.message}`);
+        } else if (matchesToStart && matchesToStart.length > 0) {
+            for (const match of matchesToStart) {
+                // Update Status to IN_PROGRESS
+                const { error: updateError } = await supabase
+                    .from('matches')
+                    .update({ status: 'IN_PROGRESS' })
+                    .eq('id', match.id);
+
+                if (updateError) {
+                    results.errors.push(`Failed to start match ${match.id}: ${updateError.message}`);
+                    continue;
+                }
+                
+                results.startedMatches++;
+
+                // Notify Users that match has started
+                const title = "Jogo Iniciado! ⚽";
+                const bodyText = `A partida entre ${match.home_team_id} x ${match.away_team_id} começou!`;
+                
+                // Fetch profiles with registered tokens who want start notifications
+                const { data: profiles } = await supabase
+                    .from('user_fcm_tokens')
+                    .select('user_id')
+                    .not('token', 'is', null);
+
+                if (profiles && profiles.length > 0) {
+                    // Unique user IDs
+                    const userIds = [...new Set(profiles.map(p => p.user_id))];
+                    
+                    // Fetch settings for these users
+                    const { data: userSettings } = await supabase
+                        .from('profiles')
+                        .select('id, notification_settings')
+                        .in('id', userIds);
+
+                    if (userSettings) {
+                        const tasks = userSettings
+                            .filter(p => (p.notification_settings?.matchStart ?? true) !== false)
+                            .map(p => sendPushNotificationToUser(env, p.id, title, bodyText, { url: '/table' }));
+                        await Promise.allSettled(tasks);
+                    }
+                }
+            }
+        }
+
+        // --- 2. PREDICTION REMINDERS ---
+        const windowStart = new Date(Date.now() + 25 * 60 * 1000).toISOString();
+        const windowEnd = new Date(Date.now() + 35 * 60 * 1000).toISOString();
 
         const { data: upcomingMatches, error: matchError } = await supabase
             .from('matches')
@@ -34,75 +95,50 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
             .gte('date', windowStart)
             .lte('date', windowEnd);
 
-        console.log(`Checking reminders for window: ${windowStart} to ${windowEnd}. Found: ${upcomingMatches?.length || 0}`);
-
         if (matchError) {
             console.error("Error fetching upcoming matches:", matchError);
-            return errorResponse(matchError);
-        }
+            results.errors.push(`Fetch Reminder Error: ${matchError.message}`);
+        } else if (upcomingMatches && upcomingMatches.length > 0) {
+            // Find all unique users with tokens
+            const { data: tokenUsers } = await supabase
+                .from('user_fcm_tokens')
+                .select('user_id');
 
-        if (!upcomingMatches || upcomingMatches.length === 0) {
-            return jsonResponse({
-                success: true,
-                message: "No matches in reminder window",
-                window: { start: windowStart, end: windowEnd },
-                sent: 0
-            });
-        }
+            if (tokenUsers && tokenUsers.length > 0) {
+                const userIds = [...new Set(tokenUsers.map(p => p.user_id))];
+                const { data: userSettings } = await supabase
+                    .from('profiles')
+                    .select('id, notification_settings')
+                    .in('id', userIds);
 
-        // Fetch profiles who want reminders and have at least one token registered
-        // We'll fetch all profiles and let sendPushNotificationToUser handle the token check
-        // but to be efficient, we check if they exist in user_fcm_tokens or have legacy token
-        const { data: profiles, error: profError } = await supabase
-            .from('profiles')
-            .select('id, notification_settings');
-
-        if (profError || !profiles || profiles.length === 0) {
-            return jsonResponse({ success: true, message: "No profiles found", sent: 0 });
-        }
-
-        const wantsReminder = profiles.filter(p => {
-            const settings = p.notification_settings || {};
-            return settings.predictionReminder !== false;
-        });
-
-        let sentCount = 0;
-        const tasks: Promise<any>[] = [];
-
-        for (const match of upcomingMatches) {
-            const matchLabel = `${match.home_team_id} x ${match.away_team_id}`;
-
-            for (const profile of wantsReminder) {
-                tasks.push(
-                    sendPushNotificationToUser(
-                        env,
-                        profile.id,
-                        "Lembrete de Palpite ⏳",
-                        `O jogo ${matchLabel} vai começar em 30 minutos. Revise ou faça seu palpite!`,
-                        { url: '/table' }
-                    ).then(res => {
-                        if (res.success) sentCount++;
-                        return res;
-                    }).catch(err => {
-                        console.error(`Reminder push failed for ${profile.id}:`, err);
-                        return { success: false };
-                    })
-                );
+                if (userSettings) {
+                    const wantsReminder = userSettings.filter(p => (p.notification_settings?.predictionReminder ?? true) !== false);
+                    
+                    for (const match of upcomingMatches) {
+                        const matchLabel = `${match.home_team_id} x ${match.away_team_id}`;
+                        const tasks = wantsReminder.map(p => 
+                            sendPushNotificationToUser(
+                                env, 
+                                p.id, 
+                                "Lembrete de Palpite ⏳", 
+                                `O jogo ${matchLabel} vai começar em 30 minutos. Revise ou faça seu palpite!`,
+                                { url: '/table' }
+                            ).then(res => { if (res.success) results.remindersSent++; })
+                        );
+                        await Promise.allSettled(tasks);
+                    }
+                }
             }
         }
 
-        await Promise.all(tasks);
-
         return jsonResponse({
             success: true,
-            message: `Process finished`,
-            window: { start: windowStart, end: windowEnd },
-            matches: upcomingMatches.map(m => `${m.home_team_id} x ${m.away_team_id}`),
-            sent: sentCount
+            timestamp: nowUtc,
+            results
         });
 
     } catch (e: any) {
-        console.error("Reminder Error:", e);
+        console.error("Maintenance Error:", e);
         return errorResponse(e);
     }
 }
