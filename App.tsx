@@ -277,9 +277,9 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         fetchAllData(true);
       }
     };
-    
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    
+
     return () => {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -297,17 +297,17 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       // Foregound Web Reminder Logic: Checks every minute (via currentTime)
       matches.forEach(match => {
         if (match.status !== MatchStatus.SCHEDULED) return;
-        
+
         const matchTime = new Date(match.date).getTime();
         const reminderWindowStart = matchTime - (30 * 60 * 1000); // 30 min before
-        
+
         // If we are within the notification window (30m before until start)
         if (now >= reminderWindowStart && now < matchTime) {
           const reminderKey = `reminder-${match.id}-${currentUser.id}`;
           if (notifiedReminders.current.has(reminderKey)) return;
 
           addNotification('Lembrete ⏳', `O jogo ${match.homeTeamId} x ${match.awayTeamId} vai começar em breve. Revise ou faça seu palpite!`, 'warning');
-          
+
           // System notification if permission granted
           if ("Notification" in window && Notification.permission === "granted") {
             try {
@@ -317,7 +317,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               });
             } catch (e) { console.warn("System notification failed", e); }
           }
-          
+
           notifiedReminders.current.add(reminderKey);
         }
       });
@@ -726,9 +726,9 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       console.error("API Fetch Error", e);
 
       // Se o erro for de autenticação (401), a sessão provavelmente expirou ou foi invalidada em outro dispositivo
-      const isAuthError = e.message?.includes('401') || 
-                         e.message?.toLowerCase().includes('unauthorized') || 
-                         e.message?.toLowerCase().includes('jwt');
+      const isAuthError = e.message?.includes('401') ||
+        e.message?.toLowerCase().includes('unauthorized') ||
+        e.message?.toLowerCase().includes('jwt');
 
       if (isAuthError) {
         console.warn("Sessão inválida detectada. Deslogando...");
@@ -819,12 +819,12 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         setCurrentUser(newUser);
         setUsers(prev => prev.some(u => u.id === newUser.id) ? prev : [...prev, newUser]);
       }
-      
+
       if (!data.session) {
         addNotification('Verifique seu E-mail', 'Enviamos um link de confirmação para o seu e-mail.', 'info');
         return true;
       }
-      
+
       addNotification('Bem-vindo!', 'Cadastro realizado com sucesso.', 'success');
       return true;
     } catch (err: any) {
