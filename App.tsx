@@ -294,33 +294,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const now = new Date().getTime();
 
     if (!isNative) {
-      // Foregound Web Reminder Logic: Checks every minute (via currentTime)
-      matches.forEach(match => {
-        if (match.status !== MatchStatus.SCHEDULED) return;
-
-        const matchTime = new Date(match.date).getTime();
-        const reminderWindowStart = matchTime - (30 * 60 * 1000); // 30 min before
-
-        // If we are within the notification window (30m before until start)
-        if (now >= reminderWindowStart && now < matchTime) {
-          const reminderKey = `reminder-${match.id}-${currentUser.id}`;
-          if (notifiedReminders.current.has(reminderKey)) return;
-
-          addNotification('Lembrete ⏳', `O jogo ${match.homeTeamId} x ${match.awayTeamId} vai começar em breve. Revise ou faça seu palpite!`, 'warning');
-
-          // System notification if permission granted
-          if ("Notification" in window && Notification.permission === "granted") {
-            try {
-              new Notification("Lembrete de Palpite ⚽", {
-                body: `O jogo ${match.homeTeamId} x ${match.awayTeamId} começa em 30 minutos!`,
-                icon: "/favicon.ico"
-              });
-            } catch (e) { console.warn("System notification failed", e); }
-          }
-
-          notifiedReminders.current.add(reminderKey);
-        }
-      });
+      // Web reminders are now handled exclusively by the server (Push via FCM)
+      // and pg_cron in Supabase to ensure they arrive even with the browser closed.
       return;
     }
 

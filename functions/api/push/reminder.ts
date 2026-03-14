@@ -50,14 +50,15 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
             });
         }
 
-        // Fetch profiles who have a token and want reminders
-        const { data: profiles } = await supabase
+        // Fetch profiles who want reminders and have at least one token registered
+        // We'll fetch all profiles and let sendPushNotificationToUser handle the token check
+        // but to be efficient, we check if they exist in user_fcm_tokens or have legacy token
+        const { data: profiles, error: profError } = await supabase
             .from('profiles')
-            .select('id, notification_settings')
-            .not('fcm_token', 'is', null);
+            .select('id, notification_settings');
 
-        if (!profiles || profiles.length === 0) {
-            return jsonResponse({ success: true, message: "No profiles with tokens", sent: 0 });
+        if (profError || !profiles || profiles.length === 0) {
+            return jsonResponse({ success: true, message: "No profiles found", sent: 0 });
         }
 
         const wantsReminder = profiles.filter(p => {
