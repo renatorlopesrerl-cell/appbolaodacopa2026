@@ -212,6 +212,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [connectionError, setConnectionError] = useState(false);
   const [isRecoveryMode, setIsRecoveryMode] = useState(false);
+  const notifiedReminders = useRef<Set<string>>(new Set());
 
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const savedTheme = localStorage.getItem('app-theme');
@@ -269,55 +270,80 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const interval = setInterval(() => {
       setCurrentTime(new Date());
     }, 60000);
-    return () => clearInterval(interval);
-    return () => clearInterval(interval);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && currentUserRef.current) {
+        console.log("App resumed, refreshing data...");
+        fetchAllData(true);
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   // --- PREDICTION REMINDER SCHEDULER ---
   useEffect(() => {
     if (!currentUser?.notificationSettings?.predictionReminder || loading) return;
 
-    const timer = setTimeout(async () => {
-      const isNative = (window as any).Capacitor?.isNativePlatform?.() || false;
-      const now = new Date().getTime();
+    const isNative = (window as any).Capacitor?.isNativePlatform?.() || false;
+    const now = new Date().getTime();
 
-      if (!isNative) {
-        // Fallback for web: only schedule timers for matches in the next 1 hour
-        matches.forEach(match => {
-          if (match.status !== MatchStatus.SCHEDULED) return;
-          const matchTime = new Date(match.date).getTime();
-          const notifyTime = matchTime - (30 * 60 * 1000);
-          const timeUntilNotify = notifyTime - now;
+    if (!isNative) {
+      // Foregound Web Reminder Logic: Checks every minute (via currentTime)
+      matches.forEach(match => {
+        if (match.status !== MatchStatus.SCHEDULED) return;
+        
+        const matchTime = new Date(match.date).getTime();
+        const reminderWindowStart = matchTime - (30 * 60 * 1000); // 30 min before
+        
+        // If we are within the notification window (30m before until start)
+        if (now >= reminderWindowStart && now < matchTime) {
+          const reminderKey = `reminder-${match.id}-${currentUser.id}`;
+          if (notifiedReminders.current.has(reminderKey)) return;
 
-          if (timeUntilNotify > 0 && timeUntilNotify < 3600000) {
-            setTimeout(() => {
-              addNotification('Lembrete ⏳', `O jogo ${match.homeTeamId} x ${match.awayTeamId} vai começar em 30 minutos. Revise ou faça seu palpite!`, 'warning');
-            }, timeUntilNotify);
+          addNotification('Lembrete ⏳', `O jogo ${match.homeTeamId} x ${match.awayTeamId} vai começar em breve. Revise ou faça seu palpite!`, 'warning');
+          
+          // System notification if permission granted
+          if ("Notification" in window && Notification.permission === "granted") {
+            try {
+              new Notification("Lembrete de Palpite ⚽", {
+                body: `O jogo ${match.homeTeamId} x ${match.awayTeamId} começa em 30 minutos!`,
+                icon: "/favicon.ico"
+              });
+            } catch (e) { console.warn("System notification failed", e); }
           }
-        });
-        return;
-      }
+          
+          notifiedReminders.current.add(reminderKey);
+        }
+      });
+      return;
+    }
 
-      // Native logic: Sync scheduled reminders
+    // Native logic: Sync scheduled reminders with 5s debounce
+    const timer = setTimeout(async () => {
       console.log("Push Reminder Sync: Starting logic for next matches...");
 
       const upcomingMatches = matches
         .filter(m => m.status === MatchStatus.SCHEDULED)
         .filter(m => {
           const mTime = new Date(m.date).getTime();
-          // reminderTime is 30 mins before. Only schedule if it's still in the future.
           return (mTime - (30 * 60 * 1000)) > now;
         })
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-        .slice(0, 15); // Sync next 15 matches to respect OS limits
+        .slice(0, 15);
 
       for (const match of upcomingMatches) {
         scheduleMatchReminder(match.id, `${match.homeTeamId} x ${match.awayTeamId}`, match.date).catch(() => { });
       }
-    }, 5000); // 5-second debounce ensures it doesn't run while user is actively making multiple predictions
+    }, 5000);
 
     return () => clearTimeout(timer);
-  }, [matches.length, predictions.length, currentUser?.id, currentUser?.notificationSettings?.predictionReminder]);
+  }, [currentTime, matches.length, predictions.length, currentUser?.id, currentUser?.notificationSettings?.predictionReminder, loading]);
   useEffect(() => {
     mountedRef.current = true;
 
@@ -599,15 +625,19 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   };
 
   const fetchInvitations = async (email: string) => {
+    if (!email) return;
+    const normalizedEmail = email.toLowerCase().trim();
     try {
-      const data = await api.leagues.listInvites(email);
+      const data = await api.leagues.listInvites(normalizedEmail);
       if (data) {
         const mappedInvites: Invitation[] = data.map((i: any) => ({
           id: i.id, leagueId: i.league_id, email: i.email, status: i.status
         }));
         setInvitations(mappedInvites);
       }
-    } catch (e) { }
+    } catch (e) {
+      console.error("Fetch Invitations Error:", e);
+    }
   };
 
   const fetchAllData = async (silent: boolean = false) => {
@@ -683,6 +713,11 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           whatsapp: p.whatsapp || '', notificationSettings: p.notification_settings, theme: p.theme, isPro: p.is_pro
         }));
         setUsers(mappedUsers);
+      }
+
+      // NOVO: Buscar convites vinculados ao e-mail do usuário logado
+      if (currentUserRef.current?.email) {
+        fetchInvitations(currentUserRef.current.email);
       }
 
       setConnectionError(false);
