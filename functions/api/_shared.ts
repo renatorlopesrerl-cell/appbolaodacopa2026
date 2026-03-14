@@ -176,10 +176,11 @@ export async function sendPushNotificationToUser(env: any, userId: string, title
     }
 
     if (tokens.length === 0) {
+        console.warn(`[Push Service] Alerta: Nenhum token encontrado para o usuário ${userId}. Verifique se as permissões RLS permitem ao robô ler a tabela user_fcm_tokens.`);
         return {
             success: false,
             message: "Nenhum token FCM encontrado para este usuário.",
-            details: "O usuário precisa registrar o dispositivo (Web ou Android)."
+            details: "Certifique-se de que o usuário ativou notificações e que o servidor tem permissão de leitura (Service Role)."
         };
     }
 
@@ -208,20 +209,25 @@ export async function sendPushNotificationToUser(env: any, userId: string, title
                             priority: "high",
                             notification: {
                                 sound: "default",
-                                icon: "ic_notification", // Native icon
+                                icon: "ic_notification",
                                 notification_priority: "PRIORITY_HIGH"
                             }
                         },
                         webpush: {
+                            headers: {
+                                Urgency: "high"
+                            },
                             notification: {
                                 title: title,
                                 body: body,
                                 icon: "https://bolaodacopa2026.app/favicon.png",
                                 badge: "https://bolaodacopa2026.app/favicon.png",
-                                vibrate: [200, 100, 200]
+                                vibrate: [200, 100, 200],
+                                requireInteraction: true,
+                                actions: data?.url ? [{ action: "open_url", title: "Ver Agora" }] : []
                             },
                             fcm_options: {
-                                link: data?.url ? `https://bolaodacopa2026.app${data.url}` : "https://bolaodacopa2026.app/"
+                                link: data?.url ? (data.url.startsWith('http') ? data.url : `https://bolaodacopa2026.app${data.url}`) : "https://bolaodacopa2026.app/"
                             }
                         }
                     }
