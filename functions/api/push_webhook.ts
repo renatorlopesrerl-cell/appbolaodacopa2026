@@ -2,84 +2,80 @@
 import { jsonResponse, errorResponse, sendPushNotificationToUser, getSupabaseClient } from './_shared';
 
 /**
- * Webhook for Supabase Database Triggers
- * Receives events from PostgreSQL and sends pushes
+ * Webhook for Supabase (Native UI Webhook compatible)
  */
 export const onRequest = async ({ request, env }: { request: Request, env: any }) => {
     if (request.method !== 'POST') return jsonResponse({ error: "Method not allowed" }, 405);
 
     try {
         const body = await request.json() as any;
-        const { type, payload, secret } = body;
-
-        // Security Check
+        
+        // Supabase Native Webhook sends several types of payloads.
+        // We detect if it's coming from the UI (type/record) or our old custom system.
+        const type = body.type; // INSERT, UPDATE, league_invite, etc.
+        const record = body.record || body.payload;
+        const old_record = body.old_record;
+        
+        // Security Check - Supports both 'secret' in body and 'x-webhook-secret' header
         const WEBHOOK_SECRET = env.WEBHOOK_SECRET || "bolao2026_secure_webhook_key";
-        if (secret !== WEBHOOK_SECRET) {
+        const incomingSecret = body.secret || request.headers.get('x-webhook-secret');
+        
+        if (incomingSecret !== WEBHOOK_SECRET) {
             console.error("Webhook Unauthorized: Invalid Secret");
             return errorResponse(new Error("Unauthorized Webhook"), 401);
         }
 
         const supabase = getSupabaseClient(env);
-        console.log(`Processing Webhook type: ${type}`);
 
+        // 1. LEAGUE EVENTS (Custom triggers)
         if (type === 'league_invite') {
-            const { league_id, email, league_name } = payload;
+            const { league_id, email, league_name } = record;
             const { data: profile } = await supabase.from('profiles').select('id').eq('email', email).single();
             if (profile) {
                 await sendPushNotificationToUser(env, profile.id, "Novo Convite! 🏆", `Você foi convidado para participar da liga: ${league_name}`, { url: `/league/${league_id}` });
             }
         }
 
-        if (type === 'league_request') {
-            const { league_id, league_name, user_name, admin_id } = payload;
-            await sendPushNotificationToUser(env, admin_id, "Nova Solicitação 🔔", `${user_name} quer entrar na liga: ${league_name}`, { url: `/league/${league_id}?tab=admin` });
-        }
+        // 2. MATCH EVENTS (Native Table Updates)
+        if (body.table === 'matches' || type === 'match_update') {
+            const status = record.status;
+            const oldStatus = old_record?.status;
+            const home = record.home_team_id;
+            const away = record.away_team_id;
+            const homeScore = record.home_score;
+            const awayScore = record.away_score;
 
-        if (type === 'league_approval') {
-            const { league_id, league_name, user_id } = payload;
-            await sendPushNotificationToUser(env, user_id, "Solicitação Aprovada! ✅", `Sua solicitação para entrar na liga "${league_name}" foi aprovada!`, { url: `/league/${league_id}` });
-        }
-
-        if (type === 'match_update') {
-            const { home, away, status, home_score, away_score } = payload;
             let title = "";
             let bodyText = "";
 
-            if (status === 'IN_PROGRESS') {
+            // LOGIC: Only notify when status CHANGES to a target state
+            if (status === 'IN_PROGRESS' && oldStatus !== 'IN_PROGRESS') {
                 title = "Jogo Iniciado! ⚽";
-                bodyText = `A partida entre ${home} x ${away} começou!`;
-            } else if (status === 'FINISHED') {
+                bodyText = `A partida entre ${home} x ${away} começou! Placar: 0x0`;
+            } else if (status === 'FINISHED' && oldStatus !== 'FINISHED') {
                 title = "Fim de Jogo! 🏁";
-                bodyText = `Resultado final: ${home} ${home_score} x ${away_score} ${away}`;
+                bodyText = `Resultado final: ${home} ${homeScore} x ${awayScore} ${away}`;
             }
 
             if (title) {
-                console.log(`[Webhook] BROADCAST START: ${title} for ${home} x ${away}`);
-                // [FIX] We fetch all profiles. 
-                // The shared helper handles mapping to multiple tokens across both tables.
-                const { data: profiles, error: profError } = await supabase
-                    .from('profiles')
-                    .select('id, notification_settings');
+                console.log(`[Webhook] BROADCAST: ${title} for ${home} x ${away}`);
+                const { data: profiles } = await supabase.from('profiles').select('id, notification_settings');
 
-                if (profError) {
-                    console.error("[Webhook] Error fetching profiles for push:", profError);
-                } else if (profiles) {
-                    const filteredProfiles = profiles.filter(profile => {
-                        const settings = profile.notification_settings || {};
-                        const wantsStart = status === 'IN_PROGRESS' && settings.matchStart !== false;
-                        const wantsEnd = status === 'FINISHED' && settings.matchEnd !== false;
-                        return wantsStart || wantsEnd;
+                if (profiles) {
+                    const filtered = profiles.filter(p => {
+                        const settings = p.notification_settings || {};
+                        if (status === 'IN_PROGRESS') return settings.matchStart !== false;
+                        if (status === 'FINISHED') return settings.matchEnd !== false;
+                        return false;
                     });
 
-                    console.log(`[Webhook] Sending push to ${filteredProfiles.length} users with settings enabled.`);
-
-                    const tasks = filteredProfiles.map(profile => 
+                    const tasks = filtered.map(profile => 
                         sendPushNotificationToUser(env, profile.id, title, bodyText, { url: '/table' })
                     );
 
                     const results = await Promise.allSettled(tasks);
                     const successful = results.filter(r => r.status === 'fulfilled' && (r.value as any).success).length;
-                    console.log(`[Webhook] BROADCAST FINISHED. Successful: ${successful}/${filteredProfiles.length}`);
+                    console.log(`[Webhook] BROADCAST FINISHED. Success: ${successful}/${filtered.length}`);
                 }
             }
         }
