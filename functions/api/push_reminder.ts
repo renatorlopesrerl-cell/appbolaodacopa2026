@@ -2,34 +2,72 @@
 import { jsonResponse, errorResponse, sendPushNotificationToUser, getSupabaseClient } from './_shared';
 
 /**
- * Push Notification Worker
- * Only handles sending notifications. Match status is now handled by SQL.
+ * Unified Push Worker (Reminder + Start Match Detection)
+ * This worker checks for matches starting soon (Reminders) 
+ * AND matches that just started (Start Notifications).
  */
 export const onRequest = async ({ request, env }: { request: Request, env: any }) => {
-    if (request.method !== 'POST') return new Response("Method not allowed", { status: 405 });
+    // Allows both POST (for safety) and GET (bypasses some Cloudflare WAF 403 blocks)
+    const url = new URL(request.url);
+    const secretFromUrl = url.searchParams.get('secret');
+    
+    let secret = secretFromUrl;
+    if (request.method === 'POST') {
+        try {
+            const body = await request.json() as any;
+            secret = body.secret || secret;
+        } catch (e) {}
+    }
+
+    // Security Check
+    const WEBHOOK_SECRET = env.WEBHOOK_SECRET || "bolao2026_secure_webhook_key";
+    if (secret !== WEBHOOK_SECRET) {
+        return errorResponse(new Error("Unauthorized"), 401);
+    }
 
     try {
-        const body = await request.json() as any;
-        const { secret } = body;
-
-        // Security Check
-        const WEBHOOK_SECRET = env.WEBHOOK_SECRET || "bolao2026_secure_webhook_key";
-        if (secret !== WEBHOOK_SECRET) {
-            return errorResponse(new Error("Unauthorized"), 401);
-        }
-
         const supabase = getSupabaseClient(env);
         const results = {
-            startedNotifications: 0,
+            matchesNotified: 0,
             remindersSent: 0
         };
 
-        // Match Started notifications are handled by the database trigger calling webhook.ts
-        // This worker focuses on prediction reminders (30m before kickoff).
+        const now = new Date();
 
-        // --- 1. PREDICTION REMINDERS (30m before) ---
-        const windowStart = new Date(Date.now() + 20 * 60 * 1000).toISOString();
-        const windowEnd = new Date(Date.now() + 40 * 60 * 1000).toISOString();
+        // --- 1. DETECT RECENTLY STARTED MATCHES (To send Match Started Push) ---
+        // We look for matches in status 'IN_PROGRESS' that started in the last 10 minutes
+        const tenMinsAgo = new Date(now.getTime() - 10 * 60 * 1000).toISOString();
+        const { data: startedMatches } = await supabase
+            .from('matches')
+            .select('id, home_team_id, away_team_id, notification_sent')
+            .eq('status', 'IN_PROGRESS')
+            .gte('date', tenMinsAgo)
+            .is('notification_sent', null); // IMPORTANT: Prevents duplicate notifications
+
+        if (startedMatches && startedMatches.length > 0) {
+            const { data: users } = await supabase.from('profiles').select('id, notification_settings');
+            
+            if (users) {
+                for (const match of startedMatches) {
+                    const title = "Jogo Iniciado! ⚽";
+                    const bodyText = `A partida entre ${match.home_team_id} x ${match.away_team_id} começou! Placar: 0x0`;
+                    
+                    const tasks = users
+                        .filter(u => (u.notification_settings?.matchStart ?? true) !== false)
+                        .map(u => sendPushNotificationToUser(env, u.id, title, bodyText, { url: '/table' }));
+                    
+                    await Promise.allSettled(tasks);
+                    
+                    // Mark as notified in DB to avoid double pushes from this script
+                    await supabase.from('matches').update({ notification_sent: true }).eq('id', match.id);
+                    results.matchesNotified++;
+                }
+            }
+        }
+
+        // --- 2. PREDICTION REMINDERS (30m before kickoff) ---
+        const windowStart = new Date(now.getTime() + 20 * 60 * 1000).toISOString();
+        const windowEnd = new Date(now.getTime() + 40 * 60 * 1000).toISOString();
 
         const { data: upcomingMatches } = await supabase
             .from('matches')
@@ -63,7 +101,7 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
         return jsonResponse({ success: true, results });
 
     } catch (e: any) {
-        console.error("Push Worker Error:", e);
+        console.error("Unified Push Worker Error:", e);
         return errorResponse(e);
     }
 }
