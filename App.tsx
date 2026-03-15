@@ -438,9 +438,21 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       }
     });
 
+    // Unified Maintenance Trigger (Auto Start Matches + Push)
+    const runMaintenance = () => {
+      fetch('/api/push_reminder?secret=bolao2026_secure_webhook_key').catch(() => { });
+    };
+
+    // Run once on load
+    runMaintenance();
+
+    // Run every minute while app is open
+    const maintenanceInterval = setInterval(runMaintenance, 60 * 1000);
+
     return () => {
       mountedRef.current = false;
       subscription.unsubscribe();
+      clearInterval(maintenanceInterval);
     };
   }, []);
 

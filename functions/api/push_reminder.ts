@@ -2,12 +2,13 @@
 import { jsonResponse, errorResponse, sendPushNotificationToUser, getSupabaseClient } from './_shared';
 
 /**
- * Unified Push Worker (Reminder + Start Match Detection)
- * This worker checks for matches starting soon (Reminders) 
- * AND matches that just started (Start Notifications).
+ * Master Maintenance Worker (Match Starter + Notifications)
+ * This worker handles THREE things:
+ * 1. Starts matches (sets status to IN_PROGRESS and scores to 0x0)
+ * 2. Sends "Match Started" notifications
+ * 3. Sends "Prediction Reminders" (30 min before)
  */
 export const onRequest = async ({ request, env }: { request: Request, env: any }) => {
-    // Allows both POST (for safety) and GET (bypasses some Cloudflare WAF 403 blocks)
     const url = new URL(request.url);
     const secretFromUrl = url.searchParams.get('secret');
     
@@ -19,7 +20,6 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
         } catch (e) {}
     }
 
-    // Security Check
     const WEBHOOK_SECRET = env.WEBHOOK_SECRET || "bolao2026_secure_webhook_key";
     if (secret !== WEBHOOK_SECRET) {
         return errorResponse(new Error("Unauthorized"), 401);
@@ -28,46 +28,61 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
     try {
         const supabase = getSupabaseClient(env);
         const results = {
-            matchesNotified: 0,
+            matchesStarted: 0,
+            notificationsSent: 0,
             remindersSent: 0
         };
 
-        const now = new Date();
+        const now = new Date().toISOString();
 
-        // --- 1. DETECT RECENTLY STARTED MATCHES (To send Match Started Push) ---
-        // We look for matches in status 'IN_PROGRESS' that started in the last 10 minutes
-        const tenMinsAgo = new Date(now.getTime() - 10 * 60 * 1000).toISOString();
-        const { data: startedMatches } = await supabase
+        // --- 1. START MATCHES AUTOMATICALLY (Internal Logic) ---
+        // We look for matches that are past their start time but still 'SCHEDULED'
+        // We update them to 'IN_PROGRESS' and set score to 0x0
+        const { data: toStart } = await supabase
             .from('matches')
-            .select('id, home_team_id, away_team_id, notification_sent')
-            .eq('status', 'IN_PROGRESS')
-            .gte('date', tenMinsAgo)
-            .is('notification_sent', null); // IMPORTANT: Prevents duplicate notifications
+            .select('id, home_team_id, away_team_id')
+            .eq('status', 'SCHEDULED')
+            .lte('date', now);
 
-        if (startedMatches && startedMatches.length > 0) {
-            const { data: users } = await supabase.from('profiles').select('id, notification_settings');
-            
-            if (users) {
-                for (const match of startedMatches) {
-                    const title = "Jogo Iniciado! ⚽";
-                    const bodyText = `A partida entre ${match.home_team_id} x ${match.away_team_id} começou! Placar: 0x0`;
+        if (toStart && toStart.length > 0) {
+            for (const match of toStart) {
+                // Update Match to IN_PROGRESS
+                const { error: updateErr } = await supabase
+                    .from('matches')
+                    .update({ 
+                        status: 'IN_PROGRESS', 
+                        home_score: 0, 
+                        away_score: 0 
+                    })
+                    .eq('id', match.id);
+
+                if (!updateErr) {
+                    results.matchesStarted++;
                     
-                    const tasks = users
-                        .filter(u => (u.notification_settings?.matchStart ?? true) !== false)
-                        .map(u => sendPushNotificationToUser(env, u.id, title, bodyText, { url: '/table' }));
-                    
-                    await Promise.allSettled(tasks);
-                    
-                    // Mark as notified in DB to avoid double pushes from this script
-                    await supabase.from('matches').update({ notification_sent: true }).eq('id', match.id);
-                    results.matchesNotified++;
+                    // --- 2. SEND START NOTIFICATION IMMEDIATELY ---
+                    const { data: users } = await supabase.from('profiles').select('id, notification_settings');
+                    if (users) {
+                        const title = "Jogo Iniciado! ⚽";
+                        const bodyText = `A partida entre ${match.home_team_id} x ${match.away_team_id} começou! Placar: 0x0`;
+                        
+                        const tasks = users
+                            .filter(u => (u.notification_settings?.matchStart ?? true) !== false)
+                            .map(u => sendPushNotificationToUser(env, u.id, title, bodyText, { url: '/table' }));
+                        
+                        await Promise.allSettled(tasks);
+                        
+                        // Mark as notified
+                        await supabase.from('matches').update({ notification_sent: true }).eq('id', match.id);
+                        results.notificationsSent++;
+                    }
                 }
             }
         }
 
-        // --- 2. PREDICTION REMINDERS (30m before kickoff) ---
-        const windowStart = new Date(now.getTime() + 20 * 60 * 1000).toISOString();
-        const windowEnd = new Date(now.getTime() + 40 * 60 * 1000).toISOString();
+        // --- 3. PREDICTION REMINDERS (30m before kickoff) ---
+        const nowObj = new Date();
+        const windowStart = new Date(nowObj.getTime() + 20 * 60 * 1000).toISOString();
+        const windowEnd = new Date(nowObj.getTime() + 40 * 60 * 1000).toISOString();
 
         const { data: upcomingMatches } = await supabase
             .from('matches')
@@ -78,10 +93,8 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
 
         if (upcomingMatches && upcomingMatches.length > 0) {
             const { data: users } = await supabase.from('profiles').select('id, notification_settings');
-            
             if (users) {
                 const wantsReminder = users.filter(u => (u.notification_settings?.predictionReminder ?? true) !== false);
-                
                 for (const match of upcomingMatches) {
                     const matchLabel = `${match.home_team_id} x ${match.away_team_id}`;
                     const tasks = wantsReminder.map(u => 
@@ -101,7 +114,7 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
         return jsonResponse({ success: true, results });
 
     } catch (e: any) {
-        console.error("Unified Push Worker Error:", e);
+        console.error("Master Maintenance Worker Error:", e);
         return errorResponse(e);
     }
 }
