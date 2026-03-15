@@ -54,7 +54,7 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
             }
 
             if (title) {
-                console.log(`Sending match push: ${title} for ${home} x ${away}`);
+                console.log(`[Webhook] BROADCAST START: ${title} for ${home} x ${away}`);
                 // [FIX] We fetch all profiles. 
                 // The shared helper handles mapping to multiple tokens across both tables.
                 const { data: profiles, error: profError } = await supabase
@@ -62,21 +62,24 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
                     .select('id, notification_settings');
 
                 if (profError) {
-                    console.error("Error fetching profiles for push:", profError);
+                    console.error("[Webhook] Error fetching profiles for push:", profError);
                 } else if (profiles) {
-                    console.log(`Broadcasting push to ${profiles.length} potential users...`);
-                    const tasks = profiles
-                        .filter(profile => {
-                            const settings = profile.notification_settings || {};
-                            const wantsStart = status === 'IN_PROGRESS' && settings.matchStart !== false;
-                            const wantsEnd = status === 'FINISHED' && settings.matchEnd !== false;
-                            return wantsStart || wantsEnd;
-                        })
-                        .map(profile => sendPushNotificationToUser(env, profile.id, title, bodyText, { url: '/table' }));
+                    const filteredProfiles = profiles.filter(profile => {
+                        const settings = profile.notification_settings || {};
+                        const wantsStart = status === 'IN_PROGRESS' && settings.matchStart !== false;
+                        const wantsEnd = status === 'FINISHED' && settings.matchEnd !== false;
+                        return wantsStart || wantsEnd;
+                    });
+
+                    console.log(`[Webhook] Sending push to ${filteredProfiles.length} users with settings enabled.`);
+
+                    const tasks = filteredProfiles.map(profile => 
+                        sendPushNotificationToUser(env, profile.id, title, bodyText, { url: '/table' })
+                    );
 
                     const results = await Promise.allSettled(tasks);
                     const successful = results.filter(r => r.status === 'fulfilled' && (r.value as any).success).length;
-                    console.log(`Push broadcasting finished. Successful: ${successful}/${tasks.length}`);
+                    console.log(`[Webhook] BROADCAST FINISHED. Successful: ${successful}/${filteredProfiles.length}`);
                 }
             }
         }

@@ -141,7 +141,12 @@ function b64url_buffer(buf: ArrayBuffer) {
 // ---- Push Notifications ----
 
 export async function sendPushNotificationToUser(env: any, userId: string, title: string, body: string, data?: any) {
-    const supabase = getSupabaseClient(env);
+    // Determine the best client to use: Prefer Service Role if available to bypass RLS for automated tasks
+    const supabase = (env.SUPABASE_SERVICE_ROLE_KEY && env.SUPABASE_URL) 
+        ? createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY)
+        : getSupabaseClient(env);
+
+    console.log(`[Push Service] Finding tokens for user: ${userId} (ServiceRole active: ${!!env.SUPABASE_SERVICE_ROLE_KEY})`);
 
     // 1. Get user's FCM tokens (supporting multiple devices)
     const { data: tokenRows, error: tokenError } = await supabase
@@ -151,13 +156,12 @@ export async function sendPushNotificationToUser(env: any, userId: string, title
 
     let tokens: string[] = [];
     
-    // Se encontrou tokens na nova tabela, usa eles
     if (!tokenError && tokenRows && tokenRows.length > 0) {
         tokens = tokenRows.map(r => r.token);
-        console.log(`Encontrados ${tokens.length} tokens para o usuário ${userId} na nova tabela.`);
+        console.log(`[Push Service] Found ${tokens.length} tokens in user_fcm_tokens table.`);
     } 
     
-    // Se a nova tabela estiver vazia OU der erro (ex: RLS), tenta a tabela antiga como plano B
+    // Fallback to legacy profiles column
     if (tokens.length === 0) {
         const { data: profile, error: profError } = await supabase
             .from('profiles')
@@ -167,20 +171,16 @@ export async function sendPushNotificationToUser(env: any, userId: string, title
             
         if (profile?.fcm_token) {
             tokens = [profile.fcm_token];
-            console.log(`Usando token legado da tabela profiles para o usuário ${userId}.`);
-        }
-        
-        if (tokenError && tokens.length === 0) {
-            console.warn("Erro ao buscar na nova tabela e nada encontrado na antiga:", tokenError.message);
+            console.log(`[Push Service] Using legacy token from profiles table.`);
         }
     }
 
     if (tokens.length === 0) {
-        console.warn(`[Push Service] Alerta: Nenhum token encontrado para o usuário ${userId}. Verifique se as permissões RLS permitem ao robô ler a tabela user_fcm_tokens.`);
+        console.warn(`[Push Service] ALERTA: Nenhum token encontrado para o usuário ${userId}. Causa provável: RLS bloqueando leitura ou usuário não sincronizou o dispositivo.`);
         return {
             success: false,
-            message: "Nenhum token FCM encontrado para este usuário.",
-            details: "Certifique-se de que o usuário ativou notificações e que o servidor tem permissão de leitura (Service Role)."
+            message: "Nenhum token FCM encontrado.",
+            details: "Certifique-se de que o usuário clicou em 'Sincronizar este dispositivo' e que a SERVICE_ROLE_KEY está configurada na Cloudflare."
         };
     }
 
