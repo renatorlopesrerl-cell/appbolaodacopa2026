@@ -366,7 +366,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
           // Background sync
           fetchUserProfile(user.id, user.email || '', basicUser.avatar, basicUser.name, basicUser.whatsapp || '', provider);
-          fetchAllData();
+          await fetchAllData();
           setupPushNotifications(user.id).catch(() => { });
         } else {
           console.log("No active session found.");
@@ -424,7 +424,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
           // Background sync
           fetchUserProfile(user.id, user.email || '', basicUser.avatar, basicUser.name, basicUser.whatsapp || '', provider);
-          fetchAllData();
+          await fetchAllData();
 
           setupPushNotifications(user.id).catch(e => console.error("Push Setup Error:", e));
 
