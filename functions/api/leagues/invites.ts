@@ -76,7 +76,7 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                         existingUser.id,
                         "Novo Convite! 🏆",
                         `Você foi convidado para participar da liga: ${league.name}`,
-                        { url: `/league/${leagueId}` }
+                        { url: '/' }
                     );
                 }
 
