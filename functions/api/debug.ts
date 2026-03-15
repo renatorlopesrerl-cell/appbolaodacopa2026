@@ -4,40 +4,47 @@ import { createClient } from '@supabase/supabase-js';
 export const onRequest = async ({ env }: { env: any }) => {
     const url = env.SUPABASE_URL || '';
     const key = env.SUPABASE_ANON_KEY || '';
-    const fcm = env.FCM_SERVER_KEY || '';
+    const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY || '';
+    
+    // Cloudflare FCM Keys (FCM v1)
+    const fcmClientEmail = env.FCM_CLIENT_EMAIL || '';
+    const fcmPrivateKey = env.FCM_PRIVATE_KEY || '';
+    const fcmProjectId = env.FCM_PROJECT_ID || '';
 
-    // Test connection
-    let supabaseError = null;
+    // Testing DB access
+    let supabaseStatus = "Checking...";
+    let profilesCount = 0;
+    let tokensCount = 0;
+
     try {
-        const supabase = createClient(url, key);
-        const { error } = await supabase.from('profiles').select('id').limit(1);
-        supabaseError = error ? error.message : "Connection Success";
+        const supabase = createClient(url, serviceKey || key);
+        const { data: profs, error: pErr } = await supabase.from('profiles').select('id', { count: 'exact' });
+        const { data: toks, error: tErr } = await supabase.from('user_fcm_tokens').select('token', { count: 'exact' });
+        
+        profilesCount = profs?.length || 0;
+        tokensCount = toks?.length || 0;
+        supabaseStatus = (pErr || tErr) ? `Error: ${pErr?.message || tErr?.message}` : "Connected Successfully";
     } catch (e: any) {
-        supabaseError = e.message;
+        supabaseStatus = `Exception: ${e.message}`;
     }
 
-    const status = {
-        SUPABASE_URL: {
-            present: !!url,
-            length: url.length,
-            startsWithHttps: url.startsWith('https://'),
-            hasWhitespace: url !== url.trim()
+    const report = {
+        timestamp: new Date().toISOString(),
+        environment: {
+            SUPABASE_URL: !!url,
+            SUPABASE_ANON_KEY: !!key,
+            SUPABASE_SERVICE_ROLE_KEY: !!serviceKey,
+            FCM_V1_CONFIGURED: !!(fcmClientEmail && fcmPrivateKey && fcmProjectId)
         },
-        SUPABASE_ANON_KEY: {
-            present: !!key,
-            length: key.length,
-            hasWhitespace: key !== key.trim()
+        database_health: {
+            connection: supabaseStatus,
+            total_profiles: profilesCount,
+            total_tokens_registered: tokensCount
         },
-        FCM_SERVER_KEY: {
-            present: !!fcm,
-            length: fcm.length,
-            hasWhitespace: fcm !== fcm.trim()
-        },
-        TEST_CONNECTION: supabaseError,
-        NODE_VERSION: env.NODE_VERSION || 'unknown'
+        tips: tokensCount === 0 ? "⚠️ No tokens found! Users must click 'Sincronizar este dispositivo' in their profile." : "Tokens are present. If notifications fail, check FCM credentials."
     };
 
-    return new Response(JSON.stringify(status, null, 2), {
+    return new Response(JSON.stringify(report, null, 2), {
         headers: {
             'Content-Type': 'application/json',
             'Access-Control-Allow-Origin': '*'
