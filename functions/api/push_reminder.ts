@@ -86,7 +86,7 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
         // We look for matches starting in about 30 minutes
         const nowObj = new Date();
         const windowStart = new Date(nowObj.getTime() + 28 * 60 * 1000).toISOString();
-        const windowEnd = new Date(nowObj.getTime() + 31 * 60 * 1000).toISOString();
+        const windowEnd = new Date(nowObj.getTime() + 30 * 60 * 1000).toISOString();
 
         const { data: upcomingMatches } = await supabase
             .from('matches')
