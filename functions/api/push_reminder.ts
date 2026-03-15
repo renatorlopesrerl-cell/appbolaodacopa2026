@@ -1,5 +1,5 @@
 
-import { jsonResponse, errorResponse, sendPushNotificationToUser, getSupabaseClient } from '../_shared';
+import { jsonResponse, errorResponse, sendPushNotificationToUser, getSupabaseClient } from './_shared';
 
 /**
  * Push Notification Worker

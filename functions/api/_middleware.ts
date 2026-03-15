@@ -65,8 +65,12 @@ export const onRequest = async ({ request, env, next, data }) => {
     };
 
     try {
-        // Public routes (no auth required)
-        if (request.url.includes('/health') || request.url.includes('/api/debug') || request.url.includes('/push/webhook') || request.url.includes('/push/reminder')) {
+        const isPublic = url.pathname.endsWith('/health') || 
+                        url.pathname.endsWith('/debug') || 
+                        url.pathname.endsWith('/push_webhook') || 
+                        url.pathname.endsWith('/push_reminder');
+
+        if (isPublic) {
             const response = await next();
             return withCors(response);
         }

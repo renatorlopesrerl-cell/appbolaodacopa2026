@@ -1,12 +1,12 @@
 
-import { jsonResponse, errorResponse, sendPushNotificationToUser, getSupabaseClient } from '../_shared';
+import { jsonResponse, errorResponse, sendPushNotificationToUser, getSupabaseClient } from './_shared';
 
 /**
  * Webhook for Supabase Database Triggers
  * Receives events from PostgreSQL and sends pushes
  */
 export const onRequest = async ({ request, env }: { request: Request, env: any }) => {
-    if (request.method !== 'POST') return new Response("Method not allowed", { status: 405 });
+    if (request.method !== 'POST') return jsonResponse({ error: "Method not allowed" }, 405);
 
     try {
         const body = await request.json() as any;
