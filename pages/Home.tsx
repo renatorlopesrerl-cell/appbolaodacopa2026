@@ -175,9 +175,22 @@ export const Home: React.FC = () => {
               const league = leagues.find(l => l.id === invite.leagueId);
               return (
                 <div key={invite.id} className="bg-white dark:bg-gray-800 p-3 rounded-lg flex flex-col sm:flex-row justify-between items-center gap-3 border border-yellow-200 dark:border-yellow-800">
-                  <div>
-                    <span className="text-sm text-gray-600 dark:text-gray-300">Você foi convidado para entrar na liga:</span>
-                    <div className="font-bold text-gray-800 dark:text-white text-lg">{league ? league.name : 'Liga não encontrada'}</div>
+                  <div className="flex items-center gap-3">
+                    {league?.image ? (
+                      <img
+                        src={league.image}
+                        alt={league.name}
+                        className="w-12 h-12 rounded-xl object-cover border border-gray-100 dark:border-gray-700 shadow-sm"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-400 border border-gray-100 dark:border-gray-700">
+                        <Trophy size={20} />
+                      </div>
+                    )}
+                    <div>
+                      <span className="text-sm text-gray-600 dark:text-gray-300">Você foi convidado para entrar na liga:</span>
+                      <div className="font-bold text-gray-800 dark:text-white text-lg">{league ? league.name : 'Liga não encontrada'}</div>
+                    </div>
                   </div>
                   <div className="flex gap-2 w-full sm:w-auto">
                     <button

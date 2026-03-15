@@ -32,7 +32,7 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
             const { league_id, email, league_name } = record;
             const { data: profile } = await supabase.from('profiles').select('id').eq('email', email).single();
             if (profile) {
-                await sendPushNotificationToUser(env, profile.id, "Novo Convite! 🏆", `Você foi convidado para participar da liga: ${league_name}`, { url: `/league/${league_id}` });
+                await sendPushNotificationToUser(env, profile.id, "Novo Convite! 🏆", `Você foi convidado para participar da liga: ${league_name}`, { url: '/' });
             }
         }
 

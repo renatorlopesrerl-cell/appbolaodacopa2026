@@ -59,7 +59,10 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
                 if (!updateErr) {
                     results.matchesStarted++;
                     
-                    // --- 2. SEND START NOTIFICATION IMMEDIATELY ---
+                    // --- 2. SEND START NOTIFICATION AFTER 10 SECONDS ---
+                    // Wait 10 seconds to ensure DB consistency and avoid sync issues
+                    await new Promise(resolve => setTimeout(resolve, 10000));
+
                     const { data: users } = await supabase.from('profiles').select('id, notification_settings');
                     if (users) {
                         const title = "Jogo Iniciado! ⚽";
@@ -80,16 +83,17 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
         }
 
         // --- 3. PREDICTION REMINDERS (30m before kickoff) ---
+        // We look for matches starting in exactly 29 or 30 minutes to avoid duplicates across cron runs
         const nowObj = new Date();
-        const windowStart = new Date(nowObj.getTime() + 20 * 60 * 1000).toISOString();
-        const windowEnd = new Date(nowObj.getTime() + 40 * 60 * 1000).toISOString();
+        const thirtyMinStart = new Date(nowObj.getTime() + 29 * 60 * 1000).toISOString();
+        const thirtyMinEnd = new Date(nowObj.getTime() + 31 * 60 * 1000).toISOString();
 
         const { data: upcomingMatches } = await supabase
             .from('matches')
             .select('id, home_team_id, away_team_id')
             .eq('status', 'SCHEDULED')
-            .gte('date', windowStart)
-            .lte('date', windowEnd);
+            .gte('date', thirtyMinStart)
+            .lte('date', thirtyMinEnd);
 
         if (upcomingMatches && upcomingMatches.length > 0) {
             const { data: users } = await supabase.from('profiles').select('id, notification_settings');
@@ -97,6 +101,10 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
                 const wantsReminder = users.filter(u => (u.notification_settings?.predictionReminder ?? true) !== false);
                 for (const match of upcomingMatches) {
                     const matchLabel = `${match.home_team_id} x ${match.away_team_id}`;
+                    
+                    // Logic to send reminder only to those who haven't predicted yet could be added here, 
+                    // but for now we follow same pattern as before.
+                    
                     const tasks = wantsReminder.map(u => 
                         sendPushNotificationToUser(
                             env, 
