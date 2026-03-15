@@ -65,12 +65,13 @@ export const onRequest = async ({ request, env, next, data }) => {
     };
 
     try {
-        const isPublic = url.pathname.endsWith('/health') || 
-                        url.pathname.endsWith('/debug') || 
-                        url.pathname.endsWith('/push_webhook') || 
-                        url.pathname.endsWith('/push_reminder');
+        const isPublic = url.pathname.includes('/health') || 
+                        url.pathname.includes('/debug') || 
+                        url.pathname.includes('/push_webhook') || 
+                        url.pathname.includes('/push_reminder');
 
         if (isPublic) {
+            console.log(`[Middleware] Allowing public access to: ${url.pathname}`);
             const response = await next();
             return withCors(response);
         }
