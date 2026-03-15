@@ -1093,6 +1093,18 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const emailNormalized = email.toLowerCase().trim();
     try {
       await api.leagues.invite(leagueId, emailNormalized);
+      
+      // Manual trigger for Push Notification (Bypassing broken DB triggers)
+      fetch('/api/push_webhook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'league_invite',
+          record: { league_id: leagueId, email: emailNormalized, league_name: league.name },
+          secret: 'bolao2026_secure_webhook_key'
+        })
+      }).catch(err => console.error("Push notification trigger failed:", err));
+
       addNotification('Sucesso', 'Convite enviado.', 'success');
       return true;
     } catch (e: any) {

@@ -137,45 +137,14 @@ const getNumericId = (str: string) => {
 };
 
 export const scheduleMatchReminder = async (matchId: string, matchName: string, date: string) => {
-    if (Capacitor.getPlatform() === 'web') return;
-
-    try {
-        const matchDate = new Date(date);
-        const reminderTime = new Date(matchDate.getTime() - 30 * 60 * 1000); // 30 min before
-        const now = new Date();
-
-        if (reminderTime <= now) {
-            console.log(`Match ${matchName} is too close or already started, skipping local reminder.`);
-            return;
-        }
-
-        const id = getNumericId(matchId);
-
-        // Cancel first to ensure no duplicates/stale data
-        await LocalNotifications.cancel({ notifications: [{ id }] });
-
-        await LocalNotifications.schedule({
-            notifications: [{
-                title: "Lembrete de Jogo ⏳",
-                body: `O jogo ${matchName} vai começar em 30 minutos. Revise ou faça seu palpite!`,
-                id: id,
-                schedule: { at: reminderTime },
-                channelId: 'meu_canal',
-                extra: { url: '/leagues' }
-            }]
-        });
-        console.log(`Reminder scheduled for ${matchName} at ${reminderTime.toLocaleString()}`);
-    } catch (error) {
-        console.error('Error scheduling match reminder:', error);
-    }
+    // DESATIVADO: Agora usamos o sistema de notificações centralizado via servidor (push_reminder.ts).
+    // Isso evita notificações duplicadas no APK e garante que todos recebam o mesmo lembrete.
+    return;
 };
 
 export const cancelMatchReminder = async (matchId: string) => {
-    if (Capacitor.getPlatform() === 'web') return;
-    const id = getNumericId(matchId);
-    await LocalNotifications.cancel({
-        notifications: [{ id }]
-    });
+    // DESATIVADO: O servidor controla os lembretes agora.
+    return;
 };
 
 /**

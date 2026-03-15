@@ -83,17 +83,18 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
         }
 
         // --- 3. PREDICTION REMINDERS (30m before kickoff) ---
-        // We look for matches starting in exactly 29 or 30 minutes to avoid duplicates across cron runs
+        // We look for matches starting in about 30 minutes
         const nowObj = new Date();
-        const thirtyMinStart = new Date(nowObj.getTime() + 29 * 60 * 1000).toISOString();
-        const thirtyMinEnd = new Date(nowObj.getTime() + 31 * 60 * 1000).toISOString();
+        const windowStart = new Date(nowObj.getTime() + 25 * 60 * 1000).toISOString();
+        const windowEnd = new Date(nowObj.getTime() + 35 * 60 * 1000).toISOString();
 
         const { data: upcomingMatches } = await supabase
             .from('matches')
             .select('id, home_team_id, away_team_id')
             .eq('status', 'SCHEDULED')
-            .gte('date', thirtyMinStart)
-            .lte('date', thirtyMinEnd);
+            .eq('reminder_30m_sent', false) // Use DB flag to prevent duplicates
+            .gte('date', windowStart)
+            .lte('date', windowEnd);
 
         if (upcomingMatches && upcomingMatches.length > 0) {
             const { data: users } = await supabase.from('profiles').select('id, notification_settings');
@@ -102,19 +103,19 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
                 for (const match of upcomingMatches) {
                     const matchLabel = `${match.home_team_id} x ${match.away_team_id}`;
                     
-                    // Logic to send reminder only to those who haven't predicted yet could be added here, 
-                    // but for now we follow same pattern as before.
-                    
                     const tasks = wantsReminder.map(u => 
                         sendPushNotificationToUser(
                             env, 
                             u.id, 
                             "Lembrete de Palpite ⏳", 
-                            `O jogo ${matchLabel} vai começar em 30 minutos. Faça seu palpite!`,
-                            { url: '/table' }
+                            `O jogo ${matchLabel} vai começar em 30 minutos. Revise ou faça seu palpite!`,
+                            { url: '/leagues' }
                         ).then(res => { if (res.success) results.remindersSent++; })
                     );
                     await Promise.allSettled(tasks);
+                    
+                    // Mark as sent in DB
+                    await supabase.from('matches').update({ reminder_30m_sent: true }).eq('id', match.id);
                 }
             }
         }
