@@ -427,6 +427,11 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           fetchAllData();
 
           setupPushNotifications(user.id).catch(e => console.error("Push Setup Error:", e));
+
+          // Lazy Trigger: When a user logs in or opens the app, 
+          // we ping the maintenance endpoint to ensure matches are started 
+          // and notifications are sent. This bypasses Cloudflare WAF 403 for Supabase.
+          fetch('/api/push_reminder?secret=bolao2026_secure_webhook_key').catch(() => {});
         }
         // Sempre liberar o loading quando o usuário for processador ou já existir
         setLoading(false);
