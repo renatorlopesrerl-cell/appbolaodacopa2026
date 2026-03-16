@@ -11,13 +11,13 @@ import { jsonResponse, errorResponse, sendPushNotificationToUser, getSupabaseCli
 export const onRequest = async ({ request, env }: { request: Request, env: any }) => {
     const url = new URL(request.url);
     const secretFromUrl = url.searchParams.get('secret');
-    
+
     let secret = secretFromUrl;
     if (request.method === 'POST') {
         try {
             const body = await request.json() as any;
             secret = body.secret || secret;
-        } catch (e) {}
+        } catch (e) { }
     }
 
     const WEBHOOK_SECRET = env.WEBHOOK_SECRET || "bolao2026_secure_webhook_key";
@@ -49,16 +49,16 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
                 // Update Match to IN_PROGRESS
                 const { error: updateErr } = await supabase
                     .from('matches')
-                    .update({ 
-                        status: 'IN_PROGRESS', 
-                        home_score: 0, 
-                        away_score: 0 
+                    .update({
+                        status: 'IN_PROGRESS',
+                        home_score: 0,
+                        away_score: 0
                     })
                     .eq('id', match.id);
 
                 if (!updateErr) {
                     results.matchesStarted++;
-                    
+
                     // --- 2. SEND START NOTIFICATION AFTER 10 SECONDS ---
                     // Wait 10 seconds to ensure DB consistency and avoid sync issues
                     await new Promise(resolve => setTimeout(resolve, 10000));
@@ -66,14 +66,14 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
                     const { data: users } = await supabase.from('profiles').select('id, notification_settings');
                     if (users) {
                         const title = "Jogo Iniciado! ⚽";
-                        const bodyText = `A partida entre ${match.home_team_id} x ${match.away_team_id} começou! Placar: 0x0`;
-                        
+                        const bodyText = `A partida entre ${match.home_team_id} x ${match.away_team_id} começou!`;
+
                         const tasks = users
                             .filter(u => (u.notification_settings?.matchStart ?? true) !== false)
                             .map(u => sendPushNotificationToUser(env, u.id, title, bodyText, { url: '/table' }));
-                        
+
                         await Promise.allSettled(tasks);
-                        
+
                         // Mark as notified
                         await supabase.from('matches').update({ notification_sent: true }).eq('id', match.id);
                         results.notificationsSent++;
@@ -102,18 +102,18 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
                 const wantsReminder = users.filter(u => (u.notification_settings?.predictionReminder ?? true) !== false);
                 for (const match of upcomingMatches) {
                     const matchLabel = `${match.home_team_id} x ${match.away_team_id}`;
-                    
-                    const tasks = wantsReminder.map(u => 
+
+                    const tasks = wantsReminder.map(u =>
                         sendPushNotificationToUser(
-                            env, 
-                            u.id, 
-                            "Lembrete de Palpite ⏳", 
+                            env,
+                            u.id,
+                            "Lembrete de Palpite ⏳",
                             `O jogo ${matchLabel} vai começar em 30 minutos. Revise ou faça seu palpite!`,
                             { url: '/leagues' }
                         ).then(res => { if (res.success) results.remindersSent++; })
                     );
                     await Promise.allSettled(tasks);
-                    
+
                     // Mark as sent in DB
                     await supabase.from('matches').update({ reminder_30m_sent: true }).eq('id', match.id);
                 }

@@ -9,17 +9,17 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
 
     try {
         const body = await request.json() as any;
-        
+
         // Supabase Native Webhook sends several types of payloads.
         // We detect if it's coming from the UI (type/record) or our old custom system.
         const type = body.type; // INSERT, UPDATE, league_invite, etc.
         const record = body.record || body.payload;
         const old_record = body.old_record;
-        
+
         // Security Check - Supports both 'secret' in body and 'x-webhook-secret' header
         const WEBHOOK_SECRET = env.WEBHOOK_SECRET || "bolao2026_secure_webhook_key";
         const incomingSecret = body.secret || request.headers.get('x-webhook-secret');
-        
+
         if (incomingSecret !== WEBHOOK_SECRET) {
             console.error("Webhook Unauthorized: Invalid Secret");
             return errorResponse(new Error("Unauthorized Webhook"), 401);
@@ -51,7 +51,7 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
             // LOGIC: Only notify when status CHANGES to a target state
             if (status === 'IN_PROGRESS' && oldStatus !== 'IN_PROGRESS') {
                 title = "Jogo Iniciado! ⚽";
-                bodyText = `A partida entre ${home} x ${away} começou! Placar: 0x0`;
+                bodyText = `A partida entre ${home} x ${away} começou!`;
             } else if (status === 'FINISHED' && oldStatus !== 'FINISHED') {
                 title = "Fim de Jogo! 🏁";
                 bodyText = `Resultado final: ${home} ${homeScore} x ${awayScore} ${away}`;
@@ -69,7 +69,7 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
                         return false;
                     });
 
-                    const tasks = filtered.map(profile => 
+                    const tasks = filtered.map(profile =>
                         sendPushNotificationToUser(env, profile.id, title, bodyText, { url: '/table' })
                     );
 
