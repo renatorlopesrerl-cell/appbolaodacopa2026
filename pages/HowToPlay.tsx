@@ -233,7 +233,7 @@ export const HowToPlay: React.FC = () => {
                             No Web App do <strong>Android</strong>, abra o site no Chrome, clique nos <strong>três pontinhos</strong> (menu) no canto superior direito e selecione <strong>Instalar aplicativo</strong> ou <strong>Adicionar à tela inicial</strong>.
                         </p>
                         <p>
-                            Após fazer o passo anterior, acesse <strong>Meu Perfil</strong> no Palpiteiro da Copa 2026 e clicar em <strong>Ativar Notificações</strong>, aguardar e clicar em <strong>Permitir</strong>, logo após esse processo vai aparecer o botão <strong>Sincronizar este dispositivo</strong> é só clicar no botão e dar ok que já estará tudo pronto para receber as notificações.
+                            Após fazer o passo anterior, acesse <strong>Meu Perfil</strong> no Palpiteiro da Copa 2026, clique em <strong>Ativar Notificações</strong>, aguarde e clique em <strong>Permitir</strong>, logo após esse processo vai aparecer o botão <strong>Sincronizar este dispositivo</strong> é só clicar no botão e dar OK que a aplicação já estará pronta para receber as notificações.
                         </p>
                     </div>
                 </section>
