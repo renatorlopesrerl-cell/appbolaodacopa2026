@@ -296,11 +296,10 @@ export const ProfilePage: React.FC = () => {
 
               {/* Botão para Ativar Notificações no PWA (Chrome/iOS) */}
               {Capacitor.getPlatform() === 'web' && (
-                <div className={`mb-6 p-4 rounded-xl border animate-in fade-in slide-in-from-top-2 ${
-                  ('Notification' in window && Notification.permission === 'granted') 
-                  ? 'bg-green-50 dark:bg-green-900/20 border-green-100 dark:border-green-800' 
-                  : 'bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800'
-                }`}>
+                <div className={`mb-6 p-4 rounded-xl border animate-in fade-in slide-in-from-top-2 ${('Notification' in window && Notification.permission === 'granted')
+                    ? 'bg-green-50 dark:bg-green-900/20 border-green-100 dark:border-green-800'
+                    : 'bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800'
+                  }`}>
                   <div className="flex items-start gap-4">
                     <div className={`${('Notification' in window && Notification.permission === 'granted') ? 'bg-green-500' : 'bg-brasil-blue'} text-white p-2 rounded-lg shrink-0`}>
                       <Bell size={20} />
@@ -310,8 +309,8 @@ export const ProfilePage: React.FC = () => {
                         {('Notification' in window && Notification.permission === 'granted') ? 'Notificações Autorizadas' : 'Deseja receber notificações?'}
                       </p>
                       <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
-                        {('Notification' in window && Notification.permission === 'granted') 
-                          ? 'Seu navegador já autorizou as notificações. Se você não está recebendo, clique abaixo para sincronizar este dispositivo novamente.' 
+                        {('Notification' in window && Notification.permission === 'granted')
+                          ? 'Seu navegador já autorizou as notificações. Se você não está recebendo, clique abaixo para sincronizar este dispositivo novamente.'
                           : 'Para receber as notificações push no seu navegador ou iPhone, você precisa autorizar o acesso.'}
                       </p>
                       <button
@@ -327,24 +326,24 @@ export const ProfilePage: React.FC = () => {
                             }
 
                             if (!('Notification' in window)) {
-                                alert('Este navegador não suporta notificações PWA (talvez precise atualizar ou não é compatível).');
-                                return;
+                              alert('Este navegador não suporta notificações PWA (talvez precise atualizar ou não é compatível).');
+                              return;
                             }
-                            
+
                             // Ativamos o modo "force" para disparar o pedido de permissão nativo
                             // O setupPushNotifications agora lida internamente com o User Gesture se force=true
                             const success = await setupPushNotifications(currentUser.id, true);
-                            
+
                             if (success) {
-                                alert('Dispositivo sincronizado com sucesso para receber notificações!');
-                                window.location.reload();
+                              alert('Dispositivo sincronizado com sucesso para receber notificações!');
+                              window.location.reload();
                             } else {
-                                const permission = Notification.permission;
-                                if (permission === 'denied') {
-                                    alert('A permissão foi negada. Redefina as permissões nas configurações do seu navegador ou sistema.');
-                                } else {
-                                    alert('Não foi possível ativar as notificações. Verifique se o app está na Tela de Início.');
-                                }
+                              const permission = Notification.permission;
+                              if (permission === 'denied') {
+                                alert('A permissão foi negada. Redefina as permissões nas configurações do seu navegador ou sistema.');
+                              } else {
+                                alert('Não foi possível ativar as notificações. Verifique se o app está na Tela de Início.');
+                              }
                             }
                           } catch (err) {
                             console.error('Erro ao ativar notificações:', err);
@@ -353,7 +352,7 @@ export const ProfilePage: React.FC = () => {
                         }}
                         className={`${('Notification' in window && Notification.permission === 'granted') ? 'bg-green-600 hover:bg-green-700' : 'bg-brasil-blue hover:bg-blue-900'} text-white px-4 py-2 rounded-lg text-xs font-bold transition-colors shadow-sm`}
                       >
-                        {('Notification' in window && Notification.permission === 'granted') ? 'Sincronizar este dispositivo' : 'Ativar Notificações agora'}
+                        {('Notification' in window && Notification.permission === 'granted') ? 'Sincronizar este dispositivo' : 'Ativar Notificações'}
                       </button>
                     </div>
                   </div>
