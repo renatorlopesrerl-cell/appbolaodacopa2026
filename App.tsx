@@ -1201,7 +1201,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     if (matchesToStart.length > 0) {
       matchesToStart.forEach(match => {
         updateMatch({ ...match, status: MatchStatus.IN_PROGRESS, homeScore: 0, awayScore: 0 });
-        addNotification('Jogo Iniciado', `${match.homeTeamId} x ${match.awayTeamId}`, 'info');
+        addNotification('Aviso Admin', `O jogo ${match.homeTeamId} x ${match.awayTeamId} está sendo atualizado para Em Andamento.`, 'info');
       });
     }
   }, [currentTime, currentUser, loading, matches]);

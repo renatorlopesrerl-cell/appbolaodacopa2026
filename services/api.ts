@@ -119,8 +119,8 @@ export const api = {
             if (error) return null;
             return data;
         },
-        delete: async (id: string) => {
-            const { error } = await supabase.from('profiles').delete().eq('id', id);
+        delete: async () => {
+            const { error } = await supabase.rpc('delete_own_user');
             if (error) throw error;
             return { error: null };
         }

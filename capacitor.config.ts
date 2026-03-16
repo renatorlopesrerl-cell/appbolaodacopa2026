@@ -13,7 +13,7 @@ const config: CapacitorConfig = {
       presentationOptions: ["badge", "sound", "alert"]
     },
     LocalNotifications: {
-      smallIcon: "ic_stat_icon_config_sample", // Ensure a valid icon exists or use default
+      smallIcon: "ic_stat_notification", // Use a valid icon in drawable folders
       iconColor: "#488AFF",
       sound: "beep.wav"
     }

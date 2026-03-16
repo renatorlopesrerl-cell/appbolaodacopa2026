@@ -108,7 +108,7 @@ CREATE OR REPLACE FUNCTION public.on_match_status_push()
 RETURNS TRIGGER AS $$
 BEGIN
   -- Envia push apenas se o status mudar para em andamento ou finalizado
-  IF (NEW.status IS DISTINCT FROM OLD.status) AND (NEW.status IN ('IN_PROGRESS', 'FINISHED')) THEN
+  IF (NEW.status IS DISTINCT FROM OLD.status) AND (NEW.status IN ('FINISHED')) THEN
     PERFORM public.send_push_webhook('match_update', jsonb_build_object(
       'match_id', NEW.id,
       'home', NEW.home_team_id,

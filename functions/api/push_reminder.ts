@@ -74,8 +74,7 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
 
                         await Promise.allSettled(tasks);
 
-                        // Mark as notified
-                        await supabase.from('matches').update({ notification_sent: true }).eq('id', match.id);
+                        // Mark as notified/started in results
                         results.notificationsSent++;
                     }
                 }
