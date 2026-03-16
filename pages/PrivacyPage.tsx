@@ -77,7 +77,18 @@ export const PrivacyPage: React.FC = () => {
                     </div>
 
                     <div>
-                        <strong className="block text-gray-800 dark:text-white mb-1">7. Contato</strong>
+                        <strong className="block text-gray-800 dark:text-white mb-1">7. Exclusão de Conta e Dados</strong>
+                        <p>Você pode solicitar a exclusão de sua conta e todos os dados associados a qualquer momento diretamente pelo aplicativo (em seu Perfil) ou via e-mail. Para detalhes completos sobre o processo de exclusão, quais dados são removidos e prazos, acesse:</p>
+                        <button 
+                            onClick={() => navigate('/exclusao-conta')}
+                            className="mt-2 text-brasil-blue dark:text-blue-400 font-bold hover:underline flex items-center gap-1"
+                        >
+                            🔗 Informações sobre Exclusão de Conta
+                        </button>
+                    </div>
+
+                    <div>
+                        <strong className="block text-gray-800 dark:text-white mb-1">8. Contato</strong>
                         <p>Em caso de dúvidas ou solicitações relacionadas a esta Política de Privacidade, entre em contato pelo e-mail:</p>
                         <p className="font-bold text-brasil-blue dark:text-blue-400 mt-1">📧 palpiteirodacopa@gmail.com</p>
                     </div>

@@ -39,6 +39,7 @@ import { HowToPlay } from './pages/HowToPlay';
 import { Login } from './pages/Login';
 import { TermsPage } from './pages/TermsPage';
 import { PrivacyPage } from './pages/PrivacyPage';
+import { AccountDeletionPage } from './pages/AccountDeletionPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { ConfirmacaoCadastro } from './pages/ConfirmacaoCadastro';
 import { SEOLanding } from './pages/SEOLanding';
@@ -1324,6 +1325,7 @@ const AppRoutes: React.FC = () => {
           <Route path="/tabela-copa-2026" element={<SEOLanding variant="tabela" />} />
           <Route path="/termos" element={<TermsPage />} />
           <Route path="/privacidade" element={<PrivacyPage />} />
+          <Route path="/exclusao-conta" element={<AccountDeletionPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/profile" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <ProfilePage /> : <Navigate to="/" />)} />
 
