@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Trophy, Users, PlayCircle, Calendar, ShieldCheck, ArrowLeft, BookOpen, X, ZoomIn, Bell } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { Capacitor } from '@capacitor/core';
 
 export const HowToPlay: React.FC = () => {
     const navigate = useNavigate();
@@ -215,28 +216,31 @@ export const HowToPlay: React.FC = () => {
                     </div>
                 </section>
 
-                <hr className="border-gray-100 dark:border-gray-700" />
-
-                {/* Notificações */}
-                <section className="space-y-4">
-                    <div className="flex items-center gap-3 mb-2">
-                        <div className="bg-red-100 dark:bg-red-900/30 p-2 rounded-lg">
-                            <Bell className="w-6 h-6 text-red-600 dark:text-red-400" />
-                        </div>
-                        <h3 className="text-2xl font-bold text-gray-800 dark:text-white">Notificações</h3>
-                    </div>
-                    <div className="prose dark:prose-invert max-w-none text-gray-600 dark:text-gray-300 leading-relaxed text-justify space-y-4">
-                        <p>
-                            Para receber notificações na aplicação Web App do <strong>IOS no iPhone</strong>, abra o site no Safari, clique no botão de <strong>Compartilhar</strong> (quadrado com uma seta para cima) e selecione a opção <strong>Adicionar à Tela de Início</strong>.
-                        </p>
-                        <p>
-                            No Web App do <strong>Android</strong>, abra o site no Chrome, clique nos <strong>três pontinhos</strong> (menu) no canto superior direito e selecione <strong>Instalar aplicativo</strong> ou <strong>Adicionar à tela inicial</strong>.
-                        </p>
-                        <p>
-                            Após fazer o passo anterior, acesse <strong>Meu Perfil</strong> no Palpiteiro da Copa 2026, clique em <strong>Ativar Notificações</strong>, aguarde e clique em <strong>Permitir</strong>, logo após esse processo vai aparecer o botão <strong>Sincronizar este dispositivo</strong> é só clicar no botão e dar OK que a aplicação estará pronta para receber as notificações.
-                        </p>
-                    </div>
-                </section>
+                {Capacitor.getPlatform() === 'web' && (
+                    <>
+                        <hr className="border-gray-100 dark:border-gray-700" />
+                        {/* Notificações */}
+                        <section className="space-y-4">
+                            <div className="flex items-center gap-3 mb-2">
+                                <div className="bg-red-100 dark:bg-red-900/30 p-2 rounded-lg">
+                                    <Bell className="w-6 h-6 text-red-600 dark:text-red-400" />
+                                </div>
+                                <h3 className="text-2xl font-bold text-gray-800 dark:text-white">Notificações</h3>
+                            </div>
+                            <div className="prose dark:prose-invert max-w-none text-gray-600 dark:text-gray-300 leading-relaxed text-justify space-y-4">
+                                <p>
+                                    Para receber notificações na aplicação Web App do <strong>IOS no iPhone</strong>, abra o site no Safari, clique no botão de <strong>Compartilhar</strong> (quadrado com uma seta para cima) e selecione a opção <strong>Adicionar à Tela de Início</strong>.
+                                </p>
+                                <p>
+                                    No Web App do <strong>Android</strong>, abra o site no Chrome, clique nos <strong>três pontinhos</strong> (menu) no canto superior direito e selecione <strong>Instalar aplicativo</strong> ou <strong>Adicionar à tela inicial</strong>.
+                                </p>
+                                <p>
+                                    Após fazer o passo anterior, acesse <strong>Meu Perfil</strong> no Palpiteiro da Copa 2026, clique em <strong>Ativar Notificações</strong>, aguarde e clique em <strong>Permitir</strong>, logo após esse processo vai aparecer o botão <strong>Sincronizar este dispositivo</strong> é só clicar no botão e dar OK que a aplicação estará pronta para receber as notificações.
+                                </p>
+                            </div>
+                        </section>
+                    </>
+                )}
 
                 <hr className="border-gray-100 dark:border-gray-700" />
 
