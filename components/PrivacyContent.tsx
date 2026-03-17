@@ -15,6 +15,7 @@ export const PrivacyContent: React.FC = () => {
                     <li>Dados de cadastro (como nome, e-mail e imagem de perfil)</li>
                     <li>Informações necessárias para criação e participação em ligas</li>
                     <li>Palpites, simulações e preferências do usuário</li>
+                    <li><strong>Tokens de Comunicação:</strong> Identificadores exclusivos do seu dispositivo (tokens FCM) para viabilizar o envio de notificações push</li>
                     <li>Dados técnicos, como tipo de dispositivo, navegador e endereço IP (de forma anonimizada)</li>
                 </ul>
                 <p className="mt-1">Não coletamos dados sensíveis além do necessário para o funcionamento do aplicativo.</p>
@@ -48,17 +49,22 @@ export const PrivacyContent: React.FC = () => {
             </div>
 
             <div>
-                <strong className="block text-gray-800 dark:text-white mb-1">5. Responsabilidade sobre Ligas</strong>
+                <strong className="block text-gray-800 dark:text-white mb-1">5. Notificações Push</strong>
+                <p>O aplicativo utiliza o serviço Firebase Cloud Messaging (FCM) para enviar alertas sobre o início/fim de jogos e lembretes de palpites. Para isso, coletamos um token exclusivo que identifica seu dispositivo. Este token não está vinculado a dados que permitam sua identificação fora do contexto deste aplicativo e pode ser revogado a qualquer momento nas configurações do seu perfil ou sistema.</p>
+            </div>
+
+            <div>
+                <strong className="block text-gray-800 dark:text-white mb-1">6. Responsabilidade sobre Ligas</strong>
                 <p>O aplicativo fornece apenas ferramentas para criação e gerenciamento de ligas privadas ou públicas. Quaisquer acordos, premiações ou combinações realizadas entre usuários ocorrem fora da plataforma e são de responsabilidade exclusiva dos participantes.</p>
             </div>
 
             <div>
-                <strong className="block text-gray-800 dark:text-white mb-1">6. Alterações nesta Política</strong>
+                <strong className="block text-gray-800 dark:text-white mb-1">7. Alterações nesta Política</strong>
                 <p>Esta Política de Privacidade pode ser atualizada a qualquer momento. As alterações entrarão em vigor imediatamente após sua publicação nesta página.</p>
             </div>
 
             <div>
-                <strong className="block text-gray-800 dark:text-white mb-1">7. Exclusão de Conta e Dados</strong>
+                <strong className="block text-gray-800 dark:text-white mb-1">8. Exclusão de Conta e Dados</strong>
                 <p>Você pode solicitar a exclusão de sua conta e todos os dados associados a qualquer momento diretamente pelo aplicativo (em seu Perfil) ou via e-mail. Para detalhes completos sobre o processo de exclusão, quais dados são removidos e prazos, acesse:</p>
                 <button 
                     onClick={() => navigate('/exclusao-conta')}
@@ -69,7 +75,7 @@ export const PrivacyContent: React.FC = () => {
             </div>
 
             <div>
-                <strong className="block text-gray-800 dark:text-white mb-1">8. Contato</strong>
+                <strong className="block text-gray-800 dark:text-white mb-1">9. Contato</strong>
                 <p>Em caso de dúvidas ou solicitações relacionadas a esta Política de Privacidade, entre em contato pelo e-mail:</p>
                 <p className="font-bold text-brasil-blue dark:text-blue-400 mt-1">📧 palpiteirodacopa@gmail.com</p>
             </div>
