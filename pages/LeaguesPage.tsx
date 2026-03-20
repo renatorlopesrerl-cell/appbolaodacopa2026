@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { useStore } from '../App';
-import { Plus, Lock, Globe, ArrowRight, Search, ArrowLeft, Upload, Camera, Trophy, Loader2, X, Star } from 'lucide-react';
+import { Plus, Lock, Globe, ArrowRight, Search, ArrowLeft, Upload, Camera, Trophy, Loader2, X, Star, Info } from 'lucide-react';
 import { processImageForUpload } from '../services/dataService';
 import { LeaguePlan } from '../types';
 import { OptimizedImage } from '../components/OptimizedImage';
@@ -119,8 +119,7 @@ export const LeaguesPage: React.FC = () => {
     l.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (l.leagueCode && l.leagueCode.toLowerCase().includes(searchTerm.toLowerCase()));
 
-  const filteredMyLeagues = myLeagues
-    .filter(filterFn)
+  const sortedMyLeagues = myLeagues
     .sort((a, b) => {
       // 1. User is Admin first
       const aIsAdmin = a.adminId === currentUser.id;
@@ -133,7 +132,14 @@ export const LeaguesPage: React.FC = () => {
     });
 
   const filteredOtherLeagues = otherLeagues
-    .filter(filterFn)
+    .filter(l => {
+      // Private leagues: only show if search term matches their leagueCode exactly
+      if (l.isPrivate) {
+        return searchTerm.length > 0 && l.leagueCode && l.leagueCode.toLowerCase() === searchTerm.toLowerCase();
+      }
+      // Public leagues: filter by name or code as usual
+      return filterFn(l);
+    })
     .sort((a, b) => {
       // 1. "Palpiteiros" first
       const aIsOfficial = a.name.trim().toLowerCase() === 'palpiteiros';
@@ -166,31 +172,7 @@ export const LeaguesPage: React.FC = () => {
           Ligas
         </h1>
 
-        <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto items-start md:items-center">
-          {/* Search Bar */}
-          <div className="relative w-full md:w-64">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-4 w-4 text-gray-400" />
-            </div>
-            <input
-              id="leagues-search"
-              type="text"
-              className="block w-full pl-10 pr-8 py-2 border border-gray-300 dark:border-gray-600 rounded-lg leading-5 bg-white dark:bg-gray-700 placeholder-gray-400 focus:outline-none focus:placeholder-gray-300 focus:ring-1 focus:ring-brasil-blue focus:border-brasil-blue sm:text-sm transition-all shadow-sm text-gray-800 dark:text-white"
-              placeholder="Buscar por nome ou código..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            {searchTerm && (
-              <button
-                onClick={() => setSearchTerm('')}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white cursor-pointer"
-              >
-                <X size={14} />
-              </button>
-            )}
-          </div>
-
-          <button
+        <button
             id="create-league-btn"
             onClick={() => setShowCreateModal(true)}
             className="bg-brasil-yellow text-brasil-blue px-4 py-2 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-yellow-300 transition-colors shadow-sm whitespace-nowrap"
@@ -198,19 +180,16 @@ export const LeaguesPage: React.FC = () => {
             <Plus size={20} />
             Criar Liga
           </button>
-        </div>
       </div>
 
       {/* My Leagues */}
       <section>
         <h2 className="text-lg font-bold text-gray-700 dark:text-gray-300 mb-3">Minhas Ligas</h2>
-        {myLeagues.length === 0 ? (
+        {sortedMyLeagues.length === 0 ? (
           <p className="text-gray-500 italic">Você ainda não participa de nenhuma liga.</p>
-        ) : filteredMyLeagues.length === 0 ? (
-          <p className="text-gray-500 italic">Nenhuma liga encontrada.</p>
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
-            {filteredMyLeagues.map(l => {
+            {sortedMyLeagues.map(l => {
               // Only count pending requests from users that actually exist in the database
               const validPendingCount = l.pendingRequests.filter(uid => users.some(u => u.id === uid)).length;
 
@@ -264,6 +243,32 @@ export const LeaguesPage: React.FC = () => {
       {/* Available Leagues */}
       <section className="pt-6 border-t border-gray-200 dark:border-gray-700">
         <h2 className="text-lg font-bold text-gray-700 dark:text-gray-300 mb-3">Ligas Disponíveis</h2>
+        <div className="flex items-start gap-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4 text-sm text-blue-700 dark:text-blue-300">
+          <Info size={16} className="mt-0.5 flex-shrink-0" />
+          <span>Ligas privadas não aparecem na listagem. Para encontrá-las, busque pelo <strong>código da liga</strong> no campo abaixo.</span>
+        </div>
+        {/* Search Bar */}
+        <div className="relative w-full mb-4">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Search className="h-4 w-4 text-gray-400" />
+          </div>
+          <input
+            id="leagues-search"
+            type="text"
+            className="block w-full pl-10 pr-8 py-2 border border-gray-300 dark:border-gray-600 rounded-lg leading-5 bg-white dark:bg-gray-700 placeholder-gray-400 focus:outline-none focus:placeholder-gray-300 focus:ring-1 focus:ring-brasil-blue focus:border-brasil-blue sm:text-sm transition-all shadow-sm text-gray-800 dark:text-white"
+            placeholder="Buscar por nome ou código da liga..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white cursor-pointer"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
         <div className="grid gap-4 md:grid-cols-2">
           {filteredOtherLeagues.map(l => {
             const isPending = l.pendingRequests.includes(currentUser.id);

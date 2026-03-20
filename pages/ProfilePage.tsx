@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useStore } from '../App';
-import { User as UserIcon, Save, Camera, Upload, AlertCircle, ArrowLeft, Phone, Loader2, Bell, PlayCircle, Flag, Sun, Moon, Clock, Trash2, Lock, Trophy, CheckCircle2, X } from 'lucide-react';
+import { User as UserIcon, Save, Camera, Upload, AlertCircle, ArrowLeft, Phone, Loader2, Bell, PlayCircle, Flag, Sun, Moon, Clock, Trash2, Lock, Trophy, CheckCircle2, X, Mail, Copy } from 'lucide-react';
 import { setupPushNotifications } from '../services/pushService';
 import { processImageForUpload } from '../services/dataService';
 import { OptimizedImage } from '../components/OptimizedImage';
@@ -22,6 +22,7 @@ export const ProfilePage: React.FC = () => {
   const [imageProcessing, setImageProcessing] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
 
   // Notification State
   const [notifyStart, setNotifyStart] = useState(true);
@@ -245,6 +246,37 @@ export const ProfilePage: React.FC = () => {
                   {imageProcessing ? 'Processando imagem...' : 'Qualquer tamanho (Otimização Automática)'}
                 </p>
               </div>
+            </div>
+
+            {/* Email Field (Read-only) */}
+            <div>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1 flex items-center justify-between">
+                <span className="flex items-center gap-1"><Mail size={14} /> E-mail de Cadastro</span>
+                {isCopied && <span className="text-[10px] text-green-600 dark:text-green-400 font-bold animate-bounce">Copiado!</span>}
+              </label>
+              <div className="relative flex items-center">
+                <input
+                  type="text"
+                  value={currentUser.email || ''}
+                  readOnly
+                  className="w-full border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 rounded-lg p-3 pr-12 outline-none text-gray-500 dark:text-gray-400 cursor-not-allowed text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (currentUser.email) {
+                      navigator.clipboard.writeText(currentUser.email);
+                      setIsCopied(true);
+                      setTimeout(() => setIsCopied(false), 3000);
+                    }
+                  }}
+                  className="absolute right-2 p-2 text-brasil-blue hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                  title="Copiar e-mail"
+                >
+                  <Copy size={18} />
+                </button>
+              </div>
+              <p className="text-[10px] text-gray-400 mt-1">O e-mail não pode ser alterado após o cadastro.</p>
             </div>
 
             {/* WhatsApp Field */}
