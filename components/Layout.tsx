@@ -261,7 +261,10 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       )}
 
       {/* Header */}
-      <header className="bg-gradient-to-r from-brasil-green to-brasil-blue text-white shadow-md sticky top-0 z-50">
+      <header 
+        style={{ paddingTop: 'env(safe-area-inset-top)' }}
+        className="bg-gradient-to-r from-brasil-green to-brasil-blue text-white shadow-md sticky top-0 z-50"
+      >
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <Trophy className="w-6 h-6 text-brasil-yellow" />
@@ -451,6 +454,9 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           <p>© 2026 Palpiteiro da Copa.</p>
         </footer>
       )}
+      
+      {/* Bottom spacer for safe area (APK) */}
+      <div style={{ height: 'env(safe-area-inset-bottom)', minHeight: 'env(safe-area-inset-bottom)' }} className="bg-gray-800 dark:bg-black" />
       
       <IosInstallPrompt />
     </div>

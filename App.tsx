@@ -1275,71 +1275,66 @@ const AppRoutes: React.FC = () => {
     return <AppLoading />;
   }
 
-  if (connectionError) {
-    const isNative = (window as any).Capacitor?.isNativePlatform?.() || false;
-
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 p-6 text-center">
-        <div className="bg-red-50 dark:bg-red-900/20 p-8 rounded-3xl max-w-md w-full border border-red-100 dark:border-red-800 shadow-2xl">
-          <AlertCircle size={64} className="text-red-500 mx-auto mb-6 animate-bounce" />
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">Erro de Conexão</h2>
-          <p className="text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">
-            {isNative
-              ? 'Não foi possível conectar ao banco de dados. Se o problema persistir, tente sair e fazer login novamente para renovar sua sessão.'
-              : 'Não foi possível conectar ao servidor. Verifique sua conexão com a internet.'}
-          </p>
-          <div className="flex flex-col gap-3">
-            <button
-              onClick={retryConnection}
-              className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-4 px-8 rounded-2xl transition-all active:scale-95 shadow-lg shadow-red-500/30"
-            >
-              Tentar Novamente
-            </button>
-            {isNative && (
-              <button
-                onClick={() => window.location.href = '/login'}
-                className="w-full bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-bold py-4 px-8 rounded-2xl border border-gray-200 dark:border-gray-700 transition-all active:scale-95"
-              >
-                Ir para Login
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <BrowserRouter>
       <CapacitorBackButtonHandler />
       <Layout>
-        <Routes>
-          <Route path="/" element={isRecoveryMode ? <Navigate to="/reset-password" /> : <Home />} />
-          <Route path="/table" element={isRecoveryMode ? <Navigate to="/reset-password" /> : <TablePage />} />
-          <Route path="/leagues" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <LeaguesPage /> : <Navigate to="/" />)} />
-          <Route path="/league/:id" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <LeagueDetails /> : <Navigate to="/" />)} />
-          <Route path="/simulador" element={currentUser ? <SimulatePage /> : <Navigate to="/" />} />
-          <Route path="/como-jogar" element={<HowToPlay />} />
-          <Route path="/bolao-copa-2026" element={<SEOLanding variant="bolao" />} />
-          <Route path="/simulador-copa-2026" element={<SEOLanding variant="simulador" />} />
-          <Route path="/tabela-copa-2026" element={<SEOLanding variant="tabela" />} />
-          <Route path="/termos" element={<TermsPage />} />
-          <Route path="/privacidade" element={<PrivacyPage />} />
-          <Route path="/exclusao-conta" element={<AccountDeletionPage />} />
-          <Route path="/reset-password" element={<ResetPasswordPage />} />
-          <Route path="/profile" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <ProfilePage /> : <Navigate to="/" />)} />
+        {connectionError ? (
+          <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+            <div className="bg-white dark:bg-gray-800 p-8 rounded-3xl max-w-md w-full border border-red-100 dark:border-red-900/30 shadow-xl">
+              <div className="bg-red-50 dark:bg-red-900/20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
+                <AlertCircle size={32} className="text-red-500 animate-pulse" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-3">Erro de Conexão</h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-8 leading-relaxed">
+                {(window as any).Capacitor?.isNativePlatform?.()
+                  ? 'Não foi possível conectar ao banco de dados. Verifique seu sinal de internet ou tente renovar sua sessão.'
+                  : 'Não foi possível conectar ao servidor. Verifique sua conexão com a internet.'}
+              </p>
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={retryConnection}
+                  className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3.5 px-6 rounded-2xl transition-all active:scale-95 shadow-lg shadow-red-500/20"
+                >
+                  Tentar Novamente
+                </button>
+                {(window as any).Capacitor?.isNativePlatform?.() && (
+                  <button
+                    onClick={() => window.location.href = '/login'}
+                    className="w-full bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 font-bold py-3 px-6 rounded-2xl border border-gray-100 dark:border-gray-700 transition-all active:scale-95"
+                  >
+                    Ir para Login
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <Routes>
+            <Route path="/" element={isRecoveryMode ? <Navigate to="/reset-password" /> : <Home />} />
+            <Route path="/table" element={isRecoveryMode ? <Navigate to="/reset-password" /> : <TablePage />} />
+            <Route path="/leagues" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <LeaguesPage /> : <Navigate to="/" />)} />
+            <Route path="/league/:id" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <LeagueDetails /> : <Navigate to="/" />)} />
+            <Route path="/simulador" element={currentUser ? <SimulatePage /> : <Navigate to="/" />} />
+            <Route path="/como-jogar" element={<HowToPlay />} />
+            <Route path="/bolao-copa-2026" element={<SEOLanding variant="bolao" />} />
+            <Route path="/simulador-copa-2026" element={<SEOLanding variant="simulador" />} />
+            <Route path="/tabela-copa-2026" element={<SEOLanding variant="tabela" />} />
+            <Route path="/termos" element={<TermsPage />} />
+            <Route path="/privacidade" element={<PrivacyPage />} />
+            <Route path="/exclusao-conta" element={<AccountDeletionPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/profile" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <ProfilePage /> : <Navigate to="/" />)} />
 
-          <Route path="/admin" element={isRecoveryMode ? <Navigate to="/reset-password" /> : <AdminRoute><AdminPage /></AdminRoute>} />
-          <Route path="/admin/leagues" element={<AdminRoute><AdminLeaguesPage /></AdminRoute>} />
-          <Route path="/admin/matches" element={<AdminRoute><AdminMatchesPage /></AdminRoute>} />
+            <Route path="/admin" element={isRecoveryMode ? <Navigate to="/reset-password" /> : <AdminRoute><AdminPage /></AdminRoute>} />
+            <Route path="/admin/leagues" element={<AdminRoute><AdminLeaguesPage /></AdminRoute>} />
+            <Route path="/admin/matches" element={<AdminRoute><AdminMatchesPage /></AdminRoute>} />
 
-
-
-
-          <Route path="/auth/callback" element={<ConfirmacaoCadastro />} />
-          <Route path="/login" element={!currentUser ? <Login /> : <Navigate to="/" />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+            <Route path="/auth/callback" element={<ConfirmacaoCadastro />} />
+            <Route path="/login" element={!currentUser ? <Login /> : <Navigate to="/" />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        )}
       </Layout>
     </BrowserRouter>
   );
