@@ -242,7 +242,7 @@ export const LeaguesPage: React.FC = () => {
 
       {/* Available Leagues */}
       <section className="pt-6 border-t border-gray-200 dark:border-gray-700">
-        <h2 className="text-lg font-bold text-gray-700 dark:text-gray-300 mb-3">Ligas Disponíveis</h2>
+
         <div className="flex items-start gap-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4 text-sm text-blue-700 dark:text-blue-300">
           <Info size={16} className="mt-0.5 flex-shrink-0" />
           <span>Para encontrar ligas <strong>PRIVADAS</strong> digite o <strong>CÓDIGO DA LIGA</strong> no campo abaixo.</span>
@@ -255,7 +255,7 @@ export const LeaguesPage: React.FC = () => {
           <input
             id="leagues-search"
             type="text"
-            className="block w-full pl-10 pr-8 py-2 border border-gray-300 dark:border-gray-600 rounded-lg leading-5 bg-white dark:bg-gray-700 placeholder-gray-400 focus:outline-none focus:placeholder-gray-300 focus:ring-1 focus:ring-brasil-blue focus:border-brasil-blue sm:text-sm transition-all shadow-sm text-gray-800 dark:text-white"
+            className="block w-full pl-10 pr-8 py-2 border border-gray-300 dark:border-gray-600 rounded-lg leading-5 bg-white dark:bg-gray-700 placeholder-gray-400 focus:outline-none focus:placeholder-gray-300 focus:ring-1 focus:ring-brasil-blue focus:border-brasil-blue sm:text-sm transition-all shadow-sm text-gray-800 dark:text-white select-text"
             placeholder="Buscar por nome ou código da liga..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -269,6 +269,8 @@ export const LeaguesPage: React.FC = () => {
             </button>
           )}
         </div>
+
+        <h2 className="text-lg font-bold text-gray-700 dark:text-gray-300 mb-3">Ligas Disponíveis</h2>
         <div className="grid gap-4 md:grid-cols-2">
           {filteredOtherLeagues.map(l => {
             const isPending = l.pendingRequests.includes(currentUser.id);
