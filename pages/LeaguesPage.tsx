@@ -245,7 +245,7 @@ export const LeaguesPage: React.FC = () => {
         <h2 className="text-lg font-bold text-gray-700 dark:text-gray-300 mb-3">Ligas Disponíveis</h2>
         <div className="flex items-start gap-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4 text-sm text-blue-700 dark:text-blue-300">
           <Info size={16} className="mt-0.5 flex-shrink-0" />
-          <span>Ligas privadas não aparecem na listagem. Para encontrá-las, busque pelo <strong>código da liga</strong> no campo abaixo.</span>
+          <span>Para encontrar ligas <strong>PRIVADAS</strong> digite o <strong>CÓDIGO DA LIGA</strong> no campo abaixo.</span>
         </div>
         {/* Search Bar */}
         <div className="relative w-full mb-4">
