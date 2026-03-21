@@ -127,7 +127,7 @@ export const getLeagueLimit = (league: League): number => {
     case 'VIP': return 100;
     case 'VIP_BASIC': return 50;
     case 'FREE':
-    default: return 5;
+    default: return 10;
   }
 };
 
