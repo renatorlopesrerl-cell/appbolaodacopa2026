@@ -88,6 +88,12 @@ export const requestWebPushToken = async (force: boolean = false) => {
 
     console.log('FCM: Solicitando inscrição via Push API...');
     
+    // Verificamos se o pushManager existe no registro do Service Worker
+    if (!registration.pushManager) {
+        console.warn('Este ambiente não suporta Web Push (pushManager ausente no ServiceWorkerRegistration).');
+        return null;
+    }
+    
     // Promise.race para forçar um tempo limite
     const token = await Promise.race([
       getToken(messaging, {
