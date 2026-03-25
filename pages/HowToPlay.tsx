@@ -83,7 +83,7 @@ export const HowToPlay: React.FC = () => {
                         <ul className="list-disc pl-5 space-y-1">
                             <li><strong>Placar Exato = 10 pontos</strong> (ex. palpite: 1x0, placar final: 1x0)</li>
                             <li><strong>Vencedor + SG (Saldo de Gols) = 7 pontos</strong> (ex. palpite: 1x0, placar final: 2x1)</li>
-                            <li><strong>Empate Não Exato = 7 pontos</strong> (ex. palpite: 1x1, placar final: 2x2)</li>
+                            <li><strong>Empate Não Exato = 6 pontos</strong> (ex. palpite: 1x1, placar final: 2x2)</li>
                             <li><strong>Apenas Vencedor = 5 pontos</strong> (ex. palpite: 1x0, placar final: 2x0)</li>
                         </ul>
                         <p>

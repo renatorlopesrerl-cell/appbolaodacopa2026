@@ -27,7 +27,7 @@ export const LeaguesPage: React.FC = () => {
     winnerAndDiff: number | '';
     winner: number | '';
     draw: number | '';
-  }>({ exactScore: 10, winnerAndDiff: 7, winner: 5, draw: 7 });
+  }>({ exactScore: 10, winnerAndDiff: 7, winner: 5, draw: 6 });
 
   if (loading) {
     return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin text-brasil-green" size={48} /></div>;
@@ -42,7 +42,7 @@ export const LeaguesPage: React.FC = () => {
     setLeagueImage('');
     setIsPrivate(true);
     setLeaguePlan('FREE');
-    setSettings({ exactScore: 10, winnerAndDiff: 7, winner: 5, draw: 7 });
+    setSettings({ exactScore: 10, winnerAndDiff: 7, winner: 5, draw: 6 });
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
