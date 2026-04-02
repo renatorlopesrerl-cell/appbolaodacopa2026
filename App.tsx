@@ -107,6 +107,7 @@ interface AppState {
   refreshAllData: () => Promise<void>;
   deleteAccount: () => Promise<boolean>;
   isRecoveryMode: boolean;
+  lastSyncTime: Date | null;
 }
 
 const AppContext = createContext<AppState | null>(null);
@@ -233,6 +234,13 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [connectionError, setConnectionError] = useState(false);
   const [isRecoveryMode, setIsRecoveryMode] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(() => {
+    try {
+      const cached = localStorage.getItem('last_sync_time');
+      if (cached) return new Date(cached);
+    } catch { }
+    return null;
+  });
   const notifiedReminders = useRef<Set<string>>(new Set());
 
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -739,6 +747,10 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
       setConnectionError(false);
       failureCountRef.current = 0;
+      
+      const syncDate = new Date();
+      setLastSyncTime(syncDate);
+      try { localStorage.setItem('last_sync_time', syncDate.toISOString()); } catch {}
     } catch (e: any) {
       console.error("API Fetch Error", e);
 
@@ -1236,7 +1248,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       currentUser, users, matches, leagues, predictions, currentTime, notifications, loading, invitations,
       setCurrentTime, loginGoogle, signInWithEmail, signUpWithEmail, logout, createLeague, updateLeague, joinLeague, deleteLeague, approveUser, rejectUser, deleteAccount,
       removeUserFromLeague, submitPrediction, submitPredictions, simulateMatchResult, updateMatch, removeNotification, updateUserProfile, syncInitialMatches,
-      sendLeagueInvite, respondToInvite, theme, toggleTheme, connectionError, retryConnection, addNotification, refreshPredictions, refreshAllData: () => fetchAllData(false), isRecoveryMode
+      sendLeagueInvite, respondToInvite, theme, toggleTheme, connectionError, retryConnection, addNotification, refreshPredictions, refreshAllData: () => fetchAllData(false), isRecoveryMode, lastSyncTime
     }}>
       {children}
     </AppContext.Provider>
