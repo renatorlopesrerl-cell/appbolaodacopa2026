@@ -204,9 +204,29 @@ const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>([]);
-  const [matches, setMatches] = useState<Match[]>(INITIAL_MATCHES);
+  const [matches, setMatches] = useState<Match[]>(() => {
+    try {
+      const cached = localStorage.getItem('cache_matches');
+      if (cached) {
+        const parsed: Match[] = JSON.parse(cached);
+        if (parsed && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.warn('Failed to load matches from cache:', e);
+    }
+    return INITIAL_MATCHES;
+  });
   const [leagues, setLeagues] = useState<League[]>([]);
-  const [predictions, setPredictions] = useState<Prediction[]>([]);
+  const [predictions, setPredictions] = useState<Prediction[]>(() => {
+    try {
+      const cached = localStorage.getItem('cache_predictions');
+      if (cached) {
+        const parsed: Prediction[] = JSON.parse(cached);
+        if (parsed && parsed.length > 0) return parsed;
+      }
+    } catch (e) { console.warn('Failed to load predictions from cache:', e); }
+    return [];
+  });
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
@@ -689,6 +709,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           awayScore: m.away_score !== null ? Number(m.away_score) : null
         }));
         setMatches(mappedMatches);
+        // Salva no cache local para uso offline na próxima sessão
+        try { localStorage.setItem('cache_matches', JSON.stringify(mappedMatches)); } catch (e) { console.warn('cache_matches write failed:', e); }
       }
 
       if (predsData) {
@@ -698,6 +720,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           points: p.points ? Number(p.points) : 0
         }));
         setPredictions(mappedPreds);
+        // Salva no cache local para uso offline na próxima sessão
+        try { localStorage.setItem('cache_predictions', JSON.stringify(mappedPreds)); } catch (e) { console.warn('cache_predictions write failed:', e); }
       }
 
       if (profilesData) {
@@ -843,8 +867,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       console.warn("Sign out error", e);
     }
 
-    // 3. Clear all local storage related to the app
-    const keysToRemove = ['bolao-copa-native-v1', 'app-theme', 'active_fcm_token'];
+    // 3. Clear all local storage related to the app (including offline cache)
+    const keysToRemove = ['bolao-copa-native-v1', 'app-theme', 'active_fcm_token', 'cache_matches', 'cache_predictions'];
     Object.keys(localStorage).forEach(key => {
       if (key.includes('supabase.auth.token') || key.startsWith('sb-') || key.startsWith('notify_')) {
         keysToRemove.push(key);
