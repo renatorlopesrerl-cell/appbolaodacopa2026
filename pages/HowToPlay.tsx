@@ -1,12 +1,19 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Trophy, Users, PlayCircle, Calendar, ShieldCheck, ArrowLeft, BookOpen, X, ZoomIn, Bell, Globe, ExternalLink, Smartphone } from 'lucide-react';
+import { Trophy, Users, PlayCircle, Calendar, ShieldCheck, ArrowLeft, BookOpen, X, ZoomIn, Bell, Globe, ExternalLink, Smartphone, Copy, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Capacitor } from '@capacitor/core';
 
 export const HowToPlay: React.FC = () => {
     const navigate = useNavigate();
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
+    const [copied, setCopied] = useState(false);
+
+    const handleCopyLink = () => {
+        navigator.clipboard.writeText('https://bolaodacopa2026.app/');
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
 
     return (
         <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500 pb-10 relative">
@@ -268,26 +275,24 @@ export const HowToPlay: React.FC = () => {
                         <section className="space-y-4">
                             <div className="flex items-center gap-3 mb-2">
                                 <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg">
-                                    <Globe className="w-6 h-6 text-brasil-blue dark:text-blue-400" />
+                                    <Copy className="w-6 h-6 text-brasil-blue dark:text-blue-400" />
                                 </div>
-                                <h3 className="text-2xl font-bold text-gray-800 dark:text-white">Versão Web</h3>
+                                <h3 className="text-2xl font-bold text-gray-800 dark:text-white">Compartilhar Site</h3>
                             </div>
                             <div className="prose dark:prose-invert max-w-none text-gray-600 dark:text-gray-300 leading-relaxed text-justify">
                                 <p>
-                                    Se você criou uma liga pelo App e quer convidar amigos que não usam Android, compartilhe o link do nosso site oficial. Eles podem participar de qualquer dispositivo pelo navegador.
+                                    {copied ? 'Link copiado! Agora você pode colar no WhatsApp ou no navegador.' : 'Se você criou uma liga pelo App e quer convidar amigos que não usam Android, copie o link do nosso site oficial abaixo.'}
                                 </p>
                             </div>
 
                             <div className="flex flex-col items-center justify-center gap-4 p-6 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-gray-100 dark:border-gray-800 mt-4">
-                                <a
-                                    href="https://bolaodacopa2026.app/"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
+                                <button
+                                    onClick={handleCopyLink}
                                     className="w-full max-w-xs bg-white dark:bg-gray-800 border-2 border-brasil-blue dark:border-blue-500 text-brasil-blue dark:text-blue-400 font-bold py-3 px-6 rounded-2xl transition-all shadow-md hover:shadow-lg active:scale-95 flex items-center justify-center gap-2"
                                 >
-                                    <span className="text-sm">BOLAODACOPA2026.APP</span>
-                                    <ExternalLink className="w-4 h-4 opacity-50" />
-                                </a>
+                                    {copied ? <Check className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5" />}
+                                    <span className="text-sm">{copied ? 'LINK COPIADO!' : 'COPIAR BOLAODACOPA2026.APP'}</span>
+                                </button>
                             </div>
                         </section>
                     </>

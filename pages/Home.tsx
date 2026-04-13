@@ -1,12 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useStore } from '../App';
-import { Calendar, Trophy, Users, PlayCircle, ShieldCheck, Mail, Check, X, Loader2, Info, Globe, ExternalLink, Smartphone } from 'lucide-react';
+import { Calendar, Trophy, Users, PlayCircle, ShieldCheck, Mail, Check, X, Loader2, Info, Globe, ExternalLink, Smartphone, Copy } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { supabase } from '../services/supabase';
 
 export const Home: React.FC = () => {
   const { currentUser, matches, leagues, currentTime, loading, invitations, respondToInvite, loginGoogle } = useStore();
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText('https://bolaodacopa2026.app/');
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   // --- GUEST VIEW (Landing Page) ---
   if (!currentUser) {
@@ -86,17 +93,14 @@ export const Home: React.FC = () => {
             </div>
           ) : Capacitor.getPlatform() === 'android' && (
             <div className="flex flex-col items-center gap-3 pt-6 w-full">
-              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Acesse pelo Navegador</p>
-              <a
-                href="https://bolaodacopa2026.app/"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full bg-white dark:bg-gray-800 border-2 border-brasil-blue dark:border-blue-500 text-brasil-blue dark:text-blue-400 font-bold py-3 px-6 rounded-2xl transition-all shadow-md hover:shadow-lg active:scale-95 flex items-center justify-center gap-2"
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Copiar Link do Site</p>
+              <button
+                onClick={handleCopyLink}
+                className="w-full bg-white dark:bg-gray-800 border-2 border-brasil-blue dark:border-blue-500 text-brasil-blue dark:text-blue-400 font-bold py-3 px-6 rounded-2xl transition-all shadow-md hover:shadow-lg active:scale-95 flex items-center justify-center gap-2 group"
               >
-                <Globe className="w-5 h-5" />
-                <span className="text-sm">BOLAODACOPA2026.APP</span>
-                <ExternalLink className="w-4 h-4 opacity-50" />
-              </a>
+                {copied ? <Check className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5" />}
+                <span className="text-sm">{copied ? 'LINK COPIADO!' : 'BOLAODACOPA2026.APP'}</span>
+              </button>
             </div>
           )}
         </div>
@@ -335,21 +339,19 @@ export const Home: React.FC = () => {
       ) : Capacitor.getPlatform() === 'android' && (
         <div className="flex flex-col items-center justify-center gap-4 p-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
           <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300 font-bold text-sm uppercase tracking-wider">
-            <Globe className="w-5 h-5 text-brasil-blue" />
-            Versão para Navegador
+            <Copy className="w-5 h-5 text-brasil-blue" />
+            Link da Versão Web
           </div>
           <p className="text-xs text-gray-500 text-center max-w-xs">
-            Compartilhe este link com seus amigos que não usam Android.
+            {copied ? 'Link copiado com sucesso!' : 'Copie o link abaixo para compartilhar com amigos que não usam Android.'}
           </p>
-          <a
-            href="https://bolaodacopa2026.app/"
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            onClick={handleCopyLink}
             className="w-full max-w-xs bg-white dark:bg-gray-700 border-2 border-brasil-blue dark:border-blue-500 text-brasil-blue dark:text-blue-400 font-bold py-3 px-6 rounded-2xl transition-all shadow-md hover:shadow-lg active:scale-95 flex items-center justify-center gap-2"
           >
-            <span className="text-sm">BOLAODACOPA2026.APP</span>
-            <ExternalLink className="w-4 h-4 opacity-50" />
-          </a>
+            {copied ? <Check className="w-5 h-5 text-green-500" /> : <Copy className="w-4 h-4 opacity-50" />}
+            <span className="text-sm">{copied ? 'LINK COPIADO!' : 'BOLAODACOPA2026.APP'}</span>
+          </button>
         </div>
       )}
 
