@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useStore } from '../App';
-import { Calendar, Trophy, Users, PlayCircle, ShieldCheck, Mail, Check, X, Loader2, Info } from 'lucide-react';
+import { Calendar, Trophy, Users, PlayCircle, ShieldCheck, Mail, Check, X, Loader2, Info, Globe, ExternalLink } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
 import { supabase } from '../services/supabase';
 
 export const Home: React.FC = () => {
@@ -65,6 +66,39 @@ export const Home: React.FC = () => {
             <ShieldCheck size={14} />
             <span>Ambiente Seguro via Supabase Auth</span>
           </div>
+
+          {/* Platform Specific Action (Play Store or Web Link) */}
+          {Capacitor.getPlatform() === 'web' ? (
+            <div className="flex flex-col items-center gap-2 pt-4">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Disponível para Android</p>
+              <a
+                href="https://play.google.com/store/apps/details?id=app.palpiteirodacopa"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:scale-105 transition-transform duration-300 active:scale-95"
+              >
+                <img
+                  src="https://play.google.com/intl/en_us/badges/static/images/badges/pt-br_badge_web_generic.png"
+                  alt="Disponível no Google Play"
+                  className="h-14 w-auto drop-shadow-md"
+                />
+              </a>
+            </div>
+          ) : Capacitor.getPlatform() === 'android' && (
+            <div className="flex flex-col items-center gap-3 pt-6 w-full">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Acesse pelo Navegador</p>
+              <a
+                href="https://bolaodacopa2026.app/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full bg-white dark:bg-gray-800 border-2 border-brasil-blue dark:border-blue-500 text-brasil-blue dark:text-blue-400 font-bold py-3 px-6 rounded-2xl transition-all shadow-md hover:shadow-lg active:scale-95 flex items-center justify-center gap-2"
+              >
+                <Globe className="w-5 h-5" />
+                <span className="text-sm">BOLAODACOPA2026.APP</span>
+                <ExternalLink className="w-4 h-4 opacity-50" />
+              </a>
+            </div>
+          )}
         </div>
 
         {/* Feature Cards */}
@@ -274,6 +308,50 @@ export const Home: React.FC = () => {
           </div>
         </Link>
       </div>
+
+      {/* Platform Specific Action (Play Store or Web Link) */}
+      {Capacitor.getPlatform() === 'web' ? (
+        <div className="flex flex-col items-center justify-center gap-3 p-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
+          <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300 font-bold text-sm uppercase tracking-wider">
+            <img src="https://www.svgrepo.com/show/475647/google-play-color.svg" className="w-5 h-5" alt="Play Store" />
+            Baixe o App para Android
+          </div>
+          <p className="text-xs text-gray-500 text-center max-w-xs">
+            Acompanhe suas ligas com mais facilidade e receba notificações em tempo real.
+          </p>
+          <a
+            href="https://play.google.com/store/apps/details?id=app.palpiteirodacopa"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:scale-105 transition-transform duration-300 active:scale-95"
+          >
+            <img
+              src="https://play.google.com/intl/en_us/badges/static/images/badges/pt-br_badge_web_generic.png"
+              alt="Disponível no Google Play"
+              className="h-14 w-auto drop-shadow-md"
+            />
+          </a>
+        </div>
+      ) : Capacitor.getPlatform() === 'android' && (
+        <div className="flex flex-col items-center justify-center gap-4 p-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
+          <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300 font-bold text-sm uppercase tracking-wider">
+            <Globe className="w-5 h-5 text-brasil-blue" />
+            Versão para Navegador
+          </div>
+          <p className="text-xs text-gray-500 text-center max-w-xs">
+            Compartilhe este link com seus amigos que não usam Android.
+          </p>
+          <a
+            href="https://bolaodacopa2026.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full max-w-xs bg-white dark:bg-gray-700 border-2 border-brasil-blue dark:border-blue-500 text-brasil-blue dark:text-blue-400 font-bold py-3 px-6 rounded-2xl transition-all shadow-md hover:shadow-lg active:scale-95 flex items-center justify-center gap-2"
+          >
+            <span className="text-sm">BOLAODACOPA2026.APP</span>
+            <ExternalLink className="w-4 h-4 opacity-50" />
+          </a>
+        </div>
+      )}
 
       {/* LEGAL INFO CARD */}
       <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 relative overflow-hidden">

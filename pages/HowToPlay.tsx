@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Trophy, Users, PlayCircle, Calendar, ShieldCheck, ArrowLeft, BookOpen, X, ZoomIn, Bell } from 'lucide-react';
+import { Trophy, Users, PlayCircle, Calendar, ShieldCheck, ArrowLeft, BookOpen, X, ZoomIn, Bell, Globe, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Capacitor } from '@capacitor/core';
 
@@ -237,6 +237,57 @@ export const HowToPlay: React.FC = () => {
                                 <p>
                                     Após fazer o passo anterior, acesse <strong>Meu Perfil</strong> no Palpiteiro da Copa 2026, clique em <strong>Ativar Notificações</strong>, aguarde e clique em <strong>Permitir</strong>, logo após esse processo vai aparecer o botão <strong>Sincronizar este dispositivo</strong> é só clicar no botão e dar OK que a aplicação estará pronta para receber as notificações.
                                 </p>
+                            </div>
+
+                            {/* Google Play Button for Web Users */}
+                            <div className="flex flex-col items-center justify-center gap-3 p-6 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-gray-100 dark:border-gray-800 mt-6">
+                                <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300 font-bold text-sm uppercase tracking-wider">
+                                    <img src="https://www.svgrepo.com/show/475647/google-play-color.svg" className="w-5 h-5" alt="Play Store" />
+                                    Baixe o App para Android
+                                </div>
+                                <a
+                                    href="https://play.google.com/store/apps/details?id=app.palpiteirodacopa"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="hover:scale-105 transition-transform duration-300 active:scale-95"
+                                >
+                                    <img
+                                        src="https://play.google.com/intl/en_us/badges/static/images/badges/pt-br_badge_web_generic.png"
+                                        alt="Disponível no Google Play"
+                                        className="h-14 w-auto drop-shadow-md"
+                                    />
+                                </a>
+                            </div>
+                        </section>
+                    </>
+                )}
+
+                {Capacitor.getPlatform() === 'android' && (
+                    <>
+                        <hr className="border-gray-100 dark:border-gray-700" />
+                        <section className="space-y-4">
+                            <div className="flex items-center gap-3 mb-2">
+                                <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg">
+                                    <Globe className="w-6 h-6 text-brasil-blue dark:text-blue-400" />
+                                </div>
+                                <h3 className="text-2xl font-bold text-gray-800 dark:text-white">Versão Web</h3>
+                            </div>
+                            <div className="prose dark:prose-invert max-w-none text-gray-600 dark:text-gray-300 leading-relaxed text-justify">
+                                <p>
+                                    Se você criou uma liga pelo App e quer convidar amigos que não usam Android, compartilhe o link do nosso site oficial. Eles podem participar de qualquer dispositivo pelo navegador.
+                                </p>
+                            </div>
+
+                            <div className="flex flex-col items-center justify-center gap-4 p-6 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-gray-100 dark:border-gray-800 mt-4">
+                                <a
+                                    href="https://bolaodacopa2026.app/"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="w-full max-w-xs bg-white dark:bg-gray-800 border-2 border-brasil-blue dark:border-blue-500 text-brasil-blue dark:text-blue-400 font-bold py-3 px-6 rounded-2xl transition-all shadow-md hover:shadow-lg active:scale-95 flex items-center justify-center gap-2"
+                                >
+                                    <span className="text-sm">BOLAODACOPA2026.APP</span>
+                                    <ExternalLink className="w-4 h-4 opacity-50" />
+                                </a>
                             </div>
                         </section>
                     </>
