@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useStore } from '../App';
-import { Calendar, Trophy, Users, PlayCircle, ShieldCheck, Mail, Check, X, Loader2, Info, Globe, ExternalLink } from 'lucide-react';
+import { Calendar, Trophy, Users, PlayCircle, ShieldCheck, Mail, Check, X, Loader2, Info, Globe, ExternalLink, Smartphone } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { supabase } from '../services/supabase';
 
@@ -313,7 +313,7 @@ export const Home: React.FC = () => {
       {Capacitor.getPlatform() === 'web' ? (
         <div className="flex flex-col items-center justify-center gap-3 p-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
           <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300 font-bold text-sm uppercase tracking-wider">
-            <img src="https://www.svgrepo.com/show/475647/google-play-color.svg" className="w-5 h-5" alt="Play Store" />
+            <Smartphone className="w-5 h-5 text-brasil-green" />
             Baixe o App para Android
           </div>
           <p className="text-xs text-gray-500 text-center max-w-xs">

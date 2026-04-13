@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Trophy, Users, PlayCircle, Calendar, ShieldCheck, ArrowLeft, BookOpen, X, ZoomIn, Bell, Globe, ExternalLink } from 'lucide-react';
+import { Trophy, Users, PlayCircle, Calendar, ShieldCheck, ArrowLeft, BookOpen, X, ZoomIn, Bell, Globe, ExternalLink, Smartphone } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Capacitor } from '@capacitor/core';
 
@@ -242,7 +242,7 @@ export const HowToPlay: React.FC = () => {
                             {/* Google Play Button for Web Users */}
                             <div className="flex flex-col items-center justify-center gap-3 p-6 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-gray-100 dark:border-gray-800 mt-6">
                                 <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300 font-bold text-sm uppercase tracking-wider">
-                                    <img src="https://www.svgrepo.com/show/475647/google-play-color.svg" className="w-5 h-5" alt="Play Store" />
+                                    <Smartphone className="w-5 h-5 text-brasil-green" />
                                     Baixe o App para Android
                                 </div>
                                 <a
