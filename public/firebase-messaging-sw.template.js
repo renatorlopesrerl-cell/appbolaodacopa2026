@@ -40,6 +40,12 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  // Bloqueia requisições HTTP inseguras ou esquemas não-HTTP (ex: chrome-extension)
+  // para evitar que o Service Worker quebre em domínios .app que exigem HTTPS.
+  if (event.request.url.startsWith('http:') || !event.request.url.startsWith('http')) {
+    return;
+  }
+
   // REGRA DE OURO: Se for um arquivo de assets ou do Cloudflare, ignore e deixe a rede tratar
   if (event.request.url.includes('/assets/') ||
     event.request.url.includes('/cdn-cgi/') ||
@@ -54,4 +60,4 @@ self.addEventListener('fetch', (event) => {
       return new Response(null, { status: 404 });
     })
   );
-}); 
+});
