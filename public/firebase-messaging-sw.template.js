@@ -40,24 +40,30 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Bloqueia requisições HTTP inseguras ou esquemas não-HTTP (ex: chrome-extension)
-  // para evitar que o Service Worker quebre em domínios .app que exigem HTTPS.
-  if (event.request.url.startsWith('http:') || !event.request.url.startsWith('http')) {
-    return;
-  }
+  // 1. Ignorar esquemas que não sejam HTTP/HTTPS (essencial para Chrome Extensions e Android)
+  if (!event.request.url.startsWith('http')) return;
 
-  // REGRA DE OURO: Se for um arquivo de assets ou do Cloudflare, ignore e deixe a rede tratar
-  if (event.request.url.includes('/assets/') ||
+  // 2. REGRA DE OURO AMPLIADA: Se for asset, script, estilo ou banco, NÃO INTERCEPTAR.
+  // Ao não chamar event.respondWith(), o navegador assume o controle total da rede.
+  if (
+    event.request.url.includes('/assets/') ||
     event.request.url.includes('/cdn-cgi/') ||
-    event.request.url.includes('supabase')) {
-    return;
+    event.request.url.includes('supabase') ||
+    event.request.url.endsWith('.js') ||
+    event.request.url.endsWith('.css')
+  ) {
+    return; // O navegador cuida disso sozinho.
   }
 
-  // Tratamento padrão para o restante
+  // 3. Estratégia "Network-First" com fallback seguro apenas para o restante
   event.respondWith(
     fetch(event.request).catch(() => {
-      // Retorna uma resposta vazia segura em caso de erro, evitando o crash
-      return new Response(null, { status: 404 });
+      // Se a rede falhar e for uma navegação de página, tenta o cache
+      if (event.request.mode === 'navigate') {
+        return caches.match('/index.html');
+      }
+      // Se não for navegação, retorna uma resposta nula que o navegador sabe tratar
+      return new Response(null, { status: 404, statusText: 'Not Found' });
     })
   );
 });
