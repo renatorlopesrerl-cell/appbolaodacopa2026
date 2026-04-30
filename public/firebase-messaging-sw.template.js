@@ -40,8 +40,18 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET' || event.request.url.includes('/api/')) return;
-  event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request))
-  );
+    // REGRA DE OURO: Se for um arquivo de assets ou do Cloudflare, ignore e deixe a rede tratar
+    if (event.request.url.includes('/assets/') || 
+        event.request.url.includes('/cdn-cgi/') || 
+        event.request.url.includes('supabase')) {
+        return; 
+    }
+
+    // Tratamento padrão para o restante
+    event.respondWith(
+        fetch(event.request).catch(() => {
+            // Retorna uma resposta vazia segura em caso de erro, evitando o crash
+            return new Response(null, { status: 404 });
+        })
+    );
 });
