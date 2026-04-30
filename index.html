@@ -38,25 +38,24 @@
   <meta property="og:url" content="https://bolaodacopa2026.app">
   <meta property="og:type" content="website">
   <meta property="og:image" content="https://bolaodacopa2026.app/palpiteirodacopa2026.png">
-</head>
-
-<body class="bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-300">
   <script>
-    // Script de emergência para limpar Service Workers travados
+    // Tenta forçar a limpeza antes de qualquer outra coisa carregar
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(function(registrations) {
         for(let registration of registrations) {
-          registration.unregister().then(function() {
-            console.log('SW desativado com sucesso.');
-            // Só recarrega se for a primeira vez que limpamos
-            if(!window.location.search.includes('cleared')) {
-              window.location.href = window.location.href + '?cleared=true';
-            }
-          });
+          registration.unregister();
         }
       });
     }
+    // Se o site estiver em branco, isso força um recarregamento limpando o cache
+    window.onerror = function() {
+      console.log("Erro detectado, limpando cache...");
+      location.reload(true);
+    };
   </script>
+</head>
+
+<body class="bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100 transition-colors duration-300">
   <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
 </body>
