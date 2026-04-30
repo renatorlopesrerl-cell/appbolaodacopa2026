@@ -64,8 +64,15 @@ root.render(
 
 // Register Service Worker for PWA
 if ('serviceWorker' in navigator) {
+  // Limpeza de service workers antigos que podem estar travados
+  navigator.serviceWorker.getRegistrations().then(registrations => {
+    for(let registration of registrations) {
+        registration.unregister();
+    }
+  });
+
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/firebase-messaging-sw.js')
+    navigator.serviceWorker.register('/firebase-messaging-sw.js?v=2')
       .then(registration => {
         console.log('SW (Unified) registered: ', registration);
       })
