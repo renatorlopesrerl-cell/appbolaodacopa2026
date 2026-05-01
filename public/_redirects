@@ -1,6 +1,5 @@
-# Static Assets Explicit
-/sw-v6.js /sw-v6.js 200
-/manifest.json /manifest.json 200
+# Forçar o Cloudflare a entregar o Service Worker corretamente
+/firebase-messaging-sw.js /firebase-messaging-sw.js 200
 
-# PWA SPA Rule
+# Regra para PWA / SPA (deve ser a última)
 /* /index.html 200
