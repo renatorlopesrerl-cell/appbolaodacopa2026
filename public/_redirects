@@ -1,5 +1,2 @@
-# Forçar o Cloudflare a entregar o Service Worker corretamente
 /firebase-messaging-sw.js /firebase-messaging-sw.js 200
-
-# Regra para PWA / SPA (deve ser a última)
 /* /index.html 200
