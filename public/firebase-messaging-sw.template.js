@@ -24,7 +24,7 @@ try {
 }
 
 // Lógica de cache para o PWA funcionar offline
-const CACHE_NAME = 'palpiteiro-v6';
+const CACHE_NAME = 'palpiteiro-v8';
 const ASSETS_TO_CACHE = ['/', '/index.html', '/manifest.json', '/favicon.png'];
 
 self.addEventListener('install', (event) => {
