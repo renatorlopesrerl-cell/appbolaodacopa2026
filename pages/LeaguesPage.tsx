@@ -21,13 +21,13 @@ export const LeaguesPage: React.FC = () => {
   const [imageProcessing, setImageProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Settings State
   const [settings, setSettings] = useState<{
     exactScore: number | '';
     winnerAndDiff: number | '';
+    winnerAndWinnerGoals: number | '';
     winner: number | '';
     draw: number | '';
-  }>({ exactScore: 10, winnerAndDiff: 7, winner: 5, draw: 6 });
+  }>({ exactScore: 10, winnerAndDiff: 7, winnerAndWinnerGoals: 6, winner: 5, draw: 6 });
 
   if (loading) {
     return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin text-brasil-green" size={48} /></div>;
@@ -50,7 +50,7 @@ export const LeaguesPage: React.FC = () => {
     e.preventDefault();
 
     // Validate Settings
-    if (settings.exactScore === '' || settings.winnerAndDiff === '' || settings.winner === '' || settings.draw === '') {
+    if (settings.exactScore === '' || settings.winnerAndDiff === '' || settings.winnerAndWinnerGoals === '' || settings.winner === '' || settings.draw === '') {
       alert("Por favor, preencha todos os campos de pontuação.");
       return;
     }
@@ -61,6 +61,7 @@ export const LeaguesPage: React.FC = () => {
       const finalSettings = {
         exactScore: Number(settings.exactScore),
         winnerAndDiff: Number(settings.winnerAndDiff),
+        winnerAndWinnerGoals: Number(settings.winnerAndWinnerGoals),
         winner: Number(settings.winner),
         draw: Number(settings.draw)
       };
@@ -406,6 +407,13 @@ export const LeaguesPage: React.FC = () => {
                       <span className="text-[10px] text-gray-400">Acertou time vencedor e saldo de gols</span>
                     </div>
                     <input type="number" min="0" value={settings.winnerAndDiff} onChange={e => setSettings({ ...settings, winnerAndDiff: e.target.value === '' ? '' : parseInt(e.target.value) })} className="w-16 p-1 text-center border rounded bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white font-bold focus:ring-1 focus:ring-brasil-blue outline-none" />
+                  </div>
+                  <div className="flex justify-between items-center bg-white dark:bg-gray-800 px-3 py-2 rounded-lg border border-blue-100 dark:border-blue-800/50 shadow-sm">
+                    <div className="flex flex-col">
+                      <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Vencedor + Gols do Vencedor</span>
+                      <span className="text-[10px] text-gray-400">Acertou quem vence e gols do vencedor</span>
+                    </div>
+                    <input type="number" min="0" value={settings.winnerAndWinnerGoals} onChange={e => setSettings({ ...settings, winnerAndWinnerGoals: e.target.value === '' ? '' : parseInt(e.target.value) })} className="w-16 p-1 text-center border rounded bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white font-bold focus:ring-1 focus:ring-brasil-blue outline-none" />
                   </div>
                   <div className="flex justify-between items-center bg-white dark:bg-gray-800 px-3 py-2 rounded-lg border border-blue-100 dark:border-blue-800/50 shadow-sm">
                     <div className="flex flex-col">

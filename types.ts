@@ -65,6 +65,7 @@ export type LeaguePlan = 'FREE' | 'VIP_BASIC' | 'VIP' | 'VIP_MASTER' | 'VIP_UNLI
 export interface LeagueSettings {
   exactScore: number;
   winnerAndDiff: number;
+  winnerAndWinnerGoals: number;
   winner: number;
   draw: number; // Correct draw but wrong score (e.g. bet 1-1, result 2-2)
   isUnlimited?: boolean; // Deprecated: keep for backward compatibility

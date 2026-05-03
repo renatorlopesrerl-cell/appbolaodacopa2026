@@ -56,6 +56,14 @@ export const BrazilGamesPage: React.FC = () => {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Verificar se já existe uma liga com o mesmo nome
+    const nameExists = brazilLeagues.some(l => l.name.trim().toLowerCase() === newLeagueName.trim().toLowerCase());
+    if (nameExists) {
+      alert("Já existe uma liga com este nome. Por favor, escolha outro.");
+      return;
+    }
+
     setIsCreating(true);
     try {
       const success = await createBrazilLeague(newLeagueName, isPrivate, leagueImage, newLeagueDescription, settings);
