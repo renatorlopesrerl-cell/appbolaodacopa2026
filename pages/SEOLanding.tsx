@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Trophy, Users, BarChart3, Target, ArrowRight, Star } from 'lucide-react';
 
 interface SEOLandingProps {
-    variant: 'bolao' | 'simulador' | 'tabela';
+    variant: 'bolao' | 'simulador' | 'tabela' | 'brazil';
 }
 
 const content = {
@@ -27,6 +27,13 @@ const content = {
         heroSubtitle: 'Acompanhe todos os jogos, grupos e resultados em tempo real!',
         icon: Target,
         color: 'from-brasil-yellow to-amber-500',
+    },
+    brazil: {
+        title: 'Bolão Apenas Jogos do Brasil – Copa do Mundo 2026',
+        heroTitle: 'Bolão Jogos do Brasil',
+        heroSubtitle: 'Participe do bolão exclusivo para os jogos da Seleção Brasileira com bônus de artilheiro!',
+        icon: Trophy,
+        color: 'from-brasil-green via-brasil-yellow to-brasil-blue',
     },
 };
 

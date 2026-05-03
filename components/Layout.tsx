@@ -453,6 +453,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                   <li><Link to="/bolao-copa-2026" className="text-gray-500 dark:text-gray-400 hover:text-brasil-blue transition-colors">Bolão Copa 2026</Link></li>
                   <li><Link to="/simulador-copa-2026" className="text-gray-500 dark:text-gray-400 hover:text-brasil-blue transition-colors">Simulador Copa 2026</Link></li>
                   <li><Link to="/tabela-copa-2026" className="text-gray-500 dark:text-gray-400 hover:text-brasil-blue transition-colors">Tabela Copa 2026</Link></li>
+                  <li><Link to="/bolao-jogos-do-brasil" className="text-gray-500 dark:text-gray-400 hover:text-brasil-blue transition-colors font-semibold">Bolão Apenas Jogos do Brasil</Link></li>
                   <li><Link to="/como-jogar" className="text-gray-500 dark:text-gray-400 hover:text-brasil-blue transition-colors">Como Jogar</Link></li>
                 </ul>
               </div>

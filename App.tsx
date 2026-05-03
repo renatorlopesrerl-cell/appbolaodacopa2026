@@ -1648,6 +1648,7 @@ const AppRoutes: React.FC = () => {
           <Route path="/bolao-copa-2026" element={<SEOLanding variant="bolao" />} />
           <Route path="/simulador-copa-2026" element={<SEOLanding variant="simulador" />} />
           <Route path="/tabela-copa-2026" element={<SEOLanding variant="tabela" />} />
+          <Route path="/bolao-jogos-do-brasil" element={<SEOLanding variant="brazil" />} />
           <Route path="/termos" element={<TermsPage />} />
           <Route path="/privacidade" element={<PrivacyPage />} />
           <Route path="/exclusao-conta" element={<AccountDeletionPage />} />

@@ -89,7 +89,8 @@ export const HowToPlay: React.FC = () => {
                         </p>
                         <ul className="list-disc pl-5 space-y-1">
                             <li><strong>Placar Exato = 10 pontos</strong> (ex. palpite: 1x0, placar final: 1x0)</li>
-                            <li><strong>Vencedor + SG (Saldo de Gols) = 7 pontos</strong> (ex. palpite: 1x0, placar final: 2x1)</li>
+                            <li><strong>Vencedor + Saldo = 7 pontos</strong> (ex. palpite: 1x0, placar final: 2x1)</li>
+                            <li><strong>Vencedor + Gols do Vencedor = 6 pontos</strong> (ex. palpite: 2x1, placar final: 2x0)</li>
                             <li><strong>Empate Não Exato = 6 pontos</strong> (ex. palpite: 1x1, placar final: 2x2)</li>
                             <li><strong>Apenas Vencedor = 5 pontos</strong> (ex. palpite: 1x0, placar final: 2x0)</li>
                         </ul>
@@ -155,7 +156,7 @@ export const HowToPlay: React.FC = () => {
                         </div>
                         <p>
                             Na aba <strong>Regras</strong> fica o Sistema de Pontuação e os critérios de desempate:
-                            1º <strong>Maior Pontuação Total</strong>, 2º Maior número de <strong>Cravadas (Acerto Exato)</strong>, 3º Maior número de acertos em <strong>Vencedor + Saldo</strong>, 4º Maior número de acertos em <strong>Empates (Não Exatos)</strong> e 5º Maior pontuação no Mata-Mata.
+                            1º <strong>Maior Pontuação Total</strong>, 2º Maior número de <strong>Cravadas (Acerto Exato)</strong>, 3º Maior número de acertos em <strong>Vencedor + Saldo</strong>, 4º Maior número de acertos em <strong>Vencedor + Gols</strong> e 5º Maior número de acertos em <strong>Empates (Não Exatos)</strong>.
                             Outra regra importante: em caso de empate no tempo normal que leve à prorrogação, <strong>vale o placar final após 120 minutos</strong> (Tempo Normal + Prorrogação). Disputa de pênaltis não conta para o placar das ligas.
                         </p>
                         <p>
