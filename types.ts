@@ -89,6 +89,7 @@ export interface Invitation {
   leagueId: string;
   email: string;
   status: 'pending' | 'accepted' | 'rejected';
+  leagueType: 'standard' | 'brazil';
 }
 
 export interface GroupStanding {
@@ -101,6 +102,71 @@ export interface GroupStanding {
   gf: number;
   ga: number;
   gd: number;
+}
+
+// --- BRAZIL GAMES MODE ---
+export const BRAZIL_PLAYERS = [
+  'Marquinhos', 'Gabriel Magalhães', 'Wesley', 'Douglas Santos',
+  'Casemiro', 'Bruno Guimarães', 'Vinicius Júnior', 'Raphinha',
+  'Gabriel Martinelli', 'Matheus Cunha', 'Luiz Henrique'
+] as const;
+
+// Note: This is legacy for the initial 3 group matches. 
+// New logic uses dynamic detection (team name === 'Brasil').
+export const BRAZIL_MATCH_IDS = ['m-C1', 'm-C3', 'm-C5'] as const;
+
+
+export interface BrazilLeagueSettings {
+  exactScore: number;    // 10
+  winnerAndDiff: number; // 7
+  winnerAndWinnerGoals: number; // 6
+  draw: number;          // 6
+  winner: number;        // 5
+  goalscorer: number;    // 2
+  isUnlimited?: boolean;
+  plan?: LeaguePlan;
+}
+
+export const DEFAULT_BRAZIL_SETTINGS: BrazilLeagueSettings = {
+  exactScore: 10,
+  winnerAndDiff: 7,
+  winnerAndWinnerGoals: 6,
+  draw: 6,
+  winner: 5,
+  goalscorer: 2,
+  isUnlimited: false,
+  plan: 'FREE'
+};
+
+export interface BrazilLeague {
+  id: string;
+  name: string;
+  image?: string;
+  description?: string;
+  leagueCode?: string;
+  adminId: string;
+  isPrivate: boolean;
+  participants: string[];
+  pendingRequests: string[];
+  settings: BrazilLeagueSettings;
+}
+
+export interface BrazilPrediction {
+  userId: string;
+  matchId: string;
+  leagueId: string;
+  homeScore: number;
+  awayScore: number;
+  playerPick: string; // player name picked to score
+  points?: number;
+  goalscorerPoints?: number;
+}
+
+// Admin records which players scored in each Brazil match
+export interface BrazilMatchGoal {
+  matchId: string;
+  playerName: string;
+  goals: number; // number of goals scored - points multiplied by this
 }
 
 export interface AppNotification {

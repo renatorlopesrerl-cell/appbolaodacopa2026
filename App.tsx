@@ -34,6 +34,7 @@ import { SimulatePage } from './pages/SimulatePage';
 import { ProfilePage } from './pages/ProfilePage';
 import { AdminPage } from './pages/AdminPage';
 import { AdminLeaguesPage } from './pages/AdminLeaguesPage';
+import { AdminBrazilLeaguesPage } from './pages/AdminBrazilLeaguesPage';
 import { AdminMatchesPage } from './pages/AdminMatchesPage';
 import { HowToPlay } from './pages/HowToPlay';
 import { Login } from './pages/Login';
@@ -43,6 +44,8 @@ import { AccountDeletionPage } from './pages/AccountDeletionPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { ConfirmacaoCadastro } from './pages/ConfirmacaoCadastro';
 import { SEOLanding } from './pages/SEOLanding';
+import { BrazilGamesPage } from './pages/BrazilGamesPage';
+import { BrazilLeagueDetails } from './pages/BrazilLeagueDetails';
 
 
 
@@ -55,7 +58,7 @@ import { onForegroundMessage } from './services/firebaseWeb';
 import { Capacitor } from '@capacitor/core';
 
 // Types
-import { User, Match, League, Prediction, Invitation, MatchStatus } from './types';
+import { User, Match, League, Prediction, Invitation, MatchStatus, BrazilLeague, BrazilPrediction, BrazilMatchGoal } from './types';
 
 // Constantes
 import { INITIAL_MATCHES } from './services/dataService';
@@ -73,6 +76,9 @@ interface AppState {
   matches: Match[];
   leagues: League[];
   predictions: Prediction[];
+  brazilLeagues: BrazilLeague[];
+  brazilPredictions: BrazilPrediction[];
+  brazilMatchGoals: BrazilMatchGoal[];
   invitations: Invitation[];
   currentTime: Date;
   notifications: AppNotification[];
@@ -98,6 +104,7 @@ interface AppState {
   updateUserProfile: (name: string, avatar: string, whatsapp: string, notificationSettings: any, themePreference: 'light' | 'dark') => Promise<void>;
   syncInitialMatches: () => Promise<void>;
   sendLeagueInvite: (leagueId: string, email: string) => Promise<boolean>;
+  sendBrazilLeagueInvite: (leagueId: string, email: string) => Promise<boolean>;
   respondToInvite: (inviteId: string, accept: boolean) => Promise<void>;
   toggleTheme: () => void;
   connectionError: boolean;
@@ -108,6 +115,16 @@ interface AppState {
   deleteAccount: () => Promise<boolean>;
   isRecoveryMode: boolean;
   lastSyncTime: Date | null;
+  // Brazil Mode Methods
+  createBrazilLeague: (name: string, isPrivate: boolean, image: string, description: string, settings: any) => Promise<boolean>;
+  updateBrazilLeague: (id: string, updates: Partial<BrazilLeague>) => Promise<void>;
+  joinBrazilLeague: (leagueId: string) => Promise<void>;
+  deleteBrazilLeague: (leagueId: string) => Promise<boolean>;
+  approveBrazilUser: (leagueId: string, userId: string) => Promise<void>;
+  rejectBrazilUser: (leagueId: string, userId: string) => Promise<void>;
+  removeUserFromBrazilLeague: (leagueId: string, userId: string) => Promise<void>;
+  submitBrazilPredictions: (preds: { matchId: string, home: number, away: number, playerPick: string }[], leagueId: string) => Promise<boolean>;
+  addBrazilMatchGoal: (matchId: string, playerName: string, goals: number) => Promise<boolean>;
 }
 
 const AppContext = createContext<AppState | null>(null);
@@ -119,9 +136,9 @@ export const useStore = () => {
 };
 
 // Helper: League Limit
-export const getLeagueLimit = (league: League): number => {
+export const getLeagueLimit = (league: League | BrazilLeague): number => {
   if (league.settings?.isUnlimited) return Infinity;
-  const plan = league.settings?.plan || 'FREE';
+  const plan = (league.settings as any)?.plan || 'FREE';
   switch (plan) {
     case 'VIP_UNLIMITED': return Infinity;
     case 'VIP_MASTER': return 200;
@@ -228,6 +245,9 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     } catch (e) { console.warn('Failed to load predictions from cache:', e); }
     return [];
   });
+  const [brazilLeagues, setBrazilLeagues] = useState<BrazilLeague[]>([]);
+  const [brazilPredictions, setBrazilPredictions] = useState<BrazilPrediction[]>([]);
+  const [brazilMatchGoals, setBrazilMatchGoals] = useState<BrazilMatchGoal[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
@@ -652,7 +672,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       const data = await api.leagues.listInvites(normalizedEmail);
       if (data) {
         const mappedInvites: Invitation[] = data.map((i: any) => ({
-          id: i.id, leagueId: i.league_id, email: i.email, status: i.status
+          id: i.id, leagueId: i.league_id, email: i.email, status: i.status,
+          leagueType: i.league_type || 'standard'
         }));
         setInvitations(mappedInvites);
       }
@@ -672,7 +693,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     fetchingRef.current = true;
 
     try {
-      const [leaguesData, matchesData, predsData, profilesData] = await Promise.all([
+      const [leaguesData, matchesData, predsData, profilesData, brazilLeaguesData, brazilPredsData, brazilGoalsData] = await Promise.all([
         api.leagues.list().catch(e => {
           console.error("Leagues error", e);
           if (!silent) addNotification('Erro', `Falha ao carregar Ligas: ${e.message}`, 'warning');
@@ -691,6 +712,18 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         api.profiles.list().catch(e => {
           console.error("Profiles error", e);
           if (!silent) addNotification('Erro', `Falha ao carregar Perfis: ${e.message}`, 'warning');
+          return [];
+        }),
+        api.brazilLeagues.list().catch(e => {
+          console.error("Brazil Leagues error", e);
+          return [];
+        }),
+        api.brazilPredictions.list().catch(e => {
+          console.error("Brazil Preds error", e);
+          return [];
+        }),
+        api.brazilMatchGoals.list().catch(e => {
+          console.error("Brazil Goals error", e);
           return [];
         })
       ]);
@@ -738,6 +771,43 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           whatsapp: p.whatsapp || '', notificationSettings: p.notification_settings, theme: p.theme, isPro: p.is_pro
         }));
         setUsers(mappedUsers);
+      }
+
+      if (brazilLeaguesData) {
+        const mappedBrazilLeagues: BrazilLeague[] = brazilLeaguesData.map((l: any) => ({
+          id: l.id, name: l.name, image: l.image, description: l.description,
+          leagueCode: l.league_code, adminId: l.admin_id, isPrivate: l.is_private,
+          participants: l.participants || [], pendingRequests: l.pending_requests || [],
+          settings: {
+            ...l.settings,
+            exactScore: l.settings?.exactScore ?? 10,
+            winnerAndDiff: l.settings?.winnerAndDiff ?? 7,
+            draw: l.settings?.draw ?? 6,
+            winner: l.settings?.winner ?? 5,
+            goalscorer: l.settings?.goalscorer ?? 2,
+            isUnlimited: l.settings?.isUnlimited === true,
+            plan: l.settings?.plan || (l.settings?.isUnlimited ? 'VIP_UNLIMITED' : 'FREE')
+          }
+        }));
+        setBrazilLeagues(mappedBrazilLeagues);
+      }
+
+      if (brazilPredsData) {
+        const mappedBrazilPreds: BrazilPrediction[] = brazilPredsData.map((p: any) => ({
+          userId: p.user_id, matchId: p.match_id, leagueId: p.league_id,
+          homeScore: Number(p.home_score), awayScore: Number(p.away_score),
+          playerPick: p.player_pick,
+          points: p.points ? Number(p.points) : 0,
+          goalscorerPoints: p.goalscorer_points ? Number(p.goalscorer_points) : 0
+        }));
+        setBrazilPredictions(mappedBrazilPreds);
+      }
+
+      if (brazilGoalsData) {
+        const mappedBrazilGoals: BrazilMatchGoal[] = brazilGoalsData.map((g: any) => ({
+          matchId: g.match_id, playerName: g.player_name, goals: g.goals
+        }));
+        setBrazilMatchGoals(mappedBrazilGoals);
       }
 
       // NOVO: Buscar convites vinculados ao e-mail do usuário logado
@@ -1044,6 +1114,226 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     }
   }, [currentUser]);
 
+  // --- BRAZIL MODE METHODS ---
+  const createBrazilLeague = async (name: string, isPrivate: boolean, image: string, description: string, settings: any): Promise<boolean> => {
+    if (!currentUser) return false;
+    try {
+      let leagueCode = '';
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      for (let i = 0; i < 6; i++) leagueCode += chars.charAt(Math.floor(Math.random() * chars.length));
+
+      const newLeagueId = `bl-${Date.now()}`;
+      let finalImage = image || `https://api.dicebear.com/7.x/identicon/svg?seed=${newLeagueId}`;
+      if (image && !image.startsWith('http')) {
+        try {
+          finalImage = await uploadBase64Image(image, 'leagues');
+        } catch (e) {
+          console.warn("Image upload failed");
+        }
+      }
+      
+      const newLeague: BrazilLeague = {
+        id: newLeagueId, name, image: finalImage, description: description || '',
+        leagueCode, adminId: currentUser.id, isPrivate, participants: [currentUser.id],
+        pendingRequests: [], settings
+      };
+
+      await api.brazilLeagues.create({
+        id: newLeagueId, name, image: finalImage, description: description || '',
+        league_code: leagueCode, admin_id: currentUser.id, is_private: isPrivate,
+        participants: [currentUser.id], pending_requests: [], settings
+      });
+
+      setBrazilLeagues(prev => [...prev, newLeague]);
+      addNotification('Liga Criada', `A liga "${name}" foi criada!`, 'success');
+      return true;
+    } catch (e) {
+      console.error(e);
+      addNotification('Erro', 'Ocorreu um erro ao criar a liga.', 'warning');
+      return false;
+    }
+  };
+
+  const updateBrazilLeague = async (id: string, updates: Partial<BrazilLeague>) => {
+    if (!currentUser) return;
+    setBrazilLeagues(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
+    const dbUpdates: any = {};
+    if (updates.name !== undefined) dbUpdates.name = updates.name;
+    if (updates.image !== undefined) dbUpdates.image = updates.image;
+    if (updates.description !== undefined) dbUpdates.description = updates.description;
+    if (updates.settings !== undefined) dbUpdates.settings = updates.settings;
+    if (updates.participants !== undefined) dbUpdates.participants = updates.participants;
+    if (updates.pendingRequests !== undefined) dbUpdates.pending_requests = updates.pendingRequests;
+    if (updates.isPrivate !== undefined) dbUpdates.is_private = updates.isPrivate;
+
+    if (Object.keys(dbUpdates).length > 0) {
+      try {
+        await api.brazilLeagues.update(id, dbUpdates);
+      } catch (e) {
+        addNotification('Erro', 'Falha ao atualizar liga.', 'warning');
+      }
+    }
+  };
+
+  const deleteBrazilLeague = async (leagueId: string): Promise<boolean> => {
+    if (!currentUser) return false;
+    try {
+      setBrazilLeagues(prev => prev.filter(l => l.id !== leagueId));
+      await api.brazilLeagues.delete(leagueId);
+      addNotification('Liga Excluída', 'A liga foi removida.', 'success');
+      return true;
+    } catch (e) {
+      addNotification('Erro', `Falha ao excluir.`, 'warning');
+      return false;
+    }
+  };
+
+  const joinBrazilLeague = async (leagueId: string) => {
+    if (!currentUser) return;
+    const league = brazilLeagues.find(l => l.id === leagueId);
+    if (!league) return;
+    const limit = getLeagueLimit(league);
+    if (league.participants.length >= limit) { addNotification('Limite Atingido', `Limite do plano atingido.`, 'warning'); return; }
+    if (league.participants.includes(currentUser.id)) return;
+    if (league.pendingRequests.includes(currentUser.id)) return;
+
+    const updatedLeague = { ...league };
+    if (league.isPrivate) {
+      updatedLeague.pendingRequests = [...(league.pendingRequests || []), currentUser.id];
+    } else {
+      updatedLeague.participants = [...(league.participants || []), currentUser.id];
+    }
+    setBrazilLeagues(prev => prev.map(l => l.id === leagueId ? updatedLeague : l));
+    try {
+      await api.brazilLeagues.join(leagueId, currentUser.id, league.isPrivate);
+      addNotification('Sucesso', league.isPrivate ? 'Solicitação enviada.' : 'Você entrou na liga.', 'success');
+    } catch (e) {
+      addNotification('Erro', 'Falha ao entrar na liga.', 'warning');
+    }
+  };
+
+  const approveBrazilUser = async (leagueId: string, userId: string) => {
+    const league = brazilLeagues.find(l => l.id === leagueId);
+    if (!league) return;
+    const limit = getLeagueLimit(league);
+    if (league.participants.length >= limit) { addNotification('Limite Atingido', `Limite do plano atingido.`, 'warning'); return; }
+    const updatedPending = (league.pendingRequests || []).filter(id => id !== userId);
+    const updatedParticipants = Array.from(new Set([...(league.participants || []), userId]));
+    setBrazilLeagues(prev => prev.map(l => l.id === leagueId ? { ...l, participants: updatedParticipants, pendingRequests: updatedPending } : l));
+    try {
+      await api.brazilLeagues.approveUser(leagueId, userId);
+    } catch (e) {
+      addNotification('Erro', 'Falha ao aprovar usuário.', 'warning');
+    }
+  };
+
+  const rejectBrazilUser = async (leagueId: string, userId: string) => {
+    const league = brazilLeagues.find(l => l.id === leagueId);
+    if (!league) return;
+    const updatedPending = league.pendingRequests.filter(id => id !== userId);
+    setBrazilLeagues(prev => prev.map(l => l.id === leagueId ? { ...l, pendingRequests: updatedPending } : l));
+    try {
+      await api.brazilLeagues.rejectUser(leagueId, userId);
+    } catch (e) { }
+  };
+
+  const removeUserFromBrazilLeague = async (leagueId: string, userId: string) => {
+    const league = brazilLeagues.find(l => l.id === leagueId);
+    if (!league) return;
+    const updatedParticipants = league.participants.filter(id => id !== userId);
+    setBrazilLeagues(prev => prev.map(l => l.id === leagueId ? { ...l, participants: updatedParticipants } : l));
+    try {
+      await api.brazilLeagues.removeUser(leagueId, userId);
+    } catch (e) { }
+  };
+
+  const submitBrazilPredictions = async (preds: { matchId: string, home: number, away: number, playerPick: string }[], leagueId: string) => {
+    if (!currentUser) return false;
+    setBrazilPredictions(prev => {
+      let newPreds = [...prev];
+      preds.forEach(p => {
+        newPreds = newPreds.filter(existing => !(existing.matchId === p.matchId && existing.leagueId === leagueId && existing.userId === currentUser.id));
+        newPreds.push({ userId: currentUser.id, matchId: p.matchId, leagueId, homeScore: p.home, awayScore: p.away, playerPick: p.playerPick, points: 0, goalscorerPoints: 0 });
+      });
+      return newPreds;
+    });
+    try {
+      const dbPayload = preds.map(p => ({
+        user_id: currentUser.id, match_id: p.matchId, league_id: leagueId,
+        home_score: p.home, away_score: p.away, player_pick: p.playerPick || null
+      }));
+      await api.brazilPredictions.submit(dbPayload);
+      return true;
+    } catch (e) {
+      addNotification('Erro', 'Falha ao salvar palpites.', 'warning');
+      return false;
+    }
+  };
+
+  const addBrazilMatchGoal = async (matchId: string, playerName: string, goals: number) => {
+    try {
+      // 1. Save/remove the goal record in DB
+      if (goals > 0) {
+        setBrazilMatchGoals(prev => {
+          const filtered = prev.filter(g => !(g.matchId === matchId && g.playerName === playerName));
+          return [...filtered, { matchId, playerName, goals }];
+        });
+        await api.brazilMatchGoals.add(matchId, playerName, goals);
+      } else {
+        setBrazilMatchGoals(prev => prev.filter(g => !(g.matchId === matchId && g.playerName === playerName)));
+        await api.brazilMatchGoals.remove(matchId, playerName);
+      }
+
+      // 2. Get the updated full goals list for this match (including the just-changed player)
+      const allGoalsForMatch = brazilMatchGoals
+        .filter(g => g.matchId === matchId && g.playerName !== playerName);
+      if (goals > 0) allGoalsForMatch.push({ matchId, playerName, goals });
+
+      // 3. Get all predictions for this match
+      const matchPredictions = brazilPredictions.filter(p => p.matchId === matchId);
+      if (matchPredictions.length === 0) return true;
+
+      // 4. For each prediction, calculate goalscorerPoints across ALL leagues
+      //    Points = goals scored by the picked player × league.settings.goalscorer
+      const updatedDbRows: any[] = [];
+      const updatedLocalPreds: BrazilPrediction[] = [];
+
+      matchPredictions.forEach(pred => {
+        const league = brazilLeagues.find(l => l.id === pred.leagueId);
+        const pointsPerGoal = Number(league?.settings?.goalscorer ?? 2);
+        const goalRecord = allGoalsForMatch.find(g => g.playerName === pred.playerPick);
+        const goalscorerPoints = goalRecord ? (goalRecord.goals > 0 ? pointsPerGoal + (goalRecord.goals - 1) : 0) : 0;
+
+        updatedLocalPreds.push({ ...pred, goalscorerPoints });
+        updatedDbRows.push({
+          user_id: pred.userId,
+          match_id: pred.matchId,
+          league_id: pred.leagueId,
+          home_score: pred.homeScore,
+          away_score: pred.awayScore,
+          player_pick: pred.playerPick || null,
+          goalscorer_points: goalscorerPoints,
+        });
+      });
+
+      // 5. Update local state for immediate UI reactivity
+      // We don't need to call api.brazilPredictions.submit because the DB Trigger 
+      // 'on_brazil_goals_change' already handles the recalculation safely on the server.
+      setBrazilPredictions(prev => {
+        const unchanged = prev.filter(p => p.matchId !== matchId);
+        return [...unchanged, ...updatedLocalPreds];
+      });
+
+      return true;
+    } catch (e) {
+      console.error('addBrazilMatchGoal error:', e);
+      addNotification('Erro', 'Falha ao salvar gols.', 'warning');
+      return false;
+    }
+  };
+
+  // -------------------------
+
   const deleteLeague = async (leagueId: string): Promise<boolean> => {
     if (!currentUser) return false;
     const league = leagues.find(l => l.id === leagueId);
@@ -1138,21 +1428,50 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     }
   };
 
+  const sendBrazilLeagueInvite = async (leagueId: string, email: string) => {
+    const league = brazilLeagues.find(l => l.id === leagueId);
+    if (!league) return false;
+    const limit = getLeagueLimit(league);
+    if (league.participants.length >= limit) { addNotification('Limite Atingido', `Limite do plano atingido.`, 'warning'); return false; }
+    const emailNormalized = email.toLowerCase().trim();
+    try {
+      await api.brazilLeagues.invite(leagueId, emailNormalized);
+      addNotification('Sucesso', 'Convite enviado.', 'success');
+      return true;
+    } catch (e: any) {
+      addNotification('Erro', e.message || 'Falha ao enviar convite.', 'warning');
+      return false;
+    }
+  };
+
   const respondToInvite = async (inviteId: string, accept: boolean) => {
     if (!currentUser) return;
     const invite = invitations.find(i => i.id === inviteId);
     if (!invite) return;
     if (accept) {
-      const league = leagues.find(l => l.id === invite.leagueId);
-      if (league) {
-        const limit = getLeagueLimit(league);
-        if (league.participants.includes(currentUser.id)) {
-          addNotification('Aviso', 'Você já participa desta liga.', 'info');
-        } else {
-          const updatedParticipants = [...league.participants, currentUser.id];
-          const updatedPending = (league.pendingRequests || []).filter(uid => uid !== currentUser.id);
-          setLeagues(prev => prev.map(l => l.id === league.id ? { ...l, participants: updatedParticipants, pendingRequests: updatedPending } : l));
-          addNotification('Sucesso', `Bem-vindo à liga ${league.name}!`, 'success');
+      if (invite.leagueType === 'brazil') {
+        const league = brazilLeagues.find(l => l.id === invite.leagueId);
+        if (league) {
+          if (league.participants.includes(currentUser.id)) {
+            addNotification('Aviso', 'Você já participa desta liga.', 'info');
+          } else {
+            const updatedParticipants = [...league.participants, currentUser.id];
+            const updatedPending = (league.pendingRequests || []).filter(uid => uid !== currentUser.id);
+            setBrazilLeagues(prev => prev.map(l => l.id === league.id ? { ...l, participants: updatedParticipants, pendingRequests: updatedPending } : l));
+            addNotification('Sucesso', `Bem-vindo à liga ${league.name}!`, 'success');
+          }
+        }
+      } else {
+        const league = leagues.find(l => l.id === invite.leagueId);
+        if (league) {
+          if (league.participants.includes(currentUser.id)) {
+            addNotification('Aviso', 'Você já participa desta liga.', 'info');
+          } else {
+            const updatedParticipants = [...league.participants, currentUser.id];
+            const updatedPending = (league.pendingRequests || []).filter(uid => uid !== currentUser.id);
+            setLeagues(prev => prev.map(l => l.id === league.id ? { ...l, participants: updatedParticipants, pendingRequests: updatedPending } : l));
+            addNotification('Sucesso', `Bem-vindo à liga ${league.name}!`, 'success');
+          }
         }
       }
     }
@@ -1246,9 +1565,11 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     <AppContext.Provider value={{
       currentUser, users, matches, leagues, predictions, currentTime, notifications, loading, invitations,
+      brazilLeagues, brazilPredictions, brazilMatchGoals,
       setCurrentTime, loginGoogle, signInWithEmail, signUpWithEmail, logout, createLeague, updateLeague, joinLeague, deleteLeague, approveUser, rejectUser, deleteAccount,
       removeUserFromLeague, submitPrediction, submitPredictions, simulateMatchResult, updateMatch, removeNotification, updateUserProfile, syncInitialMatches,
-      sendLeagueInvite, respondToInvite, theme, toggleTheme, connectionError, retryConnection, addNotification, refreshPredictions, refreshAllData: () => fetchAllData(false), isRecoveryMode, lastSyncTime
+      sendLeagueInvite, respondToInvite, theme, toggleTheme, connectionError, retryConnection, addNotification, refreshPredictions, refreshAllData: () => fetchAllData(false), isRecoveryMode, lastSyncTime,
+      createBrazilLeague, updateBrazilLeague, joinBrazilLeague, deleteBrazilLeague, approveBrazilUser, rejectBrazilUser, removeUserFromBrazilLeague, submitBrazilPredictions, addBrazilMatchGoal, sendBrazilLeagueInvite
     }}>
       {children}
     </AppContext.Provider>
@@ -1320,6 +1641,8 @@ const AppRoutes: React.FC = () => {
           <Route path="/table" element={isRecoveryMode ? <Navigate to="/reset-password" /> : <TablePage />} />
           <Route path="/leagues" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <LeaguesPage /> : <Navigate to="/" />)} />
           <Route path="/league/:id" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <LeagueDetails /> : <Navigate to="/" />)} />
+          <Route path="/brazil-games" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <BrazilGamesPage /> : <Navigate to="/" />)} />
+          <Route path="/brazil-league/:id" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <BrazilLeagueDetails /> : <Navigate to="/" />)} />
           <Route path="/simulador" element={currentUser ? <SimulatePage /> : <Navigate to="/" />} />
           <Route path="/como-jogar" element={<HowToPlay />} />
           <Route path="/bolao-copa-2026" element={<SEOLanding variant="bolao" />} />
@@ -1333,6 +1656,7 @@ const AppRoutes: React.FC = () => {
 
           <Route path="/admin" element={isRecoveryMode ? <Navigate to="/reset-password" /> : <AdminRoute><AdminPage /></AdminRoute>} />
           <Route path="/admin/leagues" element={<AdminRoute><AdminLeaguesPage /></AdminRoute>} />
+          <Route path="/admin/brazil-leagues" element={<AdminRoute><AdminBrazilLeaguesPage /></AdminRoute>} />
           <Route path="/admin/matches" element={<AdminRoute><AdminMatchesPage /></AdminRoute>} />
 
           <Route path="/auth/callback" element={<ConfirmacaoCadastro />} />

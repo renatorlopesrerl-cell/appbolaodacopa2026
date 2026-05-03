@@ -161,6 +161,25 @@ export const HowToPlay: React.FC = () => {
                         <p>
                             A aba <strong>Admin</strong> só aparece para o administrador da liga. É nela que ele aceita/envia convites, altera imagem/descrição e muda entre Privada/Pública. Também é onde pode fazer o Upgrade do plano da liga.
                         </p>
+
+                        {/* Modo Jogos do Brasil */}
+                        <div className="bg-green-50 dark:bg-green-900/20 p-5 rounded-xl border border-green-200 dark:border-green-800 mt-8">
+                            <h4 className="text-lg font-bold text-green-800 dark:text-green-300 flex items-center gap-2 mb-3">
+                                <span className="text-2xl">🇧🇷</span> Modo Jogos do Brasil
+                            </h4>
+                            <p className="text-green-800 dark:text-green-200 mb-3">
+                                Além das ligas tradicionais, temos o modo exclusivo <strong>Jogos do Brasil</strong>. Nele, você participa de ligas focadas nos jogos da Seleção Brasileira durante todo o torneio. O grande diferencial é que, além de dar o palpite no placar, você também deve escolher <strong>qual jogador vai marcar gol</strong> na partida!
+                            </p>
+                            <p className="text-green-800 dark:text-green-200">
+                                A pontuação é totalmente configurável na criação da liga, incluindo a regra do <strong>Artilheiro</strong>: se o jogador que você escolheu marcar um gol, você ganha a pontuação definida. A partir do segundo gol desse mesmo jogador, você ganha <strong>+1 ponto extra</strong> para cada gol adicional que ele fizer na partida!
+                            </p>
+                            <p className="text-green-800 dark:text-green-200 mt-3 italic">
+                                Se você acha que o Brasil não fará gols em uma partida, a opção "Quem fará gol?" ficará como <strong>"(Nenhum)"</strong>. Caso o Brasil realmente termine o jogo sem gols (placar 0), você ganha os pontos de artilheiro da rodada!
+                            </p>
+                            <p className="text-green-800 dark:text-green-200 mt-3 font-bold">
+                                🚀 Progressão Automática: Não se preocupe com as próximas fases! Caso o Brasil avance na competição, os novos jogos da Seleção aparecerão automaticamente para palpites em todas as ligas deste modo, que só é finalizado quando o Brasil for eliminado ou chegar na fase Final.
+                            </p>
+                        </div>
                     </div>
                 </section>
 

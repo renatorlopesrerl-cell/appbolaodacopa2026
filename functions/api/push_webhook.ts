@@ -29,10 +29,27 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
 
         // 1. LEAGUE EVENTS (Custom triggers)
         if (type === 'league_invite') {
-            const { league_id, email, league_name } = record;
+            const { league_id, email, league_name, league_type = 'standard' } = record;
             const { data: profile } = await supabase.from('profiles').select('id').eq('email', email).single();
             if (profile) {
-                await sendPushNotificationToUser(env, profile.id, "Novo Convite! 🏆", `Você foi convidado para participar da liga: ${league_name}`, { url: '/' });
+                const url = league_type === 'brazil' ? `/brazil-league/${league_id}` : `/league/${league_id}`;
+                await sendPushNotificationToUser(env, profile.id, "Novo Convite! 🏆", `Você foi convidado para participar da liga: ${league_name}`, { url });
+            }
+        }
+
+        if (type === 'league_request') {
+            const { league_id, league_name, user_name, admin_id, league_type = 'standard' } = record;
+            if (admin_id) {
+                const url = league_type === 'brazil' ? `/brazil-league/${league_id}` : `/league/${league_id}`;
+                await sendPushNotificationToUser(env, admin_id, "Nova Solicitação! 📩", `${user_name} quer entrar na liga: ${league_name}`, { url });
+            }
+        }
+
+        if (type === 'league_approval') {
+            const { league_id, league_name, user_id, league_type = 'standard' } = record;
+            if (user_id) {
+                const url = league_type === 'brazil' ? `/brazil-league/${league_id}` : `/league/${league_id}`;
+                await sendPushNotificationToUser(env, user_id, "Solicitação Aprovada! ✅", `Você agora participa da liga: ${league_name}`, { url });
             }
         }
 

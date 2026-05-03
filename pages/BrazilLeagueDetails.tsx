@@ -2,27 +2,24 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate, Link, Navigate, useSearchParams } from 'react-router-dom';
 import { useStore, getLeagueLimit } from '../App';
-import { MatchStatus, Phase, Match, User, LeaguePlan } from '../types';
+import { MatchStatus, Phase, Match, User, LeaguePlan, BRAZIL_MATCH_IDS, BRAZIL_PLAYERS, BrazilLeagueSettings } from '../types';
 import { getTeamFlag, isPredictionLocked, calculatePoints, GROUPS_CONFIG, processImageForUpload } from '../services/dataService';
 import { uploadBase64Image } from '../services/storageService';
 import {
-    Trophy, Users, ArrowLeft, Search, Lock, Globe,
+    Trophy, Users, ArrowLeft, Search, Lock, Globe, Goal,
     UserPlus, LogOut, Trash2, Check, X, MousePointerClick,
     Save, Loader2, Medal, AlertCircle, Share2, Info, Filter, Plus, Clock, MapPin, CheckCircle2, Unlock, Calendar, ChevronDown, Crown, Eye,
-    Target, Mail, AlertTriangle, Camera, Upload, MessageCircle, Copy, Bell, Star, StarHalf, Infinity as InfinityIcon, Zap
+    Target, Mail, AlertTriangle, Camera, Upload, MessageCircle, Copy, Bell, Star, StarHalf, Infinity as InfinityIcon, Zap, ShieldCheck
 } from 'lucide-react';
 import { OptimizedImage } from '../components/OptimizedImage';
 
 
-export const LeagueDetails: React.FC = () => {
+export const BrazilLeagueDetails: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    const {
-        currentUser, leagues, matches, predictions, users, currentTime, invitations,
-        joinLeague, deleteLeague, approveUser, rejectUser,
-        removeUserFromLeague, submitPredictions, sendLeagueInvite, updateLeague, loading, refreshPredictions
-    } = useStore();
+    const { currentUser, brazilLeagues: leagues, matches, brazilPredictions: predictions, users, currentTime, loading, invitations, submitBrazilPredictions, updateBrazilLeague: updateLeague, deleteBrazilLeague: deleteLeague, approveBrazilUser: approveUser, rejectBrazilUser: rejectUser, removeUserFromBrazilLeague: removeUserFromLeague, brazilMatchGoals, addBrazilMatchGoal, addNotification, refreshPredictions, joinBrazilLeague: joinLeague, sendBrazilLeagueInvite: sendLeagueInvite } = useStore();
+    const submitPredictions = async (preds: any, leagueId: string) => submitBrazilPredictions(preds as any, leagueId);
 
     const [activeTab, setActiveTab] = useState<'palpites' | 'classificacao' | 'regras' | 'admin'>('palpites');
 
@@ -45,7 +42,7 @@ export const LeagueDetails: React.FC = () => {
     const [copiedCode, setCopiedCode] = useState(false);
 
     // --- PALPITES TAB STATE (HOISTED) ---
-    const [pendingEdits, setPendingEdits] = useState<Record<string, { home: string, away: string }>>({});
+    const [pendingEdits, setPendingEdits] = useState<Record<string, { home: string, away: string, playerPick?: string }>>({});
     const [selectedMatchForDetails, setSelectedMatchForDetails] = useState<string | null>(null);
     const [matchDetailsSearch, setMatchDetailsSearch] = useState('');
     const [isSavingPalpites, setIsSavingPalpites] = useState(false);
@@ -78,7 +75,32 @@ export const LeagueDetails: React.FC = () => {
     // Find League
     const league = leagues.find(l => l.id === id);
 
-    // Initialize Admin State when league loads
+    const getGoalscorerBonus = (matchId: string, playerPick: string | undefined | null) => {
+        if (!league) return 0;
+        const match = matches.find(m => m.id === matchId);
+        if (!match || match.homeScore === null || match.awayScore === null) return 0;
+
+        const basePoints = Number(league.settings?.goalscorer ?? 2);
+
+        // Determine Brazil's score in this match
+        const brazilScore = match.homeTeamId === 'Brasil' ? match.homeScore : (match.awayTeamId === 'Brasil' ? match.awayScore : 0);
+
+        // Case: User picked "None" (Nenhum)
+        if (!playerPick || playerPick === '') {
+            return brazilScore === 0 ? basePoints : 0;
+        }
+
+        // Case: User picked a specific player
+        const goalRecord = brazilMatchGoals.find(g => g.matchId === matchId && g.playerName === playerPick);
+        if (!goalRecord || goalRecord.goals <= 0) return 0;
+        return basePoints + (goalRecord.goals - 1);
+    };
+
+    const getPlayerGoalsCount = (matchId: string, playerPick: string | undefined | null) => {
+        if (!playerPick) return 0;
+        const goalRecord = brazilMatchGoals.find(g => g.matchId === matchId && g.playerName === playerPick);
+        return goalRecord ? goalRecord.goals : 0;
+    };
     useEffect(() => {
         if (league) {
             if (editImage === '') setEditImage(league.image || '');
@@ -147,13 +169,13 @@ export const LeagueDetails: React.FC = () => {
 
     if (loading) return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin text-brasil-green" size={48} /></div>;
     if (!currentUser) return <Navigate to="/" replace />;
-    if (!league) return <Navigate to="/leagues" />;
+    if (!league) return <Navigate to="/brazil-games" />;
 
     const isParticipant = league.participants.includes(currentUser.id);
     const isPending = league.pendingRequests.includes(currentUser.id);
-    const currentPlan: LeaguePlan = league.settings?.plan || (league.settings?.isUnlimited ? 'VIP_UNLIMITED' : 'FREE');
+    const currentPlan: LeaguePlan = (league.settings as any)?.plan || (league.settings?.isUnlimited ? 'VIP_UNLIMITED' : 'FREE');
     const limit = getLeagueLimit(league);
-    const isUnlimited = currentPlan === 'VIP_UNLIMITED';
+    const isUnlimited = currentPlan === 'VIP_UNLIMITED' || league.settings?.isUnlimited;
     const isMaster = currentPlan === 'VIP_MASTER';
     const isVip = currentPlan === 'VIP';
     const isBasic = currentPlan === 'VIP_BASIC';
@@ -171,13 +193,13 @@ export const LeagueDetails: React.FC = () => {
     const executeLeave = () => {
         if (league && currentUser) {
             removeUserFromLeague(league.id, currentUser.id);
-            navigate('/leagues');
+            navigate('/brazil-games');
         }
     };
     const handleDelete = async () => {
         if (league && window.confirm('Tem certeza que deseja EXCLUIR esta liga?')) {
             const success = await deleteLeague(league.id);
-            if (success) navigate('/leagues');
+            if (success) navigate('/brazil-games');
         }
     };
     const handleShareWhatsApp = () => {
@@ -207,7 +229,7 @@ export const LeagueDetails: React.FC = () => {
         setIsDeleting(true);
         const success = await deleteLeague(league.id);
         setIsDeleting(false);
-        if (success) navigate('/leagues');
+        if (success) navigate('/brazil-games');
         else setShowDeleteConfirm(false);
     };
 
@@ -227,22 +249,35 @@ export const LeagueDetails: React.FC = () => {
         setPendingEdits(prev => {
             const existing = prev[matchId] || {
                 home: currentPred?.homeScore?.toString() ?? '',
-                away: currentPred?.awayScore?.toString() ?? ''
+                away: currentPred?.awayScore?.toString() ?? '',
+                playerPick: currentPred?.playerPick || ''
             };
-            return { ...prev, [matchId]: { ...existing, [side]: value } };
+
+            const updated = { ...existing, [side]: value };
+
+            // Auto-reset playerPick if Brazil's score prediction is 0
+            const match = matches.find(m => m.id === matchId);
+            if (match) {
+                const brazilSide = match.homeTeamId === 'Brasil' ? 'home' : (match.awayTeamId === 'Brasil' ? 'away' : null);
+                if (brazilSide && (updated[brazilSide] === '0' || updated[brazilSide] === '')) {
+                    updated.playerPick = '';
+                }
+            }
+
+            return { ...prev, [matchId]: updated };
         });
     };
 
     const handleSaveAll = async () => {
-        const predsToSave: { matchId: string, home: number, away: number }[] = [];
+        const predsToSave: { matchId: string, home: number, away: number, playerPick?: string }[] = [];
         let hasError = false;
         Object.entries(pendingEdits).forEach(([matchId, val]) => {
-            const scores = val as { home: string, away: string };
+            const scores = val as { home: string, away: string, playerPick?: string };
             if (scores.home !== '' && scores.away !== '') {
                 const home = parseInt(scores.home);
                 const away = parseInt(scores.away);
                 if (home < 0 || away < 0) hasError = true;
-                if (!isNaN(home) && !isNaN(away)) predsToSave.push({ matchId, home, away });
+                if (!isNaN(home) && !isNaN(away)) predsToSave.push({ matchId, home, away, playerPick: scores.playerPick });
             }
         });
 
@@ -270,7 +305,7 @@ export const LeagueDetails: React.FC = () => {
             const pred = predictions.find(p => p.matchId === match.id && p.userId === userId && p.leagueId === league.id);
             let points = 0;
             if (match.homeScore !== null && match.awayScore !== null && pred) {
-                points = calculatePoints(Number(pred.homeScore), Number(pred.awayScore), Number(match.homeScore), Number(match.awayScore), league.settings);
+                points = calculatePoints(Number(pred.homeScore), Number(pred.awayScore), Number(match.homeScore), Number(match.awayScore), league.settings) + getGoalscorerBonus(match.id, pred.playerPick);
             }
             return { user, pred, points };
         });
@@ -366,7 +401,7 @@ export const LeagueDetails: React.FC = () => {
     // ================= RENDERERS (FORMER COMPONENTS) =================
 
     const renderPalpitesTab = () => {
-        const sortedMatches = [...matches].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        const sortedMatches = [...matches].filter(m => m.homeTeamId === 'Brasil' || m.awayTeamId === 'Brasil').sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
         const filteredMatches = sortedMatches.filter(m => {
             if (filterPhase !== 'all' && m.phase !== filterPhase) return false;
@@ -435,35 +470,7 @@ export const LeagueDetails: React.FC = () => {
                             <button onClick={() => setFilterStatus('live')} className={`px-1.5 md:px-4 py-2 rounded-full text-[9px] md:text-xs font-bold transition-all border whitespace-nowrap flex items-center gap-1 ${filterStatus === 'live' ? 'bg-yellow-400 text-yellow-950 border-yellow-400 shadow-md animate-pulse' : 'bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'}`}><Zap size={12} fill="currentColor" /> Ao Vivo</button>
                             <button onClick={() => setFilterStatus('finished')} className={`px-1.5 md:px-4 py-2 rounded-full text-[9px] md:text-xs font-bold transition-all border whitespace-nowrap flex items-center gap-1 ${filterStatus === 'finished' ? 'bg-green-600 text-white border-green-600 shadow-md' : 'bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'}`}><CheckCircle2 size={12} /> Finalizados</button>
                         </div>
-                        <div className="flex flex-wrap gap-3 items-center">
-                            <div className="relative w-full md:w-auto min-w-[140px]">
-                                <select value={filterPhase} onChange={(e) => { setFilterPhase(e.target.value); if (e.target.value !== Phase.GROUP) { setFilterGroup('all'); setFilterRound('all'); } }} className="w-full appearance-none bg-gray-700 text-white border border-gray-600 text-xs font-bold rounded-lg focus:ring-brasil-blue focus:border-brasil-blue block p-2.5 pr-8">
-                                    <option value="all">Todas as Fases</option>
-                                    {Object.values(Phase).map(p => (<option key={p} value={p}>{p}</option>))}
-                                </select>
-                                <ChevronDown size={14} className="absolute right-3 top-3 text-gray-300 pointer-events-none" />
-                            </div>
-                            {(filterPhase === 'all' || filterPhase === Phase.GROUP) && (
-                                <>
-                                    <div className="relative w-1/2 md:w-auto min-w-[100px] flex-1 md:flex-none">
-                                        <select value={filterGroup} onChange={(e) => setFilterGroup(e.target.value)} className="w-full appearance-none bg-gray-700 text-white border border-gray-600 text-xs font-bold rounded-lg focus:ring-brasil-blue focus:border-brasil-blue block p-2.5 pr-8">
-                                            <option value="all">Todos Grupos</option>
-                                            {groupsList.map(g => <option key={g} value={g}>Grupo {g}</option>)}
-                                        </select>
-                                        <ChevronDown size={14} className="absolute right-3 top-3 text-gray-300 pointer-events-none" />
-                                    </div>
-                                    <div className="relative w-1/2 md:w-auto min-w-[100px] flex-1 md:flex-none">
-                                        <select value={filterRound} onChange={(e) => setFilterRound(e.target.value)} className="w-full appearance-none bg-gray-700 text-white border border-gray-600 text-xs font-bold rounded-lg focus:ring-brasil-blue focus:border-brasil-blue block p-2.5 pr-8">
-                                            <option value="all">Todas Rodadas</option>
-                                            <option value="1">1ª Rodada</option>
-                                            <option value="2">2ª Rodada</option>
-                                            <option value="3">3ª Rodada</option>
-                                        </select>
-                                        <ChevronDown size={14} className="absolute right-3 top-3 text-gray-300 pointer-events-none" />
-                                    </div>
-                                </>
-                            )}
-                        </div>
+
                     </div>
                 </div>
 
@@ -485,7 +492,7 @@ export const LeagueDetails: React.FC = () => {
                             const isEdited = !!pendingEdits[match.id];
                             let displayPoints = userPred?.points || 0;
                             if ((match.status === MatchStatus.FINISHED || match.status === MatchStatus.IN_PROGRESS) && match.homeScore !== null && match.awayScore !== null && userPred) {
-                                displayPoints = calculatePoints(Number(userPred.homeScore), Number(userPred.awayScore), Number(match.homeScore), Number(match.awayScore), league.settings);
+                                displayPoints = calculatePoints(Number(userPred.homeScore), Number(userPred.awayScore), Number(match.homeScore), Number(match.awayScore), league.settings) + getGoalscorerBonus(match.id, userPred.playerPick);
                             }
 
                             const stats = currentUser?.isPro ? getMatchStats(match.id) : null;
@@ -521,6 +528,50 @@ export const LeagueDetails: React.FC = () => {
                                             <span className="text-center font-black text-sm md:text-base text-gray-900 dark:text-gray-100 leading-tight">{match.awayTeamId}</span>
                                             {stats && <span className="text-[10px] font-bold text-gray-500 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{stats.away}%</span>}
                                         </div>
+                                    </div>
+                                    {/* Player Pick Section */}
+                                    <div className="mt-4 border-t border-gray-100 dark:border-gray-700 pt-4">
+                                        <div className="flex flex-col md:flex-row items-center justify-center gap-x-6 gap-y-3">
+                                            <span className="text-sm font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                                                <Goal size={16} className="text-brasil-yellow" />
+                                                Quem fará gol?
+                                            </span>
+                                            <select
+                                                disabled={locked || (match.homeTeamId === 'Brasil' ? (homeValue === '0' || homeValue === '') : (awayValue === '0' || awayValue === ''))}
+                                                value={pendingEdits[match.id]?.playerPick ?? (userPred?.playerPick || '')}
+                                                onChange={(e) => {
+                                                    setPendingEdits(prev => ({
+                                                        ...prev,
+                                                        [match.id]: {
+                                                            ...(prev[match.id] || {}),
+                                                            home: prev[match.id]?.home ?? (userPred?.homeScore?.toString() ?? ''),
+                                                            away: prev[match.id]?.away ?? (userPred?.awayScore?.toString() ?? ''),
+                                                            playerPick: e.target.value
+                                                        }
+                                                    }));
+                                                }}
+                                                className={`w-full md:w-64 p-3 rounded-xl border outline-none focus:ring-2 focus:ring-brasil-green transition-all text-center font-bold text-sm ${(locked || (match.homeTeamId === 'Brasil' ? (homeValue === '0' || homeValue === '') : (awayValue === '0' || awayValue === ''))) ? 'bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-400 cursor-not-allowed' : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-brasil-green dark:text-green-400 shadow-sm'}`}
+                                            >
+                                                <option value="">(Nenhum)</option>
+                                                {BRAZIL_PLAYERS.map(player => (
+                                                    <option key={player} value={player}>{player}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        {(match.status === MatchStatus.FINISHED || match.status === MatchStatus.IN_PROGRESS) && userPred?.playerPick && (
+                                            <div className="mt-3 flex justify-center">
+                                                {getGoalscorerBonus(match.id, userPred.playerPick) > 0 ? (
+                                                    <span className="inline-flex items-center gap-1 text-xs font-bold bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full">
+                                                        <Check size={12} /> {userPred.playerPick} marcou {getPlayerGoalsCount(match.id, userPred.playerPick)} gol(s)! (+{getGoalscorerBonus(match.id, userPred.playerPick)} pts)
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 text-xs font-bold bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-3 py-1 rounded-full">
+                                                        <X size={12} /> {userPred.playerPick} não marcou.
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                     {
                                         (match.status === MatchStatus.FINISHED || match.status === MatchStatus.IN_PROGRESS) && match.homeScore !== null && match.awayScore !== null && (
@@ -563,18 +614,71 @@ export const LeagueDetails: React.FC = () => {
                                             </div>
                                         )
                                     }
+
+                                    {/* Gols do Brasil */}
+                                    {(match.status === MatchStatus.FINISHED || match.status === MatchStatus.IN_PROGRESS) && brazilMatchGoals.some(g => g.matchId === match.id) && (
+                                        <div className="mt-2 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-100 dark:border-gray-600 flex flex-col items-center">
+                                            <div className="text-[9px] font-black uppercase text-gray-400 dark:text-gray-500 mb-1 flex items-center justify-center gap-1 w-full">
+                                                <Goal size={10} className="text-brasil-yellow" /> Gols do Brasil
+                                            </div>
+                                            <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 w-full">
+                                                {brazilMatchGoals
+                                                    .filter(g => g.matchId === match.id)
+                                                    .map(g => (
+                                                        <span key={g.playerName} className="text-[11px] font-bold text-gray-700 dark:text-gray-300">
+                                                            {g.playerName} {g.goals > 1 && <span className="text-brasil-blue dark:text-blue-400 text-[10px]">({g.goals})</span>}
+                                                        </span>
+                                                    ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })}
+
+                        <div className="bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200 p-6 rounded-2xl border-2 border-dashed border-green-200 dark:border-green-800 flex flex-col items-center text-center gap-3 mt-8 shadow-sm">
+                            <div className="bg-brasil-green p-3 rounded-full text-white shadow-lg shadow-green-900/20">
+                                <Zap size={24} fill="currentColor" />
+                            </div>
+                            <div>
+                                <p className="text-sm font-black uppercase tracking-wider mb-1">Próximas Fases</p>
+                                <p className="text-sm font-medium leading-relaxed">
+                                    Progressão Automática: Caso o Brasil passe de fase, os novos jogos da Seleção aparecerão automaticamente para palpites nesta liga!
+                                    <div>Essa competição só é finalizada quando o Brasil for eliminado ou chegar na fase Final.</div>
+                                </p>
+                            </div>
+                        </div>
+
                         {selectedMatchForDetails && detailsData && createPortal(
                             <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setSelectedMatchForDetails(null)}>
                                 <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-300" onClick={(e) => e.stopPropagation()}>
                                     <div className="bg-brasil-blue dark:bg-blue-900 text-white p-4 shrink-0">
                                         <div className="flex justify-between items-start mb-2"><h3 className="font-bold text-sm uppercase tracking-wide opacity-80">Palpites da Liga</h3><button onClick={() => setSelectedMatchForDetails(null)} className="p-1 hover:bg-white/20 rounded-full transition-colors"><X size={20} /></button></div>
                                         <div className="flex items-center justify-between gap-4"><div className="flex flex-col items-center w-1/3"><img src={getTeamFlag(detailsData.match.homeTeamId)} className="w-10 h-7 object-cover rounded shadow-sm mb-1" /><span className="text-xs font-bold text-center leading-tight">{detailsData.match.homeTeamId}</span></div><div className="flex flex-col items-center"><div className="text-2xl font-black bg-white/10 px-3 py-1 rounded-lg backdrop-blur-sm border border-white/20 whitespace-nowrap">{detailsData.match.homeScore ?? '-'} <span className="text-sm mx-1">x</span> {detailsData.match.awayScore ?? '-'}</div><span className={`text-[10px] mt-1 font-bold px-2 py-0.5 rounded-full ${detailsData.match.status === MatchStatus.IN_PROGRESS ? 'bg-red-500 text-white animate-pulse' : detailsData.match.status === MatchStatus.FINISHED ? 'bg-black/30 text-white' : 'bg-blue-800 text-blue-200'}`}>{detailsData.match.status === MatchStatus.IN_PROGRESS ? 'AO VIVO' : detailsData.match.status === MatchStatus.FINISHED ? 'ENCERRADO' : 'AGUARDANDO'}</span></div><div className="flex flex-col items-center w-1/3"><img src={getTeamFlag(detailsData.match.awayTeamId)} className="w-10 h-7 object-cover rounded shadow-sm mb-1" /><span className="text-xs font-bold text-center leading-tight">{detailsData.match.awayTeamId}</span></div></div>
+
+                                        {/* Modal Gols do Brasil */}
+                                        {brazilMatchGoals.some(g => g.matchId === detailsData.match.id) && (
+                                            <div className="mt-3 flex flex-wrap justify-center gap-x-3 gap-y-1 bg-white/10 py-1.5 px-3 rounded-lg border border-white/5 mx-auto">
+                                                {brazilMatchGoals
+                                                    .filter(g => g.matchId === detailsData.match.id)
+                                                    .map(g => (
+                                                        <span key={g.playerName} className="text-[10px] font-black uppercase flex items-center gap-1">
+                                                            <Goal size={10} className="text-brasil-yellow" />
+                                                            {g.playerName} {g.goals > 1 && <span className="text-brasil-yellow">({g.goals})</span>}
+                                                        </span>
+                                                    ))}
+                                            </div>
+                                        )}
                                     </div>
                                     <div className="px-4 py-2 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600"><div className="relative"><Search className="absolute left-3 top-2.5 text-gray-400" size={16} /><input type="text" placeholder="Buscar participante..." value={matchDetailsSearch} onChange={(e) => setMatchDetailsSearch(e.target.value)} className="w-full bg-gray-700 border border-gray-600 text-white placeholder-gray-400 rounded-lg pl-9 pr-8 py-2 text-sm focus:ring-1 focus:ring-brasil-blue focus:border-brasil-blue outline-none" />{matchDetailsSearch && (<button onClick={() => setMatchDetailsSearch('')} className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white cursor-pointer"><X size={14} /></button>)}</div></div>
-                                    <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-800 p-0"><div className="divide-y divide-gray-100 dark:divide-gray-700">{filteredDetailsParticipants.length === 0 ? (<div className="text-center py-8 text-gray-400 text-sm">Nenhum participante encontrado.</div>) : (filteredDetailsParticipants.map(({ user, pred, points }, idx) => (<div key={user.id} className={`p-3 flex items-center justify-between ${user.id === currentUser.id ? 'bg-yellow-50 dark:bg-yellow-900/20' : 'bg-white dark:bg-gray-800'}`}><div className="flex items-center gap-3"><div className="relative"><OptimizedImage src={user.avatar} containerClassName="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-600" className="w-full h-full object-cover" alt="" /><div className="absolute -top-1 -left-1 w-5 h-5 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center text-[10px] font-bold text-gray-600 dark:text-gray-300 border border-white dark:border-gray-700 shadow-sm">{idx + 1}</div></div><div><div className="font-bold text-sm text-gray-800 dark:text-gray-200 flex items-center gap-1">{user.name} {user.id === currentUser.id && <span className="text-[10px] font-normal text-gray-500 dark:text-gray-400">(Você)</span>}</div><div className="text-xs text-gray-500 dark:text-gray-400">{pred ? 'Palpite enviado' : 'Não palpitou'}</div></div></div><div className="flex items-center gap-3"><div className="text-lg font-black text-gray-700 dark:text-gray-300 tracking-wider">{pred ? <>{pred.homeScore} <span className="text-gray-300 dark:text-gray-600 text-sm">x</span> {pred.awayScore}</> : <span className="text-gray-300 dark:text-gray-600 text-sm">-</span>}</div><div className={`w-12 text-center rounded py-1 text-xs font-bold ${points > 0 ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300' : points === 0 && pred ? 'bg-red-50 dark:bg-red-900/30 text-red-400 dark:text-red-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'}`}>{points > 0 ? `+${points}` : '0'} pts</div></div></div>)))}</div></div>
+                                    <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-800 p-0"><div className="divide-y divide-gray-100 dark:divide-gray-700">{filteredDetailsParticipants.length === 0 ? (<div className="text-center py-8 text-gray-400 text-sm">Nenhum participante encontrado.</div>) : (filteredDetailsParticipants.map(({ user, pred, points }, idx) => (<div key={user.id} className={`p-3 flex items-center justify-between ${user.id === currentUser.id ? 'bg-yellow-50 dark:bg-yellow-900/20' : 'bg-white dark:bg-gray-800'}`}><div className="flex items-center gap-3"><div className="relative"><OptimizedImage src={user.avatar} containerClassName="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-600" className="w-full h-full object-cover" alt="" /><div className="absolute -top-1 -left-1 w-5 h-5 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center text-[10px] font-bold text-gray-600 dark:text-gray-300 border border-white dark:border-gray-700 shadow-sm">{idx + 1}</div></div><div><div className="font-bold text-sm text-gray-800 dark:text-gray-200 flex items-center gap-1">{user.name} {user.id === currentUser.id && <span className="text-[10px] font-normal text-gray-500 dark:text-gray-400">(Você)</span>}</div><div className="text-xs text-gray-500 dark:text-gray-400">
+                                        {pred ? (
+                                            <div className="flex flex-col">
+                                                <span>Palpite enviado</span>
+                                                {pred.playerPick && <span className="text-yellow-800 dark:text-yellow-500 font-bold flex items-center gap-1 mt-0.5"><Goal size={10} /> {pred.playerPick}</span>}
+                                            </div>
+                                        ) : 'Não palpitou'}
+                                    </div></div></div><div className="flex items-center gap-3"><div className="text-lg font-black text-gray-700 dark:text-gray-300 tracking-wider">{pred ? <>{pred.homeScore} <span className="text-gray-300 dark:text-gray-600 text-sm">x</span> {pred.awayScore}</> : <span className="text-gray-300 dark:text-gray-600 text-sm">-</span>}</div><div className={`w-12 text-center rounded py-1 text-xs font-bold ${points > 0 ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300' : points === 0 && pred ? 'bg-red-50 dark:bg-red-900/30 text-red-400 dark:text-red-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'}`}>{points > 0 ? `+${points}` : '0'} pts</div></div></div>)))}</div></div>
                                 </div>
                             </div>, document.body
                         )}
@@ -589,10 +693,13 @@ export const LeagueDetails: React.FC = () => {
         const hasHistoryFilters = histPhase !== 'all' || histGroup !== 'all' || histRound !== 'all';
         const clearHistoryFilters = () => { setHistPhase('all'); setHistGroup('all'); setHistRound('all'); };
 
-        const leaderboard = league.participants.map(userId => {
-            const user = users.find(u => u.id === userId) || { name: 'Unknown', id: userId, email: '', avatar: '' } as User;
-            const userPreds = predictions.filter(p => p.userId === userId && p.leagueId === league.id);
-            let totalPoints = 0, exactScores = 0, winnerAndDiffCount = 0, drawCount = 0, knockoutPoints = 0;
+        const leaderboard = league.participants
+            .filter(userId => users.some(u => u.id === userId)) // Filtra usuários excluídos
+            .map(userId => {
+                const user = users.find(u => u.id === userId)!;
+                const userPreds = predictions.filter(p => p.userId === userId && p.leagueId === league.id);
+            let totalPoints = 0, exactScores = 0, winnerAndDiffCount = 0, winnerAndWinnerGoalsCount = 0, drawCount = 0, onlyWinnerCount = 0, knockoutPoints = 0;
+
             userPreds.forEach(p => {
                 const match = matches.find(m => m.id === p.matchId);
                 let includeInSum = false;
@@ -609,28 +716,34 @@ export const LeagueDetails: React.FC = () => {
                 }
                 if (match && (match.status === MatchStatus.FINISHED || match.status === MatchStatus.IN_PROGRESS) && match.homeScore !== null && match.awayScore !== null) {
                     const points = calculatePoints(Number(p.homeScore), Number(p.awayScore), Number(match.homeScore), Number(match.awayScore), league.settings);
+                    const goalscorerBonus = getGoalscorerBonus(match.id, p.playerPick);
 
                     // Stats for tie-breaking (Always calculate regardless of view filter)
                     if (match.phase !== Phase.GROUP) knockoutPoints += points;
                     if (points === league.settings.exactScore) exactScores++;
                     else if (points === league.settings.winnerAndDiff) winnerAndDiffCount++;
+                    else if (points === (league.settings as any).winnerAndWinnerGoals) winnerAndWinnerGoalsCount++;
                     else if (points === league.settings.draw) drawCount++;
+                    else if (points === league.settings.winner) onlyWinnerCount++;
 
                     if (includeInSum) {
-                        totalPoints += points;
+                        totalPoints += points + goalscorerBonus;
                     }
                 }
             });
-            return { user, totalPoints, exactScores, winnerAndDiffCount, drawCount, knockoutPoints };
+            return { user, totalPoints, exactScores, winnerAndDiffCount, winnerAndWinnerGoalsCount, drawCount, onlyWinnerCount, knockoutPoints };
         }).sort((a, b) => {
             if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
             if (b.exactScores !== a.exactScores) return b.exactScores - a.exactScores;
             if (b.winnerAndDiffCount !== a.winnerAndDiffCount) return b.winnerAndDiffCount - a.winnerAndDiffCount;
+            if (b.winnerAndWinnerGoalsCount !== a.winnerAndWinnerGoalsCount) return b.winnerAndWinnerGoalsCount - a.winnerAndWinnerGoalsCount;
             if (b.drawCount !== a.drawCount) return b.drawCount - a.drawCount;
+            if (b.onlyWinnerCount !== a.onlyWinnerCount) return b.onlyWinnerCount - a.onlyWinnerCount;
             return b.knockoutPoints - a.knockoutPoints;
         });
 
         const filteredLeaderboard = leaderboard.filter(entry => entry.user.name.toLowerCase().includes(leaderboardSearch.toLowerCase()));
+
         const getHistory = (userId: string) => {
             const lockedMatches = matches.filter(m => isPredictionLocked(m.date, currentTime)).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
             return lockedMatches.map(m => {
@@ -638,6 +751,7 @@ export const LeagueDetails: React.FC = () => {
                 return { match: m, pred };
             });
         };
+
         const selectedUser = selectedUserId ? users.find(u => u.id === selectedUserId) : null;
         const fullHistory = selectedUserId ? getHistory(selectedUserId) : [];
         const filteredHistory = fullHistory.filter(item => {
@@ -652,12 +766,27 @@ export const LeagueDetails: React.FC = () => {
                 <div className="bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 px-4 py-3 text-xs md:text-sm font-medium border-b border-blue-100 dark:border-blue-800 flex items-center justify-center gap-2 text-center">
                     <MousePointerClick size={16} /><span>Clique no participante para ver o histórico detalhado.</span>
                 </div>
-                <div className="p-4 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 space-y-3">
-                    <div className="flex items-center gap-2"><span className="text-sm font-bold text-brasil-blue dark:text-blue-400 whitespace-nowrap">Visualizar Pontos:</span><div className="relative w-full md:w-auto flex-1"><select value={leaderboardView} onChange={(e) => setLeaderboardView(e.target.value)} className="w-full appearance-none bg-brasil-blue dark:bg-blue-900 text-white border border-blue-900 dark:border-blue-800 text-sm font-bold rounded-lg focus:ring-2 focus:ring-brasil-yellow focus:border-brasil-yellow block p-2.5 pr-8 shadow-md transition-colors hover:bg-blue-900 cursor-pointer"><option value="total" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Pontuação Total</option><option value="1" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">1ª Rodada (Grupos)</option><option value="2" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">2ª Rodada (Grupos)</option><option value="3" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">3ª Rodada (Grupos)</option><option value="group_phase" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Fase de Grupos (Completa)</option><option value="16_avos" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Fase 16-avos</option><option value="final_phase" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Fase Final (Oitavas, Quartas, Semi e Final)</option><option value="knockout" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Mata-Mata (Completo)</option></select><ChevronDown size={14} className="absolute right-3 top-3.5 text-blue-200 pointer-events-none" /></div></div>
-                    <div className="relative"><Search className="absolute left-3 top-2.5 text-gray-400" size={18} /><input type="text" placeholder="Buscar participante..." value={leaderboardSearch} onChange={(e) => setLeaderboardSearch(e.target.value)} className="w-full pl-10 pr-8 py-2 border border-gray-600 bg-gray-700 text-white placeholder-gray-400 rounded-lg text-sm focus:ring-1 focus:ring-brasil-blue focus:border-brasil-blue outline-none" />{leaderboardSearch && (<button onClick={() => setLeaderboardSearch('')} className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white cursor-pointer"><X size={14} /></button>)}</div>
+                <div className="p-4 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 flex flex-col gap-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                        <label className="text-sm font-bold text-brasil-blue dark:text-blue-400 whitespace-nowrap">Visualizar Pontos:</label>
+                        <select
+                            value={leaderboardView}
+                            onChange={(e) => setLeaderboardView(e.target.value)}
+                            className="bg-[#1a237e] dark:bg-blue-900 text-white text-sm font-bold px-4 py-3 rounded-lg border border-blue-800 focus:ring-1 focus:ring-blue-400 outline-none cursor-pointer w-full"
+                        >
+                            <option value="total" className="bg-white text-black">Pontuação Total</option>
+                            <option value="group_phase" className="bg-white text-black">Fase de Grupos</option>
+                            <option value="knockout" className="bg-white text-black">Mata-Mata (Completo)</option>
+                        </select>
+                    </div>
+                    <div className="relative w-full">
+                        <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
+                        <input type="text" placeholder="Buscar participante..." value={leaderboardSearch} onChange={(e) => setLeaderboardSearch(e.target.value)} className="w-full pl-10 pr-8 py-2 border border-gray-600 bg-gray-700 text-white placeholder-gray-400 rounded-lg text-sm focus:ring-1 focus:ring-brasil-blue focus:border-brasil-blue outline-none" />
+                        {leaderboardSearch && (<button onClick={() => setLeaderboardSearch('')} className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white cursor-pointer"><X size={14} /></button>)}
+                    </div>
                 </div>
                 <table className="w-full text-sm md:text-base">
-                    <thead className="bg-brasil-blue dark:bg-blue-900 text-white"><tr><th className="px-2 py-3 text-center w-12 md:w-16 text-xs md:text-sm">Pos.</th><th className="px-2 py-3 text-left">Participantes</th><th className="hidden md:table-cell px-2 py-3 text-center w-20"><span className="flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-2 py-1 rounded font-bold">Pontos</span></th><th className="hidden md:table-cell px-2 py-3 text-center w-20"><span className="flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-2 py-1 rounded"><Target size={14} /> Cravadas</span></th><th className="hidden md:table-cell px-2 py-3 text-center w-16"><span className="flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-1.5 py-1 rounded">V+S</span></th><th className="hidden md:table-cell px-2 py-3 text-center w-16"><span className="flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-1.5 py-1 rounded">Emp</span></th><th className="md:hidden px-2 py-3 text-center w-14">Pontos</th>{isAdmin ? <th className="px-2 py-3 w-8 md:w-10"></th> : <th className=""></th>}</tr></thead>
+                    <thead className="bg-brasil-blue dark:bg-blue-900 text-white"><tr><th className="px-2 py-3 text-center w-12 md:w-16 text-xs md:text-sm">Pos.</th><th className="px-2 py-3 text-left">Participantes</th><th className="hidden md:table-cell px-2 py-3 text-center w-20"><span className="flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-2 py-1 rounded font-bold">Pontos</span></th><th className="hidden md:table-cell px-2 py-3 text-center w-20"><span className="flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-2 py-1 rounded"><Target size={14} /> Cravadas</span></th><th className="hidden md:table-cell px-2 py-3 text-center w-16"><span className="flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-1.5 py-1 rounded">V+S</span></th><th className="hidden md:table-cell px-2 py-3 text-center w-16"><span className="flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-1.5 py-1 rounded">V+G</span></th><th className="hidden md:table-cell px-2 py-3 text-center w-16"><span className="flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-1.5 py-1 rounded">Emp</span></th><th className="md:hidden px-2 py-3 text-center w-14">Pontos</th>{isAdmin ? <th className="px-2 py-3 w-8 md:w-10"></th> : <th className=""></th>}</tr></thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                         {filteredLeaderboard.length === 0 ? <tr><td colSpan={7} className="text-center py-8 text-gray-400 italic">Nenhum participante encontrado.</td></tr> : filteredLeaderboard.map((entry, idx) => {
                             const rank = idx + 1; return (<tr key={entry.user.id} className={entry.user.id === currentUser.id ? 'bg-yellow-50 dark:bg-yellow-900/20' : ''}><td className="px-2 py-3 font-bold text-center text-sm align-middle">{rank === 1 ? <div className="w-6 h-6 mx-auto bg-yellow-400 text-yellow-900 rounded-full flex items-center justify-center shadow-sm font-black text-xs">1</div> : rank === 2 ? <div className="w-6 h-6 mx-auto bg-gray-300 text-gray-800 rounded-full flex items-center justify-center shadow-sm font-black text-xs">2</div> : rank === 3 ? <div className="w-6 h-6 mx-auto bg-orange-400 text-orange-900 rounded-full flex items-center justify-center shadow-sm font-black text-xs">3</div> : <span className="text-gray-500 dark:text-gray-400">{rank}</span>}</td><td className="px-2 py-3 relative"><div className="flex items-center gap-2 md:gap-3 cursor-pointer group" onClick={() => setSelectedUserId(entry.user.id)}>
@@ -667,7 +796,28 @@ export const LeagueDetails: React.FC = () => {
                                     className="w-full h-full object-cover"
                                     alt=""
                                 />
-                                <div className="flex flex-col"><span className="font-medium decoration-dotted decoration-gray-400 dark:decoration-gray-500 underline-offset-4 group-hover:text-brasil-blue dark:group-hover:text-blue-400 group-hover:underline text-sm md:text-base line-clamp-1 text-gray-900 dark:text-white flex items-center gap-1">{entry.user.name} {entry.user.id === currentUser.id && <span className="text-[10px] font-normal text-gray-500 dark:text-gray-400">(Você)</span>}</span><span className="md:hidden text-[10px] text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-0.5"><Target size={10} className="text-brasil-blue dark:text-blue-400" />{entry.exactScores} cravadas <span className="text-gray-300 dark:text-gray-600 mx-0.5">|</span> {entry.winnerAndDiffCount} V+S <span className="text-gray-300 dark:text-gray-600 mx-0.5">|</span> {entry.drawCount} Emp</span></div><Eye size={16} className="text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity ml-auto hidden md:block" /></div></td><td className="hidden md:table-cell px-2 py-3 text-center font-black text-gray-800 dark:text-gray-200 text-base">{entry.totalPoints}</td><td className="hidden md:table-cell px-2 py-3 text-center"><span className="bg-blue-50 dark:bg-blue-900/30 text-brasil-blue dark:text-blue-300 font-bold px-2 py-1 rounded text-sm">{entry.exactScores}</span></td><td className="hidden md:table-cell px-2 py-3 text-center"><span className="bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-bold px-2 py-1 rounded text-sm">{entry.winnerAndDiffCount}</span></td><td className="hidden md:table-cell px-2 py-3 text-center"><span className="bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 font-bold px-2 py-1 rounded text-sm">{entry.drawCount}</span></td><td className="md:hidden px-2 py-3 text-center font-bold text-brasil-green dark:text-green-400 text-base">{entry.totalPoints}</td>{isAdmin && <td className="px-2 py-3 text-center">{entry.user.id !== currentUser.id && (<button type="button" onClick={(e) => initiateRemoveUser(e, entry.user.id, entry.user.name)} className="text-red-300 hover:text-red-500 dark:hover:text-red-400 p-2 rounded transition-colors z-10 relative"><Trash2 size={18} /></button>)}</td>}</tr>);
+                                <div className="flex flex-col">
+                                    <span className="font-medium decoration-dotted decoration-gray-400 dark:decoration-gray-500 underline-offset-4 group-hover:text-brasil-blue dark:group-hover:text-blue-400 group-hover:underline text-sm md:text-base line-clamp-1 text-gray-900 dark:text-white flex items-center gap-1">
+                                        {entry.user.name} {entry.user.id === currentUser.id && <span className="text-[10px] font-normal text-gray-500 dark:text-gray-400">(Você)</span>}
+                                    </span>
+                                    <span className="md:hidden text-[10px] text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-0.5">
+                                        <Target size={10} className="text-brasil-blue dark:text-blue-400" />{entry.exactScores} cravadas
+                                        <span className="text-gray-300 dark:text-gray-600 mx-0.5">|</span> {entry.winnerAndDiffCount} V+S
+                                        <span className="text-gray-300 dark:text-gray-600 mx-0.5">|</span> {entry.winnerAndWinnerGoalsCount} V+G
+                                        <span className="text-gray-300 dark:text-gray-600 mx-0.5">|</span> {entry.drawCount} Emp
+                                    </span>
+                                </div>
+                                <Eye size={16} className="text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity ml-auto hidden md:block" />
+                            </div>
+                            </td>
+                                <td className="hidden md:table-cell px-2 py-3 text-center font-black text-gray-800 dark:text-gray-200 text-base">{entry.totalPoints}</td>
+                                <td className="hidden md:table-cell px-2 py-3 text-center"><span className="bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-bold px-2 py-1 rounded text-sm">{entry.exactScores}</span></td>
+                                <td className="hidden md:table-cell px-2 py-3 text-center"><span className="bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-bold px-2 py-1 rounded text-sm">{entry.winnerAndDiffCount}</span></td>
+                                <td className="hidden md:table-cell px-2 py-3 text-center"><span className="bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 font-bold px-2 py-1 rounded text-sm">{entry.winnerAndWinnerGoalsCount}</span></td>
+                                <td className="hidden md:table-cell px-2 py-3 text-center"><span className="bg-gray-50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 font-bold px-2 py-1 rounded text-sm">{entry.drawCount}</span></td>
+                                <td className="md:hidden px-2 py-3 text-center font-bold text-brasil-green dark:text-green-400 text-base">{entry.totalPoints}</td>
+                                {isAdmin && <td className="px-2 py-3 text-center">{entry.user.id !== currentUser.id && (<button type="button" onClick={(e) => initiateRemoveUser(e, entry.user.id, entry.user.name)} className="text-red-300 hover:text-red-500 dark:hover:text-red-400 p-2 rounded transition-colors z-10 relative"><Trash2 size={18} /></button>)}</td>}
+                            </tr>);
                         })}
                     </tbody>
                 </table>
@@ -675,11 +825,23 @@ export const LeagueDetails: React.FC = () => {
                     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setSelectedUserId(null)}>
                         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-300" onClick={(e) => e.stopPropagation()}>
                             <div className="bg-brasil-blue dark:bg-blue-900 text-white p-4 flex justify-between items-center shrink-0"><div className="flex items-center gap-3"><OptimizedImage src={selectedUser.avatar} containerClassName="w-10 h-10 rounded-full border-2 border-white/30" className="w-full h-full object-cover" alt="" /><div><h3 className="font-bold text-lg leading-tight">{selectedUser.name}</h3><p className="text-xs text-blue-200">Histórico de Palpites</p></div></div><button onClick={() => setSelectedUserId(null)} className="p-2 hover:bg-white/20 rounded-full transition-colors"><X size={20} /></button></div>
-                            <div className="bg-gray-50 dark:bg-gray-700 p-3 border-b border-gray-200 dark:border-gray-600 flex flex-col gap-2 shrink-0">
-                                <div className="flex justify-between items-center px-1"><div className="flex items-center gap-2"><span className="text-xs font-bold text-gray-500 dark:text-gray-300 uppercase flex items-center gap-1"><Filter size={12} /> Filtrar Jogos</span>{hasHistoryFilters && (<button onClick={clearHistoryFilters} className="text-[10px] font-bold text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors flex items-center gap-1 bg-white dark:bg-gray-600 border border-red-200 dark:border-red-800 px-2 py-0.5 rounded shadow-sm"><X size={10} /> Limpar</button>)}</div><span className="text-[10px] bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded font-bold">{filteredHistory.length} resultados</span></div>
-                                <div className="flex flex-wrap gap-2 pb-1"><select value={histPhase} onChange={(e) => { setHistPhase(e.target.value); if (e.target.value !== Phase.GROUP) { setHistGroup('all'); setHistRound('all'); } }} className="w-full sm:w-auto flex-1 min-w-[120px] text-xs border border-gray-600 bg-gray-700 text-white rounded-lg p-2 outline-none focus:border-brasil-blue focus:ring-1 focus:ring-brasil-blue"><option value="all">Todas as Fases</option>{Object.values(Phase).map(p => <option key={p} value={p}>{p}</option>)}</select>{(histPhase === 'all' || histPhase === Phase.GROUP) && (<><select value={histGroup} onChange={(e) => setHistGroup(e.target.value)} className="flex-1 min-w-[45%] text-xs border border-gray-600 bg-gray-700 text-white rounded-lg p-2 outline-none focus:border-brasil-blue focus:ring-1 focus:ring-brasil-blue"><option value="all">Todos Grupos</option>{groupsList.map(g => <option key={g} value={g}>Grupo {g}</option>)}</select><select value={histRound} onChange={(e) => setHistRound(e.target.value)} className="flex-1 min-w-[45%] text-xs border border-gray-600 bg-gray-700 text-white rounded-lg p-2 outline-none focus:border-brasil-blue focus:ring-1 focus:ring-brasil-blue"><option value="all">Todas Rodadas</option><option value="1">1ª Rodada</option><option value="2">2ª Rodada</option><option value="3">3ª Rodada</option></select></>)}</div>
+                            <div className="bg-gray-50 dark:bg-gray-700 p-3 border-b border-gray-200 dark:border-gray-600 flex justify-end shrink-0">
+                                <span className="text-[10px] bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded font-bold">{filteredHistory.length} resultados</span>
                             </div>
-                            <div className="flex-1 overflow-y-auto p-0 bg-gray-50/50 dark:bg-gray-800/50">{filteredHistory.length === 0 ? <div className="flex flex-col items-center justify-center h-48 text-gray-400 dark:text-gray-500 gap-2"><Search size={32} className="opacity-20" /><p className="text-sm italic">Nenhum palpite encontrado.</p></div> : <div className="divide-y divide-gray-100 dark:divide-gray-700">{filteredHistory.map(({ match, pred }) => { const isLive = match.status === MatchStatus.IN_PROGRESS; const isFinished = match.status === MatchStatus.FINISHED; const mRound = getMatchRound(match); const matchDate = new Date(match.date); const isDateValid = !isNaN(matchDate.getTime()); let histPoints = 0; if ((isLive || isFinished) && match.homeScore !== null && match.awayScore !== null && pred) { histPoints = calculatePoints(Number(pred.homeScore), Number(pred.awayScore), Number(match.homeScore), Number(match.awayScore), league.settings); } return (<div key={match.id} className="p-4 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"><div className="flex justify-between items-center mb-3"><div className="flex items-center gap-2 text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500"><Calendar size={12} /><span>{isDateValid ? matchDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : 'Data Inválida'}</span><span>•</span><span>{match.phase}</span>{mRound && <span>• {mRound}ª R</span>}</div>{isLive && <span className="bg-red-500 text-white px-2 py-0.5 rounded text-[10px] font-bold animate-pulse">AO VIVO</span>}</div><div className="flex flex-col items-center mb-4"><div className="flex items-center gap-6 mb-2"><img src={getTeamFlag(match.homeTeamId)} className="w-10 h-7 object-cover rounded shadow-sm" alt={match.homeTeamId} /><span className="text-gray-300 dark:text-gray-600 text-xs font-bold">X</span><img src={getTeamFlag(match.awayTeamId)} className="w-10 h-7 object-cover rounded shadow-sm" alt={match.awayTeamId} /></div><div className="text-sm font-black text-gray-900 dark:text-white text-center uppercase tracking-tight">{match.homeTeamId} <span className="text-gray-400 dark:text-gray-500 font-normal mx-1">x</span> {match.awayTeamId}</div></div><div className="flex items-stretch rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden"><div className="flex-1 bg-gray-50 dark:bg-gray-700 p-2 flex flex-col items-center justify-center border-r border-gray-200 dark:border-gray-600"><span className="text-[9px] uppercase font-bold text-gray-400 dark:text-gray-500 mb-1">Placar Oficial</span><div className={`text-xl font-black ${isLive ? 'text-green-600 dark:text-green-400 animate-pulse' : 'text-gray-800 dark:text-white'}`}>{match.homeScore ?? '-'} <span className="text-gray-300 dark:text-gray-600 text-sm">x</span> {match.awayScore ?? '-'}</div></div><div className="flex-1 bg-white dark:bg-gray-800 p-2 flex flex-col items-center justify-center relative"><span className="text-[9px] uppercase font-bold text-brasil-blue dark:text-blue-400 mb-1">Palpite</span><div className="text-xl font-black text-gray-800 dark:text-white">{pred ? <>{pred.homeScore} <span className="text-gray-300 dark:text-gray-600 text-sm">x</span> {pred.awayScore}</> : <span className="text-gray-300 dark:text-gray-600">-</span>}</div>{(isFinished || isLive) && pred && (<div className={`absolute top-1 right-1 text-[9px] font-bold px-1.5 py-0.5 rounded ${histPoints > 0 ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'}`}>{histPoints > 0 ? `+${histPoints}` : '0'} pts</div>)}</div></div></div>); })}</div>}</div>
+                            <div className="flex-1 overflow-y-auto p-0 bg-gray-50/50 dark:bg-gray-800/50">{filteredHistory.length === 0 ? <div className="flex flex-col items-center justify-center h-48 text-gray-400 dark:text-gray-500 gap-2"><Search size={32} className="opacity-20" /><p className="text-sm italic">Nenhum palpite encontrado.</p></div> : <div className="divide-y divide-gray-100 dark:divide-gray-700">{filteredHistory.map(({ match, pred }) => {
+                                const isLive = match.status === MatchStatus.IN_PROGRESS; const isFinished = match.status === MatchStatus.FINISHED; const mRound = getMatchRound(match); const matchDate = new Date(match.date); const isDateValid = !isNaN(matchDate.getTime()); let histPoints = 0; if ((isLive || isFinished) && match.homeScore !== null && match.awayScore !== null && pred) { histPoints = calculatePoints(Number(pred.homeScore), Number(pred.awayScore), Number(match.homeScore), Number(match.awayScore), league.settings) + getGoalscorerBonus(match.id, pred.playerPick); } return (<div key={match.id} className="p-4 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"><div className="flex justify-between items-center mb-3"><div className="flex items-center gap-2 text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500"><Calendar size={12} /><span>{isDateValid ? matchDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : 'Data Inválida'}</span><span>•</span><span>{match.phase}</span>{mRound && <span>• {mRound}ª R</span>}</div>{isLive && <span className="bg-red-500 text-white px-2 py-0.5 rounded text-[10px] font-bold animate-pulse">AO VIVO</span>}</div><div className="flex flex-col items-center mb-4"><div className="flex items-center gap-6 mb-2"><img src={getTeamFlag(match.homeTeamId)} className="w-10 h-7 object-cover rounded shadow-sm" alt={match.homeTeamId} /><span className="text-gray-300 dark:text-gray-600 text-xs font-bold">X</span><img src={getTeamFlag(match.awayTeamId)} className="w-10 h-7 object-cover rounded shadow-sm" alt={match.awayTeamId} /></div><div className="text-sm font-black text-gray-900 dark:text-white text-center uppercase tracking-tight">{match.homeTeamId} <span className="text-gray-400 dark:text-gray-500 font-normal mx-1">x</span> {match.awayTeamId}</div></div><div className="flex items-stretch rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden"><div className="flex-1 bg-gray-50 dark:bg-gray-700 p-2 flex flex-col items-center justify-center border-r border-gray-200 dark:border-gray-600"><span className="text-[9px] uppercase font-bold text-gray-400 dark:text-gray-500 mb-1">Placar Oficial</span><div className={`text-xl font-black ${isLive ? 'text-green-600 dark:text-green-400 animate-pulse' : 'text-gray-800 dark:text-white'}`}>{match.homeScore ?? '-'} <span className="text-gray-300 dark:text-gray-600 text-sm">x</span> {match.awayScore ?? '-'}</div>
+                                    {/* Goleadores no Histórico */}
+                                    {brazilMatchGoals.some(g => g.matchId === match.id) && (
+                                        <div className="mt-1 flex flex-wrap justify-center gap-1">
+                                            {brazilMatchGoals.filter(g => g.matchId === match.id).map(g => (
+                                                <span key={g.playerName} className="text-[8px] font-bold text-gray-500 dark:text-gray-400 bg-white/50 dark:bg-black/20 px-1 rounded flex items-center gap-0.5">
+                                                    <Goal size={8} /> {g.playerName} {g.goals > 1 && `(${g.goals})`}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div><div className="flex-1 bg-white dark:bg-gray-800 p-2 flex flex-col items-center justify-center relative"><span className="text-[9px] uppercase font-bold text-brasil-blue dark:text-blue-400 mb-1">Palpite</span><div className="text-xl font-black text-gray-800 dark:text-white">{pred ? <>{pred.homeScore} <span className="text-gray-300 dark:text-gray-600 text-sm">x</span> {pred.awayScore}</> : <span className="text-gray-300 dark:text-gray-600">-</span>}</div>{pred?.playerPick && (<div className="text-[10px] font-bold text-yellow-800 dark:text-yellow-500 flex items-center gap-1 mt-1"><Goal size={10} /> {pred.playerPick}</div>)}{(isFinished || isLive) && pred && (<div className={`absolute top-1 right-1 text-[9px] font-bold px-1.5 py-0.5 rounded ${histPoints > 0 ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'}`}>{histPoints > 0 ? `+${histPoints}` : '0'} pts</div>)}</div></div></div>);
+                            })}</div>}</div>
                         </div>
                     </div>, document.body
                 )}
@@ -692,22 +854,56 @@ export const LeagueDetails: React.FC = () => {
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                     <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2"><Target size={24} className="text-brasil-blue dark:text-blue-400" /> Sistema de Pontuação</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+                        {/* Cravada - Azul */}
                         <div className="bg-blue-50 dark:bg-blue-900/20 p-5 rounded-xl border border-blue-100 dark:border-blue-800 flex flex-col items-center text-center hover:shadow-md transition-all"><div className="text-3xl font-black text-brasil-blue dark:text-blue-400 mb-2">{league.settings?.exactScore ?? 10}</div><div className="font-bold text-gray-800 dark:text-gray-200 text-sm uppercase tracking-wide mb-2">Cravada</div><p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">Acertou o placar exato do jogo.<br /><span className="text-blue-600 dark:text-blue-300 font-medium">Ex: Palpitou 2x1 e foi 2x1.</span></p></div>
+
+                        {/* Vencedor + Saldo - Verde */}
                         <div className="bg-green-50 dark:bg-green-900/20 p-5 rounded-xl border border-green-100 dark:border-green-800 flex flex-col items-center text-center hover:shadow-md transition-all"><div className="text-3xl font-black text-green-700 dark:text-green-400 mb-2">{league.settings?.winnerAndDiff ?? 7}</div><div className="font-bold text-gray-800 dark:text-gray-200 text-sm uppercase tracking-wide mb-2">Vencedor + Saldo</div><p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">Acertou o vencedor e a diferença de gols.<br /><span className="text-green-700 dark:text-green-300 font-medium">Ex: Palpitou 3x1 e foi 2x0.</span></p></div>
-                        <div className="bg-yellow-50 dark:bg-yellow-900/20 p-5 rounded-xl border border-yellow-100 dark:border-yellow-800 flex flex-col items-center text-center hover:shadow-md transition-all"><div className="text-3xl font-black text-yellow-700 dark:text-yellow-400 mb-2">{league.settings?.draw ?? 7}</div><div className="font-bold text-gray-800 dark:text-gray-200 text-sm uppercase tracking-wide mb-2">Empate (Não Exato)</div><p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">Acertou o empate, mas placar diferente.<br /><span className="text-yellow-800 dark:text-yellow-300 font-medium">Ex: Palpitou 1x1 e foi 2x2.</span></p></div>
-                        <div className="bg-gray-50 dark:bg-gray-700/50 p-5 rounded-xl border border-gray-200 dark:border-gray-600 flex flex-col items-center text-center hover:shadow-md transition-all"><div className="text-3xl font-black text-gray-600 dark:text-gray-400 mb-2">{league.settings?.winner ?? 5}</div><div className="font-bold text-gray-800 dark:text-gray-200 text-sm uppercase tracking-wide mb-2">Apenas Vencedor</div><p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">Acertou quem ganhou, mas errou o saldo.<br /><span className="text-gray-500 dark:text-gray-300 font-medium">Ex: Palpitou 2x1 e foi 4x0.</span></p></div>
+
+                        {/* Vencedor + Gols - Amarelo */}
+                        <div className="bg-yellow-50 dark:bg-yellow-900/20 p-5 rounded-xl border border-yellow-100 dark:border-yellow-800 flex flex-col items-center text-center hover:shadow-md transition-all"><div className="text-3xl font-black text-yellow-700 dark:text-yellow-400 mb-2">{league.settings?.winnerAndWinnerGoals ?? 6}</div><div className="font-bold text-gray-800 dark:text-gray-200 text-sm uppercase tracking-wide mb-2">Vencedor + Gols</div><p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">Acertou o vencedor e os gols que ele fez.<br /><span className="text-yellow-700 dark:text-yellow-300 font-medium">Ex: Palpitou 2x1 e foi 2x0.</span></p></div>
+
+                        {/* Empate - Cinza */}
+                        <div className="bg-gray-50 dark:bg-gray-700/50 p-5 rounded-xl border border-gray-200 dark:border-gray-600 flex flex-col items-center text-center hover:shadow-md transition-all"><div className="text-3xl font-black text-gray-600 dark:text-gray-400 mb-2">{league.settings?.draw ?? 6}</div><div className="font-bold text-gray-800 dark:text-gray-200 text-sm uppercase tracking-wide mb-2">Empate (Não Exato)</div><p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">Acertou o empate, mas placar diferente.<br /><span className="text-gray-500 dark:text-gray-300 font-medium">Ex: Palpitou 1x1 e foi 2x2.</span></p></div>
+
+                        {/* Apenas Vencedor - Marrom */}
+                        <div className="bg-amber-900/10 dark:bg-amber-900/20 p-5 rounded-xl border border-amber-900/20 dark:border-amber-800/30 flex flex-col items-center text-center hover:shadow-md transition-all"><div className="text-3xl font-black text-amber-800 dark:text-amber-500 mb-2">{league.settings?.winner ?? 5}</div><div className="font-bold text-gray-800 dark:text-gray-200 text-sm uppercase tracking-wide mb-2">Apenas Vencedor</div><p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">Acertou quem ganhou, mas errou o saldo e a quantidade de gols.<br /><span className="text-amber-700 dark:text-amber-400 font-medium">Ex: Palpitou 2x1 e foi 4x0.</span></p></div>
+
+                        {/* Artilheiro - Roxo */}
+                        <div className="bg-purple-50 dark:bg-purple-900/20 p-5 rounded-xl border border-purple-100 dark:border-purple-800 flex flex-col items-center text-center hover:shadow-md transition-all"><div className="text-3xl font-black text-purple-700 dark:text-purple-400 mb-2">{league.settings?.goalscorer ?? 2}</div><div className="font-bold text-gray-800 dark:text-gray-200 text-sm uppercase tracking-wide mb-2">Artilheiro</div><p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">Acertou o artilheiro ganha os pontos, a partir do 2º gol soma +1 pt por gol extra.<br /><span className="text-purple-700 dark:text-purple-300 font-medium italic mt-1 block">Escolheu "(Nenhum)" e o Brasil não fez gols? Você ganha os pontos!</span></p></div>
                     </div>
                 </div>
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                     <h4 className="font-bold text-gray-800 dark:text-gray-100 mb-3 flex items-center gap-2"><Crown size={20} className="text-yellow-600 dark:text-yellow-400" /> Critérios de Desempate</h4>
-                    <ul className="space-y-3 text-sm text-gray-600 dark:text-gray-300"><li className="flex items-start gap-3 bg-gray-50 dark:bg-gray-700 p-3 rounded-lg border border-gray-100 dark:border-gray-600"><span className="bg-brasil-blue dark:bg-blue-600 text-white w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold shrink-0">1º</span><span>Maior <strong>Pontuação Total</strong> acumulada.</span></li><li className="flex items-start gap-3 bg-gray-50 dark:bg-gray-700 p-3 rounded-lg border border-gray-100 dark:border-gray-600"><span className="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold shrink-0">2º</span><span>Maior número de <strong>Cravadas</strong> (Acerto exato do placar).</span></li><li className="flex items-start gap-3 bg-gray-50 dark:bg-gray-700 p-3 rounded-lg border border-gray-100 dark:border-gray-600"><span className="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold shrink-0">3º</span><span>Maior número de acertos em <strong>Vencedor + Saldo</strong>.</span></li><li className="flex items-start gap-3 bg-gray-50 dark:bg-gray-700 p-3 rounded-lg border border-gray-100 dark:border-gray-600"><span className="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold shrink-0">4º</span><span>Maior número de acertos em <strong>Empates (Não Exatos)</strong>.</span></li><li className="flex items-start gap-3 bg-gray-50 dark:bg-gray-700 p-3 rounded-lg border border-gray-100 dark:border-gray-600"><span className="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold shrink-0">5º</span><span>Maior pontuação obtida na <strong>Fase de Mata-Mata</strong>.</span></li></ul>
+                    <ul className="space-y-3 text-sm text-gray-600 dark:text-gray-300">
+                        <li className="flex items-start gap-3 bg-gray-50 dark:bg-gray-700 p-3 rounded-lg border border-gray-100 dark:border-gray-600"><span className="bg-brasil-blue dark:bg-blue-600 text-white w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold shrink-0">1º</span><span>Maior <strong>Pontuação Total</strong> acumulada.</span></li>
+                        <li className="flex items-start gap-3 bg-gray-50 dark:bg-gray-700 p-3 rounded-lg border border-gray-100 dark:border-gray-600"><span className="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold shrink-0">2º</span><span>Maior número de <strong>Cravadas</strong> (Acerto exato do placar).</span></li>
+                        <li className="flex items-start gap-3 bg-gray-50 dark:bg-gray-700 p-3 rounded-lg border border-gray-100 dark:border-gray-600"><span className="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold shrink-0">3º</span><span>Maior número de acertos em <strong>Vencedor + Saldo</strong>.</span></li>
+                        <li className="flex items-start gap-3 bg-gray-50 dark:bg-gray-700 p-3 rounded-lg border border-gray-100 dark:border-gray-600"><span className="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold shrink-0">4º</span><span>Maior número de acertos em <strong>Vencedor + Gols</strong>.</span></li>
+                        <li className="flex items-start gap-3 bg-gray-50 dark:bg-gray-700 p-3 rounded-lg border border-gray-100 dark:border-gray-600"><span className="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold shrink-0">5º</span><span>Maior número de acertos em <strong>Empates (Não Exatos)</strong>.</span></li>
+                        <li className="flex items-start gap-3 bg-gray-50 dark:bg-gray-700 p-3 rounded-lg border border-gray-100 dark:border-gray-600"><span className="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold shrink-0">6º</span><span>Maior número de acertos em <strong>Apenas Vencedor</strong>.</span></li>
+                    </ul>
                 </div>
-                <div className="bg-orange-50 dark:bg-orange-900/20 border-l-4 border-orange-400 p-4 rounded-r-xl flex gap-3 text-sm text-orange-900 dark:text-orange-200 items-start shadow-sm"><AlertCircle className="shrink-0 mt-0.5 text-orange-600 dark:text-orange-400" size={20} /><div><span className="font-bold block mb-1 text-orange-800 dark:text-orange-300 text-base">Atenção aos Jogos de Mata-Mata</span><p className="leading-relaxed">Em caso de empate no tempo normal que leve à prorrogação, <strong>o placar final considerado será o resultado após os 120 minutos (Tempo Normal + Prorrogação)</strong>.<br /><span className="font-semibold text-red-600 dark:text-red-400">A disputa de pênaltis NÃO conta para o placar da liga.</span></p></div></div>
+                <div className="bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-200 p-4 rounded-xl border border-green-100 dark:border-green-800 flex items-center gap-3 shadow-sm">
+                    <Zap className="text-brasil-green shrink-0" size={24} />
+                    <p className="text-sm font-medium">
+                        <strong>Progressão Automática:</strong> Caso o Brasil passe de fase, os novos jogos da Seleção aparecerão automaticamente para palpites nesta liga! Essa competição só é finalizada quando o Brasil for eliminado ou chegar na fase Final.
+                    </p>
+                </div>
+                <div className="bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200 p-4 rounded-xl border border-red-100 dark:border-red-800 flex flex-col gap-2 shadow-sm">
+                    <div className="flex items-center gap-3">
+                        <ShieldCheck className="text-red-600 shrink-0" size={24} />
+                        <p className="text-sm font-bold">Atenção aos Jogos de Mata-Mata</p>
+                    </div>
+                    <p className="text-xs leading-relaxed opacity-90">
+                        Em caso de empate no tempo normal que leve à prorrogação, o placar final considerado será o resultado após os 120 minutos (Tempo Normal + Prorrogação).<br />
+                        <strong>A disputa de pênaltis NÃO conta para o placar da liga e nem para o artilheiro.</strong>
+                    </p>
+                </div>
             </div>
         );
     };
-
     const renderAdminTab = () => {
         if (!isAdmin) return null;
         const pendingUsers = league.pendingRequests.map(uid => users.find(u => u.id === uid)).filter(Boolean) as User[];
@@ -762,7 +958,7 @@ export const LeagueDetails: React.FC = () => {
                             <div className="p-6 space-y-6">
                                 <div className="text-center space-y-2">
                                     <p className="text-gray-600 dark:text-gray-300">Para aumentar o limite da sua liga, realize o upgrade:</p>
-                                    <p className="text-3xl font-bold text-brasil-green">R$ 25,00</p>
+                                    <p className="text-3xl font-bold text-brasil-green">R$ 10,00</p>
                                 </div>
                                 <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-xl border border-gray-200 dark:border-gray-600 text-sm text-gray-600 dark:text-gray-300 leading-relaxed text-center">Favor entrar em contato via WhatsApp para enviar o comprovante. O desbloqueio é imediato.</div>
                                 <a href={whatsAppLink} target="_blank" rel="noopener noreferrer" className="block w-full bg-[#25D366] hover:bg-[#128C7E] text-white font-bold py-4 px-6 rounded-xl text-center transition-all shadow-lg hover:shadow-xl active:scale-95 flex items-center justify-center gap-3">
@@ -815,7 +1011,7 @@ export const LeagueDetails: React.FC = () => {
 
             <div className="mb-6 space-y-4">
                 <div className="flex items-center justify-between mb-4">
-                    <button onClick={() => navigate('/leagues')} className="flex items-center gap-2 text-sm font-bold text-brasil-blue hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors group"><div className="bg-blue-50 dark:bg-gray-800 p-1.5 rounded-full group-hover:bg-blue-100 dark:group-hover:bg-gray-700"><ArrowLeft size={18} /></div> Voltar para Ligas</button>
+                    <button onClick={() => navigate('/brazil-games')} className="flex items-center gap-2 text-sm font-bold text-brasil-blue hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors group"><div className="bg-blue-50 dark:bg-gray-800 p-1.5 rounded-full group-hover:bg-blue-100 dark:group-hover:bg-gray-700"><ArrowLeft size={18} /></div> Voltar</button>
                     {isAdmin && validPendingRequestsCount > 0 && (<button onClick={() => setActiveTab('admin')} className="flex items-center gap-1.5 bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-full font-bold text-xs shadow-md transition-all animate-pulse hover:animate-none"><Bell size={14} fill="currentColor" /> {validPendingRequestsCount} pendentes</button>)}
                 </div>
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -854,7 +1050,9 @@ export const LeagueDetails: React.FC = () => {
                                 <span className="text-[10px] text-blue-600 font-bold mt-1">Aceite no sininho de notificações</span>
                             </div>
                         ) : (
-                            <button onClick={handleJoin} className="w-full md:w-auto bg-brasil-green text-white px-6 py-2 rounded-lg font-bold text-sm hover:bg-green-700 transition-colors flex items-center justify-center gap-2"><UserPlus size={16} /> Participar da Liga</button>
+                            <button onClick={handleJoin} className="w-full md:w-auto bg-brasil-green text-white px-6 py-2 rounded-lg font-bold text-sm hover:bg-green-700 transition-colors flex items-center justify-center gap-2">
+                                <UserPlus size={16} /> Participar da Liga
+                            </button>
                         )}
                     </div>
                 </div>

@@ -2,14 +2,15 @@ import React, { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useStore } from '../App';
-import { Match, MatchStatus, Phase } from '../types';
+import { Match, MatchStatus, Phase, BRAZIL_MATCH_IDS, BRAZIL_PLAYERS } from '../types';
 import { GROUPS_CONFIG, getMatchRound } from '../services/dataService';
-import { Edit2, Save, X, Check, Filter, ChevronDown, ArrowLeft, Database, Trophy, Calendar, Clock, Loader2 } from 'lucide-react';
+import { Edit2, Save, X, Filter, ChevronDown, ArrowLeft, Database, Trophy, Calendar, Clock, Loader2, Goal } from 'lucide-react';
 
 export const AdminMatchesPage: React.FC = () => {
   const navigate = useNavigate();
-  const { currentUser, matches, updateMatch, addNotification } = useStore();
+  const { currentUser, matches, updateMatch, addNotification, brazilMatchGoals, addBrazilMatchGoal } = useStore();
   const [editingMatch, setEditingMatch] = useState<Match | null>(null);
+  const [showGoals, setShowGoals] = useState(false);
   const [filterPhase, setFilterPhase] = useState<string>('all');
   const [filterGroup, setFilterGroup] = useState<string>('all');
   const [filterRound, setFilterRound] = useState<string>('all');
@@ -43,6 +44,7 @@ export const AdminMatchesPage: React.FC = () => {
 
   const handleEditClick = (match: Match) => {
     setEditingMatch({ ...match });
+    setShowGoals(false);
   };
 
   const handleSave = async () => {
@@ -435,6 +437,52 @@ export const AdminMatchesPage: React.FC = () => {
                   />
                 </div>
               </div>
+
+              {/* Brazil Goals Section - collapsible, only for Brazil matches */}
+              {(editingMatch.homeTeamId === 'Brasil' || editingMatch.awayTeamId === 'Brasil') && (
+                <div className="pt-2 border-t border-gray-100 dark:border-gray-700">
+                  <button
+                    type="button"
+                    onClick={() => setShowGoals(v => !v)}
+                    className="w-full flex items-center justify-between gap-2 px-4 py-3 bg-brasil-yellow/10 dark:bg-yellow-900/20 border border-brasil-yellow/30 dark:border-yellow-700/30 rounded-xl hover:bg-brasil-yellow/20 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="bg-brasil-yellow p-1.5 rounded-lg text-gray-900">
+                        <Goal size={16} />
+                      </div>
+                      <div className="text-left">
+                        <span className="text-sm font-black text-gray-800 dark:text-white uppercase tracking-wide">Artilheiros do Brasil</span>
+                        <p className="text-[10px] text-gray-500 dark:text-gray-400">Registre os gols para bônus de pontuação</p>
+                      </div>
+                    </div>
+                    <ChevronDown size={18} className={`text-gray-500 transition-transform duration-200 ${showGoals ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {showGoals && (
+                    <div className="mt-3 space-y-2">
+                      <p className="text-[10px] text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 p-2 rounded-lg">
+                        Se o jogador marcado pelo usuário fizer gols, ele ganha pontos bônus configurados na liga.
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {BRAZIL_PLAYERS.map(player => {
+                          const matchGoal = brazilMatchGoals.find(bg => bg.matchId === editingMatch.id && bg.playerName === player);
+                          const goals = matchGoal?.goals || 0;
+                          return (
+                            <div key={player} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-100 dark:border-gray-600 hover:border-brasil-green transition-all">
+                              <span className="text-xs font-bold text-gray-700 dark:text-gray-200 truncate pr-2">{player}</span>
+                              <div className="flex items-center bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden shadow-sm">
+                                <button onClick={() => addBrazilMatchGoal(editingMatch.id, player, Math.max(0, goals - 1))} className="px-2.5 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-red-500 font-bold transition-colors">-</button>
+                                <span className="px-3 py-1.5 text-xs font-black min-w-[32px] text-center border-x border-gray-100 dark:border-gray-700 text-brasil-green dark:text-green-400">{goals}</span>
+                                <button onClick={() => addBrazilMatchGoal(editingMatch.id, player, goals + 1)} className="px-2.5 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-brasil-green font-bold transition-colors">+</button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="p-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 flex gap-3 shrink-0 pb-8 md:pb-4">

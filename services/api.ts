@@ -86,7 +86,7 @@ export const api = {
         removeUser: (leagueId: string, userId: string) => apiFetch('/leagues/members', { method: 'POST', body: JSON.stringify({ leagueId, userId, action: 'remove' }) }),
 
         // Invites
-        invite: (leagueId: string, email: string) => apiFetch('/leagues/invites', { method: 'POST', body: JSON.stringify({ leagueId, email, action: 'invite' }) }),
+        invite: (leagueId: string, email: string, leagueType: 'standard' | 'brazil' = 'standard') => apiFetch('/leagues/invites', { method: 'POST', body: JSON.stringify({ leagueId, email, action: 'invite', leagueType }) }),
         respondInvite: (inviteId: string, accept: boolean) => apiFetch('/leagues/invites', { method: 'POST', body: JSON.stringify({ inviteId, accept, action: 'respond' }) }),
         listInvites: (email: string) => apiFetch<any[]>(`/leagues/invites?email=${encodeURIComponent(email)}`)
     },
@@ -168,5 +168,133 @@ export const api = {
             if (error) throw error;
         },
         testPush: () => apiFetch<any>('/admin/test-push')
+    },
+    // --- BRAZIL GAMES MODE ---
+    brazilLeagues: {
+        list: () => apiFetch<any[]>('/brazil-leagues'),
+        create: async (leagueData: any) => {
+            const { error } = await supabase.from('brazil_leagues').insert(leagueData);
+            if (error) throw error;
+            return { error: null };
+        },
+        update: async (id: string, updates: any) => {
+            const { error } = await supabase.from('brazil_leagues').update(updates).eq('id', id);
+            if (error) throw error;
+            return { error: null };
+        },
+        delete: async (id: string) => {
+            return apiFetch(`/brazil-leagues?id=${id}`, { method: 'DELETE' });
+        },
+        join: async (leagueId: string, userId: string, isPrivate: boolean) => {
+            const { data: league, error: fetchError } = await supabase
+                .from('brazil_leagues')
+                .select('participants, pending_requests')
+                .eq('id', leagueId)
+                .single();
+            if (fetchError) throw fetchError;
+            if (!league) throw new Error('Liga não encontrada');
+
+            if (isPrivate) {
+                const pendingRequests = league.pending_requests || [];
+                if (pendingRequests.includes(userId)) return;
+                const { error } = await supabase
+                    .from('brazil_leagues')
+                    .update({ pending_requests: [...pendingRequests, userId] })
+                    .eq('id', leagueId);
+                if (error) throw error;
+            } else {
+                const participants = league.participants || [];
+                if (participants.includes(userId)) return;
+                const { error } = await supabase
+                    .from('brazil_leagues')
+                    .update({ participants: [...participants, userId] })
+                    .eq('id', leagueId);
+                if (error) throw error;
+            }
+        },
+        approveUser: async (leagueId: string, userId: string) => {
+            const { data: league, error: fetchError } = await supabase
+                .from('brazil_leagues')
+                .select('participants, pending_requests')
+                .eq('id', leagueId)
+                .single();
+            if (fetchError) throw fetchError;
+            const { error } = await supabase
+                .from('brazil_leagues')
+                .update({
+                    participants: [...(league.participants || []), userId],
+                    pending_requests: (league.pending_requests || []).filter((id: string) => id !== userId)
+                })
+                .eq('id', leagueId);
+            if (error) throw error;
+        },
+        rejectUser: async (leagueId: string, userId: string) => {
+            const { data: league, error: fetchError } = await supabase
+                .from('brazil_leagues')
+                .select('pending_requests')
+                .eq('id', leagueId)
+                .single();
+            if (fetchError) throw fetchError;
+            const { error } = await supabase
+                .from('brazil_leagues')
+                .update({
+                    pending_requests: (league.pending_requests || []).filter((id: string) => id !== userId)
+                })
+                .eq('id', leagueId);
+            if (error) throw error;
+        },
+        removeUser: async (leagueId: string, userId: string) => {
+            const { data: league, error: fetchError } = await supabase
+                .from('brazil_leagues')
+                .select('participants')
+                .eq('id', leagueId)
+                .single();
+            if (fetchError) throw fetchError;
+            const { error } = await supabase
+                .from('brazil_leagues')
+                .update({
+                    participants: (league.participants || []).filter((id: string) => id !== userId)
+                })
+                .eq('id', leagueId);
+            if (error) throw error;
+        },
+        invite: async (leagueId: string, email: string) => {
+            return api.leagues.invite(leagueId, email, 'brazil');
+        }
+    },
+    brazilPredictions: {
+        list: async () => {
+            const { data, error } = await supabase.from('brazil_predictions').select('*');
+            if (error) throw error;
+            return data || [];
+        },
+        submit: async (predictions: any[]) => {
+            const { error } = await supabase.from('brazil_predictions').upsert(predictions, {
+                onConflict: 'user_id,match_id,league_id'
+            });
+            if (error) throw error;
+        }
+    },
+    brazilMatchGoals: {
+        list: async () => {
+            const { data, error } = await supabase.from('brazil_match_goals').select('*');
+            if (error) throw error;
+            return data || [];
+        },
+        add: async (matchId: string, playerName: string, goals: number = 1) => {
+            const { error } = await supabase.from('brazil_match_goals').upsert(
+                { match_id: matchId, player_name: playerName, goals },
+                { onConflict: 'match_id,player_name' }
+            );
+            if (error) throw error;
+        },
+        remove: async (matchId: string, playerName: string) => {
+            const { error } = await supabase
+                .from('brazil_match_goals')
+                .delete()
+                .eq('match_id', matchId)
+                .eq('player_name', playerName);
+            if (error) throw error;
+        }
     }
 };

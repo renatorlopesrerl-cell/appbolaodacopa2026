@@ -85,7 +85,7 @@ const ToastContainer: React.FC<{
 
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentUser, logout, invitations, leagues, users, connectionError, retryConnection, isRecoveryMode, approveUser, rejectUser, respondToInvite, notifications, removeNotification, refreshAllData, lastSyncTime } = useStore();
+  const { currentUser, logout, invitations, leagues, brazilLeagues, users, connectionError, retryConnection, isRecoveryMode, approveUser, rejectUser, approveBrazilUser, rejectBrazilUser, respondToInvite, notifications, removeNotification, refreshAllData, lastSyncTime } = useStore();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -116,14 +116,16 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
   const pendingInvites = invitations.filter(i => i.status === 'pending');
   const adminLeaguesWithRequests = currentUser
-    ? leagues.filter(l => l.adminId === currentUser.id && l.pendingRequests.some(uid => users.some(u => u.id === uid)))
+    ? leagues.filter(l => l.adminId === currentUser.id && l.pendingRequests?.some(uid => users.some(u => u.id === uid)))
+    : [];
+
+  const adminBrazilLeaguesWithRequests = currentUser
+    ? brazilLeagues.filter(l => l.adminId === currentUser.id && l.pendingRequests?.some(uid => users.some(u => u.id === uid)))
     : [];
 
   const pendingLeagueRequestsCount = adminLeaguesWithRequests
-    .reduce((acc, l) => {
-      const validRequests = l.pendingRequests.filter(uid => users.some(u => u.id === uid));
-      return acc + validRequests.length;
-    }, 0);
+    .reduce((acc, l) => acc + (l.pendingRequests?.filter(uid => users.some(u => u.id === uid)).length || 0), 0) +
+    adminBrazilLeaguesWithRequests.reduce((acc, l) => acc + (l.pendingRequests?.filter(uid => users.some(u => u.id === uid)).length || 0), 0);
 
   const totalNotifications = pendingInvites.length + pendingLeagueRequestsCount;
 
@@ -142,13 +144,17 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         ) : (
           <div className="divide-y divide-gray-100 dark:divide-gray-700">
             {pendingInvites.map(invite => {
-              const league = leagues.find(l => l.id === invite.leagueId);
+              const isBrazil = invite.leagueType === 'brazil';
+              const league = isBrazil 
+                ? brazilLeagues.find(l => l.id === invite.leagueId)
+                : leagues.find(l => l.id === invite.leagueId);
+              
               const leagueName = league?.name || 'Liga desconhecida';
               const leagueImage = league?.image || `https://api.dicebear.com/7.x/identicon/svg?seed=${invite.leagueId}`;
 
               return (
                 <div key={invite.id} className="block p-3 hover:bg-white dark:hover:bg-gray-800 transition-colors group relative">
-                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-yellow-400"></div>
+                  <div className={`absolute left-0 top-0 bottom-0 w-1 ${isBrazil ? 'bg-brasil-yellow' : 'bg-yellow-400'}`}></div>
                   <div className="flex gap-3 mb-2">
                     <OptimizedImage
                       src={leagueImage}
@@ -158,7 +164,8 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                     />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold text-gray-800 dark:text-white flex items-center gap-2">
-                        <Mail size={14} className="text-yellow-600 flex-shrink-0" /> Convite de Liga
+                        <Mail size={14} className={`${isBrazil ? 'text-brasil-yellow' : 'text-yellow-600'} flex-shrink-0`} /> 
+                        Convite {isBrazil ? 'Modo BR' : 'Liga Padrão'}
                       </p>
                       <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">
                         Convidado para: <span className="font-bold text-brasil-blue dark:text-blue-400">{leagueName}</span>
@@ -182,14 +189,15 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                 </div>
               );
             })}
-            {adminLeaguesWithRequests.flatMap(l => {
-              const validRequests = l.pendingRequests
+            {[...adminLeaguesWithRequests, ...adminBrazilLeaguesWithRequests].flatMap(l => {
+              const isBrazil = brazilLeagues.some(bl => bl.id === l.id);
+              const validRequests = (l.pendingRequests || [])
                 .map(uid => users.find(u => u.id === uid))
                 .filter((u): u is typeof users[0] => !!u);
 
               return validRequests.map(user => (
                 <div key={`${l.id}-${user.id}`} className="block p-3 hover:bg-white dark:hover:bg-gray-800 transition-colors group relative">
-                  <div className="absolute left-0 top-0 bottom-0 w-1 bg-brasil-green"></div>
+                  <div className={`absolute left-0 top-0 bottom-0 w-1 ${isBrazil ? 'bg-brasil-blue' : 'bg-brasil-green'}`}></div>
                   <div className="flex gap-3 mb-2">
                     <OptimizedImage
                       src={user.avatar}
@@ -199,7 +207,8 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                     />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold text-gray-800 dark:text-white flex items-center gap-2">
-                        <Users size={14} className="text-green-600 flex-shrink-0" /> Solicitação
+                        <Users size={14} className={`${isBrazil ? 'text-brasil-blue' : 'text-green-600'} flex-shrink-0`} /> 
+                        Solicitação {isBrazil ? 'Modo BR' : ''}
                       </p>
                       <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">
                         <span className="font-bold">{user.name}</span> quer entrar na liga <span className="font-bold text-brasil-blue dark:text-blue-400">{l.name}</span>
@@ -211,7 +220,8 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        approveUser(l.id, user.id);
+                        if (isBrazil) approveBrazilUser(l.id, user.id);
+                        else approveUser(l.id, user.id);
                       }}
                       className="flex-1 bg-green-100 hover:bg-green-200 text-green-700 text-xs font-bold py-1.5 rounded flex items-center justify-center gap-1 transition-colors"
                     >
@@ -221,7 +231,8 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        rejectUser(l.id, user.id);
+                        if (isBrazil) rejectBrazilUser(l.id, user.id);
+                        else rejectUser(l.id, user.id);
                       }}
                       className="flex-1 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-bold py-1.5 rounded flex items-center justify-center gap-1 transition-colors"
                     >
@@ -284,6 +295,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             <Link to="/table" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/table')}`}>Tabela</Link>
             <Link to="/simulador" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/simulador')}`}>Simulador</Link>
             <Link to="/leagues" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/leagues')}`}>Ligas</Link>
+            <Link to="/brazil-games" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/brazil-games')}`}>Modo BR</Link>
             <Link to="/como-jogar" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/como-jogar')}`}>Como Funciona</Link>
 
             {currentUser?.isAdmin && (
@@ -377,6 +389,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             <Link onClick={() => setIsMenuOpen(false)} to="/table" className={`block px-3 py-2 rounded-md ${isActive('/table')}`}>Tabela</Link>
             <Link onClick={() => setIsMenuOpen(false)} to="/simulador" className={`block px-3 py-2 rounded-md ${isActive('/simulador')}`}>Simulador</Link>
             <Link onClick={() => setIsMenuOpen(false)} to="/leagues" className={`block px-3 py-2 rounded-md ${isActive('/leagues')}`}>Ligas</Link>
+            <Link onClick={() => setIsMenuOpen(false)} to="/brazil-games" className={`block px-3 py-2 rounded-md ${isActive('/brazil-games')}`}>Modo BR</Link>
             <Link onClick={() => setIsMenuOpen(false)} to="/como-jogar" className={`block px-3 py-2 rounded-md ${isActive('/como-jogar')}`}>Como Funciona</Link>
             {currentUser?.isAdmin && (
               <Link id="admin-link-mobile" onClick={() => setIsMenuOpen(false)} to="/admin" className={`block px-3 py-2 rounded-md ${isActive('/admin')}`}>Admin Painel</Link>

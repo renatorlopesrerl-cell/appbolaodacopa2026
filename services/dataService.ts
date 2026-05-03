@@ -198,7 +198,7 @@ export const calculatePoints = (
   predAway: number,
   actualHome: number,
   actualAway: number,
-  settings: { exactScore: number, winnerAndDiff: number, winner: number, draw: number }
+  settings: { exactScore: number, winnerAndDiff: number, winner: number, draw: number, winnerAndWinnerGoals?: number }
 ): number => {
   // 1. Exact Score
   if (predHome === actualHome && predAway === actualAway) {
@@ -210,18 +210,28 @@ export const calculatePoints = (
   const predWinner = predDiff > 0 ? 'HOME' : (predDiff < 0 ? 'AWAY' : 'DRAW');
   const actualWinner = actualDiff > 0 ? 'HOME' : (actualDiff < 0 ? 'AWAY' : 'DRAW');
 
-  // 2. Winner + Goal Diff (only if not a draw, usually)
-  // If it's a draw, exact score covers specific draws, generic draw covers the rest.
   if (predWinner === actualWinner) {
+    // 2. Winner + Goal Diff
     if (predWinner !== 'DRAW' && predDiff === actualDiff) {
       return settings.winnerAndDiff;
     }
-    // 3. Winner
-    if (predWinner !== 'DRAW') {
-      return settings.winner;
+
+    // 3. Winner + Winner Goals
+    if (predWinner !== 'DRAW' && settings.winnerAndWinnerGoals) {
+      const predWinnerScore = predWinner === 'HOME' ? predHome : predAway;
+      const actualWinnerScore = actualWinner === 'HOME' ? actualHome : actualAway;
+      if (predWinnerScore === actualWinnerScore) {
+        return settings.winnerAndWinnerGoals;
+      }
     }
+
     // 4. Draw (but not exact score)
-    return settings.draw;
+    if (predWinner === 'DRAW') {
+      return settings.draw;
+    }
+
+    // 5. Winner
+    return settings.winner;
   }
 
   return 0;

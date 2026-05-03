@@ -28,7 +28,14 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
 
             const { data, error } = await userClient.from('league_invites').select('*').eq('email', email.toLowerCase()).eq('status', 'pending');
             if (error) throw error;
-            return jsonResponse(data || []);
+
+            // Map data to include league_type if missing (fallback to standard)
+            const mappedData = (data || []).map((i: any) => ({
+                ...i,
+                league_type: i.league_type || 'standard'
+            }));
+
+            return jsonResponse(mappedData);
         }
 
         if (request.method === 'POST') {
@@ -36,15 +43,21 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
             const { action } = body;
 
             if (action === 'invite') {
-                const { leagueId, email } = body;
+                const { leagueId, email, leagueType = 'standard' } = body;
                 if (!leagueId || !email) return errorResponse(new Error("Missing arguments"), 400);
 
-                const { data: league, error: fetchError } = await userClient.from('leagues').select('*').eq('id', leagueId).single();
+                const table = leagueType === 'brazil' ? 'brazil_leagues' : 'leagues';
+                const { data: league, error: fetchError } = await userClient.from(table).select('*').eq('id', leagueId).single();
                 if (fetchError || !league) return errorResponse(new Error("League not found"), 404);
 
                 const { data: existingUser } = await userClient.from('profiles').select('id').eq('email', email).maybeSingle();
-                if (existingUser && league.participants.includes(existingUser.id)) {
-                    return errorResponse(new Error("Usuário já participa desta liga"), 400);
+                if (existingUser) {
+                    if (league.participants.includes(existingUser.id)) {
+                        return errorResponse(new Error("Usuário já participa desta liga"), 400);
+                    }
+                    if ((league.pending_requests || []).includes(existingUser.id)) {
+                        return errorResponse(new Error("Usuário já solicitou entrada. Aprove-o na lista de solicitações."), 400);
+                    }
                 }
 
                 // Check for existing pending invite
@@ -65,7 +78,8 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                 const { error } = await userClient.from('league_invites').insert({
                     league_id: leagueId,
                     email: email.toLowerCase().trim(),
-                    status: 'pending'
+                    status: 'pending',
+                    league_type: leagueType
                 });
                 if (error) throw error;
 
@@ -95,7 +109,8 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                 }
 
                 if (accept) {
-                    const { data: league, error: fetchLeagueError } = await userClient.from('leagues').select('*').eq('id', invite.league_id).single();
+                    const table = invite.league_type === 'brazil' ? 'brazil_leagues' : 'leagues';
+                    const { data: league, error: fetchLeagueError } = await userClient.from(table).select('*').eq('id', invite.league_id).single();
                     if (fetchLeagueError || !league) return errorResponse(new Error("League not found"), 404);
 
                     // Check if already in league
@@ -110,7 +125,7 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                     const updatedParticipants = Array.from(new Set([...league.participants, authUser.id]));
                     const updatedPending = (league.pending_requests || []).filter((id: string) => id !== authUser.id);
 
-                    await userClient.from('leagues').update({
+                    await userClient.from(table).update({
                         participants: updatedParticipants,
                         pending_requests: updatedPending
                     }).eq('id', league.id);

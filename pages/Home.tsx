@@ -302,16 +302,30 @@ export const Home: React.FC = () => {
             <Info size={80} className="text-purple-500 dark:text-purple-400" />
           </div>
           <div className="relative z-10">
-            <div className="p-3 bg-purple-50 dark:bg-purple-900/30 rounded-xl w-fit mb-4 group-hover:bg-purple-600 group-hover:text-white transition-colors">
-              <Info className="w-6 h-6 text-purple-600 dark:text-purple-400 group-hover:text-white" />
+            <div className="p-3 bg-purple-50 dark:bg-purple-900/30 rounded-xl w-fit mb-4 group-hover:bg-purple-500 group-hover:text-white transition-colors">
+              <Info className="w-6 h-6 text-purple-500 dark:text-purple-400 group-hover:text-white" />
             </div>
-            <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-1">Como Funciona</h2>
-            <p className="text-gray-500 dark:text-gray-400 text-sm">
-              Entenda as regras de pontuação e como funciona o simulador.
-            </p>
+            <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-1">Como Jogar</h2>
+            <p className="text-gray-500 dark:text-gray-400 text-sm">Entenda as regras de pontuação.</p>
+          </div>
+        </Link>
+
+        <Link to="/brazil-games" className="md:col-span-2 group bg-gradient-to-r from-green-100 via-white to-yellow-100 dark:from-green-900/30 dark:via-gray-800 dark:to-yellow-900/30 p-6 rounded-2xl shadow-sm hover:shadow-xl transition-all border border-green-200 dark:border-green-800 relative overflow-hidden text-gray-800 dark:text-white">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:scale-110 duration-500">
+            <Trophy size={80} className="text-brasil-green dark:text-green-400" />
+          </div>
+          <div className="relative z-10 flex flex-col md:flex-row items-center gap-4">
+            <div className="p-3 bg-green-100 dark:bg-green-800 rounded-xl w-fit group-hover:bg-brasil-green group-hover:text-white transition-colors">
+              <span className="text-2xl">🇧🇷</span>
+            </div>
+            <div className="text-center md:text-left">
+              <h2 className="text-2xl font-black mb-1">Modo Jogos do Brasil</h2>
+              <p className="text-green-700 dark:text-green-300 text-sm font-medium">Todos os jogos do Brasil + Palpite de Artilheiro!</p>
+            </div>
           </div>
         </Link>
       </div>
+
 
       {/* Platform Specific Action (Play Store or Web Link) */}
       {Capacitor.getPlatform() === 'web' ? (
