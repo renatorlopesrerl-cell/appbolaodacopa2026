@@ -144,7 +144,6 @@ export const Home: React.FC = () => {
         <div className="flex flex-wrap justify-center gap-6 mt-8 text-sm text-gray-500 dark:text-gray-400">
           <Link to="/termos" className="hover:text-brasil-blue dark:hover:text-blue-400 transition-colors">Termos de Uso</Link>
           <Link to="/privacidade" className="hover:text-brasil-blue dark:hover:text-blue-400 transition-colors">Política de Privacidade</Link>
-          <Link to="/bolao-jogos-do-brasil" className="hover:text-brasil-blue dark:hover:text-blue-400 transition-colors font-semibold">Bolão Apenas Jogos do Brasil</Link>
         </div>
 
         {/* Decorative Bottom Border */}
