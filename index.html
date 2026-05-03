@@ -39,25 +39,20 @@
   <meta property="og:type" content="website">
   <meta property="og:image" content="https://bolaodacopa2026.app/palpiteirodacopa2026.png">
   <script>
-    // Limpeza forçada para recuperar o controle do domínio .app
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(function(registrations) {
-        for(let registration of registrations) {
-          registration.unregister().then(function() {
-            console.log('SW removido. Recarregando...');
-            // Adiciona um parâmetro para evitar loop de refresh
-            if (!window.location.search.includes('sw_cleared')) {
-              window.location.href = window.location.href + (window.location.search ? '&' : '?') + 'sw_cleared=1';
-            }
-          });
-        }
+      window.addEventListener('load', () => {
+        // O navegador registra o arquivo gerado pelo build do Cloudflare
+        navigator.serviceWorker.register('/firebase-messaging-sw.js')
+          .then(reg => console.log('SW registrado com sucesso (v8):', reg.scope))
+          .catch(err => console.error('Falha ao registrar SW:', err));
       });
     }
-    // Se o site estiver em branco, isso força um recarregamento limpando o cache
-    window.onerror = function() {
-      console.log("Erro detectado, limpando cache...");
-      location.reload(true);
-    };
+
+    // Remove o parâmetro sw_cleared da URL para deixar o link limpo para o usuário
+    if (window.location.search.includes('sw_cleared')) {
+      const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+      window.history.replaceState({path:newUrl}, '', newUrl);
+    }
   </script>
 </head>
 
