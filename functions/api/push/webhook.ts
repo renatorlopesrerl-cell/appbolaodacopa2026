@@ -1,5 +1,5 @@
 
-import { jsonResponse, errorResponse, sendPushNotificationToUser, getSupabaseClient } from './_shared';
+import { jsonResponse, errorResponse, sendPushNotificationToUser, getSupabaseClient } from '../_shared';
 
 /**
  * Webhook for Supabase (Native UI Webhook compatible)

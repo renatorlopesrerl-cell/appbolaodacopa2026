@@ -1,5 +1,5 @@
 
-import { getUserClient, jsonResponse, errorResponse, sendPushNotificationToUser } from '../_shared';
+import { getUserClient, jsonResponse, errorResponse } from '../_shared';
 
 const getLeagueLimit = (settings: any) => {
     if (settings?.isUnlimited) return Infinity;
