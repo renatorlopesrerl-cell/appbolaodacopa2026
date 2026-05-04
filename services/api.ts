@@ -185,79 +185,10 @@ export const api = {
         delete: async (id: string) => {
             return apiFetch(`/brazil-leagues?id=${id}`, { method: 'DELETE' });
         },
-        join: async (leagueId: string, userId: string, isPrivate: boolean) => {
-            const { data: league, error: fetchError } = await supabase
-                .from('brazil_leagues')
-                .select('participants, pending_requests')
-                .eq('id', leagueId)
-                .single();
-            if (fetchError) throw fetchError;
-            if (!league) throw new Error('Liga não encontrada');
-
-            if (isPrivate) {
-                const pendingRequests = league.pending_requests || [];
-                if (pendingRequests.includes(userId)) return;
-                const { error } = await supabase
-                    .from('brazil_leagues')
-                    .update({ pending_requests: [...pendingRequests, userId] })
-                    .eq('id', leagueId);
-                if (error) throw error;
-            } else {
-                const participants = league.participants || [];
-                if (participants.includes(userId)) return;
-                const { error } = await supabase
-                    .from('brazil_leagues')
-                    .update({ participants: [...participants, userId] })
-                    .eq('id', leagueId);
-                if (error) throw error;
-            }
-        },
-        approveUser: async (leagueId: string, userId: string) => {
-            const { data: league, error: fetchError } = await supabase
-                .from('brazil_leagues')
-                .select('participants, pending_requests')
-                .eq('id', leagueId)
-                .single();
-            if (fetchError) throw fetchError;
-            const { error } = await supabase
-                .from('brazil_leagues')
-                .update({
-                    participants: [...(league.participants || []), userId],
-                    pending_requests: (league.pending_requests || []).filter((id: string) => id !== userId)
-                })
-                .eq('id', leagueId);
-            if (error) throw error;
-        },
-        rejectUser: async (leagueId: string, userId: string) => {
-            const { data: league, error: fetchError } = await supabase
-                .from('brazil_leagues')
-                .select('pending_requests')
-                .eq('id', leagueId)
-                .single();
-            if (fetchError) throw fetchError;
-            const { error } = await supabase
-                .from('brazil_leagues')
-                .update({
-                    pending_requests: (league.pending_requests || []).filter((id: string) => id !== userId)
-                })
-                .eq('id', leagueId);
-            if (error) throw error;
-        },
-        removeUser: async (leagueId: string, userId: string) => {
-            const { data: league, error: fetchError } = await supabase
-                .from('brazil_leagues')
-                .select('participants')
-                .eq('id', leagueId)
-                .single();
-            if (fetchError) throw fetchError;
-            const { error } = await supabase
-                .from('brazil_leagues')
-                .update({
-                    participants: (league.participants || []).filter((id: string) => id !== userId)
-                })
-                .eq('id', leagueId);
-            if (error) throw error;
-        },
+        join: (leagueId: string) => apiFetch('/leagues/join', { method: 'POST', body: JSON.stringify({ id: leagueId, leagueType: 'brazil' }) }),
+        approveUser: (leagueId: string, userId: string) => apiFetch('/leagues/members', { method: 'POST', body: JSON.stringify({ leagueId, userId, action: 'approve', leagueType: 'brazil' }) }),
+        rejectUser: (leagueId: string, userId: string) => apiFetch('/leagues/members', { method: 'POST', body: JSON.stringify({ leagueId, userId, action: 'reject', leagueType: 'brazil' }) }),
+        removeUser: (leagueId: string, userId: string) => apiFetch('/leagues/members', { method: 'POST', body: JSON.stringify({ leagueId, userId, action: 'remove', leagueType: 'brazil' }) }),
         invite: async (leagueId: string, email: string) => {
             return api.leagues.invite(leagueId, email, 'brazil');
         }

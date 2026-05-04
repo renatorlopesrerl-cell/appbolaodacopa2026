@@ -50,7 +50,8 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                 const { data: league, error: fetchError } = await userClient.from(table).select('*').eq('id', leagueId).single();
                 if (fetchError || !league) return errorResponse(new Error("League not found"), 404);
 
-                const { data: existingUser } = await userClient.from('profiles').select('id').eq('email', email).maybeSingle();
+                const formattedEmail = email.toLowerCase().trim();
+                const { data: existingUser } = await userClient.from('profiles').select('id').eq('email', formattedEmail).maybeSingle();
                 if (existingUser) {
                     if (league.participants.includes(existingUser.id)) {
                         return errorResponse(new Error("Usuário já participa desta liga"), 400);
@@ -77,11 +78,23 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
 
                 const { error } = await userClient.from('league_invites').insert({
                     league_id: leagueId,
-                    email: email.toLowerCase().trim(),
+                    email: formattedEmail,
                     status: 'pending',
                     league_type: leagueType
                 });
                 if (error) throw error;
+
+                // Send Push Notification if user exists (native fallback bypassing webhook)
+                if (existingUser) {
+                    const url = leagueType === 'brazil' ? `/brazil-league/${leagueId}` : `/league/${leagueId}`;
+                    await sendPushNotificationToUser(
+                        env,
+                        existingUser.id,
+                        "Novo Convite! 🏆",
+                        `Você foi convidado para participar da liga: ${league.name}`,
+                        { url }
+                    );
+                }
 
                 return jsonResponse({ success: true, message: "Invite sent" });
             }

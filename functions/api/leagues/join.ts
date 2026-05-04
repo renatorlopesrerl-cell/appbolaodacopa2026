@@ -1,5 +1,5 @@
 
-import { getUserClient, jsonResponse, errorResponse } from '../_shared';
+import { getUserClient, jsonResponse, errorResponse, sendPushNotificationToUser } from '../_shared';
 
 const getLeagueLimit = (settings: any) => {
     if (settings?.isUnlimited) return Infinity;
@@ -21,11 +21,13 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
         const authUser = data.user;
         const userClient = getUserClient(env, request);
 
-        const { id } = await request.json() as any;
+        const { id, leagueType = 'standard' } = await request.json() as any;
         if (!id) return errorResponse(new Error("League ID required"), 400);
 
+        const table = leagueType === 'brazil' ? 'brazil_leagues' : 'leagues';
+
         // Fetch League
-        const { data: league, error: fetchError } = await userClient.from('leagues').select('*').eq('id', id).single();
+        const { data: league, error: fetchError } = await userClient.from(table).select('*').eq('id', id).single();
         if (fetchError || !league) return errorResponse(new Error("League not found"), 404);
 
         if (league.participants.includes(authUser.id)) {
@@ -47,8 +49,29 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
             updates = { participants: [...league.participants, authUser.id] };
         }
 
-        const { error } = await userClient.from('leagues').update(updates).eq('id', id);
+        const { error } = await userClient.from(table).update(updates).eq('id', id);
         if (error) throw error;
+
+        // If private, notify Admin
+        if (league.is_private) {
+            // Get requester's nickname/name from profiles
+            const { data: requesterProfile } = await userClient
+                .from('profiles')
+                .select('name')
+                .eq('id', authUser.id)
+                .single();
+
+            const requesterName = requesterProfile?.name || authUser.user_metadata?.full_name || authUser.email || "Um usuário";
+            const url = leagueType === 'brazil' ? `/brazil-league/${id}?tab=admin` : `/league/${id}?tab=admin`;
+
+            await sendPushNotificationToUser(
+                env,
+                league.admin_id,
+                "Nova Solicitação 🔔",
+                `${requesterName} quer entrar na liga: ${league.name}`,
+                { url }
+            );
+        }
 
         return jsonResponse({ success: true, message: league.is_private ? "Request sent" : "Joined successfully" });
 
