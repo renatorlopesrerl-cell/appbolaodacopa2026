@@ -35,6 +35,9 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                     last_seen: new Date().toISOString()
                 }, { onConflict: 'user_id,token' });
 
+                // ALSO update the legacy column in profiles so the backend can read it without Service Role Key
+                await userClient.from('profiles').update({ fcm_token: body.token }).eq('id', authUser.id);
+
                 if (tokenError) throw tokenError;
                 return jsonResponse({ success: true, message: "Token registered" });
             }
