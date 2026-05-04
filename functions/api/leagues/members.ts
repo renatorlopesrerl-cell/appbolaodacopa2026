@@ -45,15 +45,6 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                 pending_requests: updatedPending
             }).eq('id', leagueId);
 
-            // Notify User of Approval
-            await sendPushNotificationToUser(
-                env,
-                userId,
-                "Solicitação Aprovada! ✅",
-                `Sua solicitação para entrar na liga "${league.name}" foi aprovada!`,
-                { url: `/league/${leagueId}` }
-            );
-
             return jsonResponse({ success: true, message: "User approved" });
         }
 

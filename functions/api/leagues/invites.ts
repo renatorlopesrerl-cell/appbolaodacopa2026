@@ -83,17 +83,6 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                 });
                 if (error) throw error;
 
-                // Send Push Notification if user exists
-                if (existingUser) {
-                    await sendPushNotificationToUser(
-                        env,
-                        existingUser.id,
-                        "Novo Convite! 🏆",
-                        `Você foi convidado para participar da liga: ${league.name}`,
-                        { url: '/' }
-                    );
-                }
-
                 return jsonResponse({ success: true, message: "Invite sent" });
             }
 
@@ -129,6 +118,16 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                         participants: updatedParticipants,
                         pending_requests: updatedPending
                     }).eq('id', league.id);
+
+                    const requesterName = authUser.user_metadata?.full_name || authUser.email || "Um usuário";
+                    const url = invite.league_type === 'brazil' ? `/brazil-league/${league.id}?tab=admin` : `/league/${league.id}?tab=admin`;
+                    await sendPushNotificationToUser(
+                        env,
+                        league.admin_id,
+                        "Convite Aceito! 🎉",
+                        `${requesterName} aceitou o convite e entrou na liga: ${league.name}`,
+                        { url }
+                    );
                 }
 
                 await userClient.from('league_invites').update({ status: accept ? 'accepted' : 'rejected' }).eq('id', inviteId);

@@ -58,25 +58,6 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
 
                 if (!updateErr) {
                     results.matchesStarted++;
-
-                    // --- 2. SEND START NOTIFICATION AFTER 10 SECONDS ---
-                    // Wait 10 seconds to ensure DB consistency and avoid sync issues
-                    await new Promise(resolve => setTimeout(resolve, 10000));
-
-                    const { data: users } = await supabase.from('profiles').select('id, notification_settings');
-                    if (users) {
-                        const title = "Jogo Iniciado! ⚽";
-                        const bodyText = `A partida entre ${match.home_team_id} x ${match.away_team_id} começou!`;
-
-                        const tasks = users
-                            .filter(u => (u.notification_settings?.matchStart ?? true) !== false)
-                            .map(u => sendPushNotificationToUser(env, u.id, title, bodyText, { url: '/table' }));
-
-                        await Promise.allSettled(tasks);
-
-                        // Mark as notified/started in results
-                        results.notificationsSent++;
-                    }
                 }
             }
         }
