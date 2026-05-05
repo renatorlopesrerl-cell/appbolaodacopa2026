@@ -227,13 +227,8 @@ export async function sendPushNotificationToUser(env: any, userId: string, title
                 results.push({ token, success: true, details: result });
             } else {
                 const fcmError = result.error?.message || result.error || "Erro desconhecido";
-                // If token is invalid, remove it from the table
-                if (response.status === 404 || response.status === 400) {
-                    await supabase.from('user_fcm_tokens').delete().eq('token', token);
-                    results.push({ token, success: false, message: `Token Inválido: ${fcmError}`, status: response.status });
-                } else {
-                    results.push({ token, success: false, message: `Erro FCM (${response.status}): ${fcmError}` });
-                }
+                // Only log, do not delete for now to prevent losing tokens during tests
+                results.push({ token, success: false, message: `Falha FCM: ${fcmError}`, status: response.status });
             }
         }
 
