@@ -53,7 +53,6 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
         const { error } = await userClient.from(table).update(updates).eq('id', id);
         if (error) throw error;
 
-        let pushResults = null;
         if (league.is_private) {
             // Get requester's nickname/name from profiles
             const { data: requesterProfile } = await userClient
@@ -65,7 +64,7 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
             const requesterName = requesterProfile?.name || authUser.user_metadata?.full_name || authUser.email || "Um usuário";
             const url = leagueType === 'brazil' ? `/brazil-league/${id}?tab=admin` : `/league/${id}?tab=admin`;
 
-            pushResults = await sendPushNotificationToUser(
+            await sendPushNotificationToUser(
                 env,
                 league.admin_id,
                 "Nova Solicitação 🔔",
@@ -74,7 +73,7 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
             );
         }
 
-        return jsonResponse({ success: true, message: league.is_private ? "Request sent" : "Joined successfully", pushResults });
+        return jsonResponse({ success: true, message: league.is_private ? "Request sent" : "Joined successfully" });
 
     } catch (e: any) {
         return errorResponse(e);
