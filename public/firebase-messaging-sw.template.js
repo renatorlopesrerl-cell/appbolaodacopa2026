@@ -67,3 +67,40 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
+
+// Manipulador de mensagens em segundo plano (essencial para alguns navegadores)
+if (messaging) {
+  messaging.onBackgroundMessage((payload) => {
+    console.log('Mensagem em segundo plano recebida:', payload);
+    
+    const notificationTitle = payload.notification?.title || "Bolão Copa 2026";
+    const notificationOptions = {
+      body: payload.notification?.body,
+      icon: '/favicon.png',
+      badge: '/favicon.png',
+      data: payload.data
+    };
+
+    return self.registration.showNotification(notificationTitle, notificationOptions);
+  });
+}
+
+// Lógica de clique na notificação
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const urlToOpen = event.notification.data?.url || '/';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      for (var i = 0; i < windowClients.length; i++) {
+        var client = windowClients[i];
+        if (client.url === urlToOpen && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(urlToOpen);
+      }
+    })
+  );
+});
