@@ -5,15 +5,32 @@ import { api } from './api';
 
 import { requestWebPushToken } from './firebaseWeb';
 
+let isRequestingToken = false;
+
 export const setupPushNotifications = async (userId: string, force: boolean = false) => {
     if (Capacitor.getPlatform() === 'web') {
         console.log(`Iniciando configuração de Push para Web PWA (force=${force})...`);
+        
+        if (isRequestingToken) {
+            console.log('Já existe uma requisição de token em andamento. Ignorando.');
+            return true;
+        }
+
         try {
+            const saved = localStorage.getItem('active_fcm_token');
+            if (saved && !force) {
+                console.log('Web Push Token já salvo localmente. Pulando Firebase e API.');
+                return true;
+            }
+
+            isRequestingToken = true;
             const token = await requestWebPushToken(force);
+            isRequestingToken = false;
+
             if (token) {
-                const saved = localStorage.getItem('active_fcm_token');
-                if (saved === token) {
-                    console.log('Web Push Token já salvo localmente. Pulando chamada de API.');
+                const currentSaved = localStorage.getItem('active_fcm_token');
+                if (currentSaved === token) {
+                    console.log('Web Push Token idêntico ao salvo localmente. Pulando chamada de API.');
                     return true;
                 }
                 localStorage.setItem('active_fcm_token', token);
@@ -26,6 +43,7 @@ export const setupPushNotifications = async (userId: string, force: boolean = fa
                 throw new Error('Não foi possível gerar um token de notificação para este navegador.');
             }
         } catch (e: any) {
+            isRequestingToken = false;
             console.error('Erro ao configurar Web Push:', e);
             throw e;
         }
