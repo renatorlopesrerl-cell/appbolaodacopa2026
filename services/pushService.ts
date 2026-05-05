@@ -11,6 +11,11 @@ export const setupPushNotifications = async (userId: string, force: boolean = fa
         try {
             const token = await requestWebPushToken(force);
             if (token) {
+                const saved = localStorage.getItem('active_fcm_token');
+                if (saved === token) {
+                    console.log('Web Push Token já salvo localmente. Pulando chamada de API.');
+                    return true;
+                }
                 localStorage.setItem('active_fcm_token', token);
                 await api.profiles.saveFcmToken(userId, token, 'web');
                 console.log('Web Push Token salvo com sucesso na tabela de dispositivos.');
@@ -54,6 +59,11 @@ export const setupPushNotifications = async (userId: string, force: boolean = fa
             await PushNotifications.addListener('registration', async (token) => {
                 console.log('Push token successfully generated:', token.value);
                 try {
+                    const saved = localStorage.getItem('active_fcm_token');
+                    if (saved === token.value) {
+                        console.log('Push token já salvo localmente. Pulando chamada de API.');
+                        return;
+                    }
                     localStorage.setItem('active_fcm_token', token.value);
                     const deviceType = Capacitor.getPlatform() === 'ios' ? 'ios' : 'android';
                     await api.profiles.saveFcmToken(userId, token.value, deviceType);
