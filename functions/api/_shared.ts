@@ -188,7 +188,7 @@ export async function sendPushNotificationToUser(env: any, userId: string, title
     const results = [];
     try {
         const accessToken = await getAccessToken(env);
-        const projectId = env.FCM_PROJECT_ID || "batepapobase";
+        const projectId = (env.FCM_PROJECT_ID || "batepapobase").trim();
 
         for (const token of tokens) {
             const response = await fetch(`https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`, {
@@ -237,9 +237,11 @@ export async function sendPushNotificationToUser(env: any, userId: string, title
             }
         }
 
+    const sa = JSON.parse(env.FCM_SERVICE_ACCOUNT_KEY);
     return {
         success: results.some(r => r.success),
         projectId: projectId,
+        serviceAccountEmail: sa.client_email,
         results: results
     };
 
