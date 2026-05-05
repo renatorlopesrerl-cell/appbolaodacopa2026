@@ -6,7 +6,7 @@ import { Capacitor } from '@capacitor/core';
 import { supabase } from '../services/supabase';
 
 export const Home: React.FC = () => {
-  const { currentUser, matches, leagues, currentTime, loading, invitations, respondToInvite, loginGoogle } = useStore();
+  const { currentUser, matches, leagues, brazilLeagues, currentTime, loading, invitations, respondToInvite, loginGoogle } = useStore();
   const [copied, setCopied] = useState(false);
 
   const handleCopyLink = () => {
@@ -210,7 +210,9 @@ export const Home: React.FC = () => {
           </h2>
           <div className="space-y-3">
             {pendingInvites.map(invite => {
-              const league = leagues.find(l => l.id === invite.leagueId);
+              const league = invite.leagueType === 'brazil' 
+                ? brazilLeagues.find(l => l.id === invite.leagueId)
+                : leagues.find(l => l.id === invite.leagueId);
               return (
                 <div key={invite.id} className="bg-white dark:bg-gray-800 p-3 rounded-lg flex flex-col sm:flex-row justify-between items-center gap-3 border border-yellow-200 dark:border-yellow-800">
                   <div className="flex items-center gap-3">

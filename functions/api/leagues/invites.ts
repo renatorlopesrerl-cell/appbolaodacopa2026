@@ -88,7 +88,7 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
 
                 // Send push notification DIRECTLY from the API to bypass Cloudflare WAF blocking Supabase triggers
                 if (existingUser) {
-                    const url = leagueType === 'brazil' ? `/brazil-league/${leagueId}` : `/league/${leagueId}`;
+                    const url = "/#invites-section";
                     await sendPushNotificationToUser(
                         env,
                         existingUser.id,

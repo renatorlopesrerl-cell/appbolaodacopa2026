@@ -54,12 +54,14 @@ export const requestWebPushToken = async (force: boolean = false) => {
     // iOS/Safari: We should ONLY call requestPermission if it was a user click (force=true)
     // or if the browser allows it (Android/Chrome usually allow it on load if not denied)
     if (currentPermission === 'default') {
-      if (!force) {
-        console.log('Notificações em modo "default". Aguardando clique do usuário para solicitar permissão (iOS compliance).');
+      const isIos = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+      
+      if (isIos && !force) {
+        console.log('Notificações em modo "default" no iOS. Aguardando clique do usuário para solicitar permissão.');
         return null;
       }
       
-      console.log('Solicitando permissão de notificação (User Gesture)...');
+      console.log('Solicitando permissão de notificação...');
       const permission = await Notification.requestPermission();
       console.log('Resultado do pedido de permissão:', permission);
 
