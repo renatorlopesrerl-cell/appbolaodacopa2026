@@ -239,13 +239,11 @@ export async function sendPushNotificationToUser(env: any, userId: string, title
 
     return {
         success: results.some(r => r.success),
-        projectId: projectId,
-        serviceAccountEmail: env.FCM_CLIENT_EMAIL || "Não configurado",
         results: results
     };
 
     } catch (e: any) {
         console.error("Critical Push v1 error:", e);
-        return { success: false, message: `Erro crítico: ${e.message}` };
+        return { success: false, message: `Erro crítico no servidor: ${e.message}` };
     }
 }
