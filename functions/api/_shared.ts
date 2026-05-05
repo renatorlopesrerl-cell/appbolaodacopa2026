@@ -206,12 +206,7 @@ export async function sendPushNotificationToUser(env: any, userId: string, title
                             click_action: "FLUTTER_NOTIFICATION_CLICK"
                         },
                         android: {
-                            priority: "high",
-                            notification: {
-                                sound: "default",
-                                icon: "ic_notification",
-                                notification_priority: "PRIORITY_HIGH"
-                            }
+                            priority: "high"
                         },
                         webpush: {
                             headers: {
@@ -220,14 +215,7 @@ export async function sendPushNotificationToUser(env: any, userId: string, title
                             notification: {
                                 title: title,
                                 body: body,
-                                icon: "https://bolaodacopa2026.app/favicon.png",
-                                badge: "https://bolaodacopa2026.app/favicon.png",
-                                vibrate: [200, 100, 200],
-                                tag: "invite-notification",
-                                renormalize: true
-                            },
-                            fcm_options: {
-                                link: data?.url ? (data.url.startsWith('http') ? data.url : `https://bolaodacopa2026.app${data.url}`) : "https://bolaodacopa2026.app/"
+                                icon: "https://bolaodacopa2026.app/favicon.png"
                             }
                         }
                     }
@@ -248,12 +236,10 @@ export async function sendPushNotificationToUser(env: any, userId: string, title
             }
         }
 
-        const anySuccess = results.some(r => r.success);
-        return { 
-            success: anySuccess, 
-            message: anySuccess ? "Notificação processada" : "Falha ao enviar para todos os dispositivos", 
-            results 
-        };
+    return {
+        success: results.some(r => r.success),
+        results: results
+    };
 
     } catch (e: any) {
         console.error("Critical Push v1 error:", e);

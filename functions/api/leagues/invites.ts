@@ -87,18 +87,15 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                 if (error) throw error;
 
                 // Send push notification DIRECTLY from the API to bypass Cloudflare WAF blocking Supabase triggers
-                if (existingUser) {
-                    const url = "/#invites-section";
-                    await sendPushNotificationToUser(
-                        env,
-                        existingUser.id,
-                        "Novo Convite! 🏆",
-                        `Você foi convidado para participar da liga: ${league.name}`,
-                        { url }
-                    );
-                }
+                const pushResults = existingUser ? await sendPushNotificationToUser(
+                    env,
+                    existingUser.id,
+                    "Novo Convite! 🏆",
+                    `Você foi convidado para participar da liga: ${league.name}`,
+                    { url: "/#invites-section" }
+                ) : null;
 
-                return jsonResponse({ success: true, message: "Invite sent" });
+                return jsonResponse({ success: true, message: "Invite sent", pushResults });
             }
 
             if (action === 'respond') {
