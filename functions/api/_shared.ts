@@ -73,7 +73,7 @@ async function getAccessToken(env: any) {
     const now = Math.floor(Date.now() / 1000);
     const payload = {
         iss: clientEmail,
-        scope: "https://www.googleapis.com/auth/cloud-platform",
+        scope: "https://www.googleapis.com/auth/firebase.messaging",
         aud: "https://oauth2.googleapis.com/token",
         exp: now + 3600,
         iat: now,
