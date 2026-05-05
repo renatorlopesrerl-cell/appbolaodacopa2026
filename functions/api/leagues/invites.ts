@@ -1,5 +1,5 @@
 
-import { getUserClient, jsonResponse, errorResponse, sendPushNotificationToUser } from '../_shared';
+import { getUserClient, jsonResponse, errorResponse, sendPushNotificationToUser, getSupabaseClient } from '../_shared';
 
 const getLeagueLimit = (settings: any) => {
     if (settings?.isUnlimited) return Infinity;
@@ -51,7 +51,8 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                 if (fetchError || !league) return errorResponse(new Error("League not found"), 404);
 
                 const formattedEmail = email.toLowerCase().trim();
-                const { data: existingUser } = await userClient.from('profiles').select('id').ilike('email', formattedEmail).maybeSingle();
+                const adminClient = getSupabaseClient(env);
+                const { data: existingUser } = await adminClient.from('profiles').select('id').ilike('email', formattedEmail).maybeSingle();
                 if (existingUser) {
                     if (league.participants.includes(existingUser.id)) {
                         return errorResponse(new Error("Usuário já participa desta liga"), 400);
