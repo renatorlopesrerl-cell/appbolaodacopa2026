@@ -19,7 +19,10 @@ export const setupPushNotifications = async (userId: string, force: boolean = fa
         try {
             const saved = localStorage.getItem('active_fcm_token');
             if (saved && !force) {
-                console.log('Web Push Token já salvo localmente. Pulando Firebase e API.');
+                console.log('Web Push Token já salvo localmente. Sincronizando apenas com a API...');
+                // We send it to the API to ensure the database has it (in case the DB was cleared manually)
+                // But we don't request a new one from Firebase to prevent duplicates!
+                await api.profiles.saveFcmToken(userId, saved, 'web').catch(() => {});
                 return true;
             }
 
