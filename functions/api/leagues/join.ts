@@ -1,5 +1,5 @@
 
-import { getUserClient, jsonResponse, errorResponse, sendPushNotificationToUser } from '../_shared';
+import { getUserClient, jsonResponse, errorResponse, sendPushNotificationToUser, getSupabaseClient } from '../_shared';
 
 const getLeagueLimit = (settings: any) => {
     if (settings?.isUnlimited) return Infinity;
@@ -25,9 +25,10 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
         if (!id) return errorResponse(new Error("League ID required"), 400);
 
         const table = leagueType === 'brazil' ? 'brazil_leagues' : 'leagues';
+        const adminClient = getSupabaseClient(env);
 
-        // Fetch League
-        const { data: league, error: fetchError } = await userClient.from(table).select('*').eq('id', id).single();
+        // Fetch League using adminClient to ensure we have all data for the push notification
+        const { data: league, error: fetchError } = await adminClient.from(table).select('*').eq('id', id).single();
         if (fetchError || !league) return errorResponse(new Error("League not found"), 404);
 
         if (league.participants.includes(authUser.id)) {

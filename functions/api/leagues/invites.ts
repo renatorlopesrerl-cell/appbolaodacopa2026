@@ -46,12 +46,13 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                 const { leagueId, email, leagueType = 'standard' } = body;
                 if (!leagueId || !email) return errorResponse(new Error("Missing arguments"), 400);
 
-                const table = leagueType === 'brazil' ? 'brazil_leagues' : 'leagues';
-                const { data: league, error: fetchError } = await userClient.from(table).select('*').eq('id', leagueId).single();
-                if (fetchError || !league) return errorResponse(new Error("League not found"), 404);
-
                 const formattedEmail = email.toLowerCase().trim();
                 const adminClient = getSupabaseClient(env);
+                
+                const table = leagueType === 'brazil' ? 'brazil_leagues' : 'leagues';
+                const { data: league, error: fetchError } = await adminClient.from(table).select('*').eq('id', leagueId).single();
+                if (fetchError || !league) return errorResponse(new Error("League not found"), 404);
+
                 const { data: existingUser } = await adminClient.from('profiles').select('id').ilike('email', formattedEmail).maybeSingle();
                 if (existingUser) {
                     if (league.participants.includes(existingUser.id)) {
