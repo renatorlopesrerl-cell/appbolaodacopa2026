@@ -30,7 +30,7 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
         // 1. LEAGUE EVENTS (Custom triggers)
         if (type === 'league_invite') {
             const { league_id, email, league_name, league_type = 'standard' } = record;
-            const { data: profile } = await supabase.from('profiles').select('id').eq('email', email).single();
+            const { data: profile } = await supabase.from('profiles').select('id').ilike('email', email).maybeSingle();
             if (profile) {
                 const url = league_type === 'brazil' ? `/brazil-league/${league_id}` : `/league/${league_id}`;
                 await sendPushNotificationToUser(env, profile.id, "Novo Convite! 🏆", `Você foi convidado para participar da liga: ${league_name}`, { url });

@@ -51,7 +51,7 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                 if (fetchError || !league) return errorResponse(new Error("League not found"), 404);
 
                 const formattedEmail = email.toLowerCase().trim();
-                const { data: existingUser } = await userClient.from('profiles').select('id').eq('email', formattedEmail).maybeSingle();
+                const { data: existingUser } = await userClient.from('profiles').select('id').ilike('email', formattedEmail).maybeSingle();
                 if (existingUser) {
                     if (league.participants.includes(existingUser.id)) {
                         return errorResponse(new Error("Usuário já participa desta liga"), 400);
@@ -84,7 +84,7 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                 });
                 if (error) throw error;
 
-                // Send Push Notification if user exists (native fallback bypassing webhook)
+                // Send push notification DIRECTLY from the API to bypass Cloudflare WAF blocking Supabase triggers
                 if (existingUser) {
                     const url = leagueType === 'brazil' ? `/brazil-league/${leagueId}` : `/league/${leagueId}`;
                     await sendPushNotificationToUser(
