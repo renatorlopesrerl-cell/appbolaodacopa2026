@@ -199,7 +199,7 @@ export async function sendPushNotificationToUser(env: any, userId: string, title
                 },
                 body: JSON.stringify({
                     message: {
-                        token: token,
+                        token: token.trim(),
                         notification: { title, body },
                         data: {
                             ...(data || {}),
