@@ -239,6 +239,7 @@ export async function sendPushNotificationToUser(env: any, userId: string, title
 
     return {
         success: results.some(r => r.success),
+        projectId: projectId,
         results: results
     };
 
