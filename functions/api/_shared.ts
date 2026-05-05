@@ -226,12 +226,13 @@ export async function sendPushNotificationToUser(env: any, userId: string, title
             if (response.ok) {
                 results.push({ token, success: true, details: result });
             } else {
-                // If token is invalid, remove it from the new table
+                const fcmError = result.error?.message || result.error || "Erro desconhecido";
+                // If token is invalid, remove it from the table
                 if (response.status === 404 || response.status === 400) {
                     await supabase.from('user_fcm_tokens').delete().eq('token', token);
-                    results.push({ token, success: false, message: "Token removido por ser inválido" });
+                    results.push({ token, success: false, message: `Token Inválido: ${fcmError}`, status: response.status });
                 } else {
-                    results.push({ token, success: false, message: `Erro FCM: ${response.status}` });
+                    results.push({ token, success: false, message: `Erro FCM (${response.status}): ${fcmError}` });
                 }
             }
         }
