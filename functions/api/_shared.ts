@@ -222,9 +222,7 @@ export async function sendPushNotificationToUser(env: any, userId: string, title
                                 body: body,
                                 icon: "https://bolaodacopa2026.app/favicon.png",
                                 badge: "https://bolaodacopa2026.app/favicon.png",
-                                vibrate: [200, 100, 200],
-                                requireInteraction: true,
-                                actions: data?.url ? [{ action: "open_url", title: "Ver Agora" }] : []
+                                vibrate: [200, 100, 200]
                             },
                             fcm_options: {
                                 link: data?.url ? (data.url.startsWith('http') ? data.url : `https://bolaodacopa2026.app${data.url}`) : "https://bolaodacopa2026.app/"
