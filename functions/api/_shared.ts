@@ -237,11 +237,10 @@ export async function sendPushNotificationToUser(env: any, userId: string, title
             }
         }
 
-    const sa = JSON.parse(env.FCM_SERVICE_ACCOUNT_KEY);
     return {
         success: results.some(r => r.success),
         projectId: projectId,
-        serviceAccountEmail: sa.client_email,
+        serviceAccountEmail: env.FCM_CLIENT_EMAIL || "Não configurado",
         results: results
     };
 
