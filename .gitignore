@@ -12,6 +12,7 @@ dist
 .supabase
 
 # Capacitor
+android
 ios
 
 # Logs
