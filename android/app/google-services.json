@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "567474314433",
+    "firebase_url": "https://batepapobase.firebaseio.com",
+    "project_id": "batepapobase",
+    "storage_bucket": "batepapobase.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:567474314433:android:2f20617345dc923fd68840",
+        "android_client_info": {
+          "package_name": "app.palpiteirodacopa"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "567474314433-fsac42aquupohcn4gsuo6962ih8r4vg5.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "app.palpiteirodacopa",
+            "certificate_hash": "3dbb5832f792083cda9ea19bd16673b48d5565a6"
+          }
+        },
+        {
+          "client_id": "567474314433-90jjhlsq8qb1t5jf1h73m146o2i1otrg.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBcbnkapnS0jjmm48-m-jU2MsCn0caI_Q0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "567474314433-90jjhlsq8qb1t5jf1h73m146o2i1otrg.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
