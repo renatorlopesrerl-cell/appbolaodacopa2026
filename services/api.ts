@@ -227,5 +227,36 @@ export const api = {
                 .eq('player_name', playerName);
             if (error) throw error;
         }
+    },
+    topFinisherPredictions: {
+        list: async () => {
+            const { data, error } = await supabase.from('top_finisher_predictions').select('*');
+            if (error) throw error;
+            return data || [];
+        },
+        upsert: async (prediction: {
+            user_id: string; league_id: string;
+            champion: string; runner_up: string; third: string; fourth: string;
+        }) => {
+            const { error } = await supabase.from('top_finisher_predictions').upsert(
+                prediction,
+                { onConflict: 'user_id,league_id' }
+            );
+            if (error) throw error;
+        }
+    },
+    topFinishersResult: {
+        get: async () => {
+            const { data, error } = await supabase.from('top_finishers_result').select('*').single();
+            if (error && error.code !== 'PGRST116') throw error;
+            return data || null;
+        },
+        upsert: async (result: { champion: string; runner_up: string; third: string; fourth: string }) => {
+            const { error } = await supabase.from('top_finishers_result').upsert(
+                { id: 1, ...result },
+                { onConflict: 'id' }
+            );
+            if (error) throw error;
+        }
     }
 };

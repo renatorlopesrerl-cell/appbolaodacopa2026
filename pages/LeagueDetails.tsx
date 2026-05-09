@@ -21,7 +21,8 @@ export const LeagueDetails: React.FC = () => {
     const {
         currentUser, leagues, matches, predictions, users, currentTime, invitations,
         joinLeague, deleteLeague, approveUser, rejectUser,
-        removeUserFromLeague, submitPredictions, sendLeagueInvite, updateLeague, loading, refreshPredictions
+        removeUserFromLeague, submitPredictions, sendLeagueInvite, updateLeague, loading, refreshPredictions,
+        topFinisherPredictions, topFinishersResult, submitTopFinisherPrediction
     } = useStore();
 
     const [activeTab, setActiveTab] = useState<'palpites' | 'classificacao' | 'regras' | 'admin'>('palpites');
@@ -68,12 +69,28 @@ export const LeagueDetails: React.FC = () => {
     const [editIsPrivate, setEditIsPrivate] = useState(false);
     const [imageProcessing, setImageProcessing] = useState(false);
     const [isSavingSettings, setIsSavingSettings] = useState(false);
+    const [isSavingScoring, setIsSavingScoring] = useState(false);
+    const [editExactScore, setEditExactScore] = useState<number | string>(10);
+    const [editWinnerAndDiff, setEditWinnerAndDiff] = useState<number | string>(7);
+    const [editWinnerAndWinnerGoals, setEditWinnerAndWinnerGoals] = useState<number | string>(6);
+    const [editDraw, setEditDraw] = useState<number | string>(7);
+    const [editWinner, setEditWinner] = useState<number | string>(5);
     const [adminInviteEmail, setAdminInviteEmail] = useState('');
     const [isSendingInvite, setIsSendingInvite] = useState(false);
     const [foundUser, setFoundUser] = useState<User | null>(null);
     const [searchStatus, setSearchStatus] = useState<'idle' | 'searching' | 'found' | 'not_found'>('idle');
     const fileInputRef = useRef<HTMLInputElement>(null);
     const isPrivateInitialized = useRef(false);
+
+    // --- TOP FINISHERS STATE ---
+    const [tfChampion, setTfChampion] = useState('');
+    const [tfRunnerUp, setTfRunnerUp] = useState('');
+    const [tfThird, setTfThird] = useState('');
+    const [tfFourth, setTfFourth] = useState('');
+    const [isSavingTopFinishers, setIsSavingTopFinishers] = useState(false);
+    const [editTopFinishersEnabled, setEditTopFinishersEnabled] = useState(false);
+    const [editTopFinishersPoints, setEditTopFinishersPoints] = useState({ champion: 20, runnerUp: 15, third: 10, fourth: 5 });
+    const [showTopFinishersModal, setShowTopFinishersModal] = useState(false);
 
     // Find League
     const league = leagues.find(l => l.id === id);
@@ -83,17 +100,42 @@ export const LeagueDetails: React.FC = () => {
         if (league) {
             if (editImage === '') setEditImage(league.image || '');
             if (editDescription === '') setEditDescription(league.description || '');
-            // Sync isPrivate only once when the page first loads to prevent form from
-            // "forgetting" the current state (e.g. a Private league appearing as Public)
             if (!isPrivateInitialized.current) {
                 setEditIsPrivate(league.isPrivate);
                 isPrivateInitialized.current = true;
             }
+            if (league.settings) {
+                setEditExactScore(league.settings.exactScore ?? 10);
+                setEditWinnerAndDiff(league.settings.winnerAndDiff ?? 7);
+                setEditWinnerAndWinnerGoals(league.settings.winnerAndWinnerGoals ?? 6);
+                setEditDraw(league.settings.draw ?? 7);
+                setEditWinner(league.settings.winner ?? 5);
+                setEditTopFinishersEnabled(league.settings.topFinishersEnabled ?? false);
+                setEditTopFinishersPoints({
+                    champion: league.settings.topFinishersPoints?.champion ?? 20,
+                    runnerUp: league.settings.topFinishersPoints?.runnerUp ?? 15,
+                    third: league.settings.topFinishersPoints?.third ?? 10,
+                    fourth: league.settings.topFinishersPoints?.fourth ?? 5,
+                });
+            }
         }
     }, [league]);
 
+    const isScoringLocked = useMemo(() => {
+        // Manual lock from system admin
+        if (league?.settings?.manualScoringLock) return true;
+
+        if (!matches || matches.length === 0) return false;
+        const sortedMatches = [...matches].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        const firstMatch = sortedMatches[0];
+        if (!firstMatch) return false;
+        const firstMatchTime = new Date(firstMatch.date).getTime();
+        const lockThreshold = 24 * 60 * 60 * 1000; // 24 Hours
+        return currentTime.getTime() >= (firstMatchTime - lockThreshold);
+    }, [matches, currentTime, league?.settings?.manualScoringLock]);
+
     // Derived State
-    const isAdmin = currentUser && league ? league.adminId === currentUser.id : false;
+    const isAdmin = currentUser && league ? (league.adminId === currentUser.id) : false;
 
     const validPendingRequestsCount = useMemo(() => {
         if (!league) return 0;
@@ -159,6 +201,17 @@ export const LeagueDetails: React.FC = () => {
     const isBasic = currentPlan === 'VIP_BASIC';
     const isFree = currentPlan === 'FREE';
 
+    // Top 4 Finishers Lock Logic: 5 minutes after the first match starts
+    const firstMatchDate = matches.length > 0
+        ? new Date(Math.min(...matches.map(m => new Date(m.date).getTime())))
+        : null;
+    const topFinishersLockDate = firstMatchDate
+        ? new Date(firstMatchDate.getTime() + 5 * 60 * 1000)
+        : null;
+    const isTopFinishersLocked = topFinishersLockDate
+        ? currentTime > topFinishersLockDate
+        : false;
+
     // --- ACTIONS ---
 
     const showToast = (title: string, message: string, type: 'success' | 'info' | 'warning' = 'success') => {
@@ -220,6 +273,54 @@ export const LeagueDetails: React.FC = () => {
         const index = groupMatches.findIndex(m => m.id === match.id);
         if (index === -1) return null;
         return Math.floor(index / 2) + 1;
+    };
+
+    const renderMatchBadge = (match: Match) => {
+        const matchRound = getMatchRound(match);
+        let label = '';
+        let colorClass = '';
+
+        if (match.phase === Phase.GROUP) {
+            if (matchRound === 1) {
+                label = '1ª Rodada';
+                colorClass = 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-100 dark:border-blue-800';
+            } else if (matchRound === 2) {
+                label = '2ª Rodada';
+                colorClass = 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-100 dark:border-green-800';
+            } else if (matchRound === 3) {
+                label = '3ª Rodada';
+                colorClass = 'bg-amber-50 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 border-amber-100 dark:border-amber-800';
+            }
+        } else {
+            if (match.phase === Phase.ROUND_32) {
+                label = '16-avos';
+                colorClass = 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600';
+            } else if (match.phase === Phase.ROUND_16) {
+                label = 'Oitavas';
+                colorClass = 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-100 dark:border-blue-800';
+            } else if (match.phase === Phase.QUARTER) {
+                label = 'Quartas';
+                colorClass = 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-100 dark:border-green-800';
+            } else if (match.phase === Phase.SEMI) {
+                label = 'Semi';
+                colorClass = 'bg-amber-50 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 border-amber-100 dark:border-amber-800';
+            } else if (match.phase === Phase.FINAL) {
+                if (match.id === 'm-3RD') {
+                    label = '3º Lugar';
+                } else {
+                    label = 'Final';
+                }
+                colorClass = 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600';
+            }
+        }
+
+        if (!label) return null;
+
+        return (
+            <span className={`text-[10px] ${colorClass} px-1.5 py-0.5 rounded font-bold border uppercase tracking-wider`}>
+                {label}
+            </span>
+        );
     };
 
     // --- PALPITES LOGIC ---
@@ -317,7 +418,7 @@ export const LeagueDetails: React.FC = () => {
         }
 
         try {
-            await updateLeague(league.id, { image: finalImage, description: editDescription, settings: league.settings, isPrivate: editIsPrivate });
+            await updateLeague(league.id, { image: finalImage, description: editDescription, isPrivate: editIsPrivate });
             setEditImage(finalImage);
             showToast('Sucesso', 'Alterações salvas.', 'success');
         } catch (e) {
@@ -325,6 +426,35 @@ export const LeagueDetails: React.FC = () => {
             showToast('Erro', 'Falha ao salvar as alterações.', 'warning');
         } finally {
             setIsSavingSettings(false);
+        }
+    };
+
+    const handleUpdateScoring = async () => {
+        if (isScoringLocked) return;
+        setIsSavingScoring(true);
+        try {
+            const updatedSettings = {
+                ...league.settings,
+                exactScore: Math.max(1, Number(editExactScore) || 1),
+                winnerAndDiff: Math.max(1, Number(editWinnerAndDiff) || 1),
+                winnerAndWinnerGoals: Math.max(1, Number(editWinnerAndWinnerGoals) || 1),
+                draw: Math.max(1, Number(editDraw) || 1),
+                winner: Math.max(1, Number(editWinner) || 1),
+                topFinishersEnabled: editTopFinishersEnabled,
+                topFinishersPoints: {
+                    champion: Math.max(1, Number(editTopFinishersPoints.champion) || 20),
+                    runnerUp: Math.max(1, Number(editTopFinishersPoints.runnerUp) || 15),
+                    third: Math.max(1, Number(editTopFinishersPoints.third) || 10),
+                    fourth: Math.max(1, Number(editTopFinishersPoints.fourth) || 5),
+                }
+            };
+            await updateLeague(league.id, { settings: updatedSettings });
+            showToast('Sucesso', 'Pontuações atualizadas.', 'success');
+        } catch (e) {
+            console.error(e);
+            showToast('Erro', 'Falha ao salvar pontuações.', 'warning');
+        } finally {
+            setIsSavingScoring(false);
         }
     };
     const handleSearchUser = (e: React.FormEvent) => {
@@ -400,6 +530,218 @@ export const LeagueDetails: React.FC = () => {
 
         return (
             <div className="space-y-6 pb-24">
+                {/* NEW TOP 4 LOCK ALERT */}
+                {league.settings?.topFinishersEnabled && (
+                    <div className="bg-brasil-blue/10 dark:bg-blue-900/40 text-gray-700 dark:text-gray-300 px-4 py-3 text-xs md:text-sm font-bold border border-brasil-blue/20 dark:border-blue-800/50 rounded-xl flex items-center justify-center gap-2 text-center shadow-sm">
+                        <Clock size={16} />
+                        <span>
+                            {isTopFinishersLocked
+                                ? "Palpites dos 4 Primeiros encerrados. Clique em cima do card para conferir os palpites da galera."
+                                : "O palpite dos 4 primeiros é encerrado junto com o início do 1º jogo da competição."}
+                        </span>
+                    </div>
+                )}
+
+                {/* TOP 4 FINALISTS CARD */}
+                {league.settings?.topFinishersEnabled && (() => {
+                    const existingPred = topFinisherPredictions.find(p => p.userId === currentUser.id && p.leagueId === league.id);
+                    const tfPoints = league.settings.topFinishersPoints ?? { champion: 20, runnerUp: 15, third: 10, fourth: 5 };
+                    const fields: Array<{ key: keyof typeof tfPoints; label: string; emoji: string; color: string; pts: number; value: string; setter: (v: string) => void }> = [
+                        { key: 'champion', label: 'Campeão', emoji: '🥇', color: 'text-yellow-600 dark:text-yellow-400', pts: tfPoints.champion, value: tfChampion, setter: setTfChampion },
+                        { key: 'runnerUp', label: 'Vice-Campeão', emoji: '🥈', color: 'text-slate-500 dark:text-slate-300', pts: tfPoints.runnerUp, value: tfRunnerUp, setter: setTfRunnerUp },
+                        { key: 'third', label: '3º Lugar', emoji: '🥉', color: 'text-amber-700 dark:text-amber-500', pts: tfPoints.third, value: tfThird, setter: setTfThird },
+                        { key: 'fourth', label: '4º Lugar', emoji: '🏅', color: 'text-gray-500 dark:text-gray-400', pts: tfPoints.fourth, value: tfFourth, setter: setTfFourth },
+                    ];
+
+                    const initPred = () => {
+                        if (existingPred && !tfChampion && !tfRunnerUp && !tfThird && !tfFourth) {
+                            setTfChampion(existingPred.champion);
+                            setTfRunnerUp(existingPred.runnerUp);
+                            setTfThird(existingPred.third);
+                            setTfFourth(existingPred.fourth);
+                        }
+                    };
+                    initPred();
+
+                    const isOfficialResultDefined = topFinishersResult !== null && (topFinishersResult.champion !== '' || topFinishersResult.runnerUp !== '');
+                    const isLocked = isOfficialResultDefined || isTopFinishersLocked;
+                    const allTeams = [...new Set(matches.flatMap(m => [m.homeTeamId, m.awayTeamId]).filter(t => t && !t.startsWith('Venc') && !t.startsWith('Perd') && !t.startsWith('1º') && !t.startsWith('2º') && !t.startsWith('3º')))].sort();
+
+                    return (
+                        <div className="rounded-2xl border border-gray-200 dark:border-gray-700 shadow-md overflow-hidden bg-white dark:bg-gray-800">
+                            {/* Header - clickable when locked to view all predictions */}
+                            <div
+                                className={`bg-gradient-to-r from-gray-800 to-gray-700 dark:from-gray-900 dark:to-gray-800 px-5 py-4 flex items-center justify-between ${isLocked ? 'cursor-pointer hover:from-gray-700 hover:to-gray-600 dark:hover:from-gray-800 dark:hover:to-gray-700 transition-all group' : ''}`}
+                                onClick={isLocked ? () => setShowTopFinishersModal(true) : undefined}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-white/10 p-2 rounded-xl">
+                                        <Trophy size={18} className="text-gray-100" />
+                                    </div>
+                                    <div>
+                                        <span className="font-black text-white text-sm uppercase tracking-widest">4 Primeiros Colocados</span>
+                                        <p className="text-gray-400 text-[10px] mt-0.5 font-medium">
+                                            {isLocked ? 'Toque para ver os palpites da galera 👆' : 'Palpite de colocação final da competição'}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    {isLocked && <Eye size={16} className="text-gray-400 group-hover:text-white transition-colors" />}
+                                    {existingPred && (
+                                        <span className="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2.5 py-1 rounded-full font-bold tracking-wide flex items-center gap-1">
+                                            <CheckCircle2 size={10} /> SALVO
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Result banner */}
+                            {isLocked && (
+                                <div className="bg-emerald-50 dark:bg-emerald-900/20 px-5 py-2.5 border-b border-emerald-200 dark:border-emerald-800 flex items-center gap-2 text-emerald-800 dark:text-emerald-300 text-xs font-bold">
+                                    <CheckCircle2 size={14} /> {isOfficialResultDefined ? 'Resultado oficial definido — palpites encerrados' : 'A competição já começou — palpites encerrados'}
+                                </div>
+                            )}
+
+                            {/* Fields grid */}
+                            <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {fields.map(f => {
+                                    const officialValue = topFinishersResult?.[f.key as keyof typeof topFinishersResult];
+                                    const userValue = existingPred?.[f.key as keyof typeof existingPred];
+                                    const isCorrect = isOfficialResultDefined && officialValue && userValue === officialValue;
+                                    const isWrong = isOfficialResultDefined && officialValue && userValue && userValue !== officialValue;
+
+                                    return (
+                                        <div key={f.key} className={`rounded-xl border p-3.5 transition-all ${isCorrect ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-700' :
+                                            isWrong ? 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800/50' :
+                                                'bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600'
+                                            }`}>
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className={`text-xs font-black uppercase tracking-wide flex items-center gap-1.5 ${f.color}`}>
+                                                    <span className="text-base leading-none">{f.emoji}</span> {f.label}
+                                                </span>
+                                                <span className="text-[10px] text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-600 px-2 py-0.5 rounded-full font-bold">
+                                                    +{f.pts} pts
+                                                </span>
+                                            </div>
+                                            <select
+                                                value={f.value}
+                                                onChange={e => f.setter(e.target.value)}
+                                                disabled={isLocked}
+                                                className={`w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg p-2.5 font-bold text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-brasil-blue transition-all ${isLocked ? 'opacity-70 cursor-not-allowed bg-gray-100 dark:bg-gray-900' : ''} text-sm`}
+                                            >
+                                                <option value="">-- Selecione a seleção --</option>
+                                                {allTeams.map(t => <option key={t} value={t}>{t}</option>)}
+                                            </select>
+                                            {isLocked && (
+                                                <div className="mt-2 flex items-center justify-between">
+                                                    <div className="text-[10px] text-gray-500 dark:text-gray-400">
+                                                        {userValue ? <span>Palpitou: <strong className="text-gray-700 dark:text-gray-200">{userValue}</strong></span> : <span className="italic">Não palpitou</span>}
+                                                        {isCorrect && <span className="ml-1 text-emerald-600 dark:text-emerald-400 font-bold">✅ ACERTOU!</span>}
+                                                        {isWrong && <span className="ml-1 text-red-500 font-bold text-[9px]">❌ ERROU</span>}
+                                                    </div>
+                                                    {officialValue && officialValue !== userValue && (
+                                                        <div className="text-[10px] font-bold text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 px-2 py-0.5 rounded shadow-sm border border-gray-100 dark:border-gray-700">
+                                                            {officialValue}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    );
+                })()}
+
+                {/* TOP 4 FINISHERS: Modal de palpites de todos os participantes */}
+                {showTopFinishersModal && isTopFinishersLocked && league.settings?.topFinishersEnabled && createPortal(
+                    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setShowTopFinishersModal(false)}>
+                        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-300" onClick={e => e.stopPropagation()}>
+                            {/* Header */}
+                            <div className="bg-gradient-to-r from-gray-900 to-gray-800 px-5 py-4 flex items-center justify-between shrink-0">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-white/10 p-2 rounded-xl"><Trophy size={18} className="text-gray-100" /></div>
+                                    <div>
+                                        <span className="font-black text-white text-sm uppercase tracking-widest">Palpites da Galera</span>
+                                        <p className="text-gray-400 text-[10px] mt-0.5">4 Primeiros Colocados</p>
+                                    </div>
+                                </div>
+                                <button onClick={() => setShowTopFinishersModal(false)} className="p-2 hover:bg-white/20 rounded-full transition-colors"><X size={20} className="text-white" /></button>
+                            </div>
+                            {/* List */}
+                            <div className="flex-1 overflow-y-auto">
+                                {(() => {
+                                    const tfPts = league.settings.topFinishersPoints ?? { champion: 20, runnerUp: 15, third: 10, fourth: 5 };
+                                    const allPreds = league.participants.map(uid => {
+                                        const user = users.find(u => u.id === uid) || { name: 'Unknown', id: uid, avatar: '' } as User;
+                                        const pred = topFinisherPredictions.find(p => p.userId === uid && p.leagueId === league.id);
+                                        let pts = 0;
+                                        if (pred && topFinishersResult) {
+                                            if (topFinishersResult.champion && pred.champion === topFinishersResult.champion) pts += tfPts.champion;
+                                            if (topFinishersResult.runnerUp && pred.runnerUp === topFinishersResult.runnerUp) pts += tfPts.runnerUp;
+                                            if (topFinishersResult.third && pred.third === topFinishersResult.third) pts += tfPts.third;
+                                            if (topFinishersResult.fourth && pred.fourth === topFinishersResult.fourth) pts += tfPts.fourth;
+                                        }
+                                        return { user, pred, pts };
+                                    }).sort((a, b) => b.pts - a.pts || a.user.name.localeCompare(b.user.name));
+                                    const fields = [
+                                        { key: 'champion' as const, label: 'Campeão', emoji: '🥇' },
+                                        { key: 'runnerUp' as const, label: 'Vice', emoji: '🥈' },
+                                        { key: 'third' as const, label: '3º Lugar', emoji: '🥉' },
+                                        { key: 'fourth' as const, label: '4º Lugar', emoji: '🏅' },
+                                    ];
+                                    return (
+                                        <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                                            {allPreds.map(({ user, pred, pts }, idx) => (
+                                                <div key={user.id} className={`p-4 ${user.id === currentUser.id ? 'bg-yellow-50 dark:bg-yellow-900/20' : 'bg-white dark:bg-gray-800'}`}>
+                                                    <div className="flex items-center justify-between mb-3">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className="relative">
+                                                                <OptimizedImage src={user.avatar} containerClassName="w-9 h-9 rounded-full border border-gray-200 dark:border-gray-600" className="w-full h-full object-cover" alt="" />
+                                                                <div className="absolute -top-1 -left-1 w-4 h-4 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center text-[9px] font-bold text-gray-600 dark:text-gray-300 border border-white dark:border-gray-700">{idx + 1}</div>
+                                                            </div>
+                                                            <div>
+                                                                <div className="font-bold text-sm text-gray-800 dark:text-gray-200">{user.name}{user.id === currentUser.id && <span className="text-[10px] font-normal text-gray-500 ml-1">(Você)</span>}</div>
+                                                                {!pred && <div className="text-[10px] text-gray-400 italic">Não palpitou</div>}
+                                                            </div>
+                                                        </div>
+                                                        <div className={`text-sm font-black px-3 py-1 rounded-lg ${pts > 0 ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-400'}`}>
+                                                            {pts > 0 ? `+${pts}` : '—'} pts
+                                                        </div>
+                                                    </div>
+                                                    {pred && (
+                                                        <div className="grid grid-cols-2 gap-1.5">
+                                                            {fields.map(f => {
+                                                                const val = pred[f.key];
+                                                                const official = topFinishersResult?.[f.key];
+                                                                const correct = official && val === official;
+                                                                const wrong = official && val && val !== official;
+                                                                return (
+                                                                    <div key={f.key} className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] font-bold border ${correct ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300' :
+                                                                            wrong ? 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800/50 text-red-600 dark:text-red-400' :
+                                                                                'bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300'
+                                                                        }`}>
+                                                                        <span>{f.emoji}</span>
+                                                                        <span className="truncate">{val || <span className="font-normal italic text-gray-400">—</span>}</span>
+                                                                        {correct && <span className="ml-auto">✅</span>}
+                                                                        {wrong && <span className="ml-auto">❌</span>}
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+                        </div>
+                    </div>, document.body
+                )}
+
+                {/* Match alerts moved below Top 4 card */}
                 <div className="space-y-3">
                     <div className="bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 px-4 py-3 text-xs md:text-sm font-medium border border-blue-100 dark:border-blue-800 rounded-xl flex items-center justify-center gap-2 text-center shadow-sm">
                         <MousePointerClick size={16} /><span>Clique em uma partida com palpite encerrado para conferir os palpites da galera.</span>
@@ -408,6 +750,43 @@ export const LeagueDetails: React.FC = () => {
                         <AlertCircle size={16} /><span>O palpite é encerrado 5 min. antes do início do jogo.</span>
                     </div>
                 </div>
+
+                {/* FLOATING: Salvar palpite dos 4 primeiros */}
+                {league.settings?.topFinishersEnabled && (() => {
+                    const isLocked = (topFinishersResult !== null && (topFinishersResult.champion !== '' || topFinishersResult.runnerUp !== '')) || isTopFinishersLocked;
+                    const existingPred = topFinisherPredictions.find(p => p.userId === currentUser.id && p.leagueId === league.id);
+                    const anyFieldFilled = tfChampion || tfRunnerUp || tfThird || tfFourth;
+                    const differsFromSaved = !existingPred
+                        || existingPred.champion !== tfChampion
+                        || existingPred.runnerUp !== tfRunnerUp
+                        || existingPred.third !== tfThird
+                        || existingPred.fourth !== tfFourth;
+                    const hasTopFinisherChanges = !isLocked && anyFieldFilled && differsFromSaved;
+                    if (!hasTopFinisherChanges) return null;
+                    const shiftUp = Object.keys(pendingEdits).length > 0;
+                    return createPortal(
+                        <div className={`fixed left-1/2 -translate-x-1/2 z-[9800] pointer-events-auto animate-in slide-in-from-bottom-6 fade-in duration-300 ${shiftUp ? 'bottom-28' : 'bottom-8'}`}>
+                            <button
+                                onClick={async () => {
+                                    if (!tfChampion || !tfRunnerUp || !tfThird || !tfFourth) {
+                                        alert('Selecione todos os 4 colocados antes de salvar.');
+                                        return;
+                                    }
+                                    setIsSavingTopFinishers(true);
+                                    await submitTopFinisherPrediction(league.id, tfChampion, tfRunnerUp, tfThird, tfFourth);
+                                    setIsSavingTopFinishers(false);
+                                }}
+                                disabled={isSavingTopFinishers}
+                                className="bg-gray-800 hover:bg-gray-700 text-white px-8 py-4 rounded-full shadow-2xl shadow-gray-900/40 font-bold text-xl md:text-2xl flex items-center gap-3 transition-all transform hover:-translate-y-1 active:scale-95 border border-gray-600 ring-4 ring-white/20 backdrop-blur-sm whitespace-nowrap disabled:opacity-70"
+                            >
+                                {isSavingTopFinishers ? <Loader2 size={28} className="animate-spin" /> : <Trophy size={28} className="stroke-[2]" />}
+                                <span>{isSavingTopFinishers ? 'Salvando...' : 'Salvar 4 Primeiros'}</span>
+                            </button>
+                        </div>,
+                        document.body
+                    );
+                })()}
+
 
                 {hasUnsavedChanges && createPortal(
                     <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[9900] pointer-events-auto animate-in slide-in-from-bottom-6 fade-in duration-300">
@@ -502,7 +881,7 @@ export const LeagueDetails: React.FC = () => {
                                     <div className="flex flex-col text-xs text-gray-500 dark:text-gray-400 mb-4 gap-1 pr-20">
                                         <span className="font-bold text-brasil-blue dark:text-blue-400 uppercase flex items-center gap-1.5"><Calendar size={12} />{isDateValid ? matchDate.toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' }) : 'Data Inválida'}<span className="text-gray-300 dark:text-gray-600">|</span>{isDateValid ? matchDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '--:--'}</span>
                                         <span className="flex items-center gap-1 text-gray-400 dark:text-gray-500 truncate"><MapPin size={12} /> {match.location}</span>
-                                        <div className="flex items-center gap-2 mt-1">{match.group && <span className="text-[10px] bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded font-medium">Grupo {match.group}</span>}{matchRound && <span className="text-[10px] bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded font-medium border border-blue-100 dark:border-blue-800">{matchRound}ª Rodada</span>}</div>
+                                        <div className="flex items-center gap-2 mt-1">{match.group && <span className="text-[10px] bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded font-medium">Grupo {match.group}</span>}{renderMatchBadge(match)}</div>
                                     </div>
                                     <div className="flex items-center justify-between mb-2">
                                         <div className="flex flex-col items-center justify-center w-1/3 gap-2">
@@ -622,7 +1001,27 @@ export const LeagueDetails: React.FC = () => {
                     }
                 }
             });
-            return { user, totalPoints, exactScores, winnerAndDiffCount, winnerAndWinnerGoalsCount, drawCount, knockoutPoints };
+
+            // TOP 4 FINISHERS POINTS
+            let tfTotal = 0;
+            if (league.settings?.topFinishersEnabled && topFinishersResult) {
+                const tfPred = topFinisherPredictions.find(p => p.userId === userId && p.leagueId === league.id);
+                if (tfPred) {
+                    const tfPts = league.settings.topFinishersPoints ?? { champion: 20, runnerUp: 15, third: 10, fourth: 5 };
+                    if (topFinishersResult.champion && tfPred.champion === topFinishersResult.champion) tfTotal += tfPts.champion;
+                    if (topFinishersResult.runnerUp && tfPred.runnerUp === topFinishersResult.runnerUp) tfTotal += tfPts.runnerUp;
+                    if (topFinishersResult.third && tfPred.third === topFinishersResult.third) tfTotal += tfPts.third;
+                    if (topFinishersResult.fourth && tfPred.fourth === topFinishersResult.fourth) tfTotal += tfPts.fourth;
+
+                    // Add to totalPoints if view is total or final phases
+                    const includeTfInSum = leaderboardView === 'total' || leaderboardView === 'knockout' || leaderboardView === 'final_phase';
+                    if (includeTfInSum) {
+                        totalPoints += tfTotal;
+                    }
+                }
+            }
+
+            return { user, totalPoints, exactScores, winnerAndDiffCount, winnerAndWinnerGoalsCount, drawCount, knockoutPoints, tfTotal };
         }).sort((a, b) => {
             if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
             if (b.exactScores !== a.exactScores) return b.exactScores - a.exactScores;
@@ -669,7 +1068,25 @@ export const LeagueDetails: React.FC = () => {
                                     className="w-full h-full object-cover"
                                     alt=""
                                 />
-                                <div className="flex flex-col"><span className="font-medium decoration-dotted decoration-gray-400 dark:decoration-gray-500 underline-offset-4 group-hover:text-brasil-blue dark:group-hover:text-blue-400 group-hover:underline text-sm md:text-base line-clamp-1 text-gray-900 dark:text-white flex items-center gap-1">{entry.user.name} {entry.user.id === currentUser.id && <span className="text-[10px] font-normal text-gray-500 dark:text-gray-400">(Você)</span>}</span><span className="md:hidden text-[10px] text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-0.5"><Target size={10} className="text-brasil-blue dark:text-blue-400" />{entry.exactScores} crv <span className="text-gray-300 dark:text-gray-600 mx-0.5">|</span> {entry.winnerAndDiffCount} V+S <span className="text-gray-300 dark:text-gray-600 mx-0.5">|</span> {entry.winnerAndWinnerGoalsCount} V+G <span className="text-gray-300 dark:text-gray-600 mx-0.5">|</span> {entry.drawCount} Emp</span></div><Eye size={16} className="text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity ml-auto hidden md:block" /></div></td><td className="hidden md:table-cell px-2 py-3 text-center font-black text-gray-800 dark:text-gray-200 text-base">{entry.totalPoints}</td><td className="hidden md:table-cell px-2 py-3 text-center"><span className="bg-blue-50 dark:bg-blue-900/30 text-brasil-blue dark:text-blue-300 font-bold px-2 py-1 rounded text-sm">{entry.exactScores}</span></td><td className="hidden md:table-cell px-2 py-3 text-center"><span className="bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-bold px-2 py-1 rounded text-sm">{entry.winnerAndDiffCount}</span></td><td className="hidden md:table-cell px-2 py-3 text-center"><span className="bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 font-bold px-2 py-1 rounded text-sm">{entry.winnerAndWinnerGoalsCount}</span></td><td className="hidden md:table-cell px-2 py-3 text-center"><span className="bg-gray-100 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 font-bold px-2 py-1 rounded text-sm">{entry.drawCount}</span></td><td className="md:hidden px-2 py-3 text-center font-bold text-brasil-green dark:text-green-400 text-base">{entry.totalPoints}</td>{isAdmin && <td className="px-2 py-3 text-center">{entry.user.id !== currentUser.id && (<button type="button" onClick={(e) => initiateRemoveUser(e, entry.user.id, entry.user.name)} className="text-red-300 hover:text-red-500 dark:hover:text-red-400 p-2 rounded transition-colors z-10 relative"><Trash2 size={18} /></button>)}</td>}</tr>);
+                                <div className="flex flex-col"><span className="font-medium decoration-dotted decoration-gray-400 dark:decoration-gray-500 underline-offset-4 group-hover:text-brasil-blue dark:group-hover:text-blue-400 group-hover:underline text-sm md:text-base line-clamp-1 text-gray-900 dark:text-white flex items-center gap-1">{entry.user.name} {entry.user.id === currentUser.id && <span className="text-[10px] font-normal text-gray-500 dark:text-gray-400">(Você)</span>}</span><span className="md:hidden text-[10px] text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-0.5"><Target size={10} className="text-brasil-blue dark:text-blue-400" />{entry.exactScores} crv <span className="text-gray-300 dark:text-gray-600 mx-0.5">|</span> {entry.winnerAndDiffCount} V+S <span className="text-gray-300 dark:text-gray-600 mx-0.5">|</span> {entry.winnerAndWinnerGoalsCount} V+G <span className="text-gray-300 dark:text-gray-600 mx-0.5">|</span> {entry.drawCount} Emp</span></div><Eye size={16} className="text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity ml-auto hidden md:block" /></div></td><td className="hidden md:table-cell px-2 py-3 text-center font-black text-gray-800 dark:text-gray-200 text-base">
+                                    <div className="flex flex-col items-center justify-center">
+                                        <span>{entry.totalPoints}</span>
+                                        {entry.tfTotal > 0 && (
+                                            <span className="text-[9px] bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-1 rounded flex items-center gap-0.5 mt-0.5" title={`${entry.tfTotal} pts de Finalistas`}>
+                                                <Trophy size={8} className="text-yellow-600" /> +{entry.tfTotal}
+                                            </span>
+                                        )}
+                                    </div>
+                                </td><td className="hidden md:table-cell px-2 py-3 text-center"><span className="bg-blue-50 dark:bg-blue-900/30 text-brasil-blue dark:text-blue-300 font-bold px-2 py-1 rounded text-sm">{entry.exactScores}</span></td><td className="hidden md:table-cell px-2 py-3 text-center"><span className="bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-bold px-2 py-1 rounded text-sm">{entry.winnerAndDiffCount}</span></td><td className="hidden md:table-cell px-2 py-3 text-center"><span className="bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 font-bold px-2 py-1 rounded text-sm">{entry.winnerAndWinnerGoalsCount}</span></td><td className="hidden md:table-cell px-2 py-3 text-center"><span className="bg-gray-100 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 font-bold px-2 py-1 rounded text-sm">{entry.drawCount}</span></td><td className="md:hidden px-2 py-3 text-center font-bold text-brasil-green dark:text-green-400 text-base">
+                                    <div className="flex flex-col items-center justify-center">
+                                        <span>{entry.totalPoints}</span>
+                                        {entry.tfTotal > 0 && (
+                                            <span className="text-[8px] bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-0.5 rounded flex items-center gap-0.5 mt-0.5">
+                                                <Trophy size={6} className="text-yellow-600" /> +{entry.tfTotal}
+                                            </span>
+                                        )}
+                                    </div>
+                                </td>{isAdmin && <td className="px-2 py-3 text-center">{entry.user.id !== currentUser.id && (<button type="button" onClick={(e) => initiateRemoveUser(e, entry.user.id, entry.user.name)} className="text-red-300 hover:text-red-500 dark:hover:text-red-400 p-2 rounded transition-colors z-10 relative"><Trash2 size={18} /></button>)}</td>}</tr>);
                         })}
                     </tbody>
                 </table>
@@ -681,7 +1098,44 @@ export const LeagueDetails: React.FC = () => {
                                 <div className="flex justify-between items-center px-1"><div className="flex items-center gap-2"><span className="text-xs font-bold text-gray-500 dark:text-gray-300 uppercase flex items-center gap-1"><Filter size={12} /> Filtrar Jogos</span>{hasHistoryFilters && (<button onClick={clearHistoryFilters} className="text-[10px] font-bold text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors flex items-center gap-1 bg-white dark:bg-gray-600 border border-red-200 dark:border-red-800 px-2 py-0.5 rounded shadow-sm"><X size={10} /> Limpar</button>)}</div><span className="text-[10px] bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded font-bold">{filteredHistory.length} resultados</span></div>
                                 <div className="flex flex-wrap gap-2 pb-1"><select value={histPhase} onChange={(e) => { setHistPhase(e.target.value); if (e.target.value !== Phase.GROUP) { setHistGroup('all'); setHistRound('all'); } }} className="w-full sm:w-auto flex-1 min-w-[120px] text-xs border border-gray-600 bg-gray-700 text-white rounded-lg p-2 outline-none focus:border-brasil-blue focus:ring-1 focus:ring-brasil-blue"><option value="all">Todas as Fases</option>{Object.values(Phase).map(p => <option key={p} value={p}>{p}</option>)}</select>{(histPhase === 'all' || histPhase === Phase.GROUP) && (<><select value={histGroup} onChange={(e) => setHistGroup(e.target.value)} className="flex-1 min-w-[45%] text-xs border border-gray-600 bg-gray-700 text-white rounded-lg p-2 outline-none focus:border-brasil-blue focus:ring-1 focus:ring-brasil-blue"><option value="all">Todos Grupos</option>{groupsList.map(g => <option key={g} value={g}>Grupo {g}</option>)}</select><select value={histRound} onChange={(e) => setHistRound(e.target.value)} className="flex-1 min-w-[45%] text-xs border border-gray-600 bg-gray-700 text-white rounded-lg p-2 outline-none focus:border-brasil-blue focus:ring-1 focus:ring-brasil-blue"><option value="all">Todas Rodadas</option><option value="1">1ª Rodada</option><option value="2">2ª Rodada</option><option value="3">3ª Rodada</option></select></>)}</div>
                             </div>
-                            <div className="flex-1 overflow-y-auto p-0 bg-gray-50/50 dark:bg-gray-800/50">{filteredHistory.length === 0 ? <div className="flex flex-col items-center justify-center h-48 text-gray-400 dark:text-gray-500 gap-2"><Search size={32} className="opacity-20" /><p className="text-sm italic">Nenhum palpite encontrado.</p></div> : <div className="divide-y divide-gray-100 dark:divide-gray-700">{filteredHistory.map(({ match, pred }) => { const isLive = match.status === MatchStatus.IN_PROGRESS; const isFinished = match.status === MatchStatus.FINISHED; const mRound = getMatchRound(match); const matchDate = new Date(match.date); const isDateValid = !isNaN(matchDate.getTime()); let histPoints = 0; if ((isLive || isFinished) && match.homeScore !== null && match.awayScore !== null && pred) { histPoints = calculatePoints(Number(pred.homeScore), Number(pred.awayScore), Number(match.homeScore), Number(match.awayScore), league.settings); } return (<div key={match.id} className="p-4 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"><div className="flex justify-between items-center mb-3"><div className="flex items-center gap-2 text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500"><Calendar size={12} /><span>{isDateValid ? matchDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : 'Data Inválida'}</span><span>•</span><span>{match.phase}</span>{mRound && <span>• {mRound}ª R</span>}</div>{isLive && <span className="bg-red-500 text-white px-2 py-0.5 rounded text-[10px] font-bold animate-pulse">AO VIVO</span>}</div><div className="flex flex-col items-center mb-4"><div className="flex items-center gap-6 mb-2"><img src={getTeamFlag(match.homeTeamId)} className="w-10 h-7 object-cover rounded shadow-sm" alt={match.homeTeamId} /><span className="text-gray-300 dark:text-gray-600 text-xs font-bold">X</span><img src={getTeamFlag(match.awayTeamId)} className="w-10 h-7 object-cover rounded shadow-sm" alt={match.awayTeamId} /></div><div className="text-sm font-black text-gray-900 dark:text-white text-center uppercase tracking-tight">{match.homeTeamId} <span className="text-gray-400 dark:text-gray-500 font-normal mx-1">x</span> {match.awayTeamId}</div></div><div className="flex items-stretch rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden"><div className="flex-1 bg-gray-50 dark:bg-gray-700 p-2 flex flex-col items-center justify-center border-r border-gray-200 dark:border-gray-600"><span className="text-[9px] uppercase font-bold text-gray-400 dark:text-gray-500 mb-1">Placar Oficial</span><div className={`text-xl font-black ${isLive ? 'text-green-600 dark:text-green-400 animate-pulse' : 'text-gray-800 dark:text-white'}`}>{match.homeScore ?? '-'} <span className="text-gray-300 dark:text-gray-600 text-sm">x</span> {match.awayScore ?? '-'}</div></div><div className="flex-1 bg-white dark:bg-gray-800 p-2 flex flex-col items-center justify-center relative"><span className="text-[9px] uppercase font-bold text-brasil-blue dark:text-blue-400 mb-1">Palpite</span><div className="text-xl font-black text-gray-800 dark:text-white">{pred ? <>{pred.homeScore} <span className="text-gray-300 dark:text-gray-600 text-sm">x</span> {pred.awayScore}</> : <span className="text-gray-300 dark:text-gray-600">-</span>}</div>{(isFinished || isLive) && pred && (<div className={`absolute top-1 right-1 text-[9px] font-bold px-1.5 py-0.5 rounded ${histPoints > 0 ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'}`}>{histPoints > 0 ? `+${histPoints}` : '0'} pts</div>)}</div></div></div>); })}</div>}</div>
+                            <div className="flex-1 overflow-y-auto p-0 bg-gray-50/50 dark:bg-gray-800/50">
+                                {league.settings?.topFinishersEnabled && isTopFinishersLocked && (() => {
+                                    const tfPred = topFinisherPredictions.find(p => p.userId === selectedUserId && p.leagueId === league.id);
+                                    const tfPts = league.settings.topFinishersPoints ?? { champion: 20, runnerUp: 15, third: 10, fourth: 5 };
+                                    let tfTotal = 0;
+                                    if (topFinishersResult?.champion && tfPred?.champion === topFinishersResult.champion) tfTotal += tfPts.champion;
+                                    if (topFinishersResult?.runnerUp && tfPred?.runnerUp === topFinishersResult.runnerUp) tfTotal += tfPts.runnerUp;
+                                    if (topFinishersResult?.third && tfPred?.third === topFinishersResult.third) tfTotal += tfPts.third;
+                                    if (topFinishersResult?.fourth && tfPred?.fourth === topFinishersResult.fourth) tfTotal += tfPts.fourth;
+
+                                    if (!tfPred) return null;
+
+                                    return (
+                                        <div className="p-4 bg-slate-50 dark:bg-slate-900/40 border-b border-slate-200 dark:border-slate-700">
+                                            <div className="flex justify-between items-center mb-3">
+                                                <div className="flex items-center gap-2 text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400">
+                                                    <Trophy size={12} className="text-yellow-600" /><span>4 Primeiros Colocados</span>
+                                                </div>
+                                                <span className="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded text-[10px] font-bold">PONTOS EXTRAS</span>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex flex-col gap-1">
+                                                    <span className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-tight">Acertos na Colocação Final:</span>
+                                                    <div className="flex flex-wrap gap-1 mt-0.5">
+                                                        {topFinishersResult?.champion && tfPred.champion === topFinishersResult.champion ? <span className="text-[9px] bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300 px-1.5 py-0.5 rounded border border-yellow-200 dark:border-yellow-800/50 font-bold">CAMPEÃO (+{tfPts.champion})</span> : null}
+                                                        {topFinishersResult?.runnerUp && tfPred.runnerUp === topFinishersResult.runnerUp ? <span className="text-[9px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 font-bold">VICE (+{tfPts.runnerUp})</span> : null}
+                                                        {topFinishersResult?.third && tfPred.third === topFinishersResult.third ? <span className="text-[9px] bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800/50 font-bold">3º LUGAR (+{tfPts.third})</span> : null}
+                                                        {topFinishersResult?.fourth && tfPred.fourth === topFinishersResult.fourth ? <span className="text-[9px] bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-1.5 py-0.5 rounded border border-gray-200 dark:border-gray-600 font-bold">4º LUGAR (+{tfPts.fourth})</span> : null}
+                                                        {tfTotal === 0 && <span className="text-[9px] text-gray-400 italic">Nenhum acerto nos 4 primeiros</span>}
+                                                    </div>
+                                                </div>
+                                                <div className="text-2xl font-black text-slate-700 dark:text-slate-300 bg-white dark:bg-gray-800 px-3 py-1 rounded-xl border border-slate-200 dark:border-slate-700">+{tfTotal}</div>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+                                {filteredHistory.length === 0 ? <div className="flex flex-col items-center justify-center h-48 text-gray-400 dark:text-gray-500 gap-2"><Search size={32} className="opacity-20" /><p className="text-sm italic">Nenhum palpite encontrado.</p></div> : <div className="divide-y divide-gray-100 dark:divide-gray-700">{filteredHistory.map(({ match, pred }) => { const isLive = match.status === MatchStatus.IN_PROGRESS; const isFinished = match.status === MatchStatus.FINISHED; const matchDate = new Date(match.date); const isDateValid = !isNaN(matchDate.getTime()); let histPoints = 0; if ((isLive || isFinished) && match.homeScore !== null && match.awayScore !== null && pred) { histPoints = calculatePoints(Number(pred.homeScore), Number(pred.awayScore), Number(match.homeScore), Number(match.awayScore), league.settings); } return (<div key={match.id} className="p-4 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"><div className="flex justify-between items-center mb-3"><div className="flex items-center gap-2 text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500"><Calendar size={12} /><span>{isDateValid ? matchDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : 'Data Inválida'}</span><span>•</span>{renderMatchBadge(match)}</div>{isLive && <span className="bg-red-500 text-white px-2 py-0.5 rounded text-[10px] font-bold animate-pulse">AO VIVO</span>}</div><div className="flex flex-col items-center mb-4"><div className="flex items-center gap-6 mb-2"><img src={getTeamFlag(match.homeTeamId)} className="w-10 h-7 object-cover rounded shadow-sm" alt={match.homeTeamId} /><span className="text-gray-300 dark:text-gray-600 text-xs font-bold">X</span><img src={getTeamFlag(match.awayTeamId)} className="w-10 h-7 object-cover rounded shadow-sm" alt={match.awayTeamId} /></div><div className="text-sm font-black text-gray-900 dark:text-white text-center uppercase tracking-tight">{match.homeTeamId} <span className="text-gray-400 dark:text-gray-500 font-normal mx-1">x</span> {match.awayTeamId}</div></div><div className="flex items-stretch rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden"><div className="flex-1 bg-gray-50 dark:bg-gray-700 p-2 flex flex-col items-center justify-center border-r border-gray-200 dark:border-gray-600"><span className="text-[9px] uppercase font-bold text-gray-400 dark:text-gray-500 mb-1">Placar Oficial</span><div className={`text-xl font-black ${isLive ? 'text-green-600 dark:text-green-400 animate-pulse' : 'text-gray-800 dark:text-white'}`}>{match.homeScore ?? '-'} <span className="text-gray-300 dark:text-gray-600 text-sm">x</span> {match.awayScore ?? '-'}</div></div><div className="flex-1 bg-white dark:bg-gray-800 p-2 flex flex-col items-center justify-center relative"><span className="text-[9px] uppercase font-bold text-brasil-blue dark:text-blue-400 mb-1">Palpite</span><div className="text-xl font-black text-gray-800 dark:text-white">{pred ? <>{pred.homeScore} <span className="text-gray-300 dark:text-gray-600 text-sm">x</span> {pred.awayScore}</> : <span className="text-gray-300 dark:text-gray-600">-</span>}</div>{(isFinished || isLive) && pred && (<div className={`absolute top-1 right-1 text-[9px] font-bold px-1.5 py-0.5 rounded ${histPoints > 0 ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'}`}>{histPoints > 0 ? `+${histPoints}` : '0'} pts</div>)}</div></div></div>); })}</div>}
+                            </div>
                         </div>
                     </div>, document.body
                 )}
@@ -694,17 +1148,33 @@ export const LeagueDetails: React.FC = () => {
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                     <h3 className="text-lg font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2"><Target size={24} className="text-brasil-blue dark:text-blue-400" /> Sistema de Pontuação</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <div className={`grid grid-cols-1 sm:grid-cols-2 ${league.settings?.topFinishersEnabled ? 'lg:grid-cols-6' : 'lg:grid-cols-5'} gap-4`}>
                         <div className="bg-blue-50 dark:bg-blue-900/20 p-5 rounded-xl border border-blue-100 dark:border-blue-800 flex flex-col items-center text-center hover:shadow-md transition-all"><div className="text-3xl font-black text-brasil-blue dark:text-blue-400 mb-2">{league.settings?.exactScore ?? 10}</div><div className="font-bold text-gray-800 dark:text-gray-200 text-sm uppercase tracking-wide mb-2">Cravada</div><p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">Acertou o placar exato do jogo.<br /><span className="text-blue-600 dark:text-blue-300 font-medium">Ex: Palpitou 2x1 e foi 2x1.</span></p></div>
                         <div className="bg-green-50 dark:bg-green-900/20 p-5 rounded-xl border border-green-100 dark:border-green-800 flex flex-col items-center text-center hover:shadow-md transition-all"><div className="text-3xl font-black text-green-700 dark:text-green-400 mb-2">{league.settings?.winnerAndDiff ?? 7}</div><div className="font-bold text-gray-800 dark:text-gray-200 text-sm uppercase tracking-wide mb-2">Vencedor + Saldo</div><p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">Acertou o vencedor e saldo de gols.<br /><span className="text-green-700 dark:text-green-300 font-medium">Ex: Palpitou 3x1 e foi 2x0.</span></p></div>
                         <div className="bg-yellow-50 dark:bg-yellow-900/20 p-5 rounded-xl border border-yellow-100 dark:border-yellow-800 flex flex-col items-center text-center hover:shadow-md transition-all"><div className="text-3xl font-black text-yellow-700 dark:text-yellow-400 mb-2">{league.settings?.winnerAndWinnerGoals ?? 6}</div><div className="font-bold text-gray-800 dark:text-gray-200 text-sm uppercase tracking-wide mb-2">Vencedor + Gols</div><p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">Acertou o vencedor e gols dele.<br /><span className="text-yellow-600 dark:text-yellow-300 font-medium">Ex: Palpitou 2x1 e foi 2x0.</span></p></div>
                         <div className="bg-gray-50 dark:bg-gray-700/50 p-5 rounded-xl border border-gray-200 dark:border-gray-600 flex flex-col items-center text-center hover:shadow-md transition-all"><div className="text-3xl font-black text-gray-400 dark:text-gray-300 mb-2">{league.settings?.draw ?? 7}</div><div className="font-bold text-gray-800 dark:text-gray-200 text-sm uppercase tracking-wide mb-2">Empate (Não Exato)</div><p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">Acertou o empate, mas placar diferente.<br /><span className="text-gray-500 dark:text-gray-300 font-medium">Ex: Palpitou 1x1 e foi 2x2.</span></p></div>
                         <div className="bg-[#5c4033]/10 dark:bg-[#5c4033]/20 p-5 rounded-xl border border-[#5c4033]/20 flex flex-col items-center text-center hover:shadow-md transition-all"><div className="text-3xl font-black text-[#5c4033] dark:text-[#a67b5b] mb-2">{league.settings?.winner ?? 5}</div><div className="font-bold text-gray-800 dark:text-gray-200 text-sm uppercase tracking-wide mb-2">Apenas Vencedor</div><p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">Acertou quem ganhou, mas errou o resto.<br /><span className="text-[#5c4033] dark:text-[#a67b5b] font-medium">Ex: Palpitou 2x1 e foi 4x0.</span></p></div>
+                        {league.settings?.topFinishersEnabled && (
+                            <div className="bg-slate-50 dark:bg-slate-900/20 p-5 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col items-center text-center hover:shadow-md transition-all">
+                                <div className="text-2xl font-black text-slate-700 dark:text-slate-300 mb-1 leading-tight">
+                                    🥇{league.settings.topFinishersPoints?.champion ?? 20} 🥈{league.settings.topFinishersPoints?.runnerUp ?? 15}<br />
+                                    🥉{league.settings.topFinishersPoints?.third ?? 10} 🏅{league.settings.topFinishersPoints?.fourth ?? 5}
+                                </div>
+                                <div className="font-bold text-gray-800 dark:text-gray-200 text-sm uppercase tracking-wide mb-2">4 Finalistas</div>
+                                <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">Acertos da posição final de cada seleção.<br /><span className="text-slate-600 dark:text-slate-400 font-medium">Pontos acumulados por posição.</span></p>
+                            </div>
+                        )}
                     </div>
                 </div>
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                     <h4 className="font-bold text-gray-800 dark:text-gray-100 mb-3 flex items-center gap-2"><Crown size={20} className="text-yellow-600 dark:text-yellow-400" /> Critérios de Desempate</h4>
-                    <ul className="space-y-3 text-sm text-gray-600 dark:text-gray-300"><li className="flex items-start gap-3 bg-gray-50 dark:bg-gray-700 p-3 rounded-lg border border-gray-100 dark:border-gray-600"><span className="bg-brasil-blue dark:bg-blue-600 text-white w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold shrink-0">1º</span><span>Maior <strong>Pontuação Total</strong> acumulada.</span></li><li className="flex items-start gap-3 bg-gray-50 dark:bg-gray-700 p-3 rounded-lg border border-gray-100 dark:border-gray-600"><span className="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold shrink-0">2º</span><span>Maior número de <strong>Cravadas</strong> (Acerto exato do placar).</span></li><li className="flex items-start gap-3 bg-gray-50 dark:bg-gray-700 p-3 rounded-lg border border-gray-100 dark:border-gray-600"><span className="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold shrink-0">3º</span><span>Maior número de acertos em <strong>Vencedor + Saldo</strong>.</span></li><li className="flex items-start gap-3 bg-gray-50 dark:bg-gray-700 p-3 rounded-lg border border-gray-100 dark:border-gray-600"><span className="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold shrink-0">4º</span><span>Maior número de acertos em <strong>Vencedor + Gols</strong>.</span></li><li className="flex items-start gap-3 bg-gray-50 dark:bg-gray-700 p-3 rounded-lg border border-gray-100 dark:border-gray-600"><span className="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold shrink-0">5º</span><span>Maior número de acertos em <strong>Empates (Não Exatos)</strong>.</span></li></ul>
+                    <ul className="space-y-3 text-sm text-gray-600 dark:text-gray-300">
+                        <li className="flex items-start gap-3 bg-gray-50 dark:bg-gray-700 p-3 rounded-lg border border-gray-100 dark:border-gray-600"><span className="bg-brasil-blue dark:bg-blue-600 text-white w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold shrink-0">1º</span><span>Maior <strong>Pontuação Total</strong> acumulada.</span></li>
+                        <li className="flex items-start gap-3 bg-gray-50 dark:bg-gray-700 p-3 rounded-lg border border-gray-100 dark:border-gray-600"><span className="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold shrink-0">2º</span><span>Maior número de <strong>Cravadas</strong> (Acerto exato do placar).</span></li>
+                        <li className="flex items-start gap-3 bg-gray-50 dark:bg-gray-700 p-3 rounded-lg border border-gray-100 dark:border-gray-600"><span className="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold shrink-0">3º</span><span>Maior número de acertos em <strong>Vencedor + Saldo</strong>.</span></li>
+                        <li className="flex items-start gap-3 bg-gray-50 dark:bg-gray-700 p-3 rounded-lg border border-gray-100 dark:border-gray-600"><span className="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold shrink-0">4º</span><span>Maior número de acertos em <strong>Vencedor + Gols</strong>.</span></li>
+                        <li className="flex items-start gap-3 bg-gray-50 dark:bg-gray-700 p-3 rounded-lg border border-gray-100 dark:border-gray-600"><span className="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold shrink-0">5º</span><span>Maior número de acertos em <strong>Empates (Não Exatos)</strong>.</span></li>
+                    </ul>
                 </div>
                 <div className="bg-orange-50 dark:bg-orange-900/20 border-l-4 border-orange-400 p-4 rounded-r-xl flex gap-3 text-sm text-orange-900 dark:text-orange-200 items-start shadow-sm"><AlertCircle className="shrink-0 mt-0.5 text-orange-600 dark:text-orange-400" size={20} /><div><span className="font-bold block mb-1 text-orange-800 dark:text-orange-300 text-base">Atenção aos Jogos de Mata-Mata</span><p className="leading-relaxed">Em caso de empate no tempo normal que leve à prorrogação, <strong>o placar final considerado será o resultado após os 120 minutos (Tempo Normal + Prorrogação)</strong>.<br /><span className="font-semibold text-red-600 dark:text-red-400">A disputa de pênaltis NÃO conta para o placar da liga.</span></p></div></div>
             </div>
@@ -752,7 +1222,202 @@ export const LeagueDetails: React.FC = () => {
                             className="w-full h-full object-cover"
                         />
                         <div><p className="font-bold text-gray-800 dark:text-white">{foundUser.name}</p><p className="text-xs text-gray-500 dark:text-gray-400">{foundUser.email}</p></div></div><button onClick={handleConfirmInvite} disabled={isSendingInvite} className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70">{isSendingInvite ? <Loader2 className="animate-spin" size={18} /> : <UserPlus size={18} />} Confirmar Convite</button></div>)}{searchStatus === 'not_found' && (<div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-300 p-4 rounded-xl border border-red-200 dark:border-red-800 flex items-center gap-3 animate-in fade-in slide-in-from-top-2"><AlertCircle size={20} /><span className="font-medium text-sm">Usuário não encontrado. Verifique se o e-mail está correto e se o usuário já possui cadastro na Liga.</span></div>)}</>)}</div>
-                <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm"><h3 className="font-bold text-lg mb-4 text-gray-800 dark:text-white">Configurações da Liga</h3><div className="flex flex-col md:flex-row gap-6 items-start"><div className="flex flex-col items-center space-y-2"><input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileChange} className="hidden" /><div onClick={triggerFileInput} className="w-24 h-24 rounded-full border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center cursor-pointer hover:border-brasil-blue dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 transition-all relative group overflow-hidden bg-gray-50 dark:bg-gray-700">{editImage ? <img src={editImage} alt="Preview" className={`w-full h-full object-cover ${imageProcessing ? 'opacity-50' : ''}`} /> : <div className="flex flex-col items-center text-gray-400"><Camera size={24} /><span className="text-[10px] mt-1">Logo</span></div>}{imageProcessing && (<div className="absolute inset-0 flex items-center justify-center"><Loader2 className="animate-spin text-brasil-blue" size={24} /></div>)}<div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><Upload className="text-white" size={20} /></div></div><div className="text-center"><span className="text-xs text-gray-500 dark:text-gray-400 block">Alterar Imagem</span><span className="text-[10px] text-gray-400 block mt-0.5">{imageProcessing ? 'Processando...' : 'Qualquer Tamanho'}</span></div></div><div className="flex-1 w-full space-y-4"><div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nome da Liga</label><input value={league.name} disabled className="w-full border border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-lg p-2.5 cursor-not-allowed" placeholder="Nome da liga" /><p className="text-xs text-gray-400 mt-1">O nome da liga não pode ser alterado.</p></div><div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descrição</label><textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} className="w-full border border-gray-600 bg-gray-700 text-white rounded-lg p-2.5 focus:ring-2 focus:ring-brasil-blue outline-none h-24 resize-none text-sm" placeholder="Adicione uma descrição para sua liga..." /></div><div className="flex items-center justify-between"><label className="text-sm font-medium text-gray-700 dark:text-gray-300">Visibilidade da Liga</label><button type="button" onClick={() => setEditIsPrivate(!editIsPrivate)} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-brasil-blue focus:ring-offset-2 ${editIsPrivate ? 'bg-gray-300' : 'bg-brasil-green'}`}><span className={`inline-block h-4 w-4 transform rounded-full bg-white transition duration-200 ease-in-out ${editIsPrivate ? 'translate-x-1' : 'translate-x-6'}`} /></button></div><p className="text-xs text-gray-500 dark:text-gray-400 -mt-2 flex items-center gap-1">{editIsPrivate ? <Lock size={12} /> : <Globe size={12} />}{editIsPrivate ? 'Privada: Requer aprovação.' : 'Pública: Aberta a todos.'}</p><button onClick={handleUpdateLeague} disabled={imageProcessing || isSavingSettings} className="bg-brasil-blue text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-900 transition-colors flex items-center gap-2 text-sm disabled:opacity-50">{imageProcessing || isSavingSettings ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} {imageProcessing ? 'Aguarde...' : isSavingSettings ? 'Salvando...' : 'Salvar Alterações'}</button></div></div></div>
+                <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
+                    <h3 className="font-bold text-lg mb-4 text-gray-800 dark:text-white flex items-center gap-2">Configurações da Liga</h3>
+                    <div className="space-y-6">
+                        <div className="flex flex-col md:flex-row gap-6 items-start">
+                            <div className="flex flex-col items-center space-y-2">
+                                <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
+                                <div onClick={triggerFileInput} className="w-24 h-24 rounded-full border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center cursor-pointer hover:border-brasil-blue dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 transition-all relative group overflow-hidden bg-gray-50 dark:bg-gray-700">
+                                    {editImage ? <img src={editImage} alt="Preview" className={`w-full h-full object-cover ${imageProcessing ? 'opacity-50' : ''}`} /> : <div className="flex flex-col items-center text-gray-400"><Camera size={24} /><span className="text-[10px] mt-1">Logo</span></div>}
+                                    {imageProcessing && (<div className="absolute inset-0 flex items-center justify-center"><Loader2 className="animate-spin text-brasil-blue" size={24} /></div>)}
+                                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><Upload className="text-white" size={20} /></div>
+                                </div>
+                                <div className="text-center"><span className="text-xs text-gray-500 dark:text-gray-400 block">Alterar Imagem</span><span className="text-[10px] text-gray-400 block mt-0.5">{imageProcessing ? 'Processando...' : 'Qualquer Tamanho'}</span></div>
+                            </div>
+                            <div className="flex-1 w-full space-y-4">
+                                <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nome da Liga</label><input value={league.name} disabled className="w-full border border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-lg p-2.5 cursor-not-allowed" placeholder="Nome da liga" /><p className="text-xs text-gray-400 mt-1">O nome da liga não pode ser alterado.</p></div>
+                                <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descrição</label><textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} className="w-full border border-gray-600 bg-gray-700 text-white rounded-lg p-2.5 focus:ring-2 focus:ring-brasil-blue outline-none h-24 resize-none text-sm" placeholder="Adicione uma descrição para sua liga..." /></div>
+                                <div className="flex items-center justify-between"><label className="text-sm font-medium text-gray-700 dark:text-gray-300">Visibilidade da Liga</label><button type="button" onClick={() => setEditIsPrivate(!editIsPrivate)} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-brasil-blue focus:ring-offset-2 ${editIsPrivate ? 'bg-gray-300' : 'bg-brasil-green'}`}><span className={`inline-block h-4 w-4 transform rounded-full bg-white transition duration-200 ease-in-out ${editIsPrivate ? 'translate-x-1' : 'translate-x-6'}`} /></button></div>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 -mt-2 flex items-center gap-1">{editIsPrivate ? <Lock size={12} /> : <Globe size={12} />}{editIsPrivate ? 'Privada: Requer aprovação.' : 'Pública: Aberta a todos.'}</p>
+                                <button onClick={handleUpdateLeague} disabled={imageProcessing || isSavingSettings} className="bg-brasil-blue text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-900 transition-colors flex items-center gap-2 text-sm disabled:opacity-50">{imageProcessing || isSavingSettings ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} {imageProcessing ? 'Aguarde...' : isSavingSettings ? 'Salvando...' : 'Salvar Alterações'}</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
+                    <div className="flex items-center justify-between mb-4 border-b border-gray-100 dark:border-gray-700 pb-4">
+                        <h3 className="font-bold text-lg text-gray-800 dark:text-white flex items-center gap-2">
+                            <Trophy size={20} className="text-brasil-blue dark:text-blue-400" /> Pontuações da Liga
+                        </h3>
+                        {isScoringLocked && (
+                            <span className="text-[10px] bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-3 py-1 rounded-full font-bold flex items-center gap-1 border border-red-200 dark:border-red-800">
+                                <Lock size={10} /> BLOQUEADO (24H ANTES OU MANUAL)
+                            </span>
+                        )}
+                    </div>
+
+                    <div className="space-y-6">
+                        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-3 rounded-xl flex items-start gap-2 text-amber-800 dark:text-amber-300 text-xs leading-relaxed">
+                            <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
+                            <p>As pontuações só podem ser alteradas até <strong>24 horas antes do início da competição</strong>. Após esse prazo, as configurações ficam bloqueadas automaticamente.</p>
+                        </div>
+                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-3 rounded-xl flex items-start gap-2 text-blue-700 dark:text-blue-300 text-xs leading-relaxed">
+                            <Info size={16} className="mt-0.5 flex-shrink-0" />
+                            <p>Se quiser deixar desativado <strong>Vencedor + Gols do Vencedor</strong> e <strong>Vencedor + Saldo</strong>, basta deixar a mesma pontuação de <strong>Apenas Vencedor</strong>.</p>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cravada (Placar Exato)</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    disabled={isScoringLocked}
+                                    value={editExactScore}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val === '') setEditExactScore('');
+                                        else {
+                                            const n = parseInt(val);
+                                            if (n > 0) setEditExactScore(n);
+                                        }
+                                    }}
+                                    className={`w-full p-3 rounded-xl border font-bold ${isScoringLocked ? 'bg-gray-100 dark:bg-gray-900 text-gray-400' : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-brasil-blue outline-none'}`}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Vencedor + Saldo</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    disabled={isScoringLocked}
+                                    value={editWinnerAndDiff}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val === '') setEditWinnerAndDiff('');
+                                        else {
+                                            const n = parseInt(val);
+                                            if (n > 0) setEditWinnerAndDiff(n);
+                                        }
+                                    }}
+                                    className={`w-full p-3 rounded-xl border font-bold ${isScoringLocked ? 'bg-gray-100 dark:bg-gray-900 text-gray-400' : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-brasil-blue outline-none'}`}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Vencedor + Gols do Vencedor</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    disabled={isScoringLocked}
+                                    value={editWinnerAndWinnerGoals}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val === '') setEditWinnerAndWinnerGoals('');
+                                        else {
+                                            const n = parseInt(val);
+                                            if (n > 0) setEditWinnerAndWinnerGoals(n);
+                                        }
+                                    }}
+                                    className={`w-full p-3 rounded-xl border font-bold ${isScoringLocked ? 'bg-gray-100 dark:bg-gray-900 text-gray-400' : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-brasil-blue outline-none'}`}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Empate (Não Exato)</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    disabled={isScoringLocked}
+                                    value={editDraw}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val === '') setEditDraw('');
+                                        else {
+                                            const n = parseInt(val);
+                                            if (n > 0) setEditDraw(n);
+                                        }
+                                    }}
+                                    className={`w-full p-3 rounded-xl border font-bold ${isScoringLocked ? 'bg-gray-100 dark:bg-gray-900 text-gray-400' : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-brasil-blue outline-none'}`}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Apenas Vencedor</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    disabled={isScoringLocked}
+                                    value={editWinner}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val === '') setEditWinner('');
+                                        else {
+                                            const n = parseInt(val);
+                                            if (n > 0) setEditWinner(n);
+                                        }
+                                    }}
+                                    className={`w-full p-3 rounded-xl border font-bold ${isScoringLocked ? 'bg-gray-100 dark:bg-gray-900 text-gray-400' : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-brasil-blue outline-none'}`}
+                                />
+                            </div>
+                        </div>
+
+                        {/* TOP FINISHERS TOGGLE */}
+                        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 space-y-3">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-sm font-bold text-green-800 dark:text-green-300 flex items-center gap-2">
+                                        <Trophy size={16} /> 4 Primeiros Colocados
+                                    </p>
+                                    <p className="text-[11px] text-green-700 dark:text-green-400 mt-0.5">Participantes palpitam nos 4 primeiros da competição</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    disabled={isScoringLocked}
+                                    onClick={() => setEditTopFinishersEnabled(v => !v)}
+                                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${editTopFinishersEnabled ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'} ${isScoringLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                >
+                                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${editTopFinishersEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                                </button>
+                            </div>
+                            {editTopFinishersEnabled && (
+                                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-green-200 dark:border-green-700">
+                                    {(['champion', 'runnerUp', 'third', 'fourth'] as const).map((key, i) => {
+                                        const labels = ['🥇 Campeão', '🥈 Vice', '🥉 3º Lugar', '4º Lugar'];
+                                        return (
+                                            <div key={key} className="space-y-1">
+                                                <label className="text-xs font-bold text-gray-500 dark:text-gray-400">{labels[i]}</label>
+                                                <input
+                                                    type="number" min="0"
+                                                    disabled={isScoringLocked}
+                                                    value={editTopFinishersPoints[key] === 0 ? '' : editTopFinishersPoints[key]}
+                                                    placeholder="0"
+                                                    onChange={e => {
+                                                        const val = e.target.value;
+                                                        if (val === '') setEditTopFinishersPoints(p => ({ ...p, [key]: 0 }));
+                                                        else {
+                                                            const n = parseInt(val);
+                                                            if (!isNaN(n) && n >= 0) setEditTopFinishersPoints(p => ({ ...p, [key]: n }));
+                                                        }
+                                                    }}
+                                                    className={`w-full p-2 rounded-lg border font-bold text-center ${isScoringLocked ? 'bg-gray-100 dark:bg-gray-900 text-gray-400' : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-green-500 outline-none'}`}
+                                                />
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+
+                        <button
+                            onClick={handleUpdateScoring}
+                            disabled={isScoringLocked || isSavingScoring}
+                            className={`w-full sm:w-auto px-6 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-md active:scale-95 ${isScoringLocked ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-brasil-blue hover:bg-blue-900 text-white'}`}
+                        >
+                            {isSavingScoring ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
+                            {isScoringLocked ? 'Configurações Bloqueadas' : 'Salvar Pontuações'}
+                        </button>
+                    </div>
+                </div>
+
                 <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-6 shadow-sm border border-red-100 dark:border-red-800"><h3 className="font-bold text-lg mb-4 text-red-800 dark:text-red-300 flex items-center gap-2"><AlertTriangle size={20} /> Zona de Perigo</h3><p className="text-sm text-red-700 dark:text-red-300 mb-4">Ao excluir a liga, todos os dados, participantes e palpites serão permanentemente removidos. Esta ação não pode ser desfeita.</p><button onClick={() => setShowDeleteConfirm(true)} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors shadow-sm"><Trash2 size={18} /> Excluir Liga e Dados</button></div>
                 {showUpgradeModal && createPortal(
                     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">

@@ -62,6 +62,29 @@ export interface Prediction {
 
 export type LeaguePlan = 'FREE' | 'VIP_BASIC' | 'VIP' | 'VIP_MASTER' | 'VIP_UNLIMITED';
 
+export interface TopFinisherPoints {
+  champion: number;
+  runnerUp: number;
+  third: number;
+  fourth: number;
+}
+
+export interface TopFinishersResult {
+  champion: string;
+  runnerUp: string;
+  third: string;
+  fourth: string;
+}
+
+export interface TopFinisherPrediction {
+  userId: string;
+  leagueId: string;
+  champion: string;
+  runnerUp: string;
+  third: string;
+  fourth: string;
+}
+
 export interface LeagueSettings {
   exactScore: number;
   winnerAndDiff: number;
@@ -70,6 +93,9 @@ export interface LeagueSettings {
   draw: number; // Correct draw but wrong score (e.g. bet 1-1, result 2-2)
   isUnlimited?: boolean; // Deprecated: keep for backward compatibility
   plan?: LeaguePlan; // New field controlling the limit
+  manualScoringLock?: boolean;
+  topFinishersEnabled?: boolean;
+  topFinishersPoints?: TopFinisherPoints;
 }
 
 export interface League {
@@ -126,6 +152,7 @@ export interface BrazilLeagueSettings {
   goalscorer: number;    // 2
   isUnlimited?: boolean;
   plan?: LeaguePlan;
+  manualScoringLock?: boolean;
 }
 
 export const DEFAULT_BRAZIL_SETTINGS: BrazilLeagueSettings = {

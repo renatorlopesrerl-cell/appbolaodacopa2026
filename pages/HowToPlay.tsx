@@ -163,6 +163,22 @@ export const HowToPlay: React.FC = () => {
                             A aba <strong>Admin</strong> só aparece para o administrador da liga. É nela que ele aceita/envia convites, altera imagem/descrição e muda entre Privada/Pública. Também é onde pode fazer o Upgrade do plano da liga.
                         </p>
 
+                        {/* 4 Primeiros Colocados */}
+                        <div className="bg-blue-50 dark:bg-blue-900/20 p-5 rounded-xl border border-blue-200 dark:border-blue-800 mt-8">
+                            <h4 className="text-lg font-bold text-brasil-blue dark:text-blue-300 flex items-center gap-2 mb-3">
+                                <Trophy className="w-6 h-6 text-yellow-600" /> 4 Primeiros Colocados
+                            </h4>
+                            <p className="text-gray-700 dark:text-gray-200 mb-3 text-justify">
+                                Em ligas onde a opção está ativada, você deve indicar quais seleções terminarão em <strong>1º (Campeão), 2º, 3º e 4º lugar</strong> na competição. As pontuações para cada acerto de posição são definidas pelo administrador da liga.
+                            </p>
+                            <p className="text-gray-700 dark:text-gray-200 mb-3 text-justify">
+                                🔒 <strong>Encerramento:</strong> Os palpites dos 4 primeiros se encerram automaticamente <strong>junto com o início do 1º jogo da competição</strong>. Após esse prazo, não é mais possível alterar seus palpites.
+                            </p>
+                            <p className="text-gray-700 dark:text-gray-200 text-justify">
+                                👁️ <strong>Visualização:</strong> Assim que os palpites forem encerrados, você poderá conferir o que os outros participantes escolheram clicando diretamente em cima do card dos 4 Primeiros Colocados ou visualizando o histórico do participante na aba Classificação.
+                            </p>
+                        </div>
+
                         {/* Modo Jogos do Brasil */}
                         <div className="bg-green-50 dark:bg-green-900/20 p-5 rounded-xl border border-green-200 dark:border-green-800 mt-8">
                             <h4 className="text-lg font-bold text-green-800 dark:text-green-300 flex items-center gap-2 mb-3">

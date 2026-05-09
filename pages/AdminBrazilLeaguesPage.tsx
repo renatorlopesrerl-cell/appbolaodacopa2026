@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useStore } from '../App';
-import { Shield, Crown, Search, ArrowLeft, Star, StarHalf, Infinity as InfinityIcon, Users, Trash2, AlertCircle } from 'lucide-react';
+import { Shield, Crown, Search, ArrowLeft, Star, StarHalf, Infinity as InfinityIcon, Users, Trash2, AlertCircle, Lock, Unlock } from 'lucide-react';
 import { LeaguePlan } from '../types';
 
 export const AdminBrazilLeaguesPage: React.FC = () => {
@@ -60,10 +60,17 @@ export const AdminBrazilLeaguesPage: React.FC = () => {
         setDeletingLeagueId(null);
     };
 
-    const filteredLeagues = brazilLeagues.filter(l =>
-        l.name.toLowerCase().includes(leagueSearch.toLowerCase()) ||
-        (l.leagueCode && l.leagueCode.toLowerCase().includes(leagueSearch.toLowerCase()))
-    );
+    const filteredLeagues = brazilLeagues
+        .filter(l =>
+            l.name.toLowerCase().includes(leagueSearch.toLowerCase()) ||
+            (l.leagueCode && l.leagueCode.toLowerCase().includes(leagueSearch.toLowerCase()))
+        )
+        .sort((a, b) => {
+            if (b.participants.length !== a.participants.length) {
+                return b.participants.length - a.participants.length;
+            }
+            return a.name.localeCompare(b.name);
+        });
 
     return (
         <div className="space-y-6 pb-20">
@@ -107,15 +114,41 @@ export const AdminBrazilLeaguesPage: React.FC = () => {
                         Gerenciamento de Ligas BR
                     </h1>
 
-                    <div className="relative w-full md:w-64">
-                        <Search size={16} className="absolute left-3 top-3 text-gray-400" />
-                        <input
-                            type="text"
-                            placeholder="Buscar por nome ou código..."
-                            value={leagueSearch}
-                            onChange={(e) => setLeagueSearch(e.target.value)}
-                            className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-white placeholder-gray-400 rounded-lg pl-9 pr-3 py-2 text-sm outline-none focus:border-brasil-blue focus:ring-1 focus:ring-brasil-blue"
-                        />
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={async () => {
+                                if (window.confirm('Deseja BLOQUEAR a edição de pontos de TODAS as ligas do modo Brasil?')) {
+                                    for (const l of filteredLeagues) {
+                                        await updateBrazilLeague(l.id, { settings: { ...(l.settings || {}), manualScoringLock: true } });
+                                    }
+                                }
+                            }}
+                            className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-3 py-2 rounded-lg text-xs font-bold border border-red-100 dark:border-red-800 flex items-center gap-1 hover:bg-red-100 transition-colors"
+                        >
+                            <Lock size={14} /> Bloquear Todas
+                        </button>
+                        <button
+                            onClick={async () => {
+                                if (window.confirm('Deseja DESBLOQUEAR a edição de pontos de TODAS as ligas do modo Brasil?')) {
+                                    for (const l of filteredLeagues) {
+                                        await updateBrazilLeague(l.id, { settings: { ...(l.settings || {}), manualScoringLock: false } });
+                                    }
+                                }
+                            }}
+                            className="bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 px-3 py-2 rounded-lg text-xs font-bold border border-green-100 dark:border-green-800 flex items-center gap-1 hover:bg-green-100 transition-colors"
+                        >
+                            <Unlock size={14} /> Desbloquear Todas
+                        </button>
+                        <div className="relative w-full md:w-64">
+                            <Search size={16} className="absolute left-3 top-3 text-gray-400" />
+                            <input
+                                type="text"
+                                placeholder="Buscar por nome ou código..."
+                                value={leagueSearch}
+                                onChange={(e) => setLeagueSearch(e.target.value)}
+                                className="w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-white placeholder-gray-400 rounded-lg pl-9 pr-3 py-2 text-sm outline-none focus:border-brasil-blue focus:ring-1 focus:ring-brasil-blue"
+                            />
+                        </div>
                     </div>
                 </div>
             </div>
@@ -131,7 +164,8 @@ export const AdminBrazilLeaguesPage: React.FC = () => {
                                 <th className="px-4 py-3">Admin</th>
                                 <th className="px-4 py-3 text-center">Part.</th>
                                 <th className="px-4 py-3 text-center">Plano</th>
-                                <th className="px-4 py-3 text-right">Mudar Plano</th>
+                                <th className="px-4 py-3 text-center">Trava Pontos</th>
+                                <th className="px-4 py-3 text-right">Ações</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -168,13 +202,31 @@ export const AdminBrazilLeaguesPage: React.FC = () => {
                                                 </span>
                                             )}
                                         </td>
+                                        <td className="px-4 py-3 text-center">
+                                            <button
+                                                onClick={async () => {
+                                                    const currentLock = l.settings?.manualScoringLock || false;
+                                                    await updateBrazilLeague(l.id, { 
+                                                        settings: { 
+                                                            ...(l.settings || {}), 
+                                                            manualScoringLock: !currentLock 
+                                                        } 
+                                                    });
+                                                }}
+                                                className={`p-1.5 rounded-lg transition-colors ${l.settings?.manualScoringLock ? 'bg-red-100 text-red-600 hover:bg-red-200' : 'bg-green-100 text-green-600 hover:bg-green-200'}`}
+                                                title={l.settings?.manualScoringLock ? "Desbloquear pontuações" : "Bloquear pontuações manualmente"}
+                                            >
+                                                {l.settings?.manualScoringLock ? <Lock size={16} /> : <Unlock size={16} />}
+                                            </button>
+                                        </td>
+
                                         <td className="px-4 py-3 text-right flex justify-end gap-2">
                                             <button
                                                 onClick={() => cycleLeaguePlan(l.id, plan)}
                                                 className="px-3 py-1.5 rounded text-xs font-bold transition-colors bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600"
                                                 title="Alternar: FREE -> BÁSICO -> TOP -> MASTER -> ILIMITADO -> FREE"
                                             >
-                                                Alternar
+                                                Plano
                                             </button>
                                             <button
                                                 onClick={() => setDeletingLeagueId(l.id)}
@@ -256,18 +308,35 @@ export const AdminBrazilLeaguesPage: React.FC = () => {
                                 </div>
                             </div>
 
-                            <button
-                                onClick={() => cycleLeaguePlan(l.id, plan)}
-                                className="ml-3 mt-1 py-2.5 rounded-lg font-bold text-xs transition-colors bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 uppercase tracking-wide flex-1"
-                            >
-                                Alternar Plano
-                            </button>
-                            <button
-                                onClick={() => setDeletingLeagueId(l.id)}
-                                className="ml-3 mt-1 py-2.5 px-4 rounded-lg font-bold text-xs transition-colors bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 border border-red-200 dark:border-red-800 uppercase tracking-wide flex items-center justify-center gap-1"
-                            >
-                                <Trash2 size={14} /> Excluir
-                            </button>
+                            <div className="flex gap-2 ml-3 mt-1">
+                                <button
+                                    onClick={() => cycleLeaguePlan(l.id, plan)}
+                                    className="py-2.5 rounded-lg font-bold text-xs transition-colors bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 uppercase tracking-wide flex-1"
+                                >
+                                    Plano
+                                </button>
+                                <button
+                                    onClick={async () => {
+                                        const currentLock = l.settings?.manualScoringLock || false;
+                                        await updateBrazilLeague(l.id, { 
+                                            settings: { 
+                                                ...(l.settings || {}), 
+                                                manualScoringLock: !currentLock 
+                                            } 
+                                        });
+                                    }}
+                                    className={`py-2.5 px-3 rounded-lg font-bold text-xs transition-colors border flex items-center justify-center gap-1 uppercase tracking-wide ${l.settings?.manualScoringLock ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800' : 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800'}`}
+                                >
+                                    {l.settings?.manualScoringLock ? <Lock size={14} /> : <Unlock size={14} />}
+                                    {l.settings?.manualScoringLock ? "Travado" : "Aberto"}
+                                </button>
+                                <button
+                                    onClick={() => setDeletingLeagueId(l.id)}
+                                    className="py-2.5 px-3 rounded-lg font-bold text-xs transition-colors bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 border border-red-200 dark:border-red-800 uppercase tracking-wide flex items-center justify-center"
+                                >
+                                    <Trash2 size={14} />
+                                </button>
+                            </div>
                         </div>
                     );
                 })}

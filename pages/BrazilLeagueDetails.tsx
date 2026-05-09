@@ -65,6 +65,13 @@ export const BrazilLeagueDetails: React.FC = () => {
     const [editIsPrivate, setEditIsPrivate] = useState(false);
     const [imageProcessing, setImageProcessing] = useState(false);
     const [isSavingSettings, setIsSavingSettings] = useState(false);
+    const [isSavingScoring, setIsSavingScoring] = useState(false);
+    const [editExactScore, setEditExactScore] = useState<number | string>(10);
+    const [editWinnerAndDiff, setEditWinnerAndDiff] = useState<number | string>(7);
+    const [editWinnerAndWinnerGoals, setEditWinnerAndWinnerGoals] = useState<number | string>(6);
+    const [editDraw, setEditDraw] = useState<number | string>(6);
+    const [editWinner, setEditWinner] = useState<number | string>(5);
+    const [editGoalscorer, setEditGoalscorer] = useState<number | string>(2);
     const [adminInviteEmail, setAdminInviteEmail] = useState('');
     const [isSendingInvite, setIsSendingInvite] = useState(false);
     const [foundUser, setFoundUser] = useState<User | null>(null);
@@ -111,11 +118,37 @@ export const BrazilLeagueDetails: React.FC = () => {
                 setEditIsPrivate(league.isPrivate);
                 isPrivateInitialized.current = true;
             }
+            if (league.settings) {
+                setEditExactScore(league.settings.exactScore ?? 10);
+                setEditWinnerAndDiff(league.settings.winnerAndDiff ?? 7);
+                setEditWinnerAndWinnerGoals(league.settings.winnerAndWinnerGoals ?? 6);
+                setEditDraw(league.settings.draw ?? 6);
+                setEditWinner(league.settings.winner ?? 5);
+                setEditGoalscorer(league.settings.goalscorer ?? 2);
+            }
         }
     }, [league]);
 
+    const isScoringLocked = useMemo(() => {
+        // Manual lock from system admin
+        if (league?.settings?.manualScoringLock) return true;
+
+        if (!matches || matches.length === 0) return false;
+        // Brazil matches are those where Brazil is home or away
+        const brazilMatches = matches
+            .filter(m => m.homeTeamId === 'Brasil' || m.awayTeamId === 'Brasil')
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+        const firstBrazilMatch = brazilMatches[0];
+        if (!firstBrazilMatch) return false;
+
+        const firstMatchTime = new Date(firstBrazilMatch.date).getTime();
+        const lockThreshold = 24 * 60 * 60 * 1000; // 24 Hours
+        return currentTime.getTime() >= (firstMatchTime - lockThreshold);
+    }, [matches, currentTime, league?.settings?.manualScoringLock]);
+
     // Derived State
-    const isAdmin = currentUser && league ? league.adminId === currentUser.id : false;
+    const isAdmin = currentUser && league ? (league.adminId === currentUser.id) : false;
 
     const validPendingRequestsCount = useMemo(() => {
         if (!league) return 0;
@@ -244,6 +277,54 @@ export const BrazilLeagueDetails: React.FC = () => {
         return Math.floor(index / 2) + 1;
     };
 
+    const renderMatchBadge = (match: Match) => {
+        const matchRound = getMatchRound(match);
+        let label = '';
+        let colorClass = '';
+
+        if (match.phase === Phase.GROUP) {
+            if (matchRound === 1) {
+                label = '1ª Rodada';
+                colorClass = 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-100 dark:border-blue-800';
+            } else if (matchRound === 2) {
+                label = '2ª Rodada';
+                colorClass = 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-100 dark:border-green-800';
+            } else if (matchRound === 3) {
+                label = '3ª Rodada';
+                colorClass = 'bg-amber-50 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 border-amber-100 dark:border-amber-800';
+            }
+        } else {
+            if (match.phase === Phase.ROUND_32) {
+                label = '16-avos';
+                colorClass = 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600';
+            } else if (match.phase === Phase.ROUND_16) {
+                label = 'Oitavas';
+                colorClass = 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-100 dark:border-blue-800';
+            } else if (match.phase === Phase.QUARTER) {
+                label = 'Quartas';
+                colorClass = 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-100 dark:border-green-800';
+            } else if (match.phase === Phase.SEMI) {
+                label = 'Semi';
+                colorClass = 'bg-amber-50 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 border-amber-100 dark:border-amber-800';
+            } else if (match.phase === Phase.FINAL) {
+                if (match.id === 'm-3RD') {
+                    label = '3º Lugar';
+                } else {
+                    label = 'Final';
+                }
+                colorClass = 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600';
+            }
+        }
+
+        if (!label) return null;
+
+        return (
+            <span className={`text-[10px] ${colorClass} px-1.5 py-0.5 rounded font-bold border uppercase tracking-wider`}>
+                {label}
+            </span>
+        );
+    };
+
     // --- PALPITES LOGIC ---
     const handleScoreChange = (matchId: string, side: 'home' | 'away', value: string, currentPred: any) => {
         setPendingEdits(prev => {
@@ -352,7 +433,7 @@ export const BrazilLeagueDetails: React.FC = () => {
         }
 
         try {
-            await updateLeague(league.id, { image: finalImage, description: editDescription, settings: league.settings, isPrivate: editIsPrivate });
+            await updateLeague(league.id, { image: finalImage, description: editDescription, isPrivate: editIsPrivate });
             setEditImage(finalImage);
             showToast('Sucesso', 'Alterações salvas.', 'success');
         } catch (e) {
@@ -360,6 +441,30 @@ export const BrazilLeagueDetails: React.FC = () => {
             showToast('Erro', 'Falha ao salvar as alterações.', 'warning');
         } finally {
             setIsSavingSettings(false);
+        }
+    };
+
+    const handleUpdateScoring = async () => {
+        if (!league) return;
+        if (isScoringLocked) return;
+        setIsSavingScoring(true);
+        try {
+            const updatedSettings = {
+                ...league.settings,
+                exactScore: Math.max(1, Number(editExactScore) || 1),
+                winnerAndDiff: Math.max(1, Number(editWinnerAndDiff) || 1),
+                winnerAndWinnerGoals: Math.max(1, Number(editWinnerAndWinnerGoals) || 1),
+                draw: Math.max(1, Number(editDraw) || 1),
+                winner: Math.max(1, Number(editWinner) || 1),
+                goalscorer: Math.max(1, Number(editGoalscorer) || 1)
+            };
+            await updateLeague(league.id, { settings: updatedSettings });
+            showToast('Sucesso', 'Pontuações atualizadas.', 'success');
+        } catch (e) {
+            console.error(e);
+            showToast('Erro', 'Falha ao salvar pontuações.', 'warning');
+        } finally {
+            setIsSavingScoring(false);
         }
     };
     const handleSearchUser = (e: React.FormEvent) => {
@@ -509,7 +614,7 @@ export const BrazilLeagueDetails: React.FC = () => {
                                     <div className="flex flex-col text-xs text-gray-500 dark:text-gray-400 mb-4 gap-1 pr-20">
                                         <span className="font-bold text-brasil-blue dark:text-blue-400 uppercase flex items-center gap-1.5"><Calendar size={12} />{isDateValid ? matchDate.toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' }) : 'Data Inválida'}<span className="text-gray-300 dark:text-gray-600">|</span>{isDateValid ? matchDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '--:--'}</span>
                                         <span className="flex items-center gap-1 text-gray-400 dark:text-gray-500 truncate"><MapPin size={12} /> {match.location}</span>
-                                        <div className="flex items-center gap-2 mt-1">{match.group && <span className="text-[10px] bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded font-medium">Grupo {match.group}</span>}{matchRound && <span className="text-[10px] bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-1.5 py-0.5 rounded font-medium border border-blue-100 dark:border-blue-800">{matchRound}ª Rodada</span>}</div>
+                                        <div className="flex items-center gap-2 mt-1">{match.group && <span className="text-[10px] bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded font-medium">Grupo {match.group}</span>}{renderMatchBadge(match)}</div>
                                     </div>
                                     <div className="flex items-center justify-between mb-2">
                                         <div className="flex flex-col items-center justify-center w-1/3 gap-2">
@@ -698,49 +803,49 @@ export const BrazilLeagueDetails: React.FC = () => {
             .map(userId => {
                 const user = users.find(u => u.id === userId)!;
                 const userPreds = predictions.filter(p => p.userId === userId && p.leagueId === league.id);
-            let totalPoints = 0, exactScores = 0, winnerAndDiffCount = 0, winnerAndWinnerGoalsCount = 0, drawCount = 0, onlyWinnerCount = 0, knockoutPoints = 0;
+                let totalPoints = 0, exactScores = 0, winnerAndDiffCount = 0, winnerAndWinnerGoalsCount = 0, drawCount = 0, onlyWinnerCount = 0, knockoutPoints = 0;
 
-            userPreds.forEach(p => {
-                const match = matches.find(m => m.id === p.matchId);
-                let includeInSum = false;
-                if (match) {
-                    const mRound = getMatchRound(match);
-                    if (leaderboardView === 'total') includeInSum = true;
-                    else if (leaderboardView === '1' && match.phase === Phase.GROUP && mRound === 1) includeInSum = true;
-                    else if (leaderboardView === '2' && match.phase === Phase.GROUP && mRound === 2) includeInSum = true;
-                    else if (leaderboardView === '3' && match.phase === Phase.GROUP && mRound === 3) includeInSum = true;
-                    else if (leaderboardView === 'group_phase' && match.phase === Phase.GROUP) includeInSum = true;
-                    else if (leaderboardView === '16_avos' && match.phase === Phase.ROUND_32) includeInSum = true;
-                    else if (leaderboardView === 'final_phase' && (match.phase === Phase.ROUND_16 || match.phase === Phase.QUARTER || match.phase === Phase.SEMI || match.phase === Phase.FINAL)) includeInSum = true;
-                    else if (leaderboardView === 'knockout' && match.phase !== Phase.GROUP) includeInSum = true;
-                }
-                if (match && (match.status === MatchStatus.FINISHED || match.status === MatchStatus.IN_PROGRESS) && match.homeScore !== null && match.awayScore !== null) {
-                    const points = calculatePoints(Number(p.homeScore), Number(p.awayScore), Number(match.homeScore), Number(match.awayScore), league.settings);
-                    const goalscorerBonus = getGoalscorerBonus(match.id, p.playerPick);
-
-                    // Stats for tie-breaking (Always calculate regardless of view filter)
-                    if (match.phase !== Phase.GROUP) knockoutPoints += points;
-                    if (points === league.settings.exactScore) exactScores++;
-                    else if (points === league.settings.winnerAndDiff) winnerAndDiffCount++;
-                    else if (points === (league.settings as any).winnerAndWinnerGoals) winnerAndWinnerGoalsCount++;
-                    else if (points === league.settings.draw) drawCount++;
-                    else if (points === league.settings.winner) onlyWinnerCount++;
-
-                    if (includeInSum) {
-                        totalPoints += points + goalscorerBonus;
+                userPreds.forEach(p => {
+                    const match = matches.find(m => m.id === p.matchId);
+                    let includeInSum = false;
+                    if (match) {
+                        const mRound = getMatchRound(match);
+                        if (leaderboardView === 'total') includeInSum = true;
+                        else if (leaderboardView === '1' && match.phase === Phase.GROUP && mRound === 1) includeInSum = true;
+                        else if (leaderboardView === '2' && match.phase === Phase.GROUP && mRound === 2) includeInSum = true;
+                        else if (leaderboardView === '3' && match.phase === Phase.GROUP && mRound === 3) includeInSum = true;
+                        else if (leaderboardView === 'group_phase' && match.phase === Phase.GROUP) includeInSum = true;
+                        else if (leaderboardView === '16_avos' && match.phase === Phase.ROUND_32) includeInSum = true;
+                        else if (leaderboardView === 'final_phase' && (match.phase === Phase.ROUND_16 || match.phase === Phase.QUARTER || match.phase === Phase.SEMI || match.phase === Phase.FINAL)) includeInSum = true;
+                        else if (leaderboardView === 'knockout' && match.phase !== Phase.GROUP) includeInSum = true;
                     }
-                }
+                    if (match && (match.status === MatchStatus.FINISHED || match.status === MatchStatus.IN_PROGRESS) && match.homeScore !== null && match.awayScore !== null) {
+                        const points = calculatePoints(Number(p.homeScore), Number(p.awayScore), Number(match.homeScore), Number(match.awayScore), league.settings);
+                        const goalscorerBonus = getGoalscorerBonus(match.id, p.playerPick);
+
+                        // Stats for tie-breaking (Always calculate regardless of view filter)
+                        if (match.phase !== Phase.GROUP) knockoutPoints += points;
+                        if (points === league.settings.exactScore) exactScores++;
+                        else if (points === league.settings.winnerAndDiff) winnerAndDiffCount++;
+                        else if (points === (league.settings as any).winnerAndWinnerGoals) winnerAndWinnerGoalsCount++;
+                        else if (points === league.settings.draw) drawCount++;
+                        else if (points === league.settings.winner) onlyWinnerCount++;
+
+                        if (includeInSum) {
+                            totalPoints += points + goalscorerBonus;
+                        }
+                    }
+                });
+                return { user, totalPoints, exactScores, winnerAndDiffCount, winnerAndWinnerGoalsCount, drawCount, onlyWinnerCount, knockoutPoints };
+            }).sort((a, b) => {
+                if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
+                if (b.exactScores !== a.exactScores) return b.exactScores - a.exactScores;
+                if (b.winnerAndDiffCount !== a.winnerAndDiffCount) return b.winnerAndDiffCount - a.winnerAndDiffCount;
+                if (b.winnerAndWinnerGoalsCount !== a.winnerAndWinnerGoalsCount) return b.winnerAndWinnerGoalsCount - a.winnerAndWinnerGoalsCount;
+                if (b.drawCount !== a.drawCount) return b.drawCount - a.drawCount;
+                if (b.onlyWinnerCount !== a.onlyWinnerCount) return b.onlyWinnerCount - a.onlyWinnerCount;
+                return b.knockoutPoints - a.knockoutPoints;
             });
-            return { user, totalPoints, exactScores, winnerAndDiffCount, winnerAndWinnerGoalsCount, drawCount, onlyWinnerCount, knockoutPoints };
-        }).sort((a, b) => {
-            if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
-            if (b.exactScores !== a.exactScores) return b.exactScores - a.exactScores;
-            if (b.winnerAndDiffCount !== a.winnerAndDiffCount) return b.winnerAndDiffCount - a.winnerAndDiffCount;
-            if (b.winnerAndWinnerGoalsCount !== a.winnerAndWinnerGoalsCount) return b.winnerAndWinnerGoalsCount - a.winnerAndWinnerGoalsCount;
-            if (b.drawCount !== a.drawCount) return b.drawCount - a.drawCount;
-            if (b.onlyWinnerCount !== a.onlyWinnerCount) return b.onlyWinnerCount - a.onlyWinnerCount;
-            return b.knockoutPoints - a.knockoutPoints;
-        });
 
         const filteredLeaderboard = leaderboard.filter(entry => entry.user.name.toLowerCase().includes(leaderboardSearch.toLowerCase()));
 
@@ -829,7 +934,7 @@ export const BrazilLeagueDetails: React.FC = () => {
                                 <span className="text-[10px] bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded font-bold">{filteredHistory.length} resultados</span>
                             </div>
                             <div className="flex-1 overflow-y-auto p-0 bg-gray-50/50 dark:bg-gray-800/50">{filteredHistory.length === 0 ? <div className="flex flex-col items-center justify-center h-48 text-gray-400 dark:text-gray-500 gap-2"><Search size={32} className="opacity-20" /><p className="text-sm italic">Nenhum palpite encontrado.</p></div> : <div className="divide-y divide-gray-100 dark:divide-gray-700">{filteredHistory.map(({ match, pred }) => {
-                                const isLive = match.status === MatchStatus.IN_PROGRESS; const isFinished = match.status === MatchStatus.FINISHED; const mRound = getMatchRound(match); const matchDate = new Date(match.date); const isDateValid = !isNaN(matchDate.getTime()); let histPoints = 0; if ((isLive || isFinished) && match.homeScore !== null && match.awayScore !== null && pred) { histPoints = calculatePoints(Number(pred.homeScore), Number(pred.awayScore), Number(match.homeScore), Number(match.awayScore), league.settings) + getGoalscorerBonus(match.id, pred.playerPick); } return (<div key={match.id} className="p-4 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"><div className="flex justify-between items-center mb-3"><div className="flex items-center gap-2 text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500"><Calendar size={12} /><span>{isDateValid ? matchDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : 'Data Inválida'}</span><span>•</span><span>{match.phase}</span>{mRound && <span>• {mRound}ª R</span>}</div>{isLive && <span className="bg-red-500 text-white px-2 py-0.5 rounded text-[10px] font-bold animate-pulse">AO VIVO</span>}</div><div className="flex flex-col items-center mb-4"><div className="flex items-center gap-6 mb-2"><img src={getTeamFlag(match.homeTeamId)} className="w-10 h-7 object-cover rounded shadow-sm" alt={match.homeTeamId} /><span className="text-gray-300 dark:text-gray-600 text-xs font-bold">X</span><img src={getTeamFlag(match.awayTeamId)} className="w-10 h-7 object-cover rounded shadow-sm" alt={match.awayTeamId} /></div><div className="text-sm font-black text-gray-900 dark:text-white text-center uppercase tracking-tight">{match.homeTeamId} <span className="text-gray-400 dark:text-gray-500 font-normal mx-1">x</span> {match.awayTeamId}</div></div><div className="flex items-stretch rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden"><div className="flex-1 bg-gray-50 dark:bg-gray-700 p-2 flex flex-col items-center justify-center border-r border-gray-200 dark:border-gray-600"><span className="text-[9px] uppercase font-bold text-gray-400 dark:text-gray-500 mb-1">Placar Oficial</span><div className={`text-xl font-black ${isLive ? 'text-green-600 dark:text-green-400 animate-pulse' : 'text-gray-800 dark:text-white'}`}>{match.homeScore ?? '-'} <span className="text-gray-300 dark:text-gray-600 text-sm">x</span> {match.awayScore ?? '-'}</div>
+                                const isLive = match.status === MatchStatus.IN_PROGRESS; const isFinished = match.status === MatchStatus.FINISHED; const mRound = getMatchRound(match); const matchDate = new Date(match.date); const isDateValid = !isNaN(matchDate.getTime()); let histPoints = 0; if ((isLive || isFinished) && match.homeScore !== null && match.awayScore !== null && pred) { histPoints = calculatePoints(Number(pred.homeScore), Number(pred.awayScore), Number(match.homeScore), Number(match.awayScore), league.settings) + getGoalscorerBonus(match.id, pred.playerPick); } return (<div key={match.id} className="p-4 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"><div className="flex justify-between items-center mb-3"><div className="flex items-center gap-2 text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500"><Calendar size={12} /><span>{isDateValid ? matchDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : 'Data Inválida'}</span><span>•</span>{renderMatchBadge(match)}</div>{isLive && <span className="bg-red-500 text-white px-2 py-0.5 rounded text-[10px] font-bold animate-pulse">AO VIVO</span>}</div><div className="flex flex-col items-center mb-4"><div className="flex items-center gap-6 mb-2"><img src={getTeamFlag(match.homeTeamId)} className="w-10 h-7 object-cover rounded shadow-sm" alt={match.homeTeamId} /><span className="text-gray-300 dark:text-gray-600 text-xs font-bold">X</span><img src={getTeamFlag(match.awayTeamId)} className="w-10 h-7 object-cover rounded shadow-sm" alt={match.awayTeamId} /></div><div className="text-sm font-black text-gray-900 dark:text-white text-center uppercase tracking-tight">{match.homeTeamId} <span className="text-gray-400 dark:text-gray-500 font-normal mx-1">x</span> {match.awayTeamId}</div></div><div className="flex items-stretch rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden"><div className="flex-1 bg-gray-50 dark:bg-gray-700 p-2 flex flex-col items-center justify-center border-r border-gray-200 dark:border-gray-600"><span className="text-[9px] uppercase font-bold text-gray-400 dark:text-gray-500 mb-1">Placar Oficial</span><div className={`text-xl font-black ${isLive ? 'text-green-600 dark:text-green-400 animate-pulse' : 'text-gray-800 dark:text-white'}`}>{match.homeScore ?? '-'} <span className="text-gray-300 dark:text-gray-600 text-sm">x</span> {match.awayScore ?? '-'}</div>
                                     {/* Goleadores no Histórico */}
                                     {brazilMatchGoals.some(g => g.matchId === match.id) && (
                                         <div className="mt-1 flex flex-wrap justify-center gap-1">
@@ -868,7 +973,14 @@ export const BrazilLeagueDetails: React.FC = () => {
                         <div className="bg-gray-50 dark:bg-gray-700/50 p-5 rounded-xl border border-gray-200 dark:border-gray-600 flex flex-col items-center text-center hover:shadow-md transition-all"><div className="text-3xl font-black text-gray-600 dark:text-gray-400 mb-2">{league.settings?.draw ?? 6}</div><div className="font-bold text-gray-800 dark:text-gray-200 text-sm uppercase tracking-wide mb-2">Empate (Não Exato)</div><p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">Acertou o empate, mas placar diferente.<br /><span className="text-gray-500 dark:text-gray-300 font-medium">Ex: Palpitou 1x1 e foi 2x2.</span></p></div>
 
                         {/* Apenas Vencedor - Marrom */}
-                        <div className="bg-amber-900/10 dark:bg-amber-900/20 p-5 rounded-xl border border-amber-900/20 dark:border-amber-800/30 flex flex-col items-center text-center hover:shadow-md transition-all"><div className="text-3xl font-black text-amber-800 dark:text-amber-500 mb-2">{league.settings?.winner ?? 5}</div><div className="font-bold text-gray-800 dark:text-gray-200 text-sm uppercase tracking-wide mb-2">Apenas Vencedor</div><p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">Acertou quem ganhou, mas errou o saldo e a quantidade de gols.<br /><span className="text-amber-700 dark:text-amber-400 font-medium">Ex: Palpitou 2x1 e foi 4x0.</span></p></div>
+                        <div className="bg-[#5c4033]/10 dark:bg-[#5c4033]/20 p-5 rounded-xl border border-[#5c4033]/20 flex flex-col items-center text-center hover:shadow-md transition-all">
+                            <div className="text-3xl font-black text-[#5c4033] dark:text-[#a67b5b] mb-2">{league.settings?.winner ?? 5}</div>
+                            <div className="font-bold text-gray-800 dark:text-gray-200 text-sm uppercase tracking-wide mb-2">Apenas Vencedor</div>
+                            <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
+                                Acertou quem ganhou, mas errou o resto.<br />
+                                <span className="text-[#5c4033] dark:text-[#a67b5b] font-medium">Ex: Palpitou 2x1 e foi 4x0.</span>
+                            </p>
+                        </div>
 
                         {/* Artilheiro - Roxo */}
                         <div className="bg-purple-50 dark:bg-purple-900/20 p-5 rounded-xl border border-purple-100 dark:border-purple-800 flex flex-col items-center text-center hover:shadow-md transition-all"><div className="text-3xl font-black text-purple-700 dark:text-purple-400 mb-2">{league.settings?.goalscorer ?? 2}</div><div className="font-bold text-gray-800 dark:text-gray-200 text-sm uppercase tracking-wide mb-2">Artilheiro</div><p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">Acertou o artilheiro ganha os pontos, a partir do 2º gol soma +1 pt por gol extra.<br /><span className="text-purple-700 dark:text-purple-300 font-medium italic mt-1 block">Escolheu "(Nenhum)" e o Brasil não fez gols? Você ganha os pontos!</span></p></div>
@@ -945,7 +1057,173 @@ export const BrazilLeagueDetails: React.FC = () => {
                             className="w-full h-full object-cover"
                         />
                         <div><p className="font-bold text-gray-800 dark:text-white">{foundUser.name}</p><p className="text-xs text-gray-500 dark:text-gray-400">{foundUser.email}</p></div></div><button onClick={handleConfirmInvite} disabled={isSendingInvite} className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70">{isSendingInvite ? <Loader2 className="animate-spin" size={18} /> : <UserPlus size={18} />} Confirmar Convite</button></div>)}{searchStatus === 'not_found' && (<div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-300 p-4 rounded-xl border border-red-200 dark:border-red-800 flex items-center gap-3 animate-in fade-in slide-in-from-top-2"><AlertCircle size={20} /><span className="font-medium text-sm">Usuário não encontrado. Verifique se o e-mail está correto e se o usuário já possui cadastro na Liga.</span></div>)}</>)}</div>
-                <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm"><h3 className="font-bold text-lg mb-4 text-gray-800 dark:text-white">Configurações da Liga</h3><div className="flex flex-col md:flex-row gap-6 items-start"><div className="flex flex-col items-center space-y-2"><input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileChange} className="hidden" /><div onClick={triggerFileInput} className="w-24 h-24 rounded-full border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center cursor-pointer hover:border-brasil-blue dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 transition-all relative group overflow-hidden bg-gray-50 dark:bg-gray-700">{editImage ? <img src={editImage} alt="Preview" className={`w-full h-full object-cover ${imageProcessing ? 'opacity-50' : ''}`} /> : <div className="flex flex-col items-center text-gray-400"><Camera size={24} /><span className="text-[10px] mt-1">Logo</span></div>}{imageProcessing && (<div className="absolute inset-0 flex items-center justify-center"><Loader2 className="animate-spin text-brasil-blue" size={24} /></div>)}<div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><Upload className="text-white" size={20} /></div></div><div className="text-center"><span className="text-xs text-gray-500 dark:text-gray-400 block">Alterar Imagem</span><span className="text-[10px] text-gray-400 block mt-0.5">{imageProcessing ? 'Processando...' : 'Qualquer Tamanho'}</span></div></div><div className="flex-1 w-full space-y-4"><div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nome da Liga</label><input value={league.name} disabled className="w-full border border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-lg p-2.5 cursor-not-allowed" placeholder="Nome da liga" /><p className="text-xs text-gray-400 mt-1">O nome da liga não pode ser alterado.</p></div><div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descrição</label><textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} className="w-full border border-gray-600 bg-gray-700 text-white rounded-lg p-2.5 focus:ring-2 focus:ring-brasil-blue outline-none h-24 resize-none text-sm" placeholder="Adicione uma descrição para sua liga..." /></div><div className="flex items-center justify-between"><label className="text-sm font-medium text-gray-700 dark:text-gray-300">Visibilidade da Liga</label><button type="button" onClick={() => setEditIsPrivate(!editIsPrivate)} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-brasil-blue focus:ring-offset-2 ${editIsPrivate ? 'bg-gray-300' : 'bg-brasil-green'}`}><span className={`inline-block h-4 w-4 transform rounded-full bg-white transition duration-200 ease-in-out ${editIsPrivate ? 'translate-x-1' : 'translate-x-6'}`} /></button></div><p className="text-xs text-gray-500 dark:text-gray-400 -mt-2 flex items-center gap-1">{editIsPrivate ? <Lock size={12} /> : <Globe size={12} />}{editIsPrivate ? 'Privada: Requer aprovação.' : 'Pública: Aberta a todos.'}</p><button onClick={handleUpdateLeague} disabled={imageProcessing || isSavingSettings} className="bg-brasil-blue text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-900 transition-colors flex items-center gap-2 text-sm disabled:opacity-50">{imageProcessing || isSavingSettings ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} {imageProcessing ? 'Aguarde...' : isSavingSettings ? 'Salvando...' : 'Salvar Alterações'}</button></div></div></div>
+                <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
+                    <h3 className="font-bold text-lg mb-4 text-gray-800 dark:text-white flex items-center gap-2">Configurações da Liga</h3>
+                    <div className="space-y-6">
+                        <div className="flex flex-col md:flex-row gap-6 items-start">
+                            <div className="flex flex-col items-center space-y-2">
+                                <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
+                                <div onClick={triggerFileInput} className="w-24 h-24 rounded-full border-2 border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center cursor-pointer hover:border-brasil-blue dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-gray-700 transition-all relative group overflow-hidden bg-gray-50 dark:bg-gray-700">
+                                    {editImage ? <img src={editImage} alt="Preview" className={`w-full h-full object-cover ${imageProcessing ? 'opacity-50' : ''}`} /> : <div className="flex flex-col items-center text-gray-400"><Camera size={24} /><span className="text-[10px] mt-1">Logo</span></div>}
+                                    {imageProcessing && (<div className="absolute inset-0 flex items-center justify-center"><Loader2 className="animate-spin text-brasil-blue" size={24} /></div>)}
+                                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"><Upload className="text-white" size={20} /></div>
+                                </div>
+                                <div className="text-center"><span className="text-xs text-gray-500 dark:text-gray-400 block">Alterar Imagem</span><span className="text-[10px] text-gray-400 block mt-0.5">{imageProcessing ? 'Processando...' : 'Qualquer Tamanho'}</span></div>
+                            </div>
+                            <div className="flex-1 w-full space-y-4">
+                                <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nome da Liga</label><input value={league.name} disabled className="w-full border border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-lg p-2.5 cursor-not-allowed" placeholder="Nome da liga" /><p className="text-xs text-gray-400 mt-1">O nome da liga não pode ser alterado.</p></div>
+                                <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Descrição</label><textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} className="w-full border border-gray-600 bg-gray-700 text-white rounded-lg p-2.5 focus:ring-2 focus:ring-brasil-blue outline-none h-24 resize-none text-sm" placeholder="Adicione uma descrição para sua liga..." /></div>
+                                <div className="flex items-center justify-between"><label className="text-sm font-medium text-gray-700 dark:text-gray-300">Visibilidade da Liga</label><button type="button" onClick={() => setEditIsPrivate(!editIsPrivate)} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-brasil-blue focus:ring-offset-2 ${editIsPrivate ? 'bg-gray-300' : 'bg-brasil-green'}`}><span className={`inline-block h-4 w-4 transform rounded-full bg-white transition duration-200 ease-in-out ${editIsPrivate ? 'translate-x-1' : 'translate-x-6'}`} /></button></div>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 -mt-2 flex items-center gap-1">{editIsPrivate ? <Lock size={12} /> : <Globe size={12} />}{editIsPrivate ? 'Privada: Requer aprovação.' : 'Pública: Aberta a todos.'}</p>
+                                <button onClick={handleUpdateLeague} disabled={imageProcessing || isSavingSettings} className="bg-brasil-blue text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-900 transition-colors flex items-center gap-2 text-sm disabled:opacity-50">{imageProcessing || isSavingSettings ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />} {imageProcessing ? 'Aguarde...' : isSavingSettings ? 'Salvando...' : 'Salvar Alterações'}</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
+                    <div className="flex items-center justify-between mb-4 border-b border-gray-100 dark:border-gray-700 pb-4">
+                        <h3 className="font-bold text-lg text-gray-800 dark:text-white flex items-center gap-2">
+                            <Trophy size={20} className="text-brasil-blue dark:text-blue-400" /> Pontuações da Liga
+                        </h3>
+                        {isScoringLocked && (
+                            <span className="text-[10px] bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-3 py-1 rounded-full font-bold flex items-center gap-1 border border-red-200 dark:border-red-800">
+                                <Lock size={10} /> BLOQUEADO (24H ANTES OU MANUAL)
+                            </span>
+                        )}
+                    </div>
+
+                    <div className="space-y-6">
+                        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-3 rounded-xl flex items-start gap-2 text-amber-800 dark:text-amber-300 text-xs leading-relaxed">
+                            <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
+                            <p>As pontuações só podem ser alteradas até <strong>24 horas antes do início da competição</strong>. Após esse prazo, as configurações ficam bloqueadas automaticamente.</p>
+                        </div>
+                        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-3 rounded-xl flex items-start gap-2 text-blue-700 dark:text-blue-300 text-xs leading-relaxed">
+                            <Info size={16} className="mt-0.5 flex-shrink-0" />
+                            <p>Se quiser deixar desativado <strong>Vencedor + Gols do Vencedor</strong> e <strong>Vencedor + Saldo</strong>, basta deixar a mesma pontuação de <strong>Apenas Vencedor</strong>.</p>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Cravada (Placar Exato)</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    disabled={isScoringLocked}
+                                    value={editExactScore}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val === '') setEditExactScore('');
+                                        else {
+                                            const n = parseInt(val);
+                                            if (n > 0) setEditExactScore(n);
+                                        }
+                                    }}
+                                    className={`w-full p-3 rounded-xl border font-bold ${isScoringLocked ? 'bg-gray-100 dark:bg-gray-900 text-gray-400' : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-brasil-blue outline-none'}`}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Vencedor + Saldo</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    disabled={isScoringLocked}
+                                    value={editWinnerAndDiff}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val === '') setEditWinnerAndDiff('');
+                                        else {
+                                            const n = parseInt(val);
+                                            if (n > 0) setEditWinnerAndDiff(n);
+                                        }
+                                    }}
+                                    className={`w-full p-3 rounded-xl border font-bold ${isScoringLocked ? 'bg-gray-100 dark:bg-gray-900 text-gray-400' : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-brasil-blue outline-none'}`}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Vencedor + Gols do Vencedor</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    disabled={isScoringLocked}
+                                    value={editWinnerAndWinnerGoals}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val === '') setEditWinnerAndWinnerGoals('');
+                                        else {
+                                            const n = parseInt(val);
+                                            if (n > 0) setEditWinnerAndWinnerGoals(n);
+                                        }
+                                    }}
+                                    className={`w-full p-3 rounded-xl border font-bold ${isScoringLocked ? 'bg-gray-100 dark:bg-gray-900 text-gray-400' : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-brasil-blue outline-none'}`}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Empate (Não Exato)</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    disabled={isScoringLocked}
+                                    value={editDraw}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val === '') setEditDraw('');
+                                        else {
+                                            const n = parseInt(val);
+                                            if (n > 0) setEditDraw(n);
+                                        }
+                                    }}
+                                    className={`w-full p-3 rounded-xl border font-bold ${isScoringLocked ? 'bg-gray-100 dark:bg-gray-900 text-gray-400' : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-brasil-blue outline-none'}`}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Apenas Vencedor</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    disabled={isScoringLocked}
+                                    value={editWinner}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val === '') setEditWinner('');
+                                        else {
+                                            const n = parseInt(val);
+                                            if (n > 0) setEditWinner(n);
+                                        }
+                                    }}
+                                    className={`w-full p-3 rounded-xl border font-bold ${isScoringLocked ? 'bg-gray-100 dark:bg-gray-900 text-gray-400' : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-brasil-blue outline-none'}`}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Bônus Artilheiro</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    disabled={isScoringLocked}
+                                    value={editGoalscorer}
+                                    onChange={(e) => {
+                                        const val = e.target.value;
+                                        if (val === '') setEditGoalscorer('');
+                                        else {
+                                            const n = parseInt(val);
+                                            if (n > 0) setEditGoalscorer(n);
+                                        }
+                                    }}
+                                    className={`w-full p-3 rounded-xl border font-bold ${isScoringLocked ? 'bg-gray-100 dark:bg-gray-900 text-gray-400' : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-brasil-blue outline-none'}`}
+                                />
+                            </div>
+                        </div>
+
+
+                        <button
+                            onClick={handleUpdateScoring}
+                            disabled={isScoringLocked || isSavingScoring}
+                            className={`w-full sm:w-auto px-6 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-md active:scale-95 ${isScoringLocked ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-brasil-blue hover:bg-blue-900 text-white'}`}
+                        >
+                            {isSavingScoring ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
+                            {isScoringLocked ? 'Configurações Bloqueadas' : 'Salvar Pontuações'}
+                        </button>
+                    </div>
+                </div>
                 <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-6 shadow-sm border border-red-100 dark:border-red-800"><h3 className="font-bold text-lg mb-4 text-red-800 dark:text-red-300 flex items-center gap-2"><AlertTriangle size={20} /> Zona de Perigo</h3><p className="text-sm text-red-700 dark:text-red-300 mb-4">Ao excluir a liga, todos os dados, participantes e palpites serão permanentemente removidos. Esta ação não pode ser desfeita.</p><button onClick={() => setShowDeleteConfirm(true)} className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors shadow-sm"><Trash2 size={18} /> Excluir Liga e Dados</button></div>
                 {showUpgradeModal && createPortal(
                     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">

@@ -29,6 +29,11 @@ export const LeaguesPage: React.FC = () => {
     draw: number | '';
   }>({ exactScore: 10, winnerAndDiff: 7, winnerAndWinnerGoals: 6, winner: 5, draw: 6 });
 
+  const [topFinishersEnabled, setTopFinishersEnabled] = useState(false);
+  const [topFinishersPoints, setTopFinishersPoints] = useState<{
+    champion: number | ''; runnerUp: number | ''; third: number | ''; fourth: number | '';
+  }>({ champion: 20, runnerUp: 15, third: 10, fourth: 5 });
+
   if (loading) {
     return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin text-brasil-green" size={48} /></div>;
   }
@@ -43,6 +48,8 @@ export const LeaguesPage: React.FC = () => {
     setIsPrivate(true);
     setLeaguePlan('FREE');
     setSettings({ exactScore: 10, winnerAndDiff: 7, winner: 5, draw: 6 });
+    setTopFinishersEnabled(false);
+    setTopFinishersPoints({ champion: 20, runnerUp: 15, third: 10, fourth: 5 });
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -59,11 +66,18 @@ export const LeaguesPage: React.FC = () => {
 
     try {
       const finalSettings = {
-        exactScore: Number(settings.exactScore),
-        winnerAndDiff: Number(settings.winnerAndDiff),
-        winnerAndWinnerGoals: Number(settings.winnerAndWinnerGoals),
-        winner: Number(settings.winner),
-        draw: Number(settings.draw)
+        exactScore: Math.max(1, Number(settings.exactScore) || 1),
+        winnerAndDiff: Math.max(1, Number(settings.winnerAndDiff) || 1),
+        winnerAndWinnerGoals: Math.max(1, Number(settings.winnerAndWinnerGoals) || 1),
+        winner: Math.max(1, Number(settings.winner) || 1),
+        draw: Math.max(1, Number(settings.draw) || 1),
+        topFinishersEnabled,
+        topFinishersPoints: topFinishersEnabled ? {
+          champion: Math.max(1, Number(topFinishersPoints.champion) || 20),
+          runnerUp: Math.max(1, Number(topFinishersPoints.runnerUp) || 15),
+          third: Math.max(1, Number(topFinishersPoints.third) || 10),
+          fourth: Math.max(1, Number(topFinishersPoints.fourth) || 5),
+        } : { champion: 20, runnerUp: 15, third: 10, fourth: 5 }
       };
 
       const success = await createLeague(newLeagueName, isPrivate, finalSettings, leagueImage, newLeagueDescription, leaguePlan);
@@ -399,34 +413,105 @@ export const LeaguesPage: React.FC = () => {
                 <div className="space-y-3">
                   <div className="flex justify-between items-center bg-white dark:bg-gray-800 px-3 py-2 rounded-lg border border-blue-100 dark:border-blue-800/50 shadow-sm">
                     <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Placar Exato</span>
-                    <input type="number" min="0" value={settings.exactScore} onChange={e => setSettings({ ...settings, exactScore: e.target.value === '' ? '' : parseInt(e.target.value) })} className="w-16 p-1 text-center border rounded bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white font-bold focus:ring-1 focus:ring-brasil-blue outline-none" />
+                    <input type="number" min="1" value={settings.exactScore} onChange={e => {
+                      const val = e.target.value;
+                      if (val === '') setSettings({ ...settings, exactScore: '' });
+                      else {
+                        const n = parseInt(val);
+                        if (n > 0) setSettings({ ...settings, exactScore: n });
+                      }
+                    }} className="w-16 p-1 text-center border rounded bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white font-bold focus:ring-1 focus:ring-brasil-blue outline-none" />
                   </div>
                   <div className="flex justify-between items-center bg-white dark:bg-gray-800 px-3 py-2 rounded-lg border border-blue-100 dark:border-blue-800/50 shadow-sm">
                     <div className="flex flex-col">
                       <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Vencedor + Saldo</span>
                       <span className="text-[10px] text-gray-400">Acertou time vencedor e saldo de gols</span>
                     </div>
-                    <input type="number" min="0" value={settings.winnerAndDiff} onChange={e => setSettings({ ...settings, winnerAndDiff: e.target.value === '' ? '' : parseInt(e.target.value) })} className="w-16 p-1 text-center border rounded bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white font-bold focus:ring-1 focus:ring-brasil-blue outline-none" />
+                    <input type="number" min="1" value={settings.winnerAndDiff} onChange={e => {
+                      const val = e.target.value;
+                      if (val === '') setSettings({ ...settings, winnerAndDiff: '' });
+                      else {
+                        const n = parseInt(val);
+                        if (n > 0) setSettings({ ...settings, winnerAndDiff: n });
+                      }
+                    }} className="w-16 p-1 text-center border rounded bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white font-bold focus:ring-1 focus:ring-brasil-blue outline-none" />
                   </div>
                   <div className="flex justify-between items-center bg-white dark:bg-gray-800 px-3 py-2 rounded-lg border border-blue-100 dark:border-blue-800/50 shadow-sm">
                     <div className="flex flex-col">
                       <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Vencedor + Gols do Vencedor</span>
                       <span className="text-[10px] text-gray-400">Acertou quem vence e gols do vencedor</span>
                     </div>
-                    <input type="number" min="0" value={settings.winnerAndWinnerGoals} onChange={e => setSettings({ ...settings, winnerAndWinnerGoals: e.target.value === '' ? '' : parseInt(e.target.value) })} className="w-16 p-1 text-center border rounded bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white font-bold focus:ring-1 focus:ring-brasil-blue outline-none" />
+                    <input type="number" min="1" value={settings.winnerAndWinnerGoals} onChange={e => {
+                      const val = e.target.value;
+                      if (val === '') setSettings({ ...settings, winnerAndWinnerGoals: '' });
+                      else {
+                        const n = parseInt(val);
+                        if (n > 0) setSettings({ ...settings, winnerAndWinnerGoals: n });
+                      }
+                    }} className="w-16 p-1 text-center border rounded bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white font-bold focus:ring-1 focus:ring-brasil-blue outline-none" />
                   </div>
                   <div className="flex justify-between items-center bg-white dark:bg-gray-800 px-3 py-2 rounded-lg border border-blue-100 dark:border-blue-800/50 shadow-sm">
                     <div className="flex flex-col">
                       <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Empate (Não Exato)</span>
                       <span className="text-[10px] text-gray-400">Acertou que seria empate (ex: 1x1 e foi 2x2)</span>
                     </div>
-                    <input type="number" min="0" value={settings.draw} onChange={e => setSettings({ ...settings, draw: e.target.value === '' ? '' : parseInt(e.target.value) })} className="w-16 p-1 text-center border rounded bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white font-bold focus:ring-1 focus:ring-brasil-blue outline-none" />
+                    <input type="number" min="1" value={settings.draw} onChange={e => {
+                      const val = e.target.value;
+                      if (val === '') setSettings({ ...settings, draw: '' });
+                      else {
+                        const n = parseInt(val);
+                        if (n > 0) setSettings({ ...settings, draw: n });
+                      }
+                    }} className="w-16 p-1 text-center border rounded bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white font-bold focus:ring-1 focus:ring-brasil-blue outline-none" />
                   </div>
                   <div className="flex justify-between items-center bg-white dark:bg-gray-800 px-3 py-2 rounded-lg border border-blue-100 dark:border-blue-800/50 shadow-sm">
                     <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Apenas Vencedor</span>
-                    <input type="number" min="0" value={settings.winner} onChange={e => setSettings({ ...settings, winner: e.target.value === '' ? '' : parseInt(e.target.value) })} className="w-16 p-1 text-center border rounded bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white font-bold focus:ring-1 focus:ring-brasil-blue outline-none" />
+                    <input type="number" min="1" value={settings.winner} onChange={e => {
+                      const val = e.target.value;
+                      if (val === '') setSettings({ ...settings, winner: '' });
+                      else {
+                        const n = parseInt(val);
+                        if (n > 0) setSettings({ ...settings, winner: n });
+                      }
+                    }} className="w-16 p-1 text-center border rounded bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white font-bold focus:ring-1 focus:ring-brasil-blue outline-none" />
                   </div>
                 </div>
+              </div>
+
+              {/* Top Finishers Toggle */}
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg space-y-3 border border-yellow-200 dark:border-yellow-800">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-bold text-yellow-800 dark:text-yellow-300 flex items-center gap-2">
+                      <Trophy size={16} /> 4 Primeiros Colocados
+                    </p>
+                    <p className="text-[11px] text-yellow-700 dark:text-yellow-400 mt-0.5">Participantes palpitam nos 4 primeiros da competição</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setTopFinishersEnabled(v => !v)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${topFinishersEnabled ? 'bg-yellow-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${topFinishersEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                  </button>
+                </div>
+                {topFinishersEnabled && (
+                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-yellow-200 dark:border-yellow-700">
+                    {(['champion', 'runnerUp', 'third', 'fourth'] as const).map((key, i) => {
+                      const labels = ['🥇 Campeão', '🥈 Vice', '🥉 3º Lugar', '4º Lugar'];
+                      return (
+                        <div key={key} className="flex justify-between items-center bg-white dark:bg-gray-800 px-3 py-2 rounded-lg border border-yellow-100 dark:border-yellow-800/50">
+                          <span className="text-xs text-gray-700 dark:text-gray-300 font-medium">{labels[i]}</span>
+                          <input type="number" min="1" value={topFinishersPoints[key]} onChange={e => {
+                            const val = e.target.value;
+                            if (val === '') setTopFinishersPoints(p => ({ ...p, [key]: '' }));
+                            else { const n = parseInt(val); if (n > 0) setTopFinishersPoints(p => ({ ...p, [key]: n })); }
+                          }} className="w-14 p-1 text-center border rounded bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white font-bold focus:ring-1 focus:ring-yellow-500 outline-none text-sm" />
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end gap-2 pt-2">

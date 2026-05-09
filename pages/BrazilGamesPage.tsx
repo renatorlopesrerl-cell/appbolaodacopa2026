@@ -19,12 +19,12 @@ export const BrazilGamesPage: React.FC = () => {
   const [imageProcessing, setImageProcessing] = useState(false);
 
   const [settings, setSettings] = useState({
-    exactScore: 10,
-    winnerAndDiff: 7,
-    winnerAndWinnerGoals: 6,
-    draw: 6,
-    winner: 5,
-    goalscorer: 2,
+    exactScore: 10 as number | string,
+    winnerAndDiff: 7 as number | string,
+    winnerAndWinnerGoals: 6 as number | string,
+    draw: 6 as number | string,
+    winner: 5 as number | string,
+    goalscorer: 2 as number | string,
     plan: 'FREE' as any,
     isUnlimited: false
   });
@@ -42,12 +42,12 @@ export const BrazilGamesPage: React.FC = () => {
     setLeagueImage('');
     setIsPrivate(true);
     setSettings({
-      exactScore: 10,
-      winnerAndDiff: 7,
-      winnerAndWinnerGoals: 6,
-      draw: 6,
-      winner: 5,
-      goalscorer: 2,
+      exactScore: 10 as number | string,
+      winnerAndDiff: 7 as number | string,
+      winnerAndWinnerGoals: 6 as number | string,
+      draw: 6 as number | string,
+      winner: 5 as number | string,
+      goalscorer: 2 as number | string,
       plan: 'FREE' as any,
       isUnlimited: false
     });
@@ -66,7 +66,16 @@ export const BrazilGamesPage: React.FC = () => {
 
     setIsCreating(true);
     try {
-      const success = await createBrazilLeague(newLeagueName, isPrivate, leagueImage, newLeagueDescription, settings);
+      const finalSettings = {
+        ...settings,
+        exactScore: Math.max(1, Number(settings.exactScore) || 1),
+        winnerAndDiff: Math.max(1, Number(settings.winnerAndDiff) || 1),
+        winnerAndWinnerGoals: Math.max(1, Number(settings.winnerAndWinnerGoals) || 1),
+        draw: Math.max(1, Number(settings.draw) || 1),
+        winner: Math.max(1, Number(settings.winner) || 1),
+        goalscorer: Math.max(1, Number(settings.goalscorer) || 1)
+      };
+      const success = await createBrazilLeague(newLeagueName, isPrivate, leagueImage, newLeagueDescription, finalSettings);
       if (success) {
         resetForm();
         setShowCreateModal(false);
@@ -381,39 +390,81 @@ export const BrazilGamesPage: React.FC = () => {
                 <div className="space-y-3">
                   <div className="flex justify-between items-center bg-white dark:bg-gray-800 px-3 py-2 rounded-lg border border-green-100 dark:border-green-800/50 shadow-sm">
                     <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Placar Exato</span>
-                    <input type="number" min="0" value={settings.exactScore} onChange={e => setSettings({ ...settings, exactScore: parseInt(e.target.value) || 0 })} className="w-16 p-1 text-center border rounded bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white font-bold focus:ring-1 focus:ring-brasil-green outline-none" />
+                    <input type="number" min="1" value={settings.exactScore} onChange={e => {
+                      const val = e.target.value;
+                      if (val === '') setSettings({ ...settings, exactScore: '' });
+                      else {
+                        const n = parseInt(val);
+                        if (n > 0) setSettings({ ...settings, exactScore: n });
+                      }
+                    }} className="w-16 p-1 text-center border rounded bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white font-bold focus:ring-1 focus:ring-brasil-green outline-none" />
                   </div>
                   <div className="flex justify-between items-center bg-white dark:bg-gray-800 px-3 py-2 rounded-lg border border-green-100 dark:border-green-800/50 shadow-sm">
                     <div className="flex flex-col">
                       <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Vencedor + Saldo</span>
                       <span className="text-[10px] text-gray-400">Acertou time vencedor e saldo de gols</span>
                     </div>
-                    <input type="number" min="0" value={settings.winnerAndDiff} onChange={e => setSettings({ ...settings, winnerAndDiff: parseInt(e.target.value) || 0 })} className="w-16 p-1 text-center border rounded bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white font-bold focus:ring-1 focus:ring-brasil-green outline-none" />
+                    <input type="number" min="1" value={settings.winnerAndDiff} onChange={e => {
+                      const val = e.target.value;
+                      if (val === '') setSettings({ ...settings, winnerAndDiff: '' });
+                      else {
+                        const n = parseInt(val);
+                        if (n > 0) setSettings({ ...settings, winnerAndDiff: n });
+                      }
+                    }} className="w-16 p-1 text-center border rounded bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white font-bold focus:ring-1 focus:ring-brasil-green outline-none" />
                   </div>
                   <div className="flex justify-between items-center bg-white dark:bg-gray-800 px-3 py-2 rounded-lg border border-green-100 dark:border-green-800/50 shadow-sm">
                     <div className="flex flex-col">
                       <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Vencedor + Gols do Vencedor</span>
                       <span className="text-[10px] text-gray-400">Acertou quem vence e gols do vencedor</span>
                     </div>
-                    <input type="number" min="0" value={settings.winnerAndWinnerGoals} onChange={e => setSettings({ ...settings, winnerAndWinnerGoals: parseInt(e.target.value) || 0 })} className="w-16 p-1 text-center border rounded bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white font-bold focus:ring-1 focus:ring-brasil-green outline-none" />
+                    <input type="number" min="1" value={settings.winnerAndWinnerGoals} onChange={e => {
+                      const val = e.target.value;
+                      if (val === '') setSettings({ ...settings, winnerAndWinnerGoals: '' });
+                      else {
+                        const n = parseInt(val);
+                        if (n > 0) setSettings({ ...settings, winnerAndWinnerGoals: n });
+                      }
+                    }} className="w-16 p-1 text-center border rounded bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white font-bold focus:ring-1 focus:ring-brasil-green outline-none" />
                   </div>
                   <div className="flex justify-between items-center bg-white dark:bg-gray-800 px-3 py-2 rounded-lg border border-green-100 dark:border-green-800/50 shadow-sm">
                     <div className="flex flex-col">
                       <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Empate (Não Exato)</span>
                       <span className="text-[10px] text-gray-400">Acertou que seria empate (ex: 1x1 e foi 2x2)</span>
                     </div>
-                    <input type="number" min="0" value={settings.draw} onChange={e => setSettings({ ...settings, draw: parseInt(e.target.value) || 0 })} className="w-16 p-1 text-center border rounded bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white font-bold focus:ring-1 focus:ring-brasil-green outline-none" />
+                    <input type="number" min="1" value={settings.draw} onChange={e => {
+                      const val = e.target.value;
+                      if (val === '') setSettings({ ...settings, draw: '' });
+                      else {
+                        const n = parseInt(val);
+                        if (n > 0) setSettings({ ...settings, draw: n });
+                      }
+                    }} className="w-16 p-1 text-center border rounded bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white font-bold focus:ring-1 focus:ring-brasil-green outline-none" />
                   </div>
                   <div className="flex justify-between items-center bg-white dark:bg-gray-800 px-3 py-2 rounded-lg border border-green-100 dark:border-green-800/50 shadow-sm">
                     <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Apenas Vencedor</span>
-                    <input type="number" min="0" value={settings.winner} onChange={e => setSettings({ ...settings, winner: parseInt(e.target.value) || 0 })} className="w-16 p-1 text-center border rounded bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white font-bold focus:ring-1 focus:ring-brasil-green outline-none" />
+                    <input type="number" min="1" value={settings.winner} onChange={e => {
+                      const val = e.target.value;
+                      if (val === '') setSettings({ ...settings, winner: '' });
+                      else {
+                        const n = parseInt(val);
+                        if (n > 0) setSettings({ ...settings, winner: n });
+                      }
+                    }} className="w-16 p-1 text-center border rounded bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white font-bold focus:ring-1 focus:ring-brasil-green outline-none" />
                   </div>
                   <div className="flex justify-between items-center bg-yellow-50 dark:bg-yellow-900/20 px-3 py-2 rounded-lg border border-yellow-200 dark:border-yellow-800 shadow-sm">
                     <div className="flex flex-col">
                       <span className="text-sm text-yellow-800 dark:text-yellow-400 font-bold">⚽ Jogador Escolhido Faz Gol</span>
                       <span className="text-[10px] text-yellow-600 dark:text-yellow-500">A prtir do 2º gol na partida, soma +1 pt por gol extra.</span>
                     </div>
-                    <input type="number" min="0" value={settings.goalscorer} onChange={e => setSettings({ ...settings, goalscorer: parseInt(e.target.value) || 0 })} className="w-16 p-1 text-center border border-yellow-300 rounded bg-white dark:bg-gray-700 text-yellow-800 dark:text-yellow-400 font-bold focus:ring-1 focus:ring-yellow-400 outline-none" />
+                    <input type="number" min="1" value={settings.goalscorer} onChange={e => {
+                      const val = e.target.value;
+                      if (val === '') setSettings({ ...settings, goalscorer: '' });
+                      else {
+                        const n = parseInt(val);
+                        if (n > 0) setSettings({ ...settings, goalscorer: n });
+                      }
+                    }} className="w-16 p-1 text-center border border-yellow-300 rounded bg-white dark:bg-gray-700 text-yellow-800 dark:text-yellow-400 font-bold focus:ring-1 focus:ring-yellow-400 outline-none" />
                   </div>
                 </div>
               </div>

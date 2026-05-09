@@ -4,16 +4,33 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import { useStore } from '../App';
 import { Match, MatchStatus, Phase, BRAZIL_MATCH_IDS, BRAZIL_PLAYERS } from '../types';
 import { GROUPS_CONFIG, getMatchRound } from '../services/dataService';
-import { Edit2, Save, X, Filter, ChevronDown, ArrowLeft, Database, Trophy, Calendar, Clock, Loader2, Goal } from 'lucide-react';
+import { Edit2, Save, X, Filter, ChevronDown, ArrowLeft, Database, Trophy, Calendar, Clock, Loader2, Goal, Medal, Trash2 } from 'lucide-react';
 
 export const AdminMatchesPage: React.FC = () => {
   const navigate = useNavigate();
-  const { currentUser, matches, updateMatch, addNotification, brazilMatchGoals, addBrazilMatchGoal } = useStore();
+  const { currentUser, matches, updateMatch, addNotification, brazilMatchGoals, addBrazilMatchGoal, topFinishersResult, setTopFinishersResult } = useStore();
   const [editingMatch, setEditingMatch] = useState<Match | null>(null);
   const [showGoals, setShowGoals] = useState(false);
   const [filterPhase, setFilterPhase] = useState<string>('all');
   const [filterGroup, setFilterGroup] = useState<string>('all');
   const [filterRound, setFilterRound] = useState<string>('all');
+
+  // Top 4 Finishers State
+  const [tfChampion, setTfChampion] = useState(topFinishersResult?.champion || '');
+  const [tfRunnerUp, setTfRunnerUp] = useState(topFinishersResult?.runnerUp || '');
+  const [tfThird, setTfThird] = useState(topFinishersResult?.third || '');
+  const [tfFourth, setTfFourth] = useState(topFinishersResult?.fourth || '');
+  const [isSavingTopFinishers, setIsSavingTopFinishers] = useState(false);
+
+  // Sync from store when loaded
+  React.useEffect(() => {
+    if (topFinishersResult) {
+      if (topFinishersResult.champion) setTfChampion(topFinishersResult.champion);
+      if (topFinishersResult.runnerUp) setTfRunnerUp(topFinishersResult.runnerUp);
+      if (topFinishersResult.third) setTfThird(topFinishersResult.third);
+      if (topFinishersResult.fourth) setTfFourth(topFinishersResult.fourth);
+    }
+  }, [topFinishersResult?.champion, topFinishersResult?.runnerUp, topFinishersResult?.third, topFinishersResult?.fourth]);
 
   // Loading State for Saving
   const [isSaving, setIsSaving] = useState(false);
@@ -507,6 +524,110 @@ export const AdminMatchesPage: React.FC = () => {
           </div>
         </div>, document.body
       )}
+
+      {/* TOP 4 FINISHERS RESULT - GLOBAL ADMIN */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="bg-gradient-to-r from-yellow-500 to-amber-500 px-5 py-4 flex items-center gap-3">
+          <div className="bg-white/20 p-2 rounded-lg">
+            <Medal size={20} className="text-white" />
+          </div>
+          <div>
+            <h2 className="text-lg font-black text-white uppercase tracking-wide">4 Primeiros Colocados — Resultado Oficial</h2>
+            <p className="text-yellow-100 text-xs">Preencha apenas ao final da competição para calcular as pontuações</p>
+          </div>
+        </div>
+
+        <div className="p-5 space-y-4">
+          {topFinishersResult && (topFinishersResult.champion || topFinishersResult.runnerUp) && (
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-xl px-4 py-3 flex items-center gap-2 text-green-800 dark:text-green-300 text-sm font-bold">
+              <Trophy size={16} /> Resultado já registrado. Atualizar irá sobrescrever o registro anterior.
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {([
+              { key: 'champion' as const, label: 'Campeão', emoji: '🥇', value: tfChampion, setter: setTfChampion },
+              { key: 'runnerUp' as const, label: 'Vice-Campeão', emoji: '🥈', value: tfRunnerUp, setter: setTfRunnerUp },
+              { key: 'third' as const, label: '3º Lugar', emoji: '🥉', value: tfThird, setter: setTfThird },
+              { key: 'fourth' as const, label: '4º Lugar', emoji: '🏅', value: tfFourth, setter: setTfFourth },
+            ]).map(f => {
+              const allTeams = [...new Set(
+                matches.flatMap(m => [m.homeTeamId, m.awayTeamId])
+                  .filter(t => t && !t.startsWith('Venc') && !t.startsWith('Perd') && !t.startsWith('1º') && !t.startsWith('2º') && !t.startsWith('3º'))
+              )].sort();
+              return (
+                <div key={f.key} className="space-y-1.5">
+                  <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase flex items-center gap-1">
+                    {f.emoji} {f.label}
+                  </label>
+                  <select
+                    value={f.value}
+                    onChange={e => f.setter(e.target.value)}
+                    className="w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl p-3 font-bold text-gray-800 dark:text-white focus:ring-2 focus:ring-yellow-500 outline-none text-sm"
+                  >
+                    <option value="">-- Selecione a seleção --</option>
+                    {allTeams.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl p-3 text-xs text-amber-800 dark:text-amber-300">
+            ⚠️ <strong>Atenção:</strong> Ao salvar, os pontos de "4 Primeiros Colocados" serão calculados para todos os participantes de todas as ligas que tenham essa opção ativada.
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 mt-2">
+            <button
+              onClick={async () => {
+                if (window.confirm('🚨 TEM CERTEZA? Isso irá APAGAR o resultado oficial e remover os pontos de TODOS os participantes em todas as ligas.')) {
+                  setIsSavingTopFinishers(true);
+                  try {
+                    await setTopFinishersResult('', '', '', '');
+                    setTfChampion('');
+                    setTfRunnerUp('');
+                    setTfThird('');
+                    setTfFourth('');
+                    addNotification('Resultado removido', 'Os pontos dos 4 primeiros foram limpos com sucesso.', 'success');
+                  } catch (error) {
+                    addNotification('Erro ao limpar', 'Não foi possível remover o resultado.', 'error');
+                  } finally {
+                    setIsSavingTopFinishers(false);
+                  }
+                }
+              }}
+              disabled={isSavingTopFinishers}
+              className="flex-1 bg-white dark:bg-gray-800 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-70 text-sm uppercase tracking-wide hover:bg-red-50 dark:hover:bg-red-900/10"
+            >
+              <Trash2 size={18} /> Limpar Tudo
+            </button>
+
+            <button
+              onClick={async () => {
+                if (!tfChampion || !tfRunnerUp || !tfThird || !tfFourth) {
+                  addNotification('Campos incompletos', 'Preencha todos os 4 colocados antes de salvar.', 'warning');
+                  return;
+                }
+                setIsSavingTopFinishers(true);
+                try {
+                  await setTopFinishersResult(tfChampion, tfRunnerUp, tfThird, tfFourth);
+                  addNotification('Resultado salvo', 'As pontuações foram calculadas com sucesso.', 'success');
+                } catch (error) {
+                  addNotification('Erro ao salvar', 'Ocorreu um erro ao salvar o resultado.', 'error');
+                } finally {
+                  setIsSavingTopFinishers(false);
+                }
+              }}
+              disabled={isSavingTopFinishers}
+              className="flex-[2] bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-600 hover:to-amber-600 text-white font-black py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-70 shadow-lg shadow-yellow-200 dark:shadow-none text-sm uppercase tracking-wide"
+            >
+              {isSavingTopFinishers ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+              {isSavingTopFinishers ? 'Salvando...' : 'Salvar Resultado Oficial'}
+            </button>
+          </div>
+        </div>
+      </div>
+
     </div>
   );
 };

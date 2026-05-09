@@ -58,7 +58,7 @@ import { onForegroundMessage } from './services/firebaseWeb';
 import { Capacitor } from '@capacitor/core';
 
 // Types
-import { User, Match, League, Prediction, Invitation, MatchStatus, BrazilLeague, BrazilPrediction, BrazilMatchGoal } from './types';
+import { User, Match, League, Prediction, Invitation, MatchStatus, BrazilLeague, BrazilPrediction, BrazilMatchGoal, TopFinisherPrediction, TopFinishersResult } from './types';
 
 // Constantes
 import { INITIAL_MATCHES } from './services/dataService';
@@ -125,6 +125,10 @@ interface AppState {
   removeUserFromBrazilLeague: (leagueId: string, userId: string) => Promise<void>;
   submitBrazilPredictions: (preds: { matchId: string, home: number, away: number, playerPick: string }[], leagueId: string) => Promise<boolean>;
   addBrazilMatchGoal: (matchId: string, playerName: string, goals: number) => Promise<boolean>;
+  topFinisherPredictions: TopFinisherPrediction[];
+  topFinishersResult: TopFinishersResult | null;
+  submitTopFinisherPrediction: (leagueId: string, champion: string, runnerUp: string, third: string, fourth: string) => Promise<boolean>;
+  setTopFinishersResult: (champion: string, runnerUp: string, third: string, fourth: string) => Promise<boolean>;
 }
 
 const AppContext = createContext<AppState | null>(null);
@@ -248,6 +252,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [brazilLeagues, setBrazilLeagues] = useState<BrazilLeague[]>([]);
   const [brazilPredictions, setBrazilPredictions] = useState<BrazilPrediction[]>([]);
   const [brazilMatchGoals, setBrazilMatchGoals] = useState<BrazilMatchGoal[]>([]);
+  const [topFinisherPredictions, setTopFinisherPredictions] = useState<TopFinisherPrediction[]>([]);
+  const [topFinishersResult, setTopFinishersResultState] = useState<TopFinishersResult | null>(null);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
@@ -693,7 +699,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     fetchingRef.current = true;
 
     try {
-      const [leaguesData, matchesData, predsData, profilesData, brazilLeaguesData, brazilPredsData, brazilGoalsData] = await Promise.all([
+      const [leaguesData, matchesData, predsData, profilesData, brazilLeaguesData, brazilPredsData, brazilGoalsData, topFinisherPredsData, topFinishersResultData] = await Promise.all([
         api.leagues.list().catch(e => {
           console.error("Leagues error", e);
           if (!silent) addNotification('Erro', `Falha ao carregar Ligas: ${e.message}`, 'warning');
@@ -725,6 +731,14 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         api.brazilMatchGoals.list().catch(e => {
           console.error("Brazil Goals error", e);
           return [];
+        }),
+        api.topFinisherPredictions.list().catch(e => {
+          console.error("Top Finisher Preds error", e);
+          return [];
+        }),
+        api.topFinishersResult.get().catch(e => {
+          console.error("Top Finishers Result error", e);
+          return null;
         })
       ]);
 
@@ -808,6 +822,24 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           matchId: g.match_id, playerName: g.player_name, goals: g.goals
         }));
         setBrazilMatchGoals(mappedBrazilGoals);
+      }
+
+      if (topFinisherPredsData) {
+        const mappedTopPreds: TopFinisherPrediction[] = topFinisherPredsData.map((p: any) => ({
+          userId: p.user_id, leagueId: p.league_id,
+          champion: p.champion || '', runnerUp: p.runner_up || '',
+          third: p.third || '', fourth: p.fourth || ''
+        }));
+        setTopFinisherPredictions(mappedTopPreds);
+      }
+
+      if (topFinishersResultData) {
+        setTopFinishersResultState({
+          champion: topFinishersResultData.champion || '',
+          runnerUp: topFinishersResultData.runner_up || '',
+          third: topFinishersResultData.third || '',
+          fourth: topFinishersResultData.fourth || ''
+        });
       }
 
       // NOVO: Buscar convites vinculados ao e-mail do usuário logado
@@ -1066,7 +1098,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           addNotification('Aviso', 'Erro ao enviar imagem. Criando com imagem padrão.', 'info');
         }
       }
-      const finalSettings = { ...settings, isUnlimited: false, plan: plan || 'FREE' };
+      const finalSettings = { ...settings, isUnlimited: false, plan: plan || 'FREE', manualScoringLock: false };
       const newLeagueApp: League = {
         id: newLeagueId, name, image: finalImage, description: description || '',
         leagueCode: leagueCode, adminId: currentUser.id, isPrivate, participants: [currentUser.id],
@@ -1132,16 +1164,17 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         }
       }
       
+      const finalSettings = { ...settings, manualScoringLock: false };
       const newLeague: BrazilLeague = {
         id: newLeagueId, name, image: finalImage, description: description || '',
         leagueCode, adminId: currentUser.id, isPrivate, participants: [currentUser.id],
-        pendingRequests: [], settings
+        pendingRequests: [], settings: finalSettings
       };
 
       await api.brazilLeagues.create({
         id: newLeagueId, name, image: finalImage, description: description || '',
         league_code: leagueCode, admin_id: currentUser.id, is_private: isPrivate,
-        participants: [currentUser.id], pending_requests: [], settings
+        participants: [currentUser.id], pending_requests: [], settings: finalSettings
       });
 
       setBrazilLeagues(prev => [...prev, newLeague]);
@@ -1169,6 +1202,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     if (Object.keys(dbUpdates).length > 0) {
       try {
         await api.brazilLeagues.update(id, dbUpdates);
+        addNotification('Sucesso', 'Liga atualizada.', 'success');
       } catch (e) {
         addNotification('Erro', 'Falha ao atualizar liga.', 'warning');
       }
@@ -1205,7 +1239,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     }
     setBrazilLeagues(prev => prev.map(l => l.id === leagueId ? updatedLeague : l));
     try {
-      await api.brazilLeagues.join(leagueId, currentUser.id, league.isPrivate);
+      await api.brazilLeagues.join(leagueId);
       addNotification('Sucesso', league.isPrivate ? 'Solicitação enviada.' : 'Você entrou na liga.', 'success');
     } catch (e) {
       addNotification('Erro', 'Falha ao entrar na liga.', 'warning');
@@ -1328,6 +1362,44 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     } catch (e) {
       console.error('addBrazilMatchGoal error:', e);
       addNotification('Erro', 'Falha ao salvar gols.', 'warning');
+      return false;
+    }
+  };
+
+  const submitTopFinisherPrediction = async (leagueId: string, champion: string, runnerUp: string, third: string, fourth: string): Promise<boolean> => {
+    if (!currentUser) return false;
+    try {
+      const pred: TopFinisherPrediction = { userId: currentUser.id, leagueId, champion, runnerUp, third, fourth };
+      setTopFinisherPredictions(prev => {
+        const filtered = prev.filter(p => !(p.userId === currentUser.id && p.leagueId === leagueId));
+        return [...filtered, pred];
+      });
+      await api.topFinisherPredictions.upsert({
+        user_id: currentUser.id, league_id: leagueId,
+        champion, runner_up: runnerUp, third, fourth,
+        updated_at: new Date().toISOString()
+      });
+      addNotification('Palpite Salvo!', 'Seu palpite dos 4 primeiros colocados foi salvo.', 'success');
+      return true;
+    } catch (e: any) {
+      console.error('submitTopFinisherPrediction error:', e);
+      const msg = e?.message || e?.error_description || JSON.stringify(e);
+      addNotification('Erro ao salvar palpite', msg, 'warning');
+      return false;
+    }
+  };
+
+  const setTopFinishersResult = async (champion: string, runnerUp: string, third: string, fourth: string): Promise<boolean> => {
+    if (!currentUser?.isAdmin) return false;
+    try {
+      const result: TopFinishersResult = { champion, runnerUp, third, fourth };
+      setTopFinishersResultState(result);
+      await api.topFinishersResult.upsert({ champion, runner_up: runnerUp, third, fourth });
+      addNotification('Resultado Salvo!', 'Os 4 primeiros colocados foram registrados com sucesso.', 'success');
+      return true;
+    } catch (e) {
+      console.error('setTopFinishersResult error:', e);
+      addNotification('Erro', 'Falha ao salvar resultado.', 'warning');
       return false;
     }
   };
@@ -1569,7 +1641,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       setCurrentTime, loginGoogle, signInWithEmail, signUpWithEmail, logout, createLeague, updateLeague, joinLeague, deleteLeague, approveUser, rejectUser, deleteAccount,
       removeUserFromLeague, submitPrediction, submitPredictions, simulateMatchResult, updateMatch, removeNotification, updateUserProfile, syncInitialMatches,
       sendLeagueInvite, respondToInvite, theme, toggleTheme, connectionError, retryConnection, addNotification, refreshPredictions, refreshAllData: () => fetchAllData(false), isRecoveryMode, lastSyncTime,
-      createBrazilLeague, updateBrazilLeague, joinBrazilLeague, deleteBrazilLeague, approveBrazilUser, rejectBrazilUser, removeUserFromBrazilLeague, submitBrazilPredictions, addBrazilMatchGoal, sendBrazilLeagueInvite
+      createBrazilLeague, updateBrazilLeague, joinBrazilLeague, deleteBrazilLeague, approveBrazilUser, rejectBrazilUser, removeUserFromBrazilLeague, submitBrazilPredictions, addBrazilMatchGoal, sendBrazilLeagueInvite,
+      topFinisherPredictions, topFinishersResult, submitTopFinisherPrediction, setTopFinishersResult
     }}>
       {children}
     </AppContext.Provider>
