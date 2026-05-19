@@ -8,6 +8,7 @@ import { supabase } from '../services/supabase';
 export const Home: React.FC = () => {
   const { currentUser, matches, leagues, brazilLeagues, currentTime, loading, invitations, respondToInvite, loginGoogle } = useStore();
   const [copied, setCopied] = useState(false);
+  const [showFloatingBanner, setShowFloatingBanner] = useState(true);
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText('https://bolaodacopa2026.app/');
@@ -394,6 +395,52 @@ export const Home: React.FC = () => {
       <div className="pt-4">
         <div className="w-full h-1 bg-gradient-to-r from-brasil-green via-brasil-yellow to-brasil-blue rounded-full opacity-30"></div>
       </div>
+
+      {/* Floating Banner */}
+      {showFloatingBanner && (
+        <div className="fixed bottom-24 md:bottom-8 left-4 right-4 md:left-1/2 md:-translate-x-1/2 z-50 w-auto md:w-full max-w-3xl animate-in slide-in-from-bottom-8 fade-in duration-500">
+          <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.3)] border-2 border-brasil-yellow dark:border-yellow-600 overflow-hidden flex flex-col md:flex-row items-center">
+            {/* Background pattern/gradient */}
+            <div className="absolute inset-0 bg-gradient-to-br from-yellow-50 to-green-50 dark:from-yellow-900/20 dark:to-green-900/20 opacity-50"></div>
+            
+            <button 
+              onClick={() => setShowFloatingBanner(false)}
+              className="absolute top-2 right-2 p-1.5 bg-white/50 hover:bg-gray-200 dark:bg-gray-700/50 dark:hover:bg-gray-600 rounded-full text-gray-500 dark:text-gray-400 hover:text-red-500 transition-colors z-20 backdrop-blur-sm"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="p-5 md:p-6 flex-1 relative z-10 w-full text-center md:text-left">
+              <h3 className="font-black text-gray-800 dark:text-white text-lg md:text-xl uppercase flex items-center justify-center md:justify-start gap-2 mb-1">
+                <Trophy size={20} className="text-brasil-yellow" />
+                Dê seu palpite!
+              </h3>
+              <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300 font-medium">Crie ou participe de uma liga agora mesmo, escolha uma modalidade:</p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row items-stretch w-full md:w-auto gap-3 p-4 pt-0 md:pt-4 relative z-10">
+              <Link 
+                to="/leagues" 
+                className="flex items-center justify-center gap-2 px-5 py-3 bg-brasil-blue hover:bg-blue-800 text-white font-bold rounded-xl text-sm shadow-md transition-transform active:scale-95 border border-blue-400"
+              >
+                <Globe size={18} />
+                <div className="flex items-center text-left leading-none">
+                  <span className="uppercase text-sm font-black">Todos os Jogos da Copa</span>
+                </div>
+              </Link>
+              <Link 
+                to="/brazil-games" 
+                className="flex items-center justify-center gap-2 px-5 py-3 bg-brasil-green hover:bg-green-700 text-white font-bold rounded-xl text-sm shadow-md transition-transform active:scale-95 border border-green-400"
+              >
+                <span className="text-xl leading-none">🇧🇷</span>
+                <div className="flex items-center text-left leading-none">
+                  <span className="uppercase text-sm font-black">Jogos do Brasil</span>
+                </div>
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

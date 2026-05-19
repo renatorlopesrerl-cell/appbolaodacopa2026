@@ -133,9 +133,29 @@ export interface GroupStanding {
 
 // --- BRAZIL GAMES MODE ---
 export const BRAZIL_PLAYERS = [
-  'Marquinhos', 'Gabriel Magalhães', 'Wesley', 'Douglas Santos',
-  'Casemiro', 'Bruno Guimarães', 'Vinicius Júnior', 'Raphinha',
-  'Gabriel Martinelli', 'Matheus Cunha', 'Luiz Henrique'
+  'Alex Sandro',
+  'Bremer',
+  'Danilo',
+  'Douglas Santos',
+  'Gabriel Magalhães',
+  'Ibañez',
+  'Léo Pereira',
+  'Marquinhos',
+  'Wesley',
+  'Bruno Guimarães',
+  'Casemiro',
+  'Danilo Santos',
+  'Fabinho',
+  'Lucas Paquetá',
+  'Endrick',
+  'Gabriel Martinelli',
+  'Igor Thiago',
+  'Luiz Henrique',
+  'Matheus Cunha',
+  'Neymar',
+  'Raphinha',
+  'Rayan',
+  'Vinicius Júnior'
 ] as const;
 
 // Note: This is legacy for the initial 3 group matches. 
