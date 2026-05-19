@@ -8,7 +8,9 @@ import { supabase } from '../services/supabase';
 export const Home: React.FC = () => {
   const { currentUser, matches, leagues, brazilLeagues, currentTime, loading, invitations, respondToInvite, loginGoogle } = useStore();
   const [copied, setCopied] = useState(false);
-  const [showFloatingBanner, setShowFloatingBanner] = useState(true);
+  const [showFloatingBanner, setShowFloatingBanner] = useState(() => {
+    return sessionStorage.getItem('hideHomeBanner') !== 'true';
+  });
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText('https://bolaodacopa2026.app/');
@@ -404,7 +406,10 @@ export const Home: React.FC = () => {
             <div className="absolute inset-0 bg-gradient-to-br from-yellow-50 to-green-50 dark:from-yellow-900/20 dark:to-green-900/20 opacity-50"></div>
             
             <button 
-              onClick={() => setShowFloatingBanner(false)}
+              onClick={() => {
+                setShowFloatingBanner(false);
+                sessionStorage.setItem('hideHomeBanner', 'true');
+              }}
               className="absolute top-2 right-2 p-1.5 bg-white/50 hover:bg-gray-200 dark:bg-gray-700/50 dark:hover:bg-gray-600 rounded-full text-gray-500 dark:text-gray-400 hover:text-red-500 transition-colors z-20 backdrop-blur-sm"
             >
               <X size={18} />
