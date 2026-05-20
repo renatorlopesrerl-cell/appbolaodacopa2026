@@ -905,12 +905,20 @@ export const BrazilLeagueDetails: React.FC = () => {
                                     <span className="font-medium decoration-dotted decoration-gray-400 dark:decoration-gray-500 underline-offset-4 group-hover:text-brasil-blue dark:group-hover:text-blue-400 group-hover:underline text-sm md:text-base line-clamp-1 text-gray-900 dark:text-white flex items-center gap-1 truncate">
                                         {entry.user.name} {entry.user.id === currentUser.id && <span className="text-[10px] font-normal text-gray-500 dark:text-gray-400 shrink-0">(Você)</span>}
                                     </span>
-                                    <span className="md:hidden text-[9px] text-gray-500 dark:text-gray-400 flex flex-wrap items-center gap-x-1 gap-y-0.5 mt-0.5">
-                                        <Target size={9} className="text-brasil-blue dark:text-blue-400" />{entry.exactScores} crv
-                                        <span className="text-gray-300 dark:text-gray-600 mx-0.5">|</span> {entry.winnerAndDiffCount} V+S
-                                        <span className="text-gray-300 dark:text-gray-600 mx-0.5">|</span> {entry.winnerAndWinnerGoalsCount} V+G
-                                        <span className="text-gray-300 dark:text-gray-600 mx-0.5">|</span> {entry.drawCount} Emp
-                                    </span>
+                                    <div className="md:hidden flex flex-wrap items-center gap-1 mt-1.5">
+                                        <span className="flex items-center gap-1 text-[9px] font-bold bg-blue-50 dark:bg-blue-900/30 text-brasil-blue dark:text-blue-400 px-1.5 py-0.5 rounded shadow-sm border border-blue-100 dark:border-blue-800">
+                                            <Target size={8} /> {entry.exactScores} Crv
+                                        </span>
+                                        <span className="flex items-center gap-1 text-[9px] font-bold bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded shadow-sm border border-green-100 dark:border-green-800">
+                                            {entry.winnerAndDiffCount} V+S
+                                        </span>
+                                        <span className="flex items-center gap-1 text-[9px] font-bold bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 px-1.5 py-0.5 rounded shadow-sm border border-yellow-100 dark:border-yellow-800">
+                                            {entry.winnerAndWinnerGoalsCount} V+G
+                                        </span>
+                                        <span className="flex items-center gap-1 text-[9px] font-bold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-1.5 py-0.5 rounded shadow-sm border border-gray-200 dark:border-gray-700">
+                                            {entry.drawCount} Emp
+                                        </span>
+                                    </div>
                                 </div>
                                 <Eye size={16} className="text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity ml-auto hidden md:block" />
                             </div>
