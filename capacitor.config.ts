@@ -16,6 +16,9 @@ const config: CapacitorConfig = {
       smallIcon: "ic_stat_notification", // Use a valid icon in drawable folders
       iconColor: "#488AFF",
       sound: "beep.wav"
+    },
+    AdMob: {
+      appId: "ca-app-pub-7684468298593275~6396459942"
     }
   }
 };
