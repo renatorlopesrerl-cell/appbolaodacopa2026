@@ -24,7 +24,7 @@ try {
 }
 
 // Lógica de cache para o PWA funcionar offline
-const CACHE_NAME = 'palpiteiro-v8';
+const CACHE_NAME = 'palpiteiro-v9';
 const ASSETS_TO_CACHE = ['/', '/index.html', '/manifest.json', '/favicon.png'];
 
 self.addEventListener('install', (event) => {
@@ -103,4 +103,11 @@ self.addEventListener('notificationclick', (event) => {
       }
     })
   );
+});
+
+// Permite que o app force a ativação imediata de uma nova versão do SW
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
