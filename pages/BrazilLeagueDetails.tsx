@@ -901,12 +901,12 @@ export const BrazilLeagueDetails: React.FC = () => {
                                     className="w-full h-full object-cover"
                                     alt=""
                                 />
-                                <div className="flex flex-col">
-                                    <span className="font-medium decoration-dotted decoration-gray-400 dark:decoration-gray-500 underline-offset-4 group-hover:text-brasil-blue dark:group-hover:text-blue-400 group-hover:underline text-sm md:text-base line-clamp-1 text-gray-900 dark:text-white flex items-center gap-1">
-                                        {entry.user.name} {entry.user.id === currentUser.id && <span className="text-[10px] font-normal text-gray-500 dark:text-gray-400">(Você)</span>}
+                                <div className="flex flex-col min-w-0 flex-1">
+                                    <span className="font-medium decoration-dotted decoration-gray-400 dark:decoration-gray-500 underline-offset-4 group-hover:text-brasil-blue dark:group-hover:text-blue-400 group-hover:underline text-sm md:text-base line-clamp-1 text-gray-900 dark:text-white flex items-center gap-1 truncate">
+                                        {entry.user.name} {entry.user.id === currentUser.id && <span className="text-[10px] font-normal text-gray-500 dark:text-gray-400 shrink-0">(Você)</span>}
                                     </span>
-                                    <span className="md:hidden text-[10px] text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-0.5">
-                                        <Target size={10} className="text-brasil-blue dark:text-blue-400" />{entry.exactScores} cravadas
+                                    <span className="md:hidden text-[9px] text-gray-500 dark:text-gray-400 flex flex-wrap items-center gap-x-1 gap-y-0.5 mt-0.5">
+                                        <Target size={9} className="text-brasil-blue dark:text-blue-400" />{entry.exactScores} crv
                                         <span className="text-gray-300 dark:text-gray-600 mx-0.5">|</span> {entry.winnerAndDiffCount} V+S
                                         <span className="text-gray-300 dark:text-gray-600 mx-0.5">|</span> {entry.winnerAndWinnerGoalsCount} V+G
                                         <span className="text-gray-300 dark:text-gray-600 mx-0.5">|</span> {entry.drawCount} Emp
