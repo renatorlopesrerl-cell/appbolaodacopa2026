@@ -1368,8 +1368,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       });
       await api.topFinisherPredictions.upsert({
         user_id: currentUser.id, league_id: leagueId,
-        champion, runner_up: runnerUp, third, fourth,
-        updated_at: new Date().toISOString()
+        champion, runner_up: runnerUp, third, fourth
       });
       addNotification('Palpite Salvo!', 'Seu palpite dos 4 primeiros colocados foi salvo.', 'success');
       return true;
