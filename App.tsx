@@ -512,17 +512,9 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   }, []);
 
   // --- WEB PWA FOREGROUND PUSH LISTENER ---
-  useEffect(() => {
-    if (Capacitor.getPlatform() === 'web') {
-      const unsubscribe = onForegroundMessage((payload) => {
-        console.log("Foreground Push Received:", payload);
-        const title = payload.notification?.title || "Notificação";
-        const body = payload.notification?.body || "Você tem uma nova mensagem";
-        addNotification(title, body, 'info');
-      });
-      return () => unsubscribe();
-    }
-  }, [currentUser]);
+  // Removido: O Service Worker (firebase-messaging-sw.js) já exibe a notificação nativa
+  // com o link para a página em todos os casos (foreground e background).
+  // Manter este listener causava notificações duplicadas na versão web.
 
   // --- NATIVE DEEP LINK LISTENER (OAuth) ---
   useEffect(() => {
