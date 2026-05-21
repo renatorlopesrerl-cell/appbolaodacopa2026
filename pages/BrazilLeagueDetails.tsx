@@ -801,54 +801,56 @@ export const BrazilLeagueDetails: React.FC = () => {
         const hasHistoryFilters = histPhase !== 'all' || histGroup !== 'all' || histRound !== 'all';
         const clearHistoryFilters = () => { setHistPhase('all'); setHistGroup('all'); setHistRound('all'); };
 
-        const leaderboard = league.participants
-            .filter(userId => users.some(u => u.id === userId)) // Filtra usuários excluídos
-            .map(userId => {
-                const user = users.find(u => u.id === userId)!;
-                const userPreds = predictions.filter(p => p.userId === userId && p.leagueId === league.id);
-                let totalPoints = 0, exactScores = 0, winnerAndDiffCount = 0, winnerAndWinnerGoalsCount = 0, drawCount = 0, onlyWinnerCount = 0, knockoutPoints = 0;
+        const leaderboard = useMemo(() => {
+            return league.participants
+                .filter(userId => users.some(u => u.id === userId)) // Filtra usuários excluídos
+                .map(userId => {
+                    const user = users.find(u => u.id === userId)!;
+                    const userPreds = predictions.filter(p => p.userId === userId && p.leagueId === league.id);
+                    let totalPoints = 0, exactScores = 0, winnerAndDiffCount = 0, winnerAndWinnerGoalsCount = 0, drawCount = 0, onlyWinnerCount = 0, knockoutPoints = 0;
 
-                userPreds.forEach(p => {
-                    const match = matches.find(m => m.id === p.matchId);
-                    let includeInSum = false;
-                    if (match) {
-                        const mRound = getMatchRound(match);
-                        if (leaderboardView === 'total') includeInSum = true;
-                        else if (leaderboardView === '1' && match.phase === Phase.GROUP && mRound === 1) includeInSum = true;
-                        else if (leaderboardView === '2' && match.phase === Phase.GROUP && mRound === 2) includeInSum = true;
-                        else if (leaderboardView === '3' && match.phase === Phase.GROUP && mRound === 3) includeInSum = true;
-                        else if (leaderboardView === 'group_phase' && match.phase === Phase.GROUP) includeInSum = true;
-                        else if (leaderboardView === '16_avos' && match.phase === Phase.ROUND_32) includeInSum = true;
-                        else if (leaderboardView === 'final_phase' && (match.phase === Phase.ROUND_16 || match.phase === Phase.QUARTER || match.phase === Phase.SEMI || match.phase === Phase.FINAL)) includeInSum = true;
-                        else if (leaderboardView === 'knockout' && match.phase !== Phase.GROUP) includeInSum = true;
-                    }
-                    if (match && (match.status === MatchStatus.FINISHED || match.status === MatchStatus.IN_PROGRESS) && match.homeScore !== null && match.awayScore !== null) {
-                        const points = calculatePoints(Number(p.homeScore), Number(p.awayScore), Number(match.homeScore), Number(match.awayScore), league.settings);
-                        const goalscorerBonus = getGoalscorerBonus(match.id, p.playerPick);
-
-                        // Stats for tie-breaking (Always calculate regardless of view filter)
-                        if (match.phase !== Phase.GROUP) knockoutPoints += points;
-                        if (points === league.settings.exactScore) exactScores++;
-                        else if (points === league.settings.winnerAndDiff) winnerAndDiffCount++;
-                        else if (points === (league.settings as any).winnerAndWinnerGoals) winnerAndWinnerGoalsCount++;
-                        else if (points === league.settings.draw) drawCount++;
-                        else if (points === league.settings.winner) onlyWinnerCount++;
-
-                        if (includeInSum) {
-                            totalPoints += points + goalscorerBonus;
+                    userPreds.forEach(p => {
+                        const match = matches.find(m => m.id === p.matchId);
+                        let includeInSum = false;
+                        if (match) {
+                            const mRound = getMatchRound(match);
+                            if (leaderboardView === 'total') includeInSum = true;
+                            else if (leaderboardView === '1' && match.phase === Phase.GROUP && mRound === 1) includeInSum = true;
+                            else if (leaderboardView === '2' && match.phase === Phase.GROUP && mRound === 2) includeInSum = true;
+                            else if (leaderboardView === '3' && match.phase === Phase.GROUP && mRound === 3) includeInSum = true;
+                            else if (leaderboardView === 'group_phase' && match.phase === Phase.GROUP) includeInSum = true;
+                            else if (leaderboardView === '16_avos' && match.phase === Phase.ROUND_32) includeInSum = true;
+                            else if (leaderboardView === 'final_phase' && (match.phase === Phase.ROUND_16 || match.phase === Phase.QUARTER || match.phase === Phase.SEMI || match.phase === Phase.FINAL)) includeInSum = true;
+                            else if (leaderboardView === 'knockout' && match.phase !== Phase.GROUP) includeInSum = true;
                         }
-                    }
+                        if (match && (match.status === MatchStatus.FINISHED || match.status === MatchStatus.IN_PROGRESS) && match.homeScore !== null && match.awayScore !== null) {
+                            const points = calculatePoints(Number(p.homeScore), Number(p.awayScore), Number(match.homeScore), Number(match.awayScore), league.settings);
+                            const goalscorerBonus = getGoalscorerBonus(match.id, p.playerPick);
+
+                            // Stats for tie-breaking (Always calculate regardless of view filter)
+                            if (match.phase !== Phase.GROUP) knockoutPoints += points;
+                            if (points === league.settings.exactScore) exactScores++;
+                            else if (points === league.settings.winnerAndDiff) winnerAndDiffCount++;
+                            else if (points === (league.settings as any).winnerAndWinnerGoals) winnerAndWinnerGoalsCount++;
+                            else if (points === league.settings.draw) drawCount++;
+                            else if (points === league.settings.winner) onlyWinnerCount++;
+
+                            if (includeInSum) {
+                                totalPoints += points + goalscorerBonus;
+                            }
+                        }
+                    });
+                    return { user, totalPoints, exactScores, winnerAndDiffCount, winnerAndWinnerGoalsCount, drawCount, onlyWinnerCount, knockoutPoints };
+                }).sort((a, b) => {
+                    if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
+                    if (b.exactScores !== a.exactScores) return b.exactScores - a.exactScores;
+                    if (b.winnerAndDiffCount !== a.winnerAndDiffCount) return b.winnerAndDiffCount - a.winnerAndDiffCount;
+                    if (b.winnerAndWinnerGoalsCount !== a.winnerAndWinnerGoalsCount) return b.winnerAndWinnerGoalsCount - a.winnerAndWinnerGoalsCount;
+                    if (b.drawCount !== a.drawCount) return b.drawCount - a.drawCount;
+                    if (b.onlyWinnerCount !== a.onlyWinnerCount) return b.onlyWinnerCount - a.onlyWinnerCount;
+                    return b.knockoutPoints - a.knockoutPoints;
                 });
-                return { user, totalPoints, exactScores, winnerAndDiffCount, winnerAndWinnerGoalsCount, drawCount, onlyWinnerCount, knockoutPoints };
-            }).sort((a, b) => {
-                if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
-                if (b.exactScores !== a.exactScores) return b.exactScores - a.exactScores;
-                if (b.winnerAndDiffCount !== a.winnerAndDiffCount) return b.winnerAndDiffCount - a.winnerAndDiffCount;
-                if (b.winnerAndWinnerGoalsCount !== a.winnerAndWinnerGoalsCount) return b.winnerAndWinnerGoalsCount - a.winnerAndWinnerGoalsCount;
-                if (b.drawCount !== a.drawCount) return b.drawCount - a.drawCount;
-                if (b.onlyWinnerCount !== a.onlyWinnerCount) return b.onlyWinnerCount - a.onlyWinnerCount;
-                return b.knockoutPoints - a.knockoutPoints;
-            });
+        }, [league.participants, users, predictions, league.id, matches, leaderboardView, league.settings]);
 
         const filteredLeaderboard = leaderboard.filter(entry => entry.user.name.toLowerCase().includes(leaderboardSearch.toLowerCase()));
 
