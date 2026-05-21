@@ -695,7 +695,7 @@ export const AdminMatchesPage: React.FC = () => {
                       setTfFourth('');
                       addNotification('Resultado removido', 'Os pontos dos 4 primeiros foram limpos com sucesso.', 'success');
                     } catch (error) {
-                      addNotification('Erro ao limpar', 'Não foi possível remover o resultado.', 'error');
+                      addNotification('Erro ao limpar', 'Não foi possível remover o resultado.', 'warning');
                     } finally {
                       setIsSavingTopFinishers(false);
                     }
@@ -717,7 +717,7 @@ export const AdminMatchesPage: React.FC = () => {
                     await setTopFinishersResult(tfChampion, tfRunnerUp, tfThird, tfFourth);
                     addNotification('Resultado salvo', 'As pontuações foram calculadas com sucesso.', 'success');
                   } catch (error) {
-                    addNotification('Erro ao salvar', 'Ocorreu um erro ao salvar o resultado.', 'error');
+                    addNotification('Erro ao salvar', 'Ocorreu um erro ao salvar o resultado.', 'warning');
                   } finally {
                     setIsSavingTopFinishers(false);
                   }
