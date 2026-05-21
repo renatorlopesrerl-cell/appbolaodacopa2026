@@ -238,7 +238,16 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     }
     return INITIAL_MATCHES;
   });
-  const [leagues, setLeagues] = useState<League[]>([]);
+  const [leagues, setLeagues] = useState<League[]>(() => {
+    try {
+      const cached = localStorage.getItem('cache_leagues');
+      if (cached) {
+        const parsed: League[] = JSON.parse(cached);
+        if (parsed && parsed.length > 0) return parsed;
+      }
+    } catch (e) { console.warn('Failed to load leagues from cache:', e); }
+    return [];
+  });
   const [predictions, setPredictions] = useState<Prediction[]>(() => {
     try {
       const cached = localStorage.getItem('cache_predictions');
@@ -249,15 +258,52 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     } catch (e) { console.warn('Failed to load predictions from cache:', e); }
     return [];
   });
-  const [brazilLeagues, setBrazilLeagues] = useState<BrazilLeague[]>([]);
-  const [brazilPredictions, setBrazilPredictions] = useState<BrazilPrediction[]>([]);
-  const [brazilMatchGoals, setBrazilMatchGoals] = useState<BrazilMatchGoal[]>([]);
-  const [topFinisherPredictions, setTopFinisherPredictions] = useState<TopFinisherPrediction[]>([]);
+  const [brazilLeagues, setBrazilLeagues] = useState<BrazilLeague[]>(() => {
+    try {
+      const cached = localStorage.getItem('cache_brazil_leagues');
+      if (cached) {
+        const parsed: BrazilLeague[] = JSON.parse(cached);
+        if (parsed && parsed.length > 0) return parsed;
+      }
+    } catch (e) { console.warn('Failed to load brazilLeagues from cache:', e); }
+    return [];
+  });
+  const [brazilPredictions, setBrazilPredictions] = useState<BrazilPrediction[]>(() => {
+    try {
+      const cached = localStorage.getItem('cache_brazil_predictions');
+      if (cached) {
+        const parsed: BrazilPrediction[] = JSON.parse(cached);
+        if (parsed && parsed.length > 0) return parsed;
+      }
+    } catch (e) { console.warn('Failed to load brazilPredictions from cache:', e); }
+    return [];
+  });
+  const [brazilMatchGoals, setBrazilMatchGoals] = useState<BrazilMatchGoal[]>(() => {
+    try {
+      const cached = localStorage.getItem('cache_brazil_goals');
+      if (cached) {
+        const parsed: BrazilMatchGoal[] = JSON.parse(cached);
+        if (parsed && parsed.length > 0) return parsed;
+      }
+    } catch (e) { console.warn('Failed to load brazilMatchGoals from cache:', e); }
+    return [];
+  });
+  const [topFinisherPredictions, setTopFinisherPredictions] = useState<TopFinisherPrediction[]>(() => {
+    try {
+      const cached = localStorage.getItem('cache_top_finisher_preds');
+      if (cached) {
+        const parsed: TopFinisherPrediction[] = JSON.parse(cached);
+        if (parsed && parsed.length > 0) return parsed;
+      }
+    } catch (e) { console.warn('Failed to load topFinisherPredictions from cache:', e); }
+    return [];
+  });
   const [topFinishersResult, setTopFinishersResultState] = useState<TopFinishersResult | null>(null);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false); // Background sync indicator
   const [connectionError, setConnectionError] = useState(false);
   const [isRecoveryMode, setIsRecoveryMode] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(() => {
@@ -690,51 +736,40 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     if (fetchingRef.current) return;
     fetchingRef.current = true;
 
+    // Stale-While-Revalidate: se há cache, libera o loading imediatamente
+    // e mostra um indicador sutil de sincronização em segundo plano.
+    const hasCachedData = !!localStorage.getItem('cache_matches');
+    if (hasCachedData && mountedRef.current) {
+      setLoading(false);
+      setIsSyncing(true);
+    }
+
     try {
-      const [leaguesData, matchesData, predsData, profilesData, brazilLeaguesData, brazilPredsData, brazilGoalsData, topFinisherPredsData, topFinishersResultData] = await Promise.all([
-        api.leagues.list().catch(e => {
-          console.error("Leagues error", e);
-          if (!silent) addNotification('Erro', `Falha ao carregar Ligas: ${e.message}`, 'warning');
-          return [];
-        }),
-        api.matches.list().catch(e => {
-          console.error("Matches error", e);
-          if (!silent) addNotification('Erro', `Falha ao carregar Partidas: ${e.message}`, 'warning');
-          return [];
-        }),
-        api.predictions.list().catch(e => {
-          console.error("Preds error", e);
-          if (!silent) addNotification('Erro', `Falha ao carregar Palpites: ${e.message}`, 'warning');
-          return [];
-        }),
-        api.profiles.list().catch(e => {
-          console.error("Profiles error", e);
-          if (!silent) addNotification('Erro', `Falha ao carregar Perfis: ${e.message}`, 'warning');
-          return [];
-        }),
-        api.brazilLeagues.list().catch(e => {
-          console.error("Brazil Leagues error", e);
-          return [];
-        }),
-        api.brazilPredictions.list().catch(e => {
-          console.error("Brazil Preds error", e);
-          return [];
-        }),
-        api.brazilMatchGoals.list().catch(e => {
-          console.error("Brazil Goals error", e);
-          return [];
-        }),
-        api.topFinisherPredictions.list().catch(e => {
-          console.error("Top Finisher Preds error", e);
-          return [];
-        }),
-        api.topFinishersResult.get().catch(e => {
-          console.error("Top Finishers Result error", e);
-          return null;
-        })
+      // Promise.allSettled: falhas individuais não bloqueiam as demais
+      const results = await Promise.allSettled([
+        api.leagues.list(),
+        api.matches.list(),
+        api.predictions.list(),
+        api.profiles.list(),
+        api.brazilLeagues.list(),
+        api.brazilPredictions.list(),
+        api.brazilMatchGoals.list(),
+        api.topFinisherPredictions.list(),
+        api.topFinishersResult.get(),
       ]);
 
-      if (leaguesData) {
+      const [leaguesRes, matchesRes, predsRes, profilesRes, brazilLeaguesRes, brazilPredsRes, brazilGoalsRes, topFinisherPredsRes, topFinishersResultRes] = results;
+
+      // Reportar falhas sem bloquear o restante
+      results.forEach((r, i) => {
+        if (r.status === 'rejected' && !silent) {
+          const labels = ['Ligas', 'Partidas', 'Palpites', 'Perfis', 'Ligas Brasil', 'Palpites Brasil', 'Gols Brasil', 'Artilharia', 'Resultado Artilharia'];
+          console.error(`[fetchAllData] ${labels[i]} error:`, r.reason);
+        }
+      });
+
+      if (leaguesRes.status === 'fulfilled' && leaguesRes.value) {
+        const leaguesData = leaguesRes.value;
         const mappedLeagues: League[] = leaguesData.map((l: any) => ({
           id: l.id, name: l.name, image: l.image, description: l.description,
           leagueCode: l.league_code, adminId: l.admin_id, isPrivate: l.is_private,
@@ -746,9 +781,11 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           }
         }));
         setLeagues(mappedLeagues);
+        try { localStorage.setItem('cache_leagues', JSON.stringify(mappedLeagues)); } catch (e) { console.warn('cache_leagues write failed:', e); }
       }
 
-      if (matchesData && matchesData.length > 0) {
+      if (matchesRes.status === 'fulfilled' && matchesRes.value && matchesRes.value.length > 0) {
+        const matchesData = matchesRes.value;
         const mappedMatches: Match[] = matchesData.map((m: any) => ({
           id: m.id, homeTeamId: m.home_team_id, awayTeamId: m.away_team_id,
           date: m.date, location: m.location, group: m.group, phase: m.phase,
@@ -756,22 +793,22 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           awayScore: m.away_score !== null ? Number(m.away_score) : null
         }));
         setMatches(mappedMatches);
-        // Salva no cache local para uso offline na próxima sessão
         try { localStorage.setItem('cache_matches', JSON.stringify(mappedMatches)); } catch (e) { console.warn('cache_matches write failed:', e); }
       }
 
-      if (predsData) {
+      if (predsRes.status === 'fulfilled' && predsRes.value) {
+        const predsData = predsRes.value;
         const mappedPreds: Prediction[] = predsData.map((p: any) => ({
           userId: p.user_id, matchId: p.match_id, leagueId: p.league_id,
           homeScore: Number(p.home_score), awayScore: Number(p.away_score),
           points: p.points ? Number(p.points) : 0
         }));
         setPredictions(mappedPreds);
-        // Salva no cache local para uso offline na próxima sessão
         try { localStorage.setItem('cache_predictions', JSON.stringify(mappedPreds)); } catch (e) { console.warn('cache_predictions write failed:', e); }
       }
 
-      if (profilesData) {
+      if (profilesRes.status === 'fulfilled' && profilesRes.value) {
+        const profilesData = profilesRes.value;
         const mappedUsers: User[] = profilesData.map((p: any) => ({
           id: p.id, name: p.name, email: p.email, avatar: p.avatar, isAdmin: p.is_admin,
           whatsapp: p.whatsapp || '', notificationSettings: p.notification_settings, theme: p.theme, isPro: p.is_pro
@@ -779,7 +816,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         setUsers(mappedUsers);
       }
 
-      if (brazilLeaguesData) {
+      if (brazilLeaguesRes.status === 'fulfilled' && brazilLeaguesRes.value) {
+        const brazilLeaguesData = brazilLeaguesRes.value;
         const mappedBrazilLeagues: BrazilLeague[] = brazilLeaguesData.map((l: any) => ({
           id: l.id, name: l.name, image: l.image, description: l.description,
           leagueCode: l.league_code, adminId: l.admin_id, isPrivate: l.is_private,
@@ -796,9 +834,11 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           }
         }));
         setBrazilLeagues(mappedBrazilLeagues);
+        try { localStorage.setItem('cache_brazil_leagues', JSON.stringify(mappedBrazilLeagues)); } catch (e) { console.warn('cache_brazil_leagues write failed:', e); }
       }
 
-      if (brazilPredsData) {
+      if (brazilPredsRes.status === 'fulfilled' && brazilPredsRes.value) {
+        const brazilPredsData = brazilPredsRes.value;
         const mappedBrazilPreds: BrazilPrediction[] = brazilPredsData.map((p: any) => ({
           userId: p.user_id, matchId: p.match_id, leagueId: p.league_id,
           homeScore: Number(p.home_score), awayScore: Number(p.away_score),
@@ -807,63 +847,74 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           goalscorerPoints: p.goalscorer_points ? Number(p.goalscorer_points) : 0
         }));
         setBrazilPredictions(mappedBrazilPreds);
+        try { localStorage.setItem('cache_brazil_predictions', JSON.stringify(mappedBrazilPreds)); } catch (e) { console.warn('cache_brazil_predictions write failed:', e); }
       }
 
-      if (brazilGoalsData) {
+      if (brazilGoalsRes.status === 'fulfilled' && brazilGoalsRes.value) {
+        const brazilGoalsData = brazilGoalsRes.value;
         const mappedBrazilGoals: BrazilMatchGoal[] = brazilGoalsData.map((g: any) => ({
           matchId: g.match_id, playerName: g.player_name, goals: g.goals
         }));
         setBrazilMatchGoals(mappedBrazilGoals);
+        try { localStorage.setItem('cache_brazil_goals', JSON.stringify(mappedBrazilGoals)); } catch (e) { console.warn('cache_brazil_goals write failed:', e); }
       }
 
-      if (topFinisherPredsData) {
-        const mappedTopPreds: TopFinisherPrediction[] = topFinisherPredsData.map((p: any) => ({
+      if (topFinisherPredsRes.status === 'fulfilled' && topFinisherPredsRes.value) {
+        const topPredsData = topFinisherPredsRes.value;
+        const mappedTopPreds: TopFinisherPrediction[] = topPredsData.map((p: any) => ({
           userId: p.user_id, leagueId: p.league_id,
           champion: p.champion || '', runnerUp: p.runner_up || '',
           third: p.third || '', fourth: p.fourth || ''
         }));
         setTopFinisherPredictions(mappedTopPreds);
+        try { localStorage.setItem('cache_top_finisher_preds', JSON.stringify(mappedTopPreds)); } catch (e) { console.warn('cache_top_finisher_preds write failed:', e); }
       }
 
-      if (topFinishersResultData) {
+      if (topFinishersResultRes.status === 'fulfilled' && topFinishersResultRes.value) {
         setTopFinishersResultState({
-          champion: topFinishersResultData.champion || '',
-          runnerUp: topFinishersResultData.runner_up || '',
-          third: topFinishersResultData.third || '',
-          fourth: topFinishersResultData.fourth || ''
+          champion: topFinishersResultRes.value.champion || '',
+          runnerUp: topFinishersResultRes.value.runner_up || '',
+          third: topFinishersResultRes.value.third || '',
+          fourth: topFinishersResultRes.value.fourth || ''
         });
       }
 
-      // NOVO: Buscar convites vinculados ao e-mail do usuário logado
+      // Buscar convites vinculados ao e-mail do usuário logado
       if (currentUserRef.current?.email) {
         fetchInvitations(currentUserRef.current.email);
       }
 
-      setConnectionError(false);
-      failureCountRef.current = 0;
-      
-      const syncDate = new Date();
-      setLastSyncTime(syncDate);
-      try { localStorage.setItem('last_sync_time', syncDate.toISOString()); } catch {}
-    } catch (e: any) {
-      console.error("API Fetch Error", e);
+      // Só marcar connectionError se TODAS as chamadas falharam
+      const allFailed = results.every(r => r.status === 'rejected');
+      if (allFailed) {
+        failureCountRef.current += 1;
+        if (failureCountRef.current > 3 && !connectionError) setConnectionError(true);
+      } else {
+        setConnectionError(false);
+        failureCountRef.current = 0;
+        const syncDate = new Date();
+        setLastSyncTime(syncDate);
+        try { localStorage.setItem('last_sync_time', syncDate.toISOString()); } catch {}
+      }
 
-      // Se o erro for de autenticação (401), a sessão provavelmente expirou ou foi invalidada em outro dispositivo
+    } catch (e: any) {
+      console.error("fetchAllData unexpected error", e);
       const isAuthError = e.message?.includes('401') ||
         e.message?.toLowerCase().includes('unauthorized') ||
         e.message?.toLowerCase().includes('jwt');
-
       if (isAuthError) {
         console.warn("Sessão inválida detectada. Deslogando...");
         logout();
         return;
       }
-
       failureCountRef.current += 1;
       if (failureCountRef.current > 3 && !connectionError) setConnectionError(true);
     } finally {
       fetchingRef.current = false;
-      if (mountedRef.current) setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+        setIsSyncing(false);
+      }
     }
   };
 

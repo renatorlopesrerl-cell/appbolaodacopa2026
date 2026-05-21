@@ -71,14 +71,20 @@ self.addEventListener('fetch', (event) => {
 // Manipulador de mensagens em segundo plano (essencial para alguns navegadores)
 if (messaging) {
   messaging.onBackgroundMessage((payload) => {
-    console.log('Mensagem em segundo plano recebida:', payload);
-    
-    const notificationTitle = payload.notification?.title || "Bolão Copa 2026";
+    console.log('[firebase-messaging-sw] Mensagem em segundo plano recebida:', payload);
+
+    const notificationTitle = payload.notification?.title || payload.data?.title || "Bolão Copa 2026";
+    const notificationBody = payload.notification?.body || payload.data?.body || "";
+    const targetUrl = payload.data?.url || '/';
+
     const notificationOptions = {
-      body: payload.notification?.body,
+      body: notificationBody,
       icon: '/favicon.png',
       badge: '/favicon.png',
-      data: payload.data
+      data: { ...payload.data, url: targetUrl },
+      // Tag única por URL destino: impede duplicata caso 2 SWs tentem mostrar ao mesmo tempo
+      tag: 'bolao-push-' + (targetUrl || 'home'),
+      renotify: false
     };
 
     return self.registration.showNotification(notificationTitle, notificationOptions);
@@ -92,12 +98,15 @@ self.addEventListener('notificationclick', (event) => {
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
-      for (var i = 0; i < windowClients.length; i++) {
-        var client = windowClients[i];
-        if (client.url === urlToOpen && 'focus' in client) {
-          return client.focus();
+      // Se já existe uma janela aberta, navega ela para a URL correta e foca
+      if (windowClients.length > 0) {
+        const client = windowClients[0];
+        if ('navigate' in client) {
+          return client.navigate(urlToOpen).then((c) => c && c.focus());
         }
+        return client.focus();
       }
+      // Nenhuma janela aberta: abre uma nova
       if (clients.openWindow) {
         return clients.openWindow(urlToOpen);
       }

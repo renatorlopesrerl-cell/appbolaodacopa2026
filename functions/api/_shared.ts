@@ -43,15 +43,18 @@ export function getUserClient(env: any, request: Request) {
 
 // ---- Utils ----
 
-export async function withRetry<T>(fn: () => Promise<{ data: T | null; error: any }>, retries = 3): Promise<T | null> {
+export async function withRetry<T>(fn: () => Promise<{ data: T | null; error: any }>, retries = 3, attempt = 0): Promise<T | null> {
     try {
         const { data, error } = await fn();
         if (error) throw error;
         return data;
     } catch (error: any) {
         if (retries > 0) {
-            await new Promise(res => setTimeout(res, 1000));
-            return withRetry(fn, retries - 1);
+            // Exponential backoff: 500ms → 1000ms → 2000ms
+            const delay = 500 * Math.pow(2, attempt);
+            console.warn(`[withRetry] Tentativa ${attempt + 1} falhou. Aguardando ${delay}ms antes de tentar novamente...`);
+            await new Promise(res => setTimeout(res, delay));
+            return withRetry(fn, retries - 1, attempt + 1);
         }
         console.error("Supabase API Error after retries:", error.message || error);
         throw error;

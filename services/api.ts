@@ -12,12 +12,45 @@ const API_BASE = isCapacitor
 
 console.log(`API initialized with BASE: ${API_BASE} (Capacitor: ${isCapacitor})`);
 
+/**
+ * Retry com backoff exponencial para chamadas diretas ao Supabase.
+ * Tenta até `retries` vezes com delays crescentes: 500ms → 1000ms → 2000ms.
+ * Apenas para erros de rede — erros de negócio (PGRST116, etc.) passam direto.
+ */
+export async function supabaseWithRetry<T>(
+    fn: () => Promise<{ data: T | null; error: any }>,
+    retries = 2
+): Promise<T | null> {
+    let lastError: any;
+    for (let attempt = 0; attempt <= retries; attempt++) {
+        try {
+            const { data, error } = await fn();
+            if (error) {
+                // Erros esperados (not found, etc.) — não fazer retry
+                if (error.code === 'PGRST116') return null;
+                throw error;
+            }
+            return data;
+        } catch (err: any) {
+            lastError = err;
+            const isNetworkError = err.name === 'AbortError' ||
+                err.message === 'Failed to fetch' ||
+                err.message?.includes('network');
+            if (!isNetworkError || attempt === retries) break;
+            const delay = 500 * Math.pow(2, attempt);
+            console.warn(`[supabaseWithRetry] Tentativa ${attempt + 1} falhou. Aguardando ${delay}ms...`);
+            await new Promise(r => setTimeout(r, delay));
+        }
+    }
+    throw lastError;
+}
 
 /**
- * Helper to fetch from Vercel API
- * Adds Authorization header automatically from Supabase Session
+ * Helper to fetch from the Cloudflare Workers API.
+ * Adds Authorization header automatically from Supabase Session.
+ * Retries automatically on network errors and 5xx with exponential backoff.
  */
-async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+async function apiFetch<T>(endpoint: string, options: RequestInit = {}, retries = 2): Promise<T> {
     const { data } = await supabase.auth.getSession();
     const token = data.session?.access_token;
 
@@ -30,33 +63,60 @@ async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise
         headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+    let lastError: Error | null = null;
 
-    try {
-        const res = await fetch(`${API_BASE}${endpoint}`, {
-            ...options,
-            headers,
-            signal: controller.signal
-        });
+    for (let attempt = 0; attempt <= retries; attempt++) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s timeout
 
-        clearTimeout(timeoutId);
+        try {
+            const res = await fetch(`${API_BASE}${endpoint}`, {
+                ...options,
+                headers,
+                signal: controller.signal
+            });
 
-        if (!res.ok) {
-            // Handle 503 Service Unavailable specifically if needed by UI
-            if (res.status === 503) {
-                console.error("API Service Unavailable (Retries exhausted)");
+            clearTimeout(timeoutId);
+
+            if (!res.ok) {
+                // Não fazer retry em erros 4xx (client errors)
+                if (res.status >= 400 && res.status < 500) {
+                    if (res.status === 503) {
+                        console.error("API Service Unavailable (Retries exhausted)");
+                    }
+                    const errorData = await res.json().catch(() => ({ error: res.statusText }));
+                    throw new Error(errorData.error || `API Error: ${res.status}`);
+                }
+
+                // Erros 5xx: fazer retry com backoff
+                const errorData = await res.json().catch(() => ({ error: res.statusText }));
+                lastError = new Error(errorData.error || `API Error: ${res.status}`);
+                console.warn(`[apiFetch] Erro ${res.status} na tentativa ${attempt + 1}. Retrying...`);
+            } else {
+                return res.json();
             }
-            const errorData = await res.json().catch(() => ({ error: res.statusText }));
-            throw new Error(errorData.error || `API Error: ${res.status}`);
+        } catch (error: any) {
+            clearTimeout(timeoutId);
+            if (error.name === 'AbortError') {
+                lastError = new Error('Timeout na conexão');
+            } else if (error.message && !error.message.includes('API Error')) {
+                // Erro de rede real — pode ser transitório, fazer retry
+                lastError = error;
+            } else {
+                // Erro de negócio (4xx) — propagar imediatamente
+                throw error;
+            }
         }
 
-        return res.json();
-    } catch (error: any) {
-        clearTimeout(timeoutId);
-        if (error.name === 'AbortError') throw new Error('Timeout na conexão');
-        throw error;
+        // Aguarda antes da próxima tentativa (backoff exponencial: 500ms → 1000ms → 2000ms)
+        if (attempt < retries) {
+            const delay = 500 * Math.pow(2, attempt);
+            console.warn(`[apiFetch] Aguardando ${delay}ms antes da tentativa ${attempt + 2}...`);
+            await new Promise(r => setTimeout(r, delay));
+        }
     }
+
+    throw lastError || new Error('Erro desconhecido na requisição');
 }
 
 
@@ -131,13 +191,9 @@ export const api = {
     },
     simulations: {
         get: async (userId: string) => {
-            const { data, error } = await supabase
-                .from('user_simulations')
-                .select('*')
-                .eq('user_id', userId)
-                .single();
-            if (error && error.code !== 'PGRST116') throw error; // PGRST116 is not found
-            return data;
+            return supabaseWithRetry(() =>
+                supabase.from('user_simulations').select('*').eq('user_id', userId).single()
+            );
         },
         save: async (data: { userId: string, simulationData: any }) => {
             const { error } = await supabase
@@ -153,12 +209,9 @@ export const api = {
     },
     admin: {
         listUsers: async () => {
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('*')
-                .order('name');
-            if (error) throw error;
-            return data;
+            return supabaseWithRetry(() =>
+                supabase.from('profiles').select('*').order('name')
+            );
         },
         togglePro: async (userId: string, isPro: boolean) => {
             const { error } = await supabase
@@ -195,9 +248,10 @@ export const api = {
     },
     brazilPredictions: {
         list: async () => {
-            const { data, error } = await supabase.from('brazil_predictions').select('*');
-            if (error) throw error;
-            return data || [];
+            const data = await supabaseWithRetry(() =>
+                supabase.from('brazil_predictions').select('*')
+            );
+            return (data as any[]) || [];
         },
         submit: async (predictions: any[]) => {
             const { error } = await supabase.from('brazil_predictions').upsert(predictions, {
@@ -208,9 +262,10 @@ export const api = {
     },
     brazilMatchGoals: {
         list: async () => {
-            const { data, error } = await supabase.from('brazil_match_goals').select('*');
-            if (error) throw error;
-            return data || [];
+            const data = await supabaseWithRetry(() =>
+                supabase.from('brazil_match_goals').select('*')
+            );
+            return (data as any[]) || [];
         },
         add: async (matchId: string, playerName: string, goals: number = 1) => {
             const { error } = await supabase.from('brazil_match_goals').upsert(
@@ -230,9 +285,10 @@ export const api = {
     },
     topFinisherPredictions: {
         list: async () => {
-            const { data, error } = await supabase.from('top_finisher_predictions').select('*');
-            if (error) throw error;
-            return data || [];
+            const data = await supabaseWithRetry(() =>
+                supabase.from('top_finisher_predictions').select('*')
+            );
+            return (data as any[]) || [];
         },
         upsert: async (prediction: {
             user_id: string; league_id: string;
@@ -247,9 +303,9 @@ export const api = {
     },
     topFinishersResult: {
         get: async () => {
-            const { data, error } = await supabase.from('top_finishers_result').select('*').single();
-            if (error && error.code !== 'PGRST116') throw error;
-            return data || null;
+            return supabaseWithRetry(() =>
+                supabase.from('top_finishers_result').select('*').single()
+            );
         },
         upsert: async (result: { champion: string; runner_up: string; third: string; fourth: string }) => {
             const { error } = await supabase.from('top_finishers_result').upsert(
