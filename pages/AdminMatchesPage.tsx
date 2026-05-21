@@ -15,7 +15,7 @@ export const AdminMatchesPage: React.FC = () => {
   const [filterPhase, setFilterPhase] = useState<string>('all');
   const [filterGroup, setFilterGroup] = useState<string>('all');
   const [filterRound, setFilterRound] = useState<string>('all');
-  const [activeTab, setActiveTab] = useState<'matches' | 'topFinishers' | 'brazilGoals' | 'brazilPlayers'>('matches');
+  const [activeTab, setActiveTab] = useState<'matches' | 'topFinishers' | 'brazilPlayers'>('matches');
 
   // Top 4 Finishers State
   const [tfChampion, setTfChampion] = useState(topFinishersResult?.champion || '');
@@ -223,17 +223,7 @@ export const AdminMatchesPage: React.FC = () => {
               : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
           }`}
         >
-          Artilheiros
-        </button>
-        <button
-          onClick={() => setActiveTab('brazilGoals')}
-          className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-            activeTab === 'brazilGoals'
-              ? 'bg-brasil-yellow text-brasil-green shadow-sm'
-              : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
-          }`}
-        >
-          Gols do Brasil
+          Campeões
         </button>
         <button
           onClick={() => setActiveTab('brazilPlayers')}
