@@ -1073,17 +1073,17 @@ export const LeagueDetails: React.FC = () => {
                                     <span className="font-medium decoration-dotted decoration-gray-400 dark:decoration-gray-500 underline-offset-4 group-hover:text-brasil-blue dark:group-hover:text-blue-400 group-hover:underline text-sm md:text-base line-clamp-1 text-gray-900 dark:text-white flex items-center gap-1 truncate">
                                         {entry.user.name} {entry.user.id === currentUser.id && <span className="text-[10px] font-normal text-gray-500 dark:text-gray-400 shrink-0">(Você)</span>}
                                     </span>
-                                    <div className="md:hidden flex flex-wrap items-center gap-1 mt-1.5">
-                                        <span className="flex items-center gap-1 text-[9px] font-bold bg-blue-50 dark:bg-blue-900/30 text-brasil-blue dark:text-blue-400 px-1.5 py-0.5 rounded shadow-sm border border-blue-100 dark:border-blue-800">
+                                    <div className="md:hidden flex flex-nowrap items-center gap-0.5 mt-1.5 overflow-visible">
+                                        <span className="flex items-center gap-0.5 text-[8px] sm:text-[9px] font-bold bg-blue-50 dark:bg-blue-900/30 text-brasil-blue dark:text-blue-400 px-1 py-0.5 rounded shadow-sm border border-blue-100 dark:border-blue-800 whitespace-nowrap">
                                             <Target size={8} /> {entry.exactScores} Crv
                                         </span>
-                                        <span className="flex items-center gap-1 text-[9px] font-bold bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded shadow-sm border border-green-100 dark:border-green-800">
+                                        <span className="flex items-center gap-0.5 text-[8px] sm:text-[9px] font-bold bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-1 py-0.5 rounded shadow-sm border border-green-100 dark:border-green-800 whitespace-nowrap">
                                             {entry.winnerAndDiffCount} V+S
                                         </span>
-                                        <span className="flex items-center gap-1 text-[9px] font-bold bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 px-1.5 py-0.5 rounded shadow-sm border border-yellow-100 dark:border-yellow-800">
+                                        <span className="flex items-center gap-0.5 text-[8px] sm:text-[9px] font-bold bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 px-1 py-0.5 rounded shadow-sm border border-yellow-100 dark:border-yellow-800 whitespace-nowrap">
                                             {entry.winnerAndWinnerGoalsCount} V+G
                                         </span>
-                                        <span className="flex items-center gap-1 text-[9px] font-bold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-1.5 py-0.5 rounded shadow-sm border border-gray-200 dark:border-gray-700">
+                                        <span className="flex items-center gap-0.5 text-[8px] sm:text-[9px] font-bold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-1 py-0.5 rounded shadow-sm border border-gray-200 dark:border-gray-700 whitespace-nowrap">
                                             {entry.drawCount} Emp
                                         </span>
                                     </div>
