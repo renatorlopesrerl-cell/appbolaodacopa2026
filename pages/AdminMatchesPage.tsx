@@ -2,18 +2,20 @@ import React, { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useStore } from '../App';
-import { Match, MatchStatus, Phase, BRAZIL_MATCH_IDS, BRAZIL_PLAYERS } from '../types';
+import { api } from '../services/api';
+import { Match, MatchStatus, Phase, BRAZIL_MATCH_IDS } from '../types';
 import { GROUPS_CONFIG, getMatchRound } from '../services/dataService';
 import { Edit2, Save, X, Filter, ChevronDown, ArrowLeft, Database, Trophy, Calendar, Clock, Loader2, Goal, Medal, Trash2 } from 'lucide-react';
 
 export const AdminMatchesPage: React.FC = () => {
   const navigate = useNavigate();
-  const { currentUser, matches, updateMatch, addNotification, brazilMatchGoals, addBrazilMatchGoal, topFinishersResult, setTopFinishersResult } = useStore();
+  const { currentUser, matches, updateMatch, addNotification, brazilMatchGoals, addBrazilMatchGoal, topFinishersResult, setTopFinishersResult, brazilPlayers } = useStore();
   const [editingMatch, setEditingMatch] = useState<Match | null>(null);
   const [showGoals, setShowGoals] = useState(false);
   const [filterPhase, setFilterPhase] = useState<string>('all');
   const [filterGroup, setFilterGroup] = useState<string>('all');
   const [filterRound, setFilterRound] = useState<string>('all');
+  const [activeTab, setActiveTab] = useState<'matches' | 'topFinishers' | 'brazilGoals' | 'brazilPlayers'>('matches');
 
   // Top 4 Finishers State
   const [tfChampion, setTfChampion] = useState(topFinishersResult?.champion || '');
@@ -21,6 +23,14 @@ export const AdminMatchesPage: React.FC = () => {
   const [tfThird, setTfThird] = useState(topFinishersResult?.third || '');
   const [tfFourth, setTfFourth] = useState(topFinishersResult?.fourth || '');
   const [isSavingTopFinishers, setIsSavingTopFinishers] = useState(false);
+
+  // Brazil Players Management State
+  const [newPlayerName, setNewPlayerName] = useState('');
+  const [newPlayerPosition, setNewPlayerPosition] = useState('');
+  const [savingPlayer, setSavingPlayer] = useState(false);
+  const [selectedBrazilMatch, setSelectedBrazilMatch] = useState('');
+  const [selectedBrazilPlayer, setSelectedBrazilPlayer] = useState('');
+  const [brazilGoalCount, setBrazilGoalCount] = useState('');
 
   // Sync from store when loaded
   React.useEffect(() => {
@@ -56,8 +66,6 @@ export const AdminMatchesPage: React.FC = () => {
       </div>
     );
   }
-
-
 
   const handleEditClick = (match: Match) => {
     setEditingMatch({ ...match });
@@ -100,15 +108,11 @@ export const AdminMatchesPage: React.FC = () => {
 
   const hasFilters = filterPhase !== 'all' || filterGroup !== 'all' || filterRound !== 'all';
 
-  // Helper to format ISO date (UTC) to Brasília (UTC-3) for input type="datetime-local"
-  // Converts "2026-06-11T19:00:00Z" -> "2026-06-11T16:00"
   const formatForBrasiliaInput = (isoString: string) => {
     if (!isoString) return '';
     try {
       const date = new Date(isoString);
       if (isNaN(date.getTime())) return '';
-      // Create a date object that represents the time in Brasilia, 
-      // but stored in the object as if it were UTC, so toISOString gives us the correct digits
       const utcTime = date.getTime();
       const brasiliaTime = new Date(utcTime - (3 * 60 * 60 * 1000));
       return brasiliaTime.toISOString().substring(0, 16);
@@ -117,17 +121,13 @@ export const AdminMatchesPage: React.FC = () => {
     }
   };
 
-  // Helper to convert Brasília input (string) back to valid UTC ISO String for Supabase
-  // Input "2026-06-11T16:00" -> Output "2026-06-11T19:00:00.000Z"
   const handleDateChange = (inputValue: string) => {
     if (!inputValue) return;
     try {
-      // Append explicit timezone offset for Brasilia (-03:00) to ensure correct parsing
       const dateStringWithOffset = `${inputValue}:00-03:00`;
       const dateObj = new Date(dateStringWithOffset);
 
       if (!isNaN(dateObj.getTime())) {
-        // Convert to strict UTC ISO string
         handleInputChange('date', dateObj.toISOString());
       }
     } catch (e) {
@@ -135,7 +135,40 @@ export const AdminMatchesPage: React.FC = () => {
     }
   };
 
-  // --- FILTER LOGIC ---
+  const handleAddPlayer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPlayerName.trim()) return;
+    setSavingPlayer(true);
+    try {
+      await api.brazilPlayers.upsert({
+        id: `p-${Date.now()}`,
+        name: newPlayerName.trim(),
+        position: newPlayerPosition.trim(),
+        is_active: true
+      });
+      addNotification('Sucesso', 'Jogador adicionado.', 'success');
+      setNewPlayerName('');
+      setNewPlayerPosition('');
+      window.location.reload();
+    } catch (e: any) {
+      addNotification('Erro', 'Falha ao salvar jogador: ' + e.message, 'warning');
+    } finally {
+      setSavingPlayer(false);
+    }
+  };
+
+  const handleTogglePlayerStatus = async (player: any) => {
+    try {
+      await api.brazilPlayers.upsert({
+        ...player,
+        is_active: !player.is_active
+      });
+      window.location.reload();
+    } catch (e: any) {
+      addNotification('Erro', 'Falha ao atualizar status', 'warning');
+    }
+  };
+
   const filteredMatches = matches.filter(m => {
     if (filterPhase !== 'all' && m.phase !== filterPhase) return false;
     if (filterGroup !== 'all') {
@@ -154,9 +187,6 @@ export const AdminMatchesPage: React.FC = () => {
 
   return (
     <div className="space-y-6 relative pb-20">
-
-
-      {/* Header */}
       <div className="mb-6">
         <button
           onClick={() => navigate('/admin')}
@@ -174,175 +204,278 @@ export const AdminMatchesPage: React.FC = () => {
         </h1>
       </div>
 
-      {/* MATCH MANAGEMENT */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div className="p-4 md:p-6 border-b border-gray-100 dark:border-gray-700">
-          <h2 className="text-lg md:text-xl font-bold text-gray-800 dark:text-white mb-2">Lista de Partidas</h2>
+      <div className="flex overflow-x-auto space-x-2 pb-2 scrollbar-hide">
+        <button
+          onClick={() => setActiveTab('matches')}
+          className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+            activeTab === 'matches'
+              ? 'bg-brasil-yellow text-brasil-green shadow-sm'
+              : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+          }`}
+        >
+          Partidas
+        </button>
+        <button
+          onClick={() => setActiveTab('topFinishers')}
+          className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+            activeTab === 'topFinishers'
+              ? 'bg-brasil-yellow text-brasil-green shadow-sm'
+              : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+          }`}
+        >
+          Artilheiros
+        </button>
+        <button
+          onClick={() => setActiveTab('brazilGoals')}
+          className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+            activeTab === 'brazilGoals'
+              ? 'bg-brasil-yellow text-brasil-green shadow-sm'
+              : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+          }`}
+        >
+          Gols do Brasil
+        </button>
+        <button
+          onClick={() => setActiveTab('brazilPlayers')}
+          className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+            activeTab === 'brazilPlayers'
+              ? 'bg-brasil-yellow text-brasil-green shadow-sm'
+              : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+          }`}
+        >
+          Jogadores
+        </button>
+      </div>
 
-          {/* Filters Container Clean */}
-          <div className="flex flex-col gap-3 mt-4">
-            <div className="flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-300">
-              <Filter size={16} />
-              Filtros
-              {hasFilters && (
-                <button
-                  onClick={clearFilters}
-                  className="text-xs font-bold text-red-500 hover:text-red-700 transition-colors flex items-center gap-1 ml-2"
-                >
-                  <X size={12} /> Limpar
-                </button>
-              )}
-            </div>
-
-            {/* Phase and Group Selects (Dropdowns) */}
-            <div className="flex flex-wrap gap-3 items-center">
-              <div className="relative w-full md:w-auto">
-                <select
-                  value={filterPhase}
-                  onChange={(e) => {
-                    setFilterPhase(e.target.value);
-                    if (e.target.value !== Phase.GROUP) {
-                      setFilterGroup('all');
-                      setFilterRound('all');
-                    }
-                  }}
-                  className="w-full md:w-48 appearance-none bg-white dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-300 dark:border-gray-600 text-xs font-bold rounded-lg focus:ring-brasil-blue focus:border-brasil-blue block p-2.5 pr-8"
-                >
-                  <option value="all">Todas as Fases</option>
-                  {Object.values(Phase).map(p => (
-                    <option key={p} value={p}>{p}</option>
-                  ))}
-                </select>
-                <ChevronDown size={14} className="absolute right-3 top-3 text-gray-300 pointer-events-none" />
+      {activeTab === 'matches' && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="p-4 md:p-6 border-b border-gray-100 dark:border-gray-700">
+            <h2 className="text-lg md:text-xl font-bold text-gray-800 dark:text-white mb-2">Lista de Partidas</h2>
+            <div className="flex flex-col gap-3 mt-4">
+              <div className="flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-300">
+                <Filter size={16} />
+                Filtros
+                {hasFilters && (
+                  <button
+                    onClick={clearFilters}
+                    className="text-xs font-bold text-red-500 hover:text-red-700 transition-colors flex items-center gap-1 ml-2"
+                  >
+                    <X size={12} /> Limpar
+                  </button>
+                )}
               </div>
+              <div className="flex flex-wrap gap-3 items-center">
+                <div className="relative w-full md:w-auto">
+                  <select
+                    value={filterPhase}
+                    onChange={(e) => {
+                      setFilterPhase(e.target.value);
+                      if (e.target.value !== Phase.GROUP) {
+                        setFilterGroup('all');
+                        setFilterRound('all');
+                      }
+                    }}
+                    className="w-full md:w-48 appearance-none bg-white dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-300 dark:border-gray-600 text-xs font-bold rounded-lg focus:ring-brasil-blue focus:border-brasil-blue block p-2.5 pr-8"
+                  >
+                    <option value="all">Todas as Fases</option>
+                    {Object.values(Phase).map(p => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} className="absolute right-3 top-3 text-gray-300 pointer-events-none" />
+                </div>
+                {(filterPhase === 'all' || filterPhase === Phase.GROUP) && (
+                  <>
+                    <div className="relative w-1/2 md:w-auto min-w-[120px] flex-1">
+                      <select
+                        value={filterGroup}
+                        onChange={(e) => setFilterGroup(e.target.value)}
+                        className="w-full appearance-none bg-white dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-300 dark:border-gray-600 text-xs font-bold rounded-lg focus:ring-brasil-blue focus:border-brasil-blue block p-2.5 pr-8"
+                      >
+                        <option value="all">Todos Grupos</option>
+                        {groupsList.map(g => (
+                          <option key={g} value={g}>Grupo {g}</option>
+                        ))}
+                      </select>
+                      <ChevronDown size={14} className="absolute right-3 top-3 text-gray-300 pointer-events-none" />
+                    </div>
+                    <div className="relative w-1/2 md:w-auto min-w-[120px] flex-1">
+                      <select
+                        value={filterRound}
+                        onChange={(e) => setFilterRound(e.target.value)}
+                        className="w-full appearance-none bg-white dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-300 dark:border-gray-600 text-xs font-bold rounded-lg focus:ring-brasil-blue focus:border-brasil-blue block p-2.5 pr-8"
+                      >
+                        <option value="all">Todas Rodadas</option>
+                        <option value="1">1ª Rodada</option>
+                        <option value="2">2ª Rodada</option>
+                        <option value="3">3ª Rodada</option>
+                      </select>
+                      <ChevronDown size={14} className="absolute right-3 top-3 text-gray-300 pointer-events-none" />
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="relative w-full">
+            <table className="w-full text-sm text-left table-fixed md:table-auto">
+              <thead className="bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-300 uppercase font-bold text-xs border-b border-gray-200 dark:border-gray-600">
+                <tr>
+                  <th className="px-2 py-2 md:px-4 md:py-3 w-[15%] md:w-40">Data</th>
+                  <th className="hidden md:table-cell px-4 py-3 w-32">Fase</th>
+                  <th className="px-1 py-2 md:px-4 md:py-3 text-right w-[25%] md:w-40">Mandante</th>
+                  <th className="px-1 py-2 md:px-4 md:py-3 text-center w-[15%] md:w-24">Placar</th>
+                  <th className="px-1 py-2 md:px-4 md:py-3 text-left w-[25%] md:w-40">Visitante</th>
+                  <th className="hidden md:table-cell px-4 py-3 text-center w-28">Status</th>
+                  <th className="px-1 py-2 md:px-4 md:py-3 text-center w-[10%] md:w-auto">Ação</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                {sortedMatches.map(match => {
+                  const mRound = getMatchRound(match, matches);
+                  const matchDate = new Date(match.date);
+                  const isDateValid = !isNaN(matchDate.getTime());
+                  return (
+                    <tr key={match.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 even:bg-gray-50/30 dark:even:bg-gray-700/30">
+                      <td className="px-2 py-2 md:px-4 md:py-3 text-gray-600 dark:text-gray-300 leading-tight">
+                        <span className="block text-[10px] md:text-sm font-bold md:font-normal">
+                          {isDateValid ? matchDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'America/Sao_Paulo' }) : 'Data Inválida'}
+                        </span>
+                        <span className="block text-[10px] md:text-xs text-gray-400">
+                          {isDateValid ? matchDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' }) : '--:--'}
+                        </span>
+                      </td>
+                      <td className="hidden md:table-cell px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
+                        <span className="block truncate max-w-[120px]" title={match.phase}>{match.phase}</span>
+                        <div className="flex gap-1">
+                          {match.group && <span className="font-bold text-gray-400 dark:text-gray-500">Grp {match.group}</span>}
+                          {mRound && <span className="text-[10px] bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-1 rounded border border-blue-100 dark:border-blue-800">{mRound}ª R</span>}
+                        </div>
+                      </td>
+                      <td className="px-1 py-2 md:px-4 md:py-3 text-right font-medium text-xs md:text-sm text-gray-800 dark:text-gray-200">
+                        <span className="block truncate md:max-w-none ml-auto" title={match.homeTeamId}>
+                          {match.homeTeamId}
+                        </span>
+                      </td>
+                      <td className="px-1 py-2 md:px-4 md:py-3 text-center font-bold">
+                        <div className="flex flex-col items-center">
+                          <span className={`bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 md:px-2 md:py-1 rounded text-[10px] md:text-sm text-gray-800 dark:text-gray-100 border whitespace-nowrap ${match.status === MatchStatus.IN_PROGRESS ? 'border-green-300 bg-green-50 dark:bg-green-900 text-green-700 dark:text-green-300' : 'border-gray-200 dark:border-gray-600'
+                            }`}>
+                            {match.homeScore ?? '-'} x {match.awayScore ?? '-'}
+                          </span>
+                          <div className="md:hidden mt-1">
+                            {match.status === MatchStatus.IN_PROGRESS && <span className="w-1.5 h-1.5 rounded-full bg-green-500 block animate-pulse"></span>}
+                            {match.status === MatchStatus.FINISHED && <span className="w-1.5 h-1.5 rounded-full bg-gray-400 block"></span>}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-1 py-2 md:px-4 md:py-3 text-left font-medium text-xs md:text-sm text-gray-800 dark:text-gray-200">
+                        <span className="block truncate md:max-w-none mr-auto" title={match.awayTeamId}>
+                          {match.awayTeamId}
+                        </span>
+                      </td>
+                      <td className="hidden md:table-cell px-4 py-3 text-center">
+                        <span className={`px-2 py-1 rounded-full text-[10px] uppercase font-bold border ${match.status === MatchStatus.FINISHED ? 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600' :
+                          match.status === MatchStatus.IN_PROGRESS ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800 animate-pulse' :
+                            'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-100 dark:border-blue-800'
+                          }`}>
+                          {match.status === MatchStatus.FINISHED ? 'Fim' :
+                            match.status === MatchStatus.IN_PROGRESS ? 'Ao Vivo' : 'Agendado'}
+                        </span>
+                      </td>
+                      <td className="px-1 py-2 md:px-4 md:py-3 text-center">
+                        <button
+                          onClick={() => handleEditClick(match)}
+                          className="p-1.5 md:p-2 bg-brasil-blue text-white rounded shadow-sm hover:bg-blue-900 transition-colors"
+                          title="Editar"
+                        >
+                          <Edit2 size={14} className="md:w-4 md:h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {sortedMatches.length === 0 && (
+              <div className="text-center py-8 text-gray-400 italic bg-gray-50 dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700">
+                Nenhum jogo encontrado.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
-              {(filterPhase === 'all' || filterPhase === Phase.GROUP) && (
-                <>
-                  <div className="relative w-1/2 md:w-auto min-w-[120px] flex-1">
-                    <select
-                      value={filterGroup}
-                      onChange={(e) => setFilterGroup(e.target.value)}
-                      className="w-full appearance-none bg-white dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-300 dark:border-gray-600 text-xs font-bold rounded-lg focus:ring-brasil-blue focus:border-brasil-blue block p-2.5 pr-8"
-                    >
-                      <option value="all">Todos Grupos</option>
-                      {groupsList.map(g => (
-                        <option key={g} value={g}>Grupo {g}</option>
-                      ))}
-                    </select>
-                    <ChevronDown size={14} className="absolute right-3 top-3 text-gray-300 pointer-events-none" />
+      {activeTab === 'brazilPlayers' && (
+        <div className="space-y-6">
+          <div className={`p-6 rounded-2xl border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700`}>
+            <h3 className={`text-lg font-bold mb-4 text-gray-900 dark:text-white`}>
+              Adicionar Jogador
+            </h3>
+            <form onSubmit={handleAddPlayer} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className={`block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2`}>
+                    Nome
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={newPlayerName}
+                    onChange={(e) => setNewPlayerName(e.target.value)}
+                    className={`w-full p-3 rounded-xl border outline-none focus:ring-2 focus:ring-brasil-green text-sm bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white`}
+                    placeholder="Ex: Neymar Jr"
+                  />
+                </div>
+                <div>
+                  <label className={`block text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-2`}>
+                    Posição (opcional)
+                  </label>
+                  <input
+                    type="text"
+                    value={newPlayerPosition}
+                    onChange={(e) => setNewPlayerPosition(e.target.value)}
+                    className={`w-full p-3 rounded-xl border outline-none focus:ring-2 focus:ring-brasil-green text-sm bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white`}
+                    placeholder="Ex: ATA, MEI, ZAG"
+                  />
+                </div>
+              </div>
+              <button
+                type="submit"
+                disabled={savingPlayer || !newPlayerName.trim()}
+                className="w-full py-3 bg-brasil-green text-white font-bold rounded-xl shadow-md hover:bg-green-700 disabled:opacity-50"
+              >
+                {savingPlayer ? 'Salvando...' : 'Adicionar Jogador'}
+              </button>
+            </form>
+          </div>
+
+          <div className={`p-6 rounded-2xl border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700`}>
+            <h3 className={`text-lg font-bold mb-4 text-gray-900 dark:text-white`}>
+              Jogadores Cadastrados
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              {[...brazilPlayers].sort((a, b) => a.name.localeCompare(b.name)).map(player => (
+                <div key={player.id} className={`p-4 rounded-xl flex items-center justify-between border ${player.is_active ? 'border-brasil-green/30 bg-brasil-yellow/10' : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 opacity-60'}`}>
+                  <div>
+                    <div className={`font-bold ${player.is_active ? 'text-gray-900 dark:text-white' : 'text-gray-500 line-through'}`}>
+                      {player.name}
+                    </div>
+                    {player.position && <div className="text-xs text-gray-500">{player.position}</div>}
                   </div>
-                  <div className="relative w-1/2 md:w-auto min-w-[120px] flex-1">
-                    <select
-                      value={filterRound}
-                      onChange={(e) => setFilterRound(e.target.value)}
-                      className="w-full appearance-none bg-white dark:bg-gray-700 text-gray-800 dark:text-white border border-gray-300 dark:border-gray-600 text-xs font-bold rounded-lg focus:ring-brasil-blue focus:border-brasil-blue block p-2.5 pr-8"
-                    >
-                      <option value="all">Todas Rodadas</option>
-                      <option value="1">1ª Rodada</option>
-                      <option value="2">2ª Rodada</option>
-                      <option value="3">3ª Rodada</option>
-                    </select>
-                    <ChevronDown size={14} className="absolute right-3 top-3 text-gray-300 pointer-events-none" />
-                  </div>
-                </>
-              )}
+                  <button
+                    onClick={() => handleTogglePlayerStatus(player)}
+                    className={`text-xs px-3 py-1 rounded-full font-bold ${player.is_active ? 'bg-red-100 text-red-600 hover:bg-red-200' : 'bg-green-100 text-green-600 hover:bg-green-200'}`}
+                  >
+                    {player.is_active ? 'Desativar' : 'Ativar'}
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
         </div>
+      )}
 
-        {/* COMPACT TABLE - No Horizontal Scroll */}
-        <div className="relative w-full">
-          <table className="w-full text-sm text-left table-fixed md:table-auto">
-            <thead className="bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-300 uppercase font-bold text-xs border-b border-gray-200 dark:border-gray-600">
-              <tr>
-                <th className="px-2 py-2 md:px-4 md:py-3 w-[15%] md:w-40">Data</th>
-                <th className="hidden md:table-cell px-4 py-3 w-32">Fase</th>
-                <th className="px-1 py-2 md:px-4 md:py-3 text-right w-[25%] md:w-40">Mandante</th>
-                <th className="px-1 py-2 md:px-4 md:py-3 text-center w-[15%] md:w-24">Placar</th>
-                <th className="px-1 py-2 md:px-4 md:py-3 text-left w-[25%] md:w-40">Visitante</th>
-                <th className="hidden md:table-cell px-4 py-3 text-center w-28">Status</th>
-                <th className="px-1 py-2 md:px-4 md:py-3 text-center w-[10%] md:w-auto">Ação</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-              {sortedMatches.map(match => {
-                const mRound = getMatchRound(match, matches);
-                const matchDate = new Date(match.date);
-                const isDateValid = !isNaN(matchDate.getTime());
-
-                return (
-                  <tr key={match.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 even:bg-gray-50/30 dark:even:bg-gray-700/30">
-                    <td className="px-2 py-2 md:px-4 md:py-3 text-gray-600 dark:text-gray-300 leading-tight">
-                      <span className="block text-[10px] md:text-sm font-bold md:font-normal">
-                        {isDateValid ? matchDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', timeZone: 'America/Sao_Paulo' }) : 'Data Inválida'}
-                      </span>
-                      <span className="block text-[10px] md:text-xs text-gray-400">
-                        {isDateValid ? matchDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo' }) : '--:--'}
-                      </span>
-                    </td>
-                    <td className="hidden md:table-cell px-4 py-3 text-xs text-gray-500 dark:text-gray-400">
-                      <span className="block truncate max-w-[120px]" title={match.phase}>{match.phase}</span>
-                      <div className="flex gap-1">
-                        {match.group && <span className="font-bold text-gray-400 dark:text-gray-500">Grp {match.group}</span>}
-                        {mRound && <span className="text-[10px] bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-1 rounded border border-blue-100 dark:border-blue-800">{mRound}ª R</span>}
-                      </div>
-                    </td>
-                    <td className="px-1 py-2 md:px-4 md:py-3 text-right font-medium text-xs md:text-sm text-gray-800 dark:text-gray-200">
-                      <span className="block truncate md:max-w-none ml-auto" title={match.homeTeamId}>
-                        {match.homeTeamId}
-                      </span>
-                    </td>
-                    <td className="px-1 py-2 md:px-4 md:py-3 text-center font-bold">
-                      <div className="flex flex-col items-center">
-                        <span className={`bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 md:px-2 md:py-1 rounded text-[10px] md:text-sm text-gray-800 dark:text-gray-100 border whitespace-nowrap ${match.status === MatchStatus.IN_PROGRESS ? 'border-green-300 bg-green-50 dark:bg-green-900 text-green-700 dark:text-green-300' : 'border-gray-200 dark:border-gray-600'
-                          }`}>
-                          {match.homeScore ?? '-'} x {match.awayScore ?? '-'}
-                        </span>
-                        {/* Mobile Status Indicator */}
-                        <div className="md:hidden mt-1">
-                          {match.status === MatchStatus.IN_PROGRESS && <span className="w-1.5 h-1.5 rounded-full bg-green-500 block animate-pulse"></span>}
-                          {match.status === MatchStatus.FINISHED && <span className="w-1.5 h-1.5 rounded-full bg-gray-400 block"></span>}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-1 py-2 md:px-4 md:py-3 text-left font-medium text-xs md:text-sm text-gray-800 dark:text-gray-200">
-                      <span className="block truncate md:max-w-none mr-auto" title={match.awayTeamId}>
-                        {match.awayTeamId}
-                      </span>
-                    </td>
-                    <td className="hidden md:table-cell px-4 py-3 text-center">
-                      <span className={`px-2 py-1 rounded-full text-[10px] uppercase font-bold border ${match.status === MatchStatus.FINISHED ? 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-600' :
-                        match.status === MatchStatus.IN_PROGRESS ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800 animate-pulse' :
-                          'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border-blue-100 dark:border-blue-800'
-                        }`}>
-                        {match.status === MatchStatus.FINISHED ? 'Fim' :
-                          match.status === MatchStatus.IN_PROGRESS ? 'Ao Vivo' : 'Agendado'}
-                      </span>
-                    </td>
-                    <td className="px-1 py-2 md:px-4 md:py-3 text-center">
-                      <button
-                        onClick={() => handleEditClick(match)}
-                        className="p-1.5 md:p-2 bg-brasil-blue text-white rounded shadow-sm hover:bg-blue-900 transition-colors"
-                        title="Editar"
-                      >
-                        <Edit2 size={14} className="md:w-4 md:h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-
-          {sortedMatches.length === 0 && (
-            <div className="text-center py-8 text-gray-400 italic bg-gray-50 dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700">
-              Nenhum jogo encontrado.
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Edit Modal - Optimized for Mobile */}
       {editingMatch && createPortal(
         <div
           className="fixed inset-0 bg-black/80 flex items-end md:items-center justify-center z-[9999] p-0 md:p-4 backdrop-blur-sm animate-in fade-in duration-200"
@@ -361,8 +494,6 @@ export const AdminMatchesPage: React.FC = () => {
             </div>
 
             <div className="p-6 overflow-y-auto space-y-6 flex-1">
-
-              {/* Status & Date Row */}
               <div className="grid grid-cols-1 gap-6">
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase flex items-center gap-1">
@@ -379,7 +510,6 @@ export const AdminMatchesPage: React.FC = () => {
                     <option value={MatchStatus.FINISHED}>Finalizado</option>
                   </select>
                 </div>
-
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase flex items-center gap-1">
                     <Calendar size={14} /> Data e Hora (Brasília)
@@ -395,8 +525,6 @@ export const AdminMatchesPage: React.FC = () => {
                   </div>
                 </div>
               </div>
-
-              {/* Teams Selection */}
               <div className="grid grid-cols-2 gap-4 items-end bg-gray-50 dark:bg-gray-700 p-4 rounded-lg border border-gray-100 dark:border-gray-600">
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-gray-500 dark:text-gray-300 uppercase">Mandante</label>
@@ -417,21 +545,16 @@ export const AdminMatchesPage: React.FC = () => {
                   />
                 </div>
               </div>
-
-              {/* Scoreboard */}
               <div className="flex flex-col items-center">
                 <p className="text-xs font-bold text-gray-400 uppercase mb-4 tracking-wider text-center">
                   {editingMatch.status === MatchStatus.IN_PROGRESS ? 'Placar em Tempo Real' :
                     editingMatch.status === MatchStatus.FINISHED ? 'Placar Final' : 'Definição de Placar'}
                 </p>
-
-                {/* Aviso de bloqueio */}
                 {editingMatch.status === MatchStatus.SCHEDULED && (
                   <div className="mb-4 bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 text-xs p-2 rounded border border-yellow-200 dark:border-yellow-800 text-center animate-pulse">
                     Mude o status para <strong>Em Andamento</strong> ou <strong>Finalizado</strong> para editar o placar.
                   </div>
                 )}
-
                 <div className="flex items-center justify-center gap-4 md:gap-6">
                   <input
                     id="score-home"
@@ -454,8 +577,6 @@ export const AdminMatchesPage: React.FC = () => {
                   />
                 </div>
               </div>
-
-              {/* Brazil Goals Section - collapsible, only for Brazil matches */}
               {(editingMatch.homeTeamId === 'Brasil' || editingMatch.awayTeamId === 'Brasil') && (
                 <div className="pt-2 border-t border-gray-100 dark:border-gray-700">
                   <button
@@ -474,23 +595,22 @@ export const AdminMatchesPage: React.FC = () => {
                     </div>
                     <ChevronDown size={18} className={`text-gray-500 transition-transform duration-200 ${showGoals ? 'rotate-180' : ''}`} />
                   </button>
-
                   {showGoals && (
                     <div className="mt-3 space-y-2">
                       <p className="text-[10px] text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 p-2 rounded-lg">
                         Se o jogador marcado pelo usuário fizer gols, ele ganha pontos bônus configurados na liga.
                       </p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {BRAZIL_PLAYERS.map(player => {
-                          const matchGoal = brazilMatchGoals.find(bg => bg.matchId === editingMatch.id && bg.playerName === player);
+                        {brazilPlayers.filter(p => p.is_active).map(player => {
+                          const matchGoal = brazilMatchGoals.find(bg => bg.matchId === editingMatch.id && bg.playerName === player.name);
                           const goals = matchGoal?.goals || 0;
                           return (
-                            <div key={player} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-100 dark:border-gray-600 hover:border-brasil-green transition-all">
-                              <span className="text-xs font-bold text-gray-700 dark:text-gray-200 truncate pr-2">{player}</span>
+                            <div key={player.id} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-100 dark:border-gray-600 hover:border-brasil-green transition-all">
+                              <span className="text-xs font-bold text-gray-700 dark:text-gray-200 truncate pr-2">{player.name}</span>
                               <div className="flex items-center bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden shadow-sm">
-                                <button onClick={() => addBrazilMatchGoal(editingMatch.id, player, Math.max(0, goals - 1))} className="px-2.5 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-red-500 font-bold transition-colors">-</button>
+                                <button onClick={() => addBrazilMatchGoal(editingMatch.id, player.name, Math.max(0, goals - 1))} className="px-2.5 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-red-500 font-bold transition-colors">-</button>
                                 <span className="px-3 py-1.5 text-xs font-black min-w-[32px] text-center border-x border-gray-100 dark:border-gray-700 text-brasil-green dark:text-green-400">{goals}</span>
-                                <button onClick={() => addBrazilMatchGoal(editingMatch.id, player, goals + 1)} className="px-2.5 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-brasil-green font-bold transition-colors">+</button>
+                                <button onClick={() => addBrazilMatchGoal(editingMatch.id, player.name, goals + 1)} className="px-2.5 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-brasil-green font-bold transition-colors">+</button>
                               </div>
                             </div>
                           );
@@ -501,7 +621,6 @@ export const AdminMatchesPage: React.FC = () => {
                 </div>
               )}
             </div>
-
             <div className="p-4 border-t border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 flex gap-3 shrink-0 pb-8 md:pb-4">
               <button
                 id="admin-cancel-btn"
@@ -525,109 +644,103 @@ export const AdminMatchesPage: React.FC = () => {
         </div>, document.body
       )}
 
-      {/* TOP 4 FINISHERS RESULT - GLOBAL ADMIN */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div className="bg-gradient-to-r from-yellow-500 to-amber-500 px-5 py-4 flex items-center gap-3">
-          <div className="bg-white/20 p-2 rounded-lg">
-            <Medal size={20} className="text-white" />
-          </div>
-          <div>
-            <h2 className="text-lg font-black text-white uppercase tracking-wide">4 Primeiros Colocados — Resultado Oficial</h2>
-            <p className="text-yellow-100 text-xs">Preencha apenas ao final da competição para calcular as pontuações</p>
-          </div>
-        </div>
-
-        <div className="p-5 space-y-4">
-          {topFinishersResult && (topFinishersResult.champion || topFinishersResult.runnerUp) && (
-            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-xl px-4 py-3 flex items-center gap-2 text-green-800 dark:text-green-300 text-sm font-bold">
-              <Trophy size={16} /> Resultado já registrado. Atualizar irá sobrescrever o registro anterior.
+      {activeTab === 'topFinishers' && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="bg-gradient-to-r from-yellow-500 to-amber-500 px-5 py-4 flex items-center gap-3">
+            <div className="bg-white/20 p-2 rounded-lg">
+              <Medal size={20} className="text-white" />
             </div>
-          )}
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {([
-              { key: 'champion' as const, label: 'Campeão', emoji: '🥇', value: tfChampion, setter: setTfChampion },
-              { key: 'runnerUp' as const, label: 'Vice-Campeão', emoji: '🥈', value: tfRunnerUp, setter: setTfRunnerUp },
-              { key: 'third' as const, label: '3º Lugar', emoji: '🥉', value: tfThird, setter: setTfThird },
-              { key: 'fourth' as const, label: '4º Lugar', emoji: '🏅', value: tfFourth, setter: setTfFourth },
-            ]).map(f => {
-              const allTeams = [...new Set(
-                matches.flatMap(m => [m.homeTeamId, m.awayTeamId])
-                  .filter(t => t && !t.startsWith('Venc') && !t.startsWith('Perd') && !t.startsWith('1º') && !t.startsWith('2º') && !t.startsWith('3º'))
-              )].sort();
-              return (
-                <div key={f.key} className="space-y-1.5">
-                  <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase flex items-center gap-1">
-                    {f.emoji} {f.label}
-                  </label>
-                  <select
-                    value={f.value}
-                    onChange={e => f.setter(e.target.value)}
-                    className="w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl p-3 font-bold text-gray-800 dark:text-white focus:ring-2 focus:ring-yellow-500 outline-none text-sm"
-                  >
-                    <option value="">-- Selecione a seleção --</option>
-                    {allTeams.map(t => <option key={t} value={t}>{t}</option>)}
-                  </select>
-                </div>
-              );
-            })}
+            <div>
+              <h2 className="text-lg font-black text-white uppercase tracking-wide">4 Primeiros Colocados — Resultado Oficial</h2>
+              <p className="text-yellow-100 text-xs">Preencha apenas ao final da competição para calcular as pontuações</p>
+            </div>
           </div>
-
-          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl p-3 text-xs text-amber-800 dark:text-amber-300">
-            ⚠️ <strong>Atenção:</strong> Ao salvar, os pontos de "4 Primeiros Colocados" serão calculados para todos os participantes de todas as ligas que tenham essa opção ativada.
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-3 mt-2">
-            <button
-              onClick={async () => {
-                if (window.confirm('🚨 TEM CERTEZA? Isso irá APAGAR o resultado oficial e remover os pontos de TODOS os participantes em todas as ligas.')) {
+          <div className="p-5 space-y-4">
+            {topFinishersResult && (topFinishersResult.champion || topFinishersResult.runnerUp) && (
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-xl px-4 py-3 flex items-center gap-2 text-green-800 dark:text-green-300 text-sm font-bold">
+                <Trophy size={16} /> Resultado já registrado. Atualizar irá sobrescrever o registro anterior.
+              </div>
+            )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {([
+                { key: 'champion' as const, label: 'Campeão', emoji: '🥇', value: tfChampion, setter: setTfChampion },
+                { key: 'runnerUp' as const, label: 'Vice-Campeão', emoji: '🥈', value: tfRunnerUp, setter: setTfRunnerUp },
+                { key: 'third' as const, label: '3º Lugar', emoji: '🥉', value: tfThird, setter: setTfThird },
+                { key: 'fourth' as const, label: '4º Lugar', emoji: '🏅', value: tfFourth, setter: setTfFourth },
+              ]).map(f => {
+                const allTeams = [...new Set(
+                  matches.flatMap(m => [m.homeTeamId, m.awayTeamId])
+                    .filter(t => t && !t.startsWith('Venc') && !t.startsWith('Perd') && !t.startsWith('1º') && !t.startsWith('2º') && !t.startsWith('3º'))
+                )].sort();
+                return (
+                  <div key={f.key} className="space-y-1.5">
+                    <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase flex items-center gap-1">
+                      {f.emoji} {f.label}
+                    </label>
+                    <select
+                      value={f.value}
+                      onChange={e => f.setter(e.target.value)}
+                      className="w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl p-3 font-bold text-gray-800 dark:text-white focus:ring-2 focus:ring-yellow-500 outline-none text-sm"
+                    >
+                      <option value="">-- Selecione a seleção --</option>
+                      {allTeams.map(t => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl p-3 text-xs text-amber-800 dark:text-amber-300">
+              ⚠️ <strong>Atenção:</strong> Ao salvar, os pontos de "4 Primeiros Colocados" serão calculados para todos os participantes de todas as ligas que tenham essa opção ativada.
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 mt-2">
+              <button
+                onClick={async () => {
+                  if (window.confirm('🚨 TEM CERTEZA? Isso irá APAGAR o resultado oficial e remover os pontos de TODOS os participantes em todas as ligas.')) {
+                    setIsSavingTopFinishers(true);
+                    try {
+                      await setTopFinishersResult('', '', '', '');
+                      setTfChampion('');
+                      setTfRunnerUp('');
+                      setTfThird('');
+                      setTfFourth('');
+                      addNotification('Resultado removido', 'Os pontos dos 4 primeiros foram limpos com sucesso.', 'success');
+                    } catch (error) {
+                      addNotification('Erro ao limpar', 'Não foi possível remover o resultado.', 'error');
+                    } finally {
+                      setIsSavingTopFinishers(false);
+                    }
+                  }
+                }}
+                disabled={isSavingTopFinishers}
+                className="flex-1 bg-white dark:bg-gray-800 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-70 text-sm uppercase tracking-wide hover:bg-red-50 dark:hover:bg-red-900/10"
+              >
+                <Trash2 size={18} /> Limpar Tudo
+              </button>
+              <button
+                onClick={async () => {
+                  if (!tfChampion || !tfRunnerUp || !tfThird || !tfFourth) {
+                    addNotification('Campos incompletos', 'Preencha todos os 4 colocados antes de salvar.', 'warning');
+                    return;
+                  }
                   setIsSavingTopFinishers(true);
                   try {
-                    await setTopFinishersResult('', '', '', '');
-                    setTfChampion('');
-                    setTfRunnerUp('');
-                    setTfThird('');
-                    setTfFourth('');
-                    addNotification('Resultado removido', 'Os pontos dos 4 primeiros foram limpos com sucesso.', 'success');
+                    await setTopFinishersResult(tfChampion, tfRunnerUp, tfThird, tfFourth);
+                    addNotification('Resultado salvo', 'As pontuações foram calculadas com sucesso.', 'success');
                   } catch (error) {
-                    addNotification('Erro ao limpar', 'Não foi possível remover o resultado.', 'error');
+                    addNotification('Erro ao salvar', 'Ocorreu um erro ao salvar o resultado.', 'error');
                   } finally {
                     setIsSavingTopFinishers(false);
                   }
-                }
-              }}
-              disabled={isSavingTopFinishers}
-              className="flex-1 bg-white dark:bg-gray-800 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-70 text-sm uppercase tracking-wide hover:bg-red-50 dark:hover:bg-red-900/10"
-            >
-              <Trash2 size={18} /> Limpar Tudo
-            </button>
-
-            <button
-              onClick={async () => {
-                if (!tfChampion || !tfRunnerUp || !tfThird || !tfFourth) {
-                  addNotification('Campos incompletos', 'Preencha todos os 4 colocados antes de salvar.', 'warning');
-                  return;
-                }
-                setIsSavingTopFinishers(true);
-                try {
-                  await setTopFinishersResult(tfChampion, tfRunnerUp, tfThird, tfFourth);
-                  addNotification('Resultado salvo', 'As pontuações foram calculadas com sucesso.', 'success');
-                } catch (error) {
-                  addNotification('Erro ao salvar', 'Ocorreu um erro ao salvar o resultado.', 'error');
-                } finally {
-                  setIsSavingTopFinishers(false);
-                }
-              }}
-              disabled={isSavingTopFinishers}
-              className="flex-[2] bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-600 hover:to-amber-600 text-white font-black py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-70 shadow-lg shadow-yellow-200 dark:shadow-none text-sm uppercase tracking-wide"
-            >
-              {isSavingTopFinishers ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-              {isSavingTopFinishers ? 'Salvando...' : 'Salvar Resultado Oficial'}
-            </button>
+                }}
+                disabled={isSavingTopFinishers}
+                className="flex-1 bg-brasil-green text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-70 text-sm uppercase tracking-wide shadow-md hover:bg-green-700"
+              >
+                {isSavingTopFinishers ? 'Salvando...' : 'Salvar Resultado Oficial'}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-
+      )}
     </div>
   );
 };

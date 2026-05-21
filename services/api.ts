@@ -260,6 +260,24 @@ export const api = {
             if (error) throw error;
         }
     },
+    brazilPlayers: {
+        list: async () => {
+            const data = await supabaseWithRetry(() =>
+                supabase.from('brazil_players').select('*').order('name')
+            );
+            return (data as any[]) || [];
+        },
+        upsert: async (player: any) => {
+            const { error } = await supabase.from('brazil_players').upsert(player, {
+                onConflict: 'id'
+            });
+            if (error) throw error;
+        },
+        delete: async (id: string) => {
+            const { error } = await supabase.from('brazil_players').delete().eq('id', id);
+            if (error) throw error;
+        }
+    },
     brazilMatchGoals: {
         list: async () => {
             const data = await supabaseWithRetry(() =>

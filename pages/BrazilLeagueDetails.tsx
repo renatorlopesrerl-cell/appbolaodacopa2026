@@ -2,7 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate, Link, Navigate, useSearchParams } from 'react-router-dom';
 import { useStore, getLeagueLimit } from '../App';
-import { MatchStatus, Phase, Match, User, LeaguePlan, BRAZIL_MATCH_IDS, BRAZIL_PLAYERS, BrazilLeagueSettings } from '../types';
+import { MatchStatus, Phase, Match, User, LeaguePlan, BRAZIL_MATCH_IDS, BrazilLeagueSettings } from '../types';
 import { getTeamFlag, isPredictionLocked, calculatePoints, GROUPS_CONFIG, processImageForUpload } from '../services/dataService';
 import { uploadBase64Image } from '../services/storageService';
 import {
@@ -18,7 +18,7 @@ export const BrazilLeagueDetails: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    const { currentUser, brazilLeagues: leagues, matches, brazilPredictions: predictions, users, currentTime, loading, invitations, submitBrazilPredictions, updateBrazilLeague: updateLeague, deleteBrazilLeague: deleteLeague, approveBrazilUser: approveUser, rejectBrazilUser: rejectUser, removeUserFromBrazilLeague: removeUserFromLeague, brazilMatchGoals, addBrazilMatchGoal, addNotification, refreshPredictions, joinBrazilLeague: joinLeague, sendBrazilLeagueInvite: sendLeagueInvite } = useStore();
+    const { currentUser, brazilLeagues: leagues, matches, brazilPredictions: predictions, users, currentTime, loading, invitations, submitBrazilPredictions, updateBrazilLeague: updateLeague, deleteBrazilLeague: deleteLeague, approveBrazilUser: approveUser, rejectBrazilUser: rejectUser, removeUserFromBrazilLeague: removeUserFromLeague, brazilMatchGoals, addBrazilMatchGoal, addNotification, refreshPredictions, joinBrazilLeague: joinLeague, sendBrazilLeagueInvite: sendLeagueInvite, brazilPlayers } = useStore();
     const submitPredictions = async (preds: any, leagueId: string) => submitBrazilPredictions(preds as any, leagueId);
 
     const [activeTab, setActiveTab] = useState<'palpites' | 'classificacao' | 'regras' | 'admin'>('palpites');
@@ -658,7 +658,10 @@ export const BrazilLeagueDetails: React.FC = () => {
                                                 className={`w-full md:w-64 p-3 rounded-xl border outline-none focus:ring-2 focus:ring-brasil-green transition-all text-center font-bold text-sm ${(locked || (match.homeTeamId === 'Brasil' ? (homeValue === '0' || homeValue === '') : (awayValue === '0' || awayValue === ''))) ? 'bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800 text-gray-400 cursor-not-allowed' : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-brasil-green dark:text-green-400 shadow-sm'}`}
                                             >
                                                 <option value="">(Nenhum)</option>
-                                                {BRAZIL_PLAYERS.map(player => (
+                                                {[...new Set([
+                                                    ...brazilPlayers.filter(p => p.is_active).map(p => p.name),
+                                                    ...(pendingEdits[match.id]?.playerPick || userPred?.playerPick ? [pendingEdits[match.id]?.playerPick || userPred?.playerPick] : [])
+                                                ])].sort().map(player => (
                                                     <option key={player} value={player}>{player}</option>
                                                 ))}
                                             </select>

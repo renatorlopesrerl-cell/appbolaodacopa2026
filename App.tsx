@@ -58,7 +58,7 @@ import { onForegroundMessage } from './services/firebaseWeb';
 import { Capacitor } from '@capacitor/core';
 
 // Types
-import { User, Match, League, Prediction, Invitation, MatchStatus, BrazilLeague, BrazilPrediction, BrazilMatchGoal, TopFinisherPrediction, TopFinishersResult } from './types';
+import { User, Match, League, Prediction, Invitation, MatchStatus, BrazilLeague, BrazilPrediction, BrazilMatchGoal, BrazilPlayer, TopFinisherPrediction, TopFinishersResult } from './types';
 
 // Constantes
 import { INITIAL_MATCHES } from './services/dataService';
@@ -79,6 +79,7 @@ interface AppState {
   brazilLeagues: BrazilLeague[];
   brazilPredictions: BrazilPrediction[];
   brazilMatchGoals: BrazilMatchGoal[];
+  brazilPlayers: BrazilPlayer[];
   invitations: Invitation[];
   currentTime: Date;
   notifications: AppNotification[];
@@ -286,6 +287,16 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         if (parsed && parsed.length > 0) return parsed;
       }
     } catch (e) { console.warn('Failed to load brazilMatchGoals from cache:', e); }
+    return [];
+  });
+  const [brazilPlayers, setBrazilPlayers] = useState<BrazilPlayer[]>(() => {
+    try {
+      const cached = localStorage.getItem('cache_brazil_players');
+      if (cached) {
+        const parsed: BrazilPlayer[] = JSON.parse(cached);
+        if (parsed && parsed.length > 0) return parsed;
+      }
+    } catch (e) { console.warn('Failed to load brazilPlayers from cache:', e); }
     return [];
   });
   const [topFinisherPredictions, setTopFinisherPredictions] = useState<TopFinisherPrediction[]>(() => {
@@ -754,16 +765,17 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         api.brazilLeagues.list(),
         api.brazilPredictions.list(),
         api.brazilMatchGoals.list(),
+        api.brazilPlayers.list(),
         api.topFinisherPredictions.list(),
         api.topFinishersResult.get(),
       ]);
 
-      const [leaguesRes, matchesRes, predsRes, profilesRes, brazilLeaguesRes, brazilPredsRes, brazilGoalsRes, topFinisherPredsRes, topFinishersResultRes] = results;
+      const [leaguesRes, matchesRes, predsRes, profilesRes, brazilLeaguesRes, brazilPredsRes, brazilGoalsRes, brazilPlayersRes, topFinisherPredsRes, topFinishersResultRes] = results;
 
       // Reportar falhas sem bloquear o restante
       results.forEach((r, i) => {
         if (r.status === 'rejected' && !silent) {
-          const labels = ['Ligas', 'Partidas', 'Palpites', 'Perfis', 'Ligas Brasil', 'Palpites Brasil', 'Gols Brasil', 'Artilharia', 'Resultado Artilharia'];
+          const labels = ['Ligas', 'Partidas', 'Palpites', 'Perfis', 'Ligas Brasil', 'Palpites Brasil', 'Gols Brasil', 'Jogadores Brasil', 'Artilharia', 'Resultado Artilharia'];
           console.error(`[fetchAllData] ${labels[i]} error:`, r.reason);
         }
       });
@@ -857,6 +869,15 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         }));
         setBrazilMatchGoals(mappedBrazilGoals);
         try { localStorage.setItem('cache_brazil_goals', JSON.stringify(mappedBrazilGoals)); } catch (e) { console.warn('cache_brazil_goals write failed:', e); }
+      }
+
+      if (brazilPlayersRes.status === 'fulfilled' && brazilPlayersRes.value) {
+        const brazilPlayersData = brazilPlayersRes.value;
+        const mappedBrazilPlayers: BrazilPlayer[] = brazilPlayersData.map((p: any) => ({
+          id: p.id, name: p.name, position: p.position, is_active: p.is_active
+        }));
+        setBrazilPlayers(mappedBrazilPlayers);
+        try { localStorage.setItem('cache_brazil_players', JSON.stringify(mappedBrazilPlayers)); } catch (e) { console.warn('cache_brazil_players write failed:', e); }
       }
 
       if (topFinisherPredsRes.status === 'fulfilled' && topFinisherPredsRes.value) {
@@ -1679,7 +1700,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
     <AppContext.Provider value={{
       currentUser, users, matches, leagues, predictions, currentTime, notifications, loading, invitations,
-      brazilLeagues, brazilPredictions, brazilMatchGoals,
+      brazilLeagues, brazilPredictions, brazilMatchGoals, brazilPlayers,
       setCurrentTime, loginGoogle, signInWithEmail, signUpWithEmail, logout, createLeague, updateLeague, joinLeague, deleteLeague, approveUser, rejectUser, deleteAccount,
       removeUserFromLeague, submitPrediction, submitPredictions, simulateMatchResult, updateMatch, removeNotification, updateUserProfile, syncInitialMatches,
       sendLeagueInvite, respondToInvite, theme, toggleTheme, connectionError, retryConnection, addNotification, refreshPredictions, refreshAllData: () => fetchAllData(false), isRecoveryMode, lastSyncTime,
