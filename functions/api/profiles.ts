@@ -16,11 +16,30 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                 return jsonResponse(data);
             }
 
-            // Default: List all (respecting RLS)
-            const data = await withRetry(async () => {
-                return await userClient.from('profiles').select('*');
-            });
-            return jsonResponse(data);
+            // Paginated fetch to bypass 1000 limit and select only necessary columns to speed up login
+            const { count } = await userClient.from('profiles').select('*', { count: 'exact', head: true });
+            const total = count || 0;
+            const step = 1000;
+            const promises = [];
+
+            for (let i = 0; i < total; i += step) {
+                promises.push(
+                    withRetry(async () => {
+                        return await userClient.from('profiles')
+                            .select('id, email, name, avatar, is_admin, whatsapp, theme, is_pro')
+                            .range(i, i + step - 1);
+                    })
+                );
+            }
+
+            if (total === 0) {
+                 const data = await withRetry(async () => await userClient.from('profiles').select('id, email, name, avatar, is_admin, whatsapp, theme, is_pro'));
+                 return jsonResponse(data || []);
+            }
+
+            const results = await Promise.all(promises);
+            const allData = results.flatMap(r => r || []);
+            return jsonResponse(allData);
         }
 
         if (request.method === 'POST') {

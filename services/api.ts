@@ -45,6 +45,24 @@ export async function supabaseWithRetry<T>(
     throw lastError;
 }
 
+export async function fetchAllPaginated(tableName: string, columns = '*'): Promise<any[]> {
+    const { count } = await supabase.from(tableName).select('*', { count: 'exact', head: true });
+    const total = count || 0;
+    const step = 1000;
+    const promises = [];
+    for (let i = 0; i < total; i += step) {
+        promises.push(
+            supabaseWithRetry(() => supabase.from(tableName).select(columns).range(i, i + step - 1))
+        );
+    }
+    if (total === 0) {
+        const data = await supabaseWithRetry(() => supabase.from(tableName).select(columns));
+        return (data as any[]) || [];
+    }
+    const results = await Promise.all(promises);
+    return results.flatMap(r => (r as any[]) || []);
+}
+
 /**
  * Helper to fetch from the Cloudflare Workers API.
  * Adds Authorization header automatically from Supabase Session.
@@ -152,7 +170,9 @@ export const api = {
     },
     matches: {
         list: () => apiFetch<any[]>('/matches'),
-        update: (data: any) => apiFetch('/admin/matches', { method: 'POST', body: JSON.stringify(data) }) // Admin
+        update: (data: any) => apiFetch('/admin/matches', { method: 'POST', body: JSON.stringify(data) }), // Admin
+        getStats: (matchId: string, leagueId: string, leagueType: 'standard' | 'brazil') => 
+            apiFetch<any>(`/match-stats?matchId=${matchId}&leagueId=${leagueId}&leagueType=${leagueType}`)
     },
     profiles: {
         list: () => apiFetch<any[]>('/profiles'),
@@ -248,10 +268,7 @@ export const api = {
     },
     brazilPredictions: {
         list: async () => {
-            const data = await supabaseWithRetry(() =>
-                supabase.from('brazil_predictions').select('*')
-            );
-            return (data as any[]) || [];
+            return await fetchAllPaginated('brazil_predictions');
         },
         submit: async (predictions: any[]) => {
             const { error } = await supabase.from('brazil_predictions').upsert(predictions, {
@@ -303,10 +320,7 @@ export const api = {
     },
     topFinisherPredictions: {
         list: async () => {
-            const data = await supabaseWithRetry(() =>
-                supabase.from('top_finisher_predictions').select('*')
-            );
-            return (data as any[]) || [];
+            return await fetchAllPaginated('top_finisher_predictions');
         },
         upsert: async (prediction: {
             user_id: string; league_id: string;

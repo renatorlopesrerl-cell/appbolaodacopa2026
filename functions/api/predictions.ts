@@ -7,10 +7,30 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
         const authUser = data.user;
 
         if (request.method === 'GET') {
-            const data = await withRetry(async () => {
-                return await userClient.from('predictions').select('*');
-            });
-            return jsonResponse(data || []);
+            // Paginated fetch to bypass 1000 limit and select only necessary columns
+            const { count } = await userClient.from('predictions').select('*', { count: 'exact', head: true });
+            const total = count || 0;
+            const step = 1000;
+            const promises = [];
+
+            for (let i = 0; i < total; i += step) {
+                promises.push(
+                    withRetry(async () => {
+                        return await userClient.from('predictions')
+                            .select('user_id, match_id, league_id, home_score, away_score')
+                            .range(i, i + step - 1);
+                    })
+                );
+            }
+
+            if (total === 0) {
+                 const data = await withRetry(async () => await userClient.from('predictions').select('user_id, match_id, league_id, home_score, away_score'));
+                 return jsonResponse(data || []);
+            }
+
+            const results = await Promise.all(promises);
+            const allData = results.flatMap(r => r || []);
+            return jsonResponse(allData);
         }
 
         if (request.method === 'POST') {
