@@ -52,11 +52,11 @@ export async function fetchAllPaginated(tableName: string, columns = '*'): Promi
     const promises = [];
     for (let i = 0; i < total; i += step) {
         promises.push(
-            supabaseWithRetry(() => supabase.from(tableName).select(columns).range(i, i + step - 1))
+            supabaseWithRetry(async () => await supabase.from(tableName).select(columns).range(i, i + step - 1))
         );
     }
     if (total === 0) {
-        const data = await supabaseWithRetry(() => supabase.from(tableName).select(columns));
+        const data = await supabaseWithRetry(async () => await supabase.from(tableName).select(columns));
         return (data as any[]) || [];
     }
     const results = await Promise.all(promises);
@@ -211,8 +211,8 @@ export const api = {
     },
     simulations: {
         get: async (userId: string) => {
-            return supabaseWithRetry(() =>
-                supabase.from('user_simulations').select('*').eq('user_id', userId).single()
+            return supabaseWithRetry(async () =>
+                await supabase.from('user_simulations').select('*').eq('user_id', userId).single()
             );
         },
         save: async (data: { userId: string, simulationData: any }) => {
@@ -229,8 +229,8 @@ export const api = {
     },
     admin: {
         listUsers: async () => {
-            return supabaseWithRetry(() =>
-                supabase.from('profiles').select('*').order('name')
+            return supabaseWithRetry(async () =>
+                await supabase.from('profiles').select('*').order('name')
             );
         },
         togglePro: async (userId: string, isPro: boolean) => {
@@ -279,8 +279,8 @@ export const api = {
     },
     brazilPlayers: {
         list: async () => {
-            const data = await supabaseWithRetry(() =>
-                supabase.from('brazil_players').select('*').order('name')
+            const data = await supabaseWithRetry(async () =>
+                await supabase.from('brazil_players').select('*').order('name')
             );
             return (data as any[]) || [];
         },
@@ -297,8 +297,8 @@ export const api = {
     },
     brazilMatchGoals: {
         list: async () => {
-            const data = await supabaseWithRetry(() =>
-                supabase.from('brazil_match_goals').select('*')
+            const data = await supabaseWithRetry(async () =>
+                await supabase.from('brazil_match_goals').select('*')
             );
             return (data as any[]) || [];
         },
@@ -335,8 +335,8 @@ export const api = {
     },
     topFinishersResult: {
         get: async () => {
-            return supabaseWithRetry(() =>
-                supabase.from('top_finishers_result').select('*').single()
+            return supabaseWithRetry(async () =>
+                await supabase.from('top_finishers_result').select('*').single()
             );
         },
         upsert: async (result: { champion: string; runner_up: string; third: string; fourth: string }) => {
