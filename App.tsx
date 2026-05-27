@@ -819,14 +819,42 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         try { localStorage.setItem('cache_predictions', JSON.stringify(mappedPreds)); } catch (e) { console.warn('cache_predictions write failed:', e); }
       }
 
-      if (profilesRes.status === 'fulfilled' && profilesRes.value) {
+      if (profilesRes.status === 'fulfilled' && profilesRes.value && profilesRes.value.length > 0) {
         const profilesData = profilesRes.value;
         const mappedUsers: User[] = profilesData.map((p: any) => ({
           id: p.id, name: p.name, email: p.email, avatar: p.avatar, isAdmin: p.is_admin,
           whatsapp: p.whatsapp || '', notificationSettings: p.notification_settings, theme: p.theme, isPro: p.is_pro
         }));
         setUsers(mappedUsers);
+      } else {
+        // Fallback: if profiles list failed or is empty, fetch only the IDs we actually need
+        console.warn('[fetchAllData] Profiles list empty or failed. Fetching by participant IDs as fallback...');
+        try {
+          const leaguesData = leaguesRes.status === 'fulfilled' ? (leaguesRes.value || []) : [];
+          const brazilLeaguesData = brazilLeaguesRes.status === 'fulfilled' ? (brazilLeaguesRes.value || []) : [];
+          const allParticipantIds = [...new Set([
+            ...leaguesData.flatMap((l: any) => [...(l.participants || []), ...(l.pending_requests || [])]),
+            ...brazilLeaguesData.flatMap((l: any) => [...(l.participants || []), ...(l.pending_requests || [])])
+          ])];
+          if (allParticipantIds.length > 0) {
+            const { data: fallbackProfiles } = await supabase
+              .from('profiles')
+              .select('id, email, name, avatar, is_admin, whatsapp, theme, is_pro')
+              .in('id', allParticipantIds);
+            if (fallbackProfiles && fallbackProfiles.length > 0) {
+              const mappedFallback: User[] = fallbackProfiles.map((p: any) => ({
+                id: p.id, name: p.name, email: p.email, avatar: p.avatar, isAdmin: p.is_admin,
+                whatsapp: p.whatsapp || '', notificationSettings: p.notification_settings, theme: p.theme, isPro: p.is_pro
+              }));
+              setUsers(mappedFallback);
+              console.log(`[fetchAllData] Fallback loaded ${mappedFallback.length} profiles from participant IDs.`);
+            }
+          }
+        } catch (fallbackErr: any) {
+          console.error('[fetchAllData] Fallback profiles fetch failed:', fallbackErr.message);
+        }
       }
+
 
       if (brazilLeaguesRes.status === 'fulfilled' && brazilLeaguesRes.value) {
         const brazilLeaguesData = brazilLeaguesRes.value;

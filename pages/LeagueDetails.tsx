@@ -2,16 +2,18 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate, Link, Navigate, useSearchParams } from 'react-router-dom';
 import { useStore, getLeagueLimit } from '../App';
-import { MatchStatus, Phase, Match, User, LeaguePlan } from '../types';
+import { api } from '../services/api';
+import { MatchStatus, Phase, Match, User, LeaguePlan, Prediction } from '../types';
 import { getTeamFlag, isPredictionLocked, calculatePoints, GROUPS_CONFIG, processImageForUpload } from '../services/dataService';
 import { uploadBase64Image } from '../services/storageService';
 import {
     Trophy, Users, ArrowLeft, Search, Lock, Globe,
     UserPlus, LogOut, Trash2, Check, X, MousePointerClick,
     Save, Loader2, Medal, AlertCircle, Share2, Info, Filter, Plus, Clock, MapPin, CheckCircle2, Unlock, Calendar, ChevronDown, Crown, Eye,
-    Target, Mail, AlertTriangle, Camera, Upload, MessageCircle, Copy, Bell, Star, StarHalf, Infinity as InfinityIcon, Zap
+    Target, Mail, AlertTriangle, Camera, Upload, MessageCircle, Copy, Bell, Star, StarHalf, Infinity as InfinityIcon, Zap, BarChart2
 } from 'lucide-react';
 import { OptimizedImage } from '../components/OptimizedImage';
+import { supabase } from '../services/supabase';
 
 
 export const LeagueDetails: React.FC = () => {
@@ -26,6 +28,8 @@ export const LeagueDetails: React.FC = () => {
     } = useStore();
 
     const [activeTab, setActiveTab] = useState<'palpites' | 'classificacao' | 'regras' | 'admin'>('palpites');
+    // Local profiles cache: ensures we always have participant data even if global 'users' is incomplete
+    const [leagueProfiles, setLeagueProfiles] = useState<User[]>([]);
 
     // Handle Deep Linking Tabs
     useEffect(() => {
@@ -48,6 +52,9 @@ export const LeagueDetails: React.FC = () => {
     // --- PALPITES TAB STATE (HOISTED) ---
     const [pendingEdits, setPendingEdits] = useState<Record<string, { home: string, away: string }>>({});
     const [selectedMatchForDetails, setSelectedMatchForDetails] = useState<string | null>(null);
+    const [selectedMatchForStats, setSelectedMatchForStats] = useState<string | null>(null);
+    const [apiMatchStats, setApiMatchStats] = useState<any>(null);
+    const [loadingStats, setLoadingStats] = useState<boolean>(false);
     const [matchDetailsSearch, setMatchDetailsSearch] = useState('');
     const [isSavingPalpites, setIsSavingPalpites] = useState(false);
     const [filterPhase, setFilterPhase] = useState<string>('all');
@@ -95,6 +102,36 @@ export const LeagueDetails: React.FC = () => {
     // Find League
     const league = leagues.find(l => l.id === id);
 
+    // Fetch participant profiles directly when not found in global users
+    useEffect(() => {
+        if (!league) return;
+        const missingIds = league.participants.filter(uid => !users.some(u => u.id === uid));
+        if (missingIds.length === 0) return;
+        console.log(`[LeagueDetails] Fetching ${missingIds.length} missing profiles directly...`);
+        supabase
+            .from('profiles')
+            .select('id, email, name, avatar, is_admin, whatsapp, theme, is_pro')
+            .in('id', missingIds)
+            .then(({ data }) => {
+                if (data && data.length > 0) {
+                    const mapped: User[] = data.map((p: any) => ({
+                        id: p.id, name: p.name || 'Usuário', email: p.email || '',
+                        avatar: p.avatar || '', isAdmin: p.is_admin, whatsapp: p.whatsapp || '',
+                        theme: p.theme, isPro: p.is_pro
+                    }));
+                    setLeagueProfiles(mapped);
+                }
+            });
+    }, [league?.id, league?.participants.length, users.length]);
+
+    // Merge global users with locally fetched league profiles
+    const mergedUsers = useMemo(() => {
+        const map = new Map<string, User>();
+        users.forEach(u => map.set(u.id, u));
+        leagueProfiles.forEach(u => { if (!map.has(u.id)) map.set(u.id, u); });
+        return Array.from(map.values());
+    }, [users, leagueProfiles]);
+
     // Initialize Admin State when league loads
     useEffect(() => {
         if (league) {
@@ -139,8 +176,8 @@ export const LeagueDetails: React.FC = () => {
 
     const validPendingRequestsCount = useMemo(() => {
         if (!league) return 0;
-        return league.pendingRequests.filter(uid => users.some(u => u.id === uid)).length;
-    }, [league, users]);
+        return league.pendingRequests.filter(uid => mergedUsers.some(u => u.id === uid)).length;
+    }, [league, mergedUsers]);
 
     // --- HELPER: Match Logic ---
     const getMatchRound = (match: Match) => {
@@ -156,7 +193,7 @@ export const LeagueDetails: React.FC = () => {
     const leaderboard = useMemo(() => {
         if (!league) return [];
         return league.participants.map(userId => {
-            const user = users.find(u => u.id === userId) || { name: 'Unknown', id: userId, email: '', avatar: '' } as User;
+            const user = mergedUsers.find(u => u.id === userId) || { name: 'Unknown', id: userId, email: '', avatar: '' } as User;
             const userPreds = predictions.filter(p => p.userId === userId && p.leagueId === league.id);
             let totalPoints = 0, exactScores = 0, winnerAndDiffCount = 0, winnerAndWinnerGoalsCount = 0, drawCount = 0, knockoutPoints = 0;
             userPreds.forEach(p => {
@@ -217,17 +254,49 @@ export const LeagueDetails: React.FC = () => {
             if (b.drawCount !== a.drawCount) return b.drawCount - a.drawCount;
             return 0;
         });
-    }, [league, users, predictions, matches, leaderboardView, topFinishersResult, topFinisherPredictions]);
+    }, [league, mergedUsers, predictions, matches, leaderboardView, topFinishersResult, topFinisherPredictions]);
 
     // Auto Cleanup Phantom Requests
     useEffect(() => {
-        if (league && isAdmin && users.length > 0) {
-            const validRequests = league.pendingRequests.filter(uid => users.some(u => u.id === uid));
+        if (league && isAdmin && mergedUsers.length > 0) {
+            const validRequests = league.pendingRequests.filter(uid => mergedUsers.some(u => u.id === uid));
             if (validRequests.length !== league.pendingRequests.length) {
                 updateLeague(league.id, { pendingRequests: validRequests });
             }
         }
-    }, [league, users, isAdmin, updateLeague]);
+    }, [league, mergedUsers, isAdmin, updateLeague]);
+
+    // --- MOBILE BACK BUTTON HANDLER FOR MODALS ---
+    useEffect(() => {
+        const isModalOpen = !!(selectedMatchForDetails || selectedMatchForStats || selectedUserId || showDeleteConfirm || showLeaveConfirm || showUpgradeModal || showTopFinishersModal || userToRemove);
+
+        if (isModalOpen) {
+            if (window.location.hash !== '#modal') {
+                window.history.pushState(null, '', window.location.pathname + window.location.search + '#modal');
+            }
+        } else {
+            if (window.location.hash === '#modal') {
+                window.history.back();
+            }
+        }
+
+        const handleHashChange = () => {
+            if (window.location.hash !== '#modal') {
+                setSelectedMatchForDetails(null);
+                setSelectedMatchForStats(null);
+                setSelectedUserId(null);
+                setShowDeleteConfirm(false);
+                setShowLeaveConfirm(false);
+                setShowUpgradeModal(false);
+                setShowTopFinishersModal(false);
+                setUserToRemove(null);
+            }
+        };
+
+        window.addEventListener('hashchange', handleHashChange);
+        return () => window.removeEventListener('hashchange', handleHashChange);
+    }, [selectedMatchForDetails, selectedMatchForStats, selectedUserId, showDeleteConfirm, showLeaveConfirm, showUpgradeModal, showTopFinishersModal, userToRemove]);
+
 
     // --- SMART POLLING LOGIC ---
     useEffect(() => {
@@ -263,6 +332,28 @@ export const LeagueDetails: React.FC = () => {
             timeouts.forEach(clearTimeout);
         };
     }, [matches, league?.id]);
+
+    useEffect(() => {
+        if (!selectedMatchForStats || !league) {
+            setApiMatchStats(null);
+            return;
+        }
+
+        const fetchStats = async () => {
+            setLoadingStats(true);
+            try {
+                const data = await api.matches.getStats(selectedMatchForStats, league.id, 'standard');
+                setApiMatchStats(data);
+            } catch (e) {
+                console.error('Failed to fetch match stats:', e);
+                setApiMatchStats(null);
+            } finally {
+                setLoadingStats(false);
+            }
+        };
+
+        fetchStats();
+    }, [selectedMatchForStats, league?.id]);
 
     if (loading) return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin text-brasil-green" size={48} /></div>;
     if (!currentUser) return <Navigate to="/" replace />;
@@ -433,7 +524,7 @@ export const LeagueDetails: React.FC = () => {
         const match = matches.find(m => m.id === selectedMatchForDetails);
         if (!match) return null;
         const participantPredictions = league.participants.map(userId => {
-            const user = users.find(u => u.id === userId) || { name: 'Unknown', id: userId, avatar: '' } as User;
+            const user = mergedUsers.find(u => u.id === userId) || { name: 'Unknown', id: userId, avatar: '' } as User;
             const pred = predictions.find(p => p.matchId === match.id && p.userId === userId && p.leagueId === league.id);
             let points = 0;
             if (match.homeScore !== null && match.awayScore !== null && pred) {
@@ -529,7 +620,7 @@ export const LeagueDetails: React.FC = () => {
         setSearchStatus('searching'); setFoundUser(null);
         setTimeout(() => {
             const email = adminInviteEmail.toLowerCase().trim();
-            const user = users.find(u => u.email?.toLowerCase() === email);
+            const user = mergedUsers.find(u => u.email?.toLowerCase() === email);
             if (user) {
                 if (league.participants.includes(user.id)) {
                     showToast('Aviso', 'Este usuário já participa da liga.', 'info');
@@ -558,6 +649,70 @@ export const LeagueDetails: React.FC = () => {
 
     const getMatchStats = (matchId: string) => {
         return null;
+    };
+
+    // Check if a knockout match has real teams defined (not placeholder names)
+    const isTeamsDefined = (match: Match): boolean => {
+        if (match.phase === Phase.GROUP) return true;
+        const isPlaceholder = (name: string) =>
+            name.startsWith('Venc.') || name.startsWith('Perd.') ||
+            name.startsWith('1º') || name.startsWith('2º') || name.startsWith('3º') ||
+            name.includes('Grupo');
+        return !isPlaceholder(match.homeTeamId) && !isPlaceholder(match.awayTeamId);
+    };
+
+    // Calculate bet statistics for a match within this league
+    const getMatchStatsData = (matchId: string) => {
+        if (!league) return null;
+        const match = matches.find(m => m.id === matchId);
+        if (!match) return null;
+
+        const leaguePreds = predictions.filter(p => p.matchId === matchId && p.leagueId === league.id);
+        const participantPreds = league.participants
+            .map(uid => leaguePreds.find(p => p.userId === uid))
+            .filter((p): p is Prediction => p !== undefined);
+
+        const totalPreds = participantPreds.length;
+        if (totalPreds === 0) {
+            return { match, totalPreds: 0, mostPredictedScore: null as string | null, homeWinPct: 0, drawPct: 0, awayWinPct: 0 };
+        }
+
+        let homeWins = 0, draws = 0, awayWins = 0;
+        const scoreCount: Record<string, number> = {};
+
+        participantPreds.forEach(p => {
+            const h = Number(p.homeScore);
+            const a = Number(p.awayScore);
+            if (h > a) homeWins++;
+            else if (a > h) awayWins++;
+            else draws++;
+            const key = `${h}-${a}`;
+            scoreCount[key] = (scoreCount[key] || 0) + 1;
+        });
+
+        // Most predicted score — tiebreaker: fewer total goals (conservative), then home advantage
+        let mostPredictedScore: string | null = null;
+        let maxCount = 0;
+        Object.entries(scoreCount).forEach(([key, count]) => {
+            if (count > maxCount) {
+                maxCount = count;
+                mostPredictedScore = key;
+            } else if (count === maxCount && mostPredictedScore) {
+                const [hA, aA] = mostPredictedScore.split('-').map(Number);
+                const [hB, aB] = key.split('-').map(Number);
+                const totalA = hA + aA, totalB = hB + aB;
+                // Prefer fewer total goals; if equal, prefer higher home score
+                if (totalB < totalA || (totalB === totalA && hB > hA)) {
+                    mostPredictedScore = key;
+                }
+            }
+        });
+
+        const homeWinPct = Math.round((homeWins / totalPreds) * 100);
+        const awayWinPct = Math.round((awayWins / totalPreds) * 100);
+        const drawPct = 100 - homeWinPct - awayWinPct;
+
+        return { match, totalPreds, mostPredictedScore, homeWinPct, drawPct, awayWinPct };
     };
     // ================= RENDERERS (FORMER COMPONENTS) =================
 
@@ -740,7 +895,7 @@ export const LeagueDetails: React.FC = () => {
                                 {(() => {
                                     const tfPts = league.settings.topFinishersPoints ?? { champion: 20, runnerUp: 15, third: 10, fourth: 5 };
                                     const allPreds = league.participants.map(uid => {
-                                        const user = users.find(u => u.id === uid) || { name: 'Unknown', id: uid, avatar: '' } as User;
+                                        const user = mergedUsers.find(u => u.id === uid) || { name: 'Unknown', id: uid, avatar: '' } as User;
                                         const pred = topFinisherPredictions.find(p => p.userId === uid && p.leagueId === league.id);
                                         let pts = 0;
                                         if (pred && topFinishersResult) {
@@ -810,7 +965,7 @@ export const LeagueDetails: React.FC = () => {
                 {/* Match alerts moved below Top 4 card */}
                 <div className="space-y-3">
                     <div className="bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 px-4 py-3 text-xs md:text-sm font-medium border border-blue-100 dark:border-blue-800 rounded-xl flex items-center justify-center gap-2 text-center shadow-sm">
-                        <MousePointerClick size={16} /><span>Clique em uma partida com palpite encerrado para conferir os palpites da galera.</span>
+                        <MousePointerClick size={16} /><span>Clique em qualquer partida para ver as estatísticas de palpites da liga. Após o encerramento, confira os palpites da galera.</span>
                     </div>
                     <div className="bg-yellow-50 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 px-4 py-3 text-xs md:text-sm font-medium border border-yellow-100 dark:border-yellow-800 rounded-xl flex items-center justify-center gap-2 text-center shadow-sm">
                         <AlertCircle size={16} /><span>O palpite é encerrado 5 min. antes do início do jogo.</span>
@@ -935,15 +1090,17 @@ export const LeagueDetails: React.FC = () => {
 
                             const stats = currentUser?.isPro ? getMatchStats(match.id) : null;
                             const showBlurStats = !currentUser?.isPro && getMatchStats(match.id) !== null;
+                            const canClick = match.phase === Phase.GROUP || isTeamsDefined(match);
 
                             return (
-                                <div key={match.id} onClick={() => { if (locked) { setSelectedMatchForDetails(match.id); setMatchDetailsSearch(''); } }} className={`bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border transition-all relative overflow-hidden ${isEdited ? 'border-brasil-yellow ring-1 ring-brasil-yellow' : 'border-gray-200 dark:border-gray-700'} ${locked ? 'cursor-pointer hover:border-brasil-blue dark:hover:border-blue-500 hover:shadow-md' : ''}`}>
+                                <div key={match.id} onClick={() => { if (canClick) { if (locked) { setSelectedMatchForDetails(match.id); setMatchDetailsSearch(''); } else { setSelectedMatchForStats(match.id); } } }} className={`bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border transition-all relative overflow-hidden ${isEdited ? 'border-brasil-yellow ring-1 ring-brasil-yellow' : 'border-gray-200 dark:border-gray-700'} ${canClick ? (locked ? 'cursor-pointer hover:border-brasil-blue dark:hover:border-blue-500 hover:shadow-md' : 'cursor-pointer hover:border-green-400 dark:hover:border-green-500 hover:shadow-md') : ''}`}>
                                     <div className="absolute top-0 right-0">
                                         {locked ? (
                                             match.status === MatchStatus.IN_PROGRESS ? <div className="bg-red-100 text-red-600 px-3 py-1 rounded-bl-lg text-[10px] font-bold flex items-center gap-1 animate-pulse"><Lock size={10} /> Em Andamento</div> : match.status === MatchStatus.FINISHED ? <div className="bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-300 px-3 py-1 rounded-bl-lg text-[10px] font-bold flex items-center gap-1"><Lock size={10} /> Finalizado</div> : <div className="bg-yellow-100 dark:bg-yellow-900 text-orange-600 dark:text-orange-300 px-3 py-1 rounded-bl-lg text-[10px] font-bold flex items-center gap-1"><Lock size={10} /> Palpite Encerrado</div>
                                         ) : userPred ? <div className="bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-300 px-3 py-1 rounded-bl-lg text-[10px] font-bold flex items-center gap-1"><CheckCircle2 size={10} /> Palpite Salvo</div> : <div className="bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 px-3 py-1 rounded-bl-lg text-[10px] font-bold flex items-center gap-1"><Unlock size={10} /> Palpite Aberto</div>}
                                     </div>
-                                    {locked && <div className="absolute bottom-2 right-2 opacity-50 text-brasil-blue dark:text-blue-400"><Users size={16} /></div>}
+                                    {canClick && locked && <div className="absolute bottom-2 right-2 opacity-50 text-brasil-blue dark:text-blue-400"><Users size={16} /></div>}
+                                    {canClick && !locked && <div className="absolute bottom-2 right-2 opacity-40 text-green-500 dark:text-green-400"><BarChart2 size={16} /></div>}
                                     <div className="flex flex-col text-xs text-gray-500 dark:text-gray-400 mb-4 gap-1 pr-20">
                                         <span className="font-bold text-brasil-blue dark:text-blue-400 uppercase flex items-center gap-1.5"><Calendar size={12} />{isDateValid ? matchDate.toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' }) : 'Data Inválida'}<span className="text-gray-300 dark:text-gray-600">|</span>{isDateValid ? matchDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '--:--'}</span>
                                         <span className="flex items-center gap-1 text-gray-400 dark:text-gray-500 truncate"><MapPin size={12} /> {match.location}</span>
@@ -1023,6 +1180,189 @@ export const LeagueDetails: React.FC = () => {
                                 </div>
                             </div>, document.body
                         )}
+
+                        {/* STATS MODAL: shown before prediction lock */}
+                        {selectedMatchForStats && (() => {
+                            const sm = matches.find(m => m.id === selectedMatchForStats);
+                            if (!sm) return null;
+
+                            const totalPreds = apiMatchStats?.totalPreds ?? 0;
+                            const mostPredictedScore = apiMatchStats?.mostPredictedScore ?? null;
+                            const homeWinPct = apiMatchStats?.homeWinPct ?? 0;
+                            const drawPct = apiMatchStats?.drawPct ?? 0;
+                            const awayWinPct = apiMatchStats?.awayWinPct ?? 0;
+
+                            const [mHome, mAway] = mostPredictedScore ? mostPredictedScore.split('-').map(Number) : [null, null];
+                            const homeLeads = homeWinPct >= awayWinPct;
+                            const awayLeads = awayWinPct > homeWinPct;
+                            return createPortal(
+                                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setSelectedMatchForStats(null)}>
+                                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md flex flex-col overflow-hidden animate-in zoom-in-95 duration-300" onClick={e => e.stopPropagation()}>
+                                        {/* Header */}
+                                        <div className="bg-gradient-to-r from-emerald-700 to-green-600 text-white p-4 shrink-0">
+                                            <div className="flex justify-between items-start mb-3">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="bg-white/15 p-1.5 rounded-lg"><BarChart2 size={16} /></div>
+                                                    <div>
+                                                        <h3 className="font-black text-sm uppercase tracking-widest">Estatísticas da Liga</h3>
+                                                        <p className="text-emerald-200 text-[10px] mt-0.5">
+                                                            {loadingStats ? 'Carregando palpites...' : !apiMatchStats ? 'Erro de conexão' : `${totalPreds} palpite${totalPreds !== 1 ? 's' : ''} registrado${totalPreds !== 1 ? 's' : ''}`}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <button onClick={() => setSelectedMatchForStats(null)} className="p-1.5 hover:bg-white/20 rounded-full transition-colors"><X size={18} /></button>
+                                            </div>
+                                            {/* Match teams */}
+                                            <div className="flex items-center justify-between gap-4">
+                                                <div className="flex flex-col items-center w-1/3 gap-1">
+                                                    <img src={getTeamFlag(sm.homeTeamId)} className="w-12 h-8 object-cover rounded shadow-md" alt={sm.homeTeamId} />
+                                                    <span className="text-xs font-bold text-center leading-tight">{sm.homeTeamId}</span>
+                                                </div>
+                                                <div className="flex flex-col items-center gap-1">
+                                                    <div className="text-lg font-black bg-white/15 px-4 py-1.5 rounded-xl border border-white/20 tracking-widest">VS</div>
+                                                </div>
+                                                <div className="flex flex-col items-center w-1/3 gap-1">
+                                                    <img src={getTeamFlag(sm.awayTeamId)} className="w-12 h-8 object-cover rounded shadow-md" alt={sm.awayTeamId} />
+                                                    <span className="text-xs font-bold text-center leading-tight">{sm.awayTeamId}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Content */}
+                                        <div className="p-4 space-y-4 bg-gray-50 dark:bg-gray-800 animate-in fade-in duration-200">
+                                            {loadingStats ? (
+                                                <div className="flex flex-col items-center justify-center py-12 gap-3 text-gray-500 dark:text-gray-400">
+                                                    <Loader2 className="animate-spin text-brasil-green" size={32} />
+                                                    <span className="text-xs font-bold uppercase tracking-wider">Carregando estatísticas...</span>
+                                                </div>
+                                            ) : !apiMatchStats ? (
+                                                <div className="text-center py-8 text-red-500">
+                                                    <AlertCircle size={36} className="mx-auto mb-3 opacity-80" />
+                                                    <p className="text-sm font-bold">Erro ao carregar estatísticas</p>
+                                                    <button onClick={() => {
+                                                        setApiMatchStats(null);
+                                                        setLoadingStats(true);
+                                                        api.matches.getStats(selectedMatchForStats, league.id, 'standard')
+                                                            .then(setApiMatchStats)
+                                                            .catch(() => setApiMatchStats(null))
+                                                            .finally(() => setLoadingStats(false));
+                                                    }} className="mt-3 text-xs font-bold underline text-brasil-green">Tentar Novamente</button>
+                                                </div>
+                                            ) : totalPreds === 0 ? (
+                                                <div className="text-center py-8 text-gray-400 dark:text-gray-500">
+                                                    <BarChart2 size={36} className="mx-auto mb-3 opacity-30" />
+                                                    <p className="text-sm font-medium">Nenhum palpite registrado ainda</p>
+                                                    <p className="text-xs mt-1 opacity-70">As estatísticas aparecerão quando os participantes fizerem seus palpites.</p>
+                                                </div>
+                                            ) : (
+                                                <>
+                                                    {/* Most predicted score */}
+                                                    {mostPredictedScore && (
+                                                        <div className="bg-white dark:bg-gray-700/60 rounded-xl p-3.5 border border-gray-100 dark:border-gray-600 shadow-sm">
+                                                            <div className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500 mb-2.5 flex items-center gap-1.5">
+                                                                <Trophy size={10} className="text-yellow-500" /> Placar mais palpitado na liga
+                                                            </div>
+                                                            <div className="flex items-center justify-center gap-5">
+                                                                <div className="flex flex-col items-center gap-1">
+                                                                    <img src={getTeamFlag(sm.homeTeamId)} className="w-9 h-6 object-cover rounded shadow-sm" />
+                                                                    <span className="text-[9px] font-bold text-gray-500 dark:text-gray-400 text-center max-w-[56px] truncate">{sm.homeTeamId}</span>
+                                                                </div>
+                                                                <div className="text-3xl font-black text-gray-800 dark:text-white tracking-widest tabular-nums">
+                                                                    {mHome} <span className="text-gray-300 dark:text-gray-600 text-xl font-light mx-0.5">×</span> {mAway}
+                                                                </div>
+                                                                <div className="flex flex-col items-center gap-1">
+                                                                    <img src={getTeamFlag(sm.awayTeamId)} className="w-9 h-6 object-cover rounded shadow-sm" />
+                                                                    <span className="text-[9px] font-bold text-gray-500 dark:text-gray-400 text-center max-w-[56px] truncate">{sm.awayTeamId}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Bet distribution */}
+                                                    <div className="bg-white dark:bg-gray-700/60 rounded-xl p-3.5 border border-gray-100 dark:border-gray-600 shadow-sm space-y-3">
+                                                        <div className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500 flex items-center gap-1.5">
+                                                            <BarChart2 size={10} /> Distribuição dos palpites
+                                                        </div>
+
+                                                        {/* Progress bar */}
+                                                        <div className="flex rounded-full overflow-hidden h-9 border border-gray-100 dark:border-gray-600 shadow-inner">
+                                                            {homeWinPct > 0 && (
+                                                                <div
+                                                                    className={`flex items-center justify-center text-[12px] font-black transition-all duration-500 ${
+                                                                        homeLeads && !awayLeads ? 'bg-green-500 text-white' : 'bg-yellow-400 text-yellow-900'
+                                                                    }`}
+                                                                    style={{ width: `${homeWinPct}%` }}
+                                                                >
+                                                                    {homeWinPct >= 12 ? `${homeWinPct}%` : ''}
+                                                                </div>
+                                                            )}
+                                                            {drawPct > 0 && (
+                                                                <div
+                                                                    className="flex items-center justify-center bg-gray-400 dark:bg-gray-500 text-white text-[12px] font-black transition-all duration-500"
+                                                                    style={{ width: `${drawPct}%` }}
+                                                                >
+                                                                    {drawPct >= 12 ? `${drawPct}%` : ''}
+                                                                </div>
+                                                            )}
+                                                            {awayWinPct > 0 && (
+                                                                <div
+                                                                    className={`flex items-center justify-center text-[12px] font-black transition-all duration-500 ${
+                                                                        awayLeads ? 'bg-green-500 text-white' : 'bg-yellow-400 text-yellow-900'
+                                                                    }`}
+                                                                    style={{ width: `${awayWinPct}%` }}
+                                                                >
+                                                                    {awayWinPct >= 12 ? `${awayWinPct}%` : ''}
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Legend with flags */}
+                                                        <div className="flex items-stretch justify-between gap-2 pt-1">
+                                                            <div className={`flex-1 flex flex-col items-center gap-1 p-2 rounded-lg border ${
+                                                                homeLeads && !awayLeads
+                                                                    ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300'
+                                                                    : 'bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200 dark:border-yellow-800/50 text-yellow-700 dark:text-yellow-400'
+                                                            }`}>
+                                                                <img src={getTeamFlag(sm.homeTeamId)} className="w-8 h-5 object-cover rounded shadow-sm" />
+                                                                <span className="text-[9px] font-bold text-center leading-tight max-w-[60px] truncate">{sm.homeTeamId}</span>
+                                                                <span className="text-lg font-black tabular-nums">{homeWinPct}%</span>
+                                                            </div>
+                                                            <div className="flex-1 flex flex-col items-center gap-1 p-2 rounded-lg border bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400">
+                                                                <div className="w-8 h-5 flex items-center justify-center text-base">🤝</div>
+                                                                <span className="text-[9px] font-bold">Empate</span>
+                                                                <span className="text-lg font-black tabular-nums">{drawPct}%</span>
+                                                            </div>
+                                                            <div className={`flex-1 flex flex-col items-center gap-1 p-2 rounded-lg border ${
+                                                                awayLeads
+                                                                    ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300'
+                                                                    : 'bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200 dark:border-yellow-800/50 text-yellow-700 dark:text-yellow-400'
+                                                            }`}>
+                                                                <img src={getTeamFlag(sm.awayTeamId)} className="w-8 h-5 object-cover rounded shadow-sm" />
+                                                                <span className="text-[9px] font-bold text-center leading-tight max-w-[60px] truncate">{sm.awayTeamId}</span>
+                                                                <span className="text-lg font-black tabular-nums">{awayWinPct}%</span>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Color legend */}
+                                                        <div className="flex items-center justify-center gap-4 text-[10px] text-gray-400 dark:text-gray-500 pt-1 border-t border-gray-100 dark:border-gray-700">
+                                                            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-green-500 inline-block"></span>Mais apostado</span>
+                                                            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-gray-400 inline-block"></span>Empate</span>
+                                                            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-yellow-400 inline-block"></span>Menos apostado</span>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Coming soon placeholder */}
+                                                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 rounded-xl p-3 flex items-center gap-2.5 text-blue-700 dark:text-blue-300">
+                                                        <Clock size={14} className="shrink-0 opacity-70" />
+                                                        <p className="text-[11px] font-medium">Em breve: últimos 5 jogos de cada seleção serão exibidos aqui.</p>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>, document.body
+                            );
+                        })()}
                     </div>
                 )}
             </div>
@@ -1042,7 +1382,7 @@ export const LeagueDetails: React.FC = () => {
                 return { match: m, pred };
             });
         };
-        const selectedUser = selectedUserId ? users.find(u => u.id === selectedUserId) : null;
+        const selectedUser = selectedUserId ? mergedUsers.find(u => u.id === selectedUserId) : null;
         const fullHistory = selectedUserId ? getHistory(selectedUserId) : [];
         const filteredHistory = fullHistory.filter(item => {
             if (histPhase !== 'all' && item.match.phase !== histPhase) return false;
@@ -1206,7 +1546,7 @@ export const LeagueDetails: React.FC = () => {
 
     const renderAdminTab = () => {
         if (!isAdmin) return null;
-        const pendingUsers = league.pendingRequests.map(uid => users.find(u => u.id === uid)).filter(Boolean) as User[];
+        const pendingUsers = league.pendingRequests.map(uid => mergedUsers.find(u => u.id === uid)).filter(Boolean) as User[];
         const isFull = league.participants.length >= limit;
 
         // Upgrade Logic
