@@ -94,20 +94,29 @@ export const BrazilLeagueDetails: React.FC = () => {
         if (!league) return;
         const missingIds = league.participants.filter(uid => !users.some(u => u.id === uid));
         if (missingIds.length === 0) return;
-        supabase
-            .from('profiles')
-            .select('id, email, name, avatar, is_admin, whatsapp, theme, is_pro')
-            .in('id', missingIds)
-            .then(({ data }) => {
-                if (data && data.length > 0) {
-                    const mapped: User[] = data.map((p: any) => ({
-                        id: p.id, name: p.name || 'Usuário', email: p.email || '',
-                        avatar: p.avatar || '', isAdmin: p.is_admin, whatsapp: p.whatsapp || '',
-                        theme: p.theme, isPro: p.is_pro
-                    }));
-                    setLeagueProfiles(mapped);
-                }
-            });
+        
+        const fetchProfiles = async () => {
+            const chunkSize = 100;
+            const fetchedProfiles: any[] = [];
+            for (let i = 0; i < missingIds.length; i += chunkSize) {
+                const chunk = missingIds.slice(i, i + chunkSize);
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('id, email, name, avatar, is_admin, whatsapp, theme, is_pro')
+                    .in('id', chunk);
+                if (data) fetchedProfiles.push(...data);
+                if (error) console.error('[BrazilLeagueDetails] Fetch chunk error:', error.message);
+            }
+            if (fetchedProfiles.length > 0) {
+                const mapped: User[] = fetchedProfiles.map((p: any) => ({
+                    id: p.id, name: p.name || 'Usuário', email: p.email || '',
+                    avatar: p.avatar || '', isAdmin: p.is_admin, whatsapp: p.whatsapp || '',
+                    theme: p.theme, isPro: p.is_pro
+                }));
+                setLeagueProfiles(mapped);
+            }
+        };
+        fetchProfiles();
     }, [league?.id, league?.participants.length, users.length]);
 
     // Merge global users with locally fetched profiles

@@ -837,11 +837,18 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             ...brazilLeaguesData.flatMap((l: any) => [...(l.participants || []), ...(l.pending_requests || [])])
           ])];
           if (allParticipantIds.length > 0) {
-            const { data: fallbackProfiles } = await supabase
-              .from('profiles')
-              .select('id, email, name, avatar, is_admin, whatsapp, theme, is_pro')
-              .in('id', allParticipantIds);
-            if (fallbackProfiles && fallbackProfiles.length > 0) {
+            const chunkSize = 100;
+            const fallbackProfiles: any[] = [];
+            for (let i = 0; i < allParticipantIds.length; i += chunkSize) {
+              const chunk = allParticipantIds.slice(i, i + chunkSize);
+              const { data, error } = await supabase
+                .from('profiles')
+                .select('id, email, name, avatar, is_admin, whatsapp, theme, is_pro')
+                .in('id', chunk);
+              if (data) fallbackProfiles.push(...data);
+              if (error) console.error('[fetchAllData] Fallback chunk error:', error.message);
+            }
+            if (fallbackProfiles.length > 0) {
               const mappedFallback: User[] = fallbackProfiles.map((p: any) => ({
                 id: p.id, name: p.name, email: p.email, avatar: p.avatar, isAdmin: p.is_admin,
                 whatsapp: p.whatsapp || '', notificationSettings: p.notification_settings, theme: p.theme, isPro: p.is_pro
