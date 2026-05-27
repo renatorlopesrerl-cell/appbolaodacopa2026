@@ -1229,6 +1229,8 @@ export const LeagueDetails: React.FC = () => {
                                                     <span className="text-xs font-bold text-center leading-tight">{sm.homeTeamId}</span>
                                                 </div>
                                                 <div className="flex flex-col items-center gap-1">
+                                                    <div className="text-lg font-black bg-white/15 px-4 py-1.5 rounded-xl border border-white/20 tracking-widest">VS</div>
+                                                </div>
                                                 <div className="flex flex-col items-center w-1/3 gap-1">
                                                     <img src={getTeamFlag(sm.awayTeamId)} className="w-12 h-8 object-cover rounded shadow-md" alt={sm.awayTeamId} />
                                                     <span className="text-xs font-bold text-center leading-tight">{sm.awayTeamId}</span>
