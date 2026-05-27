@@ -1229,8 +1229,6 @@ export const LeagueDetails: React.FC = () => {
                                                     <span className="text-xs font-bold text-center leading-tight">{sm.homeTeamId}</span>
                                                 </div>
                                                 <div className="flex flex-col items-center gap-1">
-                                                    <div className="text-lg font-black bg-white/15 px-4 py-1.5 rounded-xl border border-white/20 tracking-widest">VS</div>
-                                                </div>
                                                 <div className="flex flex-col items-center w-1/3 gap-1">
                                                     <img src={getTeamFlag(sm.awayTeamId)} className="w-12 h-8 object-cover rounded shadow-md" alt={sm.awayTeamId} />
                                                     <span className="text-xs font-bold text-center leading-tight">{sm.awayTeamId}</span>
@@ -1240,139 +1238,134 @@ export const LeagueDetails: React.FC = () => {
 
                                         {/* Content */}
                                         <div className="p-4 space-y-4 bg-gray-50 dark:bg-gray-800 animate-in fade-in duration-200">
-                                            {loadingStats ? (
-                                                <div className="flex flex-col items-center justify-center py-12 gap-3 text-gray-500 dark:text-gray-400">
-                                                    <Loader2 className="animate-spin text-brasil-green" size={32} />
-                                                    <span className="text-xs font-bold uppercase tracking-wider">Carregando estatísticas...</span>
-                                                </div>
-                                            ) : !apiMatchStats ? (
-                                                <div className="text-center py-8 text-red-500">
-                                                    <AlertCircle size={36} className="mx-auto mb-3 opacity-80" />
-                                                    <p className="text-sm font-bold">Erro ao carregar estatísticas</p>
-                                                    <button onClick={() => {
-                                                        setApiMatchStats(null);
-                                                        setLoadingStats(true);
-                                                        api.matches.getStats(selectedMatchForStats, league.id, 'standard')
-                                                            .then(setApiMatchStats)
-                                                            .catch(() => setApiMatchStats(null))
-                                                            .finally(() => setLoadingStats(false));
-                                                    }} className="mt-3 text-xs font-bold underline text-brasil-green">Tentar Novamente</button>
-                                                </div>
-                                            ) : totalPreds === 0 ? (
-                                                <div className="text-center py-8 text-gray-400 dark:text-gray-500">
-                                                    <BarChart2 size={36} className="mx-auto mb-3 opacity-30" />
-                                                    <p className="text-sm font-medium">Nenhum palpite registrado ainda</p>
-                                                    <p className="text-xs mt-1 opacity-70">As estatísticas aparecerão quando os participantes fizerem seus palpites.</p>
-                                                </div>
-                                            ) : (
+                                            <div className="flex flex-col items-center justify-center py-12 gap-3 text-gray-500 dark:text-gray-400">
+                                                <BarChart2 className="text-brasil-green opacity-50" size={48} />
+                                                <span className="text-sm font-bold uppercase tracking-wider text-brasil-green">Em Breve</span>
+                                                <p className="text-xs text-center px-4">As estatísticas detalhadas estarão disponíveis em breve!</p>
+                                            </div>
+
+                                            {false && (
                                                 <>
-                                                    {/* Most predicted score */}
-                                                    {mostPredictedScore && (
-                                                        <div className="bg-white dark:bg-gray-700/60 rounded-xl p-3.5 border border-gray-100 dark:border-gray-600 shadow-sm">
-                                                            <div className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500 mb-2.5 flex items-center gap-1.5">
-                                                                <Trophy size={10} className="text-yellow-500" /> Placar mais palpitado na liga
-                                                            </div>
-                                                            <div className="flex items-center justify-center gap-5">
-                                                                <div className="flex flex-col items-center gap-1">
-                                                                    <img src={getTeamFlag(sm.homeTeamId)} className="w-9 h-6 object-cover rounded shadow-sm" />
-                                                                    <span className="text-[9px] font-bold text-gray-500 dark:text-gray-400 text-center max-w-[56px] truncate">{sm.homeTeamId}</span>
-                                                                </div>
-                                                                <div className="text-3xl font-black text-gray-800 dark:text-white tracking-widest tabular-nums">
-                                                                    {mHome} <span className="text-gray-300 dark:text-gray-600 text-xl font-light mx-0.5">×</span> {mAway}
-                                                                </div>
-                                                                <div className="flex flex-col items-center gap-1">
-                                                                    <img src={getTeamFlag(sm.awayTeamId)} className="w-9 h-6 object-cover rounded shadow-sm" />
-                                                                    <span className="text-[9px] font-bold text-gray-500 dark:text-gray-400 text-center max-w-[56px] truncate">{sm.awayTeamId}</span>
-                                                                </div>
-                                                            </div>
+                                                    {loadingStats ? (
+                                                        <div className="flex flex-col items-center justify-center py-12 gap-3 text-gray-500 dark:text-gray-400">
+                                                            <Loader2 className="animate-spin text-brasil-green" size={32} />
+                                                            <span className="text-xs font-bold uppercase tracking-wider">Carregando estatísticas...</span>
                                                         </div>
+                                                    ) : !apiMatchStats ? (
+                                                        <div className="text-center py-8 text-red-500">
+                                                            <AlertCircle size={36} className="mx-auto mb-3 opacity-80" />
+                                                            <p className="text-xs font-bold uppercase tracking-wider">Erro de conexão</p>
+                                                            <p className="text-[10px] opacity-70 mt-1">Não foi possível carregar os dados</p>
+                                                        </div>
+                                                    ) : totalPreds === 0 ? (
+                                                        <div className="flex flex-col items-center justify-center py-12 gap-3 text-gray-500 dark:text-gray-400">
+                                                            <BarChart2 className="opacity-30" size={48} />
+                                                            <span className="text-xs font-bold uppercase tracking-wider">Nenhum palpite ainda</span>
+                                                            <p className="text-[10px] text-center max-w-[200px]">Seja o primeiro a dar um palpite neste jogo!</p>
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            <div className="space-y-4">
+                                                                {/* Most Predicted Score */}
+                                                                <div className="bg-white dark:bg-gray-700/60 rounded-xl p-3.5 border border-gray-100 dark:border-gray-600 shadow-sm flex items-center justify-between">
+                                                                    <div className="flex flex-col">
+                                                                        <span className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500 mb-0.5 flex items-center gap-1.5">
+                                                                            <Trophy size={10} className="text-yellow-500" /> Placar mais apostado
+                                                                        </span>
+                                                                        <span className="text-[10px] text-gray-500 dark:text-gray-400 leading-tight">Entre os palpites já registrados na liga</span>
+                                                                    </div>
+                                                                    {mHome !== null && mAway !== null && (
+                                                                        <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-100 dark:border-gray-700 shadow-inner">
+                                                                            <span className="text-lg font-black text-gray-800 dark:text-gray-200">{mHome}</span>
+                                                                            <span className="text-xs font-bold text-gray-400">x</span>
+                                                                            <span className="text-lg font-black text-gray-800 dark:text-gray-200">{mAway}</span>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+
+                                                                {/* Bet distribution */}
+                                                                <div className="bg-white dark:bg-gray-700/60 rounded-xl p-3.5 border border-gray-100 dark:border-gray-600 shadow-sm space-y-3">
+                                                                    <div className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500 flex items-center gap-1.5">
+                                                                        <BarChart2 size={10} /> Distribuição dos palpites
+                                                                    </div>
+
+                                                                    {/* Progress bar */}
+                                                                    <div className="flex rounded-full overflow-hidden h-9 border border-gray-100 dark:border-gray-600 shadow-inner">
+                                                                        {homeWinPct > 0 && (
+                                                                            <div
+                                                                                className={`flex items-center justify-center text-[12px] font-black transition-all duration-500 ${
+                                                                                    homeLeads && !awayLeads ? 'bg-green-500 text-white' : 'bg-yellow-400 text-yellow-900'
+                                                                                }`}
+                                                                                style={{ width: `${homeWinPct}%` }}
+                                                                            >
+                                                                                {homeWinPct >= 12 ? `${homeWinPct}%` : ''}
+                                                                            </div>
+                                                                        )}
+                                                                        {drawPct > 0 && (
+                                                                            <div
+                                                                                className="flex items-center justify-center bg-gray-400 dark:bg-gray-500 text-white text-[12px] font-black transition-all duration-500"
+                                                                                style={{ width: `${drawPct}%` }}
+                                                                            >
+                                                                                {drawPct >= 12 ? `${drawPct}%` : ''}
+                                                                            </div>
+                                                                        )}
+                                                                        {awayWinPct > 0 && (
+                                                                            <div
+                                                                                className={`flex items-center justify-center text-[12px] font-black transition-all duration-500 ${
+                                                                                    awayLeads ? 'bg-green-500 text-white' : 'bg-yellow-400 text-yellow-900'
+                                                                                }`}
+                                                                                style={{ width: `${awayWinPct}%` }}
+                                                                            >
+                                                                                {awayWinPct >= 12 ? `${awayWinPct}%` : ''}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+
+                                                                    {/* Legend with flags */}
+                                                                    <div className="flex items-stretch justify-between gap-2 pt-1">
+                                                                        <div className={`flex-1 flex flex-col items-center gap-1 p-2 rounded-lg border ${
+                                                                            homeLeads && !awayLeads
+                                                                                ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300'
+                                                                                : 'bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200 dark:border-yellow-800/50 text-yellow-700 dark:text-yellow-400'
+                                                                        }`}>
+                                                                            <img src={getTeamFlag(sm.homeTeamId)} className="w-8 h-5 object-cover rounded shadow-sm" />
+                                                                            <span className="text-[9px] font-bold text-center leading-tight max-w-[60px] truncate">{sm.homeTeamId}</span>
+                                                                            <span className="text-lg font-black tabular-nums">{homeWinPct}%</span>
+                                                                        </div>
+                                                                        <div className="flex-1 flex flex-col items-center gap-1 p-2 rounded-lg border bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400">
+                                                                            <div className="w-8 h-5 flex items-center justify-center text-base">🤝</div>
+                                                                            <span className="text-[9px] font-bold">Empate</span>
+                                                                            <span className="text-lg font-black tabular-nums">{drawPct}%</span>
+                                                                        </div>
+                                                                        <div className={`flex-1 flex flex-col items-center gap-1 p-2 rounded-lg border ${
+                                                                            awayLeads
+                                                                                ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300'
+                                                                                : 'bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200 dark:border-yellow-800/50 text-yellow-700 dark:text-yellow-400'
+                                                                        }`}>
+                                                                            <img src={getTeamFlag(sm.awayTeamId)} className="w-8 h-5 object-cover rounded shadow-sm" />
+                                                                            <span className="text-[9px] font-bold text-center leading-tight max-w-[60px] truncate">{sm.awayTeamId}</span>
+                                                                            <span className="text-lg font-black tabular-nums">{awayWinPct}%</span>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    {/* Color legend */}
+                                                                    <div className="flex items-center justify-center gap-4 text-[10px] text-gray-400 dark:text-gray-500 pt-1 border-t border-gray-100 dark:border-gray-700">
+                                                                        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-green-500 inline-block"></span>Mais apostado</span>
+                                                                        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-gray-400 inline-block"></span>Empate</span>
+                                                                        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-yellow-400 inline-block"></span>Menos apostado</span>
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Coming soon placeholder */}
+                                                                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 rounded-xl p-3 flex items-center gap-2.5 text-blue-700 dark:text-blue-300">
+                                                                    <Clock size={14} className="shrink-0 opacity-70" />
+                                                                    <p className="text-[11px] font-medium">Em breve: últimos 5 jogos de cada seleção serão exibidos aqui.</p>
+                                                                </div>
+                                                            </div>
+                                                        </>
                                                     )}
-
-                                                    {/* Bet distribution */}
-                                                    <div className="bg-white dark:bg-gray-700/60 rounded-xl p-3.5 border border-gray-100 dark:border-gray-600 shadow-sm space-y-3">
-                                                        <div className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500 flex items-center gap-1.5">
-                                                            <BarChart2 size={10} /> Distribuição dos palpites
-                                                        </div>
-
-                                                        {/* Progress bar */}
-                                                        <div className="flex rounded-full overflow-hidden h-9 border border-gray-100 dark:border-gray-600 shadow-inner">
-                                                            {homeWinPct > 0 && (
-                                                                <div
-                                                                    className={`flex items-center justify-center text-[12px] font-black transition-all duration-500 ${
-                                                                        homeLeads && !awayLeads ? 'bg-green-500 text-white' : 'bg-yellow-400 text-yellow-900'
-                                                                    }`}
-                                                                    style={{ width: `${homeWinPct}%` }}
-                                                                >
-                                                                    {homeWinPct >= 12 ? `${homeWinPct}%` : ''}
-                                                                </div>
-                                                            )}
-                                                            {drawPct > 0 && (
-                                                                <div
-                                                                    className="flex items-center justify-center bg-gray-400 dark:bg-gray-500 text-white text-[12px] font-black transition-all duration-500"
-                                                                    style={{ width: `${drawPct}%` }}
-                                                                >
-                                                                    {drawPct >= 12 ? `${drawPct}%` : ''}
-                                                                </div>
-                                                            )}
-                                                            {awayWinPct > 0 && (
-                                                                <div
-                                                                    className={`flex items-center justify-center text-[12px] font-black transition-all duration-500 ${
-                                                                        awayLeads ? 'bg-green-500 text-white' : 'bg-yellow-400 text-yellow-900'
-                                                                    }`}
-                                                                    style={{ width: `${awayWinPct}%` }}
-                                                                >
-                                                                    {awayWinPct >= 12 ? `${awayWinPct}%` : ''}
-                                                                </div>
-                                                            )}
-                                                        </div>
-
-                                                        {/* Legend with flags */}
-                                                        <div className="flex items-stretch justify-between gap-2 pt-1">
-                                                            <div className={`flex-1 flex flex-col items-center gap-1 p-2 rounded-lg border ${
-                                                                homeLeads && !awayLeads
-                                                                    ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300'
-                                                                    : 'bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200 dark:border-yellow-800/50 text-yellow-700 dark:text-yellow-400'
-                                                            }`}>
-                                                                <img src={getTeamFlag(sm.homeTeamId)} className="w-8 h-5 object-cover rounded shadow-sm" />
-                                                                <span className="text-[9px] font-bold text-center leading-tight max-w-[60px] truncate">{sm.homeTeamId}</span>
-                                                                <span className="text-lg font-black tabular-nums">{homeWinPct}%</span>
-                                                            </div>
-                                                            <div className="flex-1 flex flex-col items-center gap-1 p-2 rounded-lg border bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400">
-                                                                <div className="w-8 h-5 flex items-center justify-center text-base">🤝</div>
-                                                                <span className="text-[9px] font-bold">Empate</span>
-                                                                <span className="text-lg font-black tabular-nums">{drawPct}%</span>
-                                                            </div>
-                                                            <div className={`flex-1 flex flex-col items-center gap-1 p-2 rounded-lg border ${
-                                                                awayLeads
-                                                                    ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300'
-                                                                    : 'bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200 dark:border-yellow-800/50 text-yellow-700 dark:text-yellow-400'
-                                                            }`}>
-                                                                <img src={getTeamFlag(sm.awayTeamId)} className="w-8 h-5 object-cover rounded shadow-sm" />
-                                                                <span className="text-[9px] font-bold text-center leading-tight max-w-[60px] truncate">{sm.awayTeamId}</span>
-                                                                <span className="text-lg font-black tabular-nums">{awayWinPct}%</span>
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Color legend */}
-                                                        <div className="flex items-center justify-center gap-4 text-[10px] text-gray-400 dark:text-gray-500 pt-1 border-t border-gray-100 dark:border-gray-700">
-                                                            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-green-500 inline-block"></span>Mais apostado</span>
-                                                            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-gray-400 inline-block"></span>Empate</span>
-                                                            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-yellow-400 inline-block"></span>Menos apostado</span>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Coming soon placeholder */}
-                                                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 rounded-xl p-3 flex items-center gap-2.5 text-blue-700 dark:text-blue-300">
-                                                        <Clock size={14} className="shrink-0 opacity-70" />
-                                                        <p className="text-[11px] font-medium">Em breve: últimos 5 jogos de cada seleção serão exibidos aqui.</p>
-                                                    </div>
                                                 </>
                                             )}
-                                        </div>
-                                    </div>
-                                </div>, document.body
-                            );
-                        })()}
                     </div>
                 )}
             </div>
