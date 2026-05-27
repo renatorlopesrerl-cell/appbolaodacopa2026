@@ -16,30 +16,34 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                 return jsonResponse(data);
             }
 
-            // Paginated fetch to bypass 1000 limit and select only necessary columns to speed up login
-            const { count } = await userClient.from('profiles').select('*', { count: 'exact', head: true });
-            const total = count || 0;
+            // Paginated fetch to bypass 1000 row limit
+            // Uses cursor-based loop instead of count() to avoid RLS issues with count
             const step = 1000;
-            const promises = [];
+            const allProfiles: any[] = [];
+            let offset = 0;
+            let keepFetching = true;
 
-            for (let i = 0; i < total; i += step) {
-                promises.push(
-                    withRetry(async () => {
-                        return await userClient.from('profiles')
-                            .select('id, email, name, avatar, is_admin, whatsapp, theme, is_pro')
-                            .range(i, i + step - 1);
-                    })
-                );
+            while (keepFetching) {
+                const { data: page, error: pageError } = await userClient
+                    .from('profiles')
+                    .select('id, email, name, avatar, is_admin, whatsapp, theme, is_pro')
+                    .range(offset, offset + step - 1);
+
+                if (pageError) {
+                    console.error('[profiles GET] Page fetch error:', pageError.message);
+                    break;
+                }
+
+                if (!page || page.length === 0) {
+                    keepFetching = false;
+                } else {
+                    allProfiles.push(...page);
+                    offset += step;
+                    if (page.length < step) keepFetching = false;
+                }
             }
 
-            if (total === 0) {
-                 const data = await withRetry(async () => await userClient.from('profiles').select('id, email, name, avatar, is_admin, whatsapp, theme, is_pro'));
-                 return jsonResponse(data || []);
-            }
-
-            const results = await Promise.all(promises);
-            const allData = results.flatMap(r => r || []);
-            return jsonResponse(allData);
+            return jsonResponse(allProfiles);
         }
 
         if (request.method === 'POST') {

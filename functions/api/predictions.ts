@@ -7,31 +7,35 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
         const authUser = data.user;
 
         if (request.method === 'GET') {
-            // Paginated fetch to bypass 1000 limit and select only necessary columns
-            const { count } = await userClient.from('predictions').select('*', { count: 'exact', head: true });
-            const total = count || 0;
+            // Cursor-based pagination to bypass 1000 row limit (avoids RLS count issues)
             const step = 1000;
-            const promises = [];
+            const allPredictions: any[] = [];
+            let offset = 0;
+            let keepFetching = true;
 
-            for (let i = 0; i < total; i += step) {
-                promises.push(
-                    withRetry(async () => {
-                        return await userClient.from('predictions')
-                            .select('user_id, match_id, league_id, home_score, away_score')
-                            .range(i, i + step - 1);
-                    })
-                );
+            while (keepFetching) {
+                const { data: page, error: pageError } = await userClient
+                    .from('predictions')
+                    .select('user_id, match_id, league_id, home_score, away_score')
+                    .range(offset, offset + step - 1);
+
+                if (pageError) {
+                    console.error('[predictions GET] Page fetch error:', pageError.message);
+                    break;
+                }
+
+                if (!page || page.length === 0) {
+                    keepFetching = false;
+                } else {
+                    allPredictions.push(...page);
+                    offset += step;
+                    if (page.length < step) keepFetching = false;
+                }
             }
 
-            if (total === 0) {
-                 const data = await withRetry(async () => await userClient.from('predictions').select('user_id, match_id, league_id, home_score, away_score'));
-                 return jsonResponse(data || []);
-            }
-
-            const results = await Promise.all(promises);
-            const allData = results.flatMap(r => r || []);
-            return jsonResponse(allData);
+            return jsonResponse(allPredictions);
         }
+
 
         if (request.method === 'POST') {
             const body = await request.json() as any;
