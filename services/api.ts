@@ -177,7 +177,7 @@ export const api = {
     profiles: {
         list: () => apiFetch<any[]>('/profiles'),
         get: (id: string) => apiFetch<any>(`/profiles?id=${id}`),
-        getByIds: (ids: string[]) => apiFetch<any[]>(`/profiles?ids=${ids.join(',')}`),
+        getByIds: (ids: string[]) => apiFetch<any[]>('/profiles', { method: 'POST', body: JSON.stringify({ action: 'getByIds', ids }) }),
         update: (data: any) => apiFetch('/profiles', { method: 'POST', body: JSON.stringify(data) }),
         saveFcmToken: (userId: string, token: string, deviceType: string) => 
             apiFetch('/profiles', { 

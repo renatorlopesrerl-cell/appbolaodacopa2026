@@ -16,25 +16,7 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                 return jsonResponse(data);
             }
 
-            // Fetch multiple profiles by IDs (used as fallback by LeagueDetails components)
-            // Uses adminClient so RLS doesn't restrict the results
-            const idsParam = url.searchParams.get('ids');
-            if (idsParam) {
-                const adminClient = getSupabaseClient(env);
-                const ids = idsParam.split(',').filter(Boolean);
-                const chunkSize = 100;
-                const results: any[] = [];
-                for (let i = 0; i < ids.length; i += chunkSize) {
-                    const chunk = ids.slice(i, i + chunkSize);
-                    const { data: chunk_data, error: chunk_err } = await adminClient
-                        .from('profiles')
-                        .select('id, email, name, avatar, is_admin, whatsapp, theme, is_pro')
-                        .in('id', chunk);
-                    if (chunk_data) results.push(...chunk_data);
-                    if (chunk_err) console.error('[profiles GET ids] chunk error:', chunk_err.message);
-                }
-                return jsonResponse(results);
-            }
+
 
             // Paginated fetch to bypass 1000 row limit.
             // IMPORTANT: Uses adminClient (service role key) to bypass RLS.
@@ -71,6 +53,23 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
 
         if (request.method === 'POST') {
             const body = await request.json() as any;
+
+            if (body.action === 'getByIds') {
+                const adminClient = getSupabaseClient(env);
+                const ids = body.ids || [];
+                const chunkSize = 100;
+                const results: any[] = [];
+                for (let i = 0; i < ids.length; i += chunkSize) {
+                    const chunk = ids.slice(i, i + chunkSize);
+                    const { data: chunk_data, error: chunk_err } = await adminClient
+                        .from('profiles')
+                        .select('id, email, name, avatar, is_admin, whatsapp, theme, is_pro')
+                        .in('id', chunk);
+                    if (chunk_data) results.push(...chunk_data);
+                    if (chunk_err) console.error('[profiles POST getByIds] chunk error:', chunk_err.message);
+                }
+                return jsonResponse(results);
+            }
 
             // NEW: Handle multiple tokens per user
             if (body.targetTable === 'user_fcm_tokens') {
