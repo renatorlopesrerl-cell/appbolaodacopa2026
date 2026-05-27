@@ -96,7 +96,7 @@ export const BrazilLeagueDetails: React.FC = () => {
         if (missingIds.length === 0) return;
         
         const fetchProfiles = async () => {
-            const chunkSize = 100;
+            const chunkSize = 30;
             const fetchedProfiles: any[] = [];
             for (let i = 0; i < missingIds.length; i += chunkSize) {
                 const chunk = missingIds.slice(i, i + chunkSize);

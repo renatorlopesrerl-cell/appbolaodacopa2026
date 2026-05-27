@@ -110,7 +110,7 @@ export const LeagueDetails: React.FC = () => {
         console.log(`[LeagueDetails] Fetching ${missingIds.length} missing profiles directly...`);
         
         const fetchProfiles = async () => {
-            const chunkSize = 100;
+            const chunkSize = 30;
             const fetchedProfiles: any[] = [];
             for (let i = 0; i < missingIds.length; i += chunkSize) {
                 const chunk = missingIds.slice(i, i + chunkSize);

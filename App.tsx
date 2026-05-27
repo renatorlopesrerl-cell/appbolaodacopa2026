@@ -837,7 +837,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             ...brazilLeaguesData.flatMap((l: any) => [...(l.participants || []), ...(l.pending_requests || [])])
           ])];
           if (allParticipantIds.length > 0) {
-            const chunkSize = 100;
+            const chunkSize = 30;
             const fallbackProfiles: any[] = [];
             for (let i = 0; i < allParticipantIds.length; i += chunkSize) {
               const chunk = allParticipantIds.slice(i, i + chunkSize);
