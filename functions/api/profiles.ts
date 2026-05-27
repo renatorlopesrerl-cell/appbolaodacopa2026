@@ -1,5 +1,5 @@
 
-import { getUserClient, withRetry, jsonResponse, errorResponse } from './_shared';
+import { getUserClient, getSupabaseClient, withRetry, jsonResponse, errorResponse } from './_shared';
 
 export const onRequest = async ({ request, env, data }: { request: Request, env: any, data: any }) => {
     try {
@@ -16,15 +16,38 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                 return jsonResponse(data);
             }
 
-            // Paginated fetch to bypass 1000 row limit
-            // Uses cursor-based loop instead of count() to avoid RLS issues with count
+            // Fetch multiple profiles by IDs (used as fallback by LeagueDetails components)
+            // Uses adminClient so RLS doesn't restrict the results
+            const idsParam = url.searchParams.get('ids');
+            if (idsParam) {
+                const adminClient = getSupabaseClient(env);
+                const ids = idsParam.split(',').filter(Boolean);
+                const chunkSize = 100;
+                const results: any[] = [];
+                for (let i = 0; i < ids.length; i += chunkSize) {
+                    const chunk = ids.slice(i, i + chunkSize);
+                    const { data: chunk_data, error: chunk_err } = await adminClient
+                        .from('profiles')
+                        .select('id, email, name, avatar, is_admin, whatsapp, theme, is_pro')
+                        .in('id', chunk);
+                    if (chunk_data) results.push(...chunk_data);
+                    if (chunk_err) console.error('[profiles GET ids] chunk error:', chunk_err.message);
+                }
+                return jsonResponse(results);
+            }
+
+            // Paginated fetch to bypass 1000 row limit.
+            // IMPORTANT: Uses adminClient (service role key) to bypass RLS.
+            // Without this, authenticated users can only see their own profile,
+            // causing everyone else to show as 'Unknown' in the leaderboard.
+            const adminClient = getSupabaseClient(env);
             const step = 1000;
             const allProfiles: any[] = [];
             let offset = 0;
             let keepFetching = true;
 
             while (keepFetching) {
-                const { data: page, error: pageError } = await userClient
+                const { data: page, error: pageError } = await adminClient
                     .from('profiles')
                     .select('id, email, name, avatar, is_admin, whatsapp, theme, is_pro')
                     .range(offset, offset + step - 1);
