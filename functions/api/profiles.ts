@@ -31,7 +31,7 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
             while (keepFetching) {
                 const { data: page, error: pageError } = await adminClient
                     .from('profiles')
-                    .select('id, email, name, avatar, is_admin, whatsapp, theme, is_pro')
+                    .select('id, email, name, avatar, is_admin, whatsapp, theme')
                     .range(offset, offset + step - 1);
 
                 if (pageError) {
@@ -63,7 +63,7 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                     const chunk = ids.slice(i, i + chunkSize);
                     const { data: chunk_data, error: chunk_err } = await adminClient
                         .from('profiles')
-                        .select('id, email, name, avatar, is_admin, whatsapp, theme, is_pro')
+                        .select('id, email, name, avatar, is_admin, whatsapp, theme')
                         .in('id', chunk);
                     if (chunk_data) results.push(...chunk_data);
                     if (chunk_err) console.error('[profiles POST getByIds] chunk error:', chunk_err.message);

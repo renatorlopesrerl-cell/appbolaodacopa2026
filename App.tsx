@@ -843,7 +843,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               const chunk = allParticipantIds.slice(i, i + chunkSize);
               const { data, error } = await supabase
                 .from('profiles')
-                .select('id, email, name, avatar, is_admin, whatsapp, theme, is_pro')
+                .select('id, email, name, avatar, is_admin, whatsapp, theme')
                 .in('id', chunk);
               if (data) fallbackProfiles.push(...data);
               if (error) console.error('[fetchAllData] Fallback chunk error:', error.message);
