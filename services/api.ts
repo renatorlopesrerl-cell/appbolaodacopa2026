@@ -196,7 +196,7 @@ export const api = {
                 .from('profiles')
                 .select('*')
                 .eq('email', email)
-                .single();
+                .maybeSingle();
             if (error) return null;
             return data;
         },
@@ -213,7 +213,7 @@ export const api = {
     simulations: {
         get: async (userId: string) => {
             return supabaseWithRetry(async () =>
-                await supabase.from('user_simulations').select('*').eq('user_id', userId).single()
+                await supabase.from('user_simulations').select('*').eq('user_id', userId).maybeSingle()
             );
         },
         save: async (data: { userId: string, simulationData: any }) => {
@@ -337,7 +337,7 @@ export const api = {
     topFinishersResult: {
         get: async () => {
             return supabaseWithRetry(async () =>
-                await supabase.from('top_finishers_result').select('*').single()
+                await supabase.from('top_finishers_result').select('*').maybeSingle()
             );
         },
         upsert: async (result: { champion: string; runner_up: string; third: string; fourth: string }) => {
