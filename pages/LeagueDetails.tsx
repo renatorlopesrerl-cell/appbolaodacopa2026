@@ -587,13 +587,19 @@ export const LeagueDetails: React.FC = () => {
             setIsSavingScoring(false);
         }
     };
-    const handleSearchUser = (e: React.FormEvent) => {
+    const handleSearchUser = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!adminInviteEmail) return;
         setSearchStatus('searching'); setFoundUser(null);
-        setTimeout(() => {
+        
+        try {
             const email = adminInviteEmail.toLowerCase().trim();
-            const user = mergedUsers.find(u => u.email?.toLowerCase() === email);
+            let user = mergedUsers.find(u => u.email?.toLowerCase() === email);
+            
+            if (!user) {
+                user = await api.profiles.getByEmail(email);
+            }
+            
             if (user) {
                 if (league.participants.includes(user.id)) {
                     showToast('Aviso', 'Este usuário já participa da liga.', 'info');
@@ -608,7 +614,10 @@ export const LeagueDetails: React.FC = () => {
             } else {
                 setSearchStatus('not_found');
             }
-        }, 500);
+        } catch (err) {
+            console.error("Search error", err);
+            setSearchStatus('not_found');
+        }
     };
     const handleConfirmInvite = async () => {
         if (!foundUser) return;

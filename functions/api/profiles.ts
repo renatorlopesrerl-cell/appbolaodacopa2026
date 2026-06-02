@@ -16,7 +16,13 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                 return jsonResponse(data);
             }
 
-
+            const email = url.searchParams.get('email');
+            if (email) {
+                const adminClient = getSupabaseClient(env);
+                const { data, error } = await adminClient.from('profiles').select('id, email, name, avatar').ilike('email', email.trim()).maybeSingle();
+                if (error || !data) return errorResponse(new Error("User not found"), 404);
+                return jsonResponse(data);
+            }
 
             // Paginated fetch to bypass 1000 row limit.
             // IMPORTANT: Uses adminClient (service role key) to bypass RLS.

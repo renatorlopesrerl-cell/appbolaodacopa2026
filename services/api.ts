@@ -206,15 +206,7 @@ export const api = {
             }),
         removeFcmToken: (token: string) => 
             apiFetch(`/profiles?token=${encodeURIComponent(token)}`, { method: 'DELETE' }),
-        getByEmail: async (email: string) => {
-            const { data, error } = await supabase
-                .from('profiles')
-                .select('*')
-                .eq('email', email)
-                .maybeSingle();
-            if (error) return null;
-            return data;
-        },
+        getByEmail: (email: string) => apiFetch<any>(`/profiles?email=${encodeURIComponent(email)}`),
         delete: async () => {
             const { error } = await supabase.rpc('delete_own_user');
             if (error) throw error;
