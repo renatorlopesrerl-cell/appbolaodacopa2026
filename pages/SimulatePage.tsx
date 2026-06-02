@@ -39,6 +39,49 @@ const R32_3RD_PLACE_RULES: Record<string, string[]> = {
     '1º Grupo K': ['D', 'E', 'I', 'J', 'L'],
 };
 
+// Memoized Match Row to prevent full list re-render on every keystroke
+const MemoizedMatchInput = React.memo(({ match, sim, onScoreChange }: { match: Match, sim: { home: any, away: any }, onScoreChange: any }) => {
+    const isResolved = !match.homeTeamId.includes('Venc.') && !match.homeTeamId.includes('Perd.') && !match.homeTeamId.includes('Grupo');
+
+    return (
+        <div className="flex flex-col border-b border-gray-100 dark:border-gray-700 py-2">
+            <div className="flex justify-between items-center text-xs text-gray-400 px-2 mb-1">
+                <span>{new Date(match.date).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
+                <span className="truncate max-w-[100px]">{match.location.split(',')[0]}</span>
+            </div>
+            <div className="flex items-center justify-between px-2 gap-2">
+                <div className="flex items-center gap-2 md:gap-3 flex-1 justify-end min-w-0">
+                    <span className={`truncate leading-tight text-right ${!isResolved ? 'text-gray-400' : 'text-gray-900 dark:text-gray-200 font-bold'} text-sm md:text-base`}>{match.homeTeamId}</span>
+                    <img src={getTeamFlag(match.homeTeamId)} className="w-7 h-5 object-cover rounded shadow-sm flex-shrink-0" loading="lazy" />
+                </div>
+
+                <div className="flex items-center gap-1">
+                    <input
+                        type="number"
+                        className="w-8 h-8 md:w-10 md:h-10 text-center border border-gray-300 dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white font-bold p-0 focus:ring-2 focus:ring-brasil-blue"
+                        value={sim.home ?? ''}
+                        onChange={(e) => onScoreChange(match.id, 'home', e.target.value)}
+                        disabled={!isResolved}
+                    />
+                    <span className="text-gray-400 font-bold">-</span>
+                    <input
+                        type="number"
+                        className="w-8 h-8 md:w-10 md:h-10 text-center border border-gray-300 dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white font-bold p-0 focus:ring-2 focus:ring-brasil-blue"
+                        value={sim.away ?? ''}
+                        onChange={(e) => onScoreChange(match.id, 'away', e.target.value)}
+                        disabled={!isResolved}
+                    />
+                </div>
+
+                <div className="flex items-center gap-2 md:gap-3 flex-1 justify-start min-w-0">
+                    <img src={getTeamFlag(match.awayTeamId)} className="w-7 h-5 object-cover rounded shadow-sm flex-shrink-0" loading="lazy" />
+                    <span className={`truncate leading-tight text-left ${!isResolved ? 'text-gray-400' : 'text-gray-900 dark:text-gray-200 font-bold'} text-sm md:text-base`}>{match.awayTeamId}</span>
+                </div>
+            </div>
+        </div>
+    );
+});
+
 export const SimulatePage: React.FC = () => {
     const navigate = useNavigate();
     const { currentUser, leagues, addNotification, submitPredictions, matches } = useStore();
@@ -521,48 +564,7 @@ export const SimulatePage: React.FC = () => {
 
     // --- RENDER HELPERS ---
 
-    // Memoized Match Row to prevent full list re-render on ogni keystroke
-    const MemoizedMatchInput = React.memo(({ match, sim, onScoreChange }: { match: Match, sim: { home: any, away: any }, onScoreChange: any }) => {
-        const isResolved = !match.homeTeamId.includes('Venc.') && !match.homeTeamId.includes('Perd.') && !match.homeTeamId.includes('Grupo');
-
-        return (
-            <div className="flex flex-col border-b border-gray-100 dark:border-gray-700 py-2">
-                <div className="flex justify-between items-center text-xs text-gray-400 px-2 mb-1">
-                    <span>{new Date(match.date).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>
-                    <span className="truncate max-w-[100px]">{match.location.split(',')[0]}</span>
-                </div>
-                <div className="flex items-center justify-between px-2 gap-2">
-                    <div className="flex items-center gap-2 md:gap-3 flex-1 justify-end min-w-0">
-                        <span className={`truncate leading-tight text-right ${!isResolved ? 'text-gray-400' : 'text-gray-900 dark:text-gray-200 font-bold'} text-sm md:text-base`}>{match.homeTeamId}</span>
-                        <img src={getTeamFlag(match.homeTeamId)} className="w-7 h-5 object-cover rounded shadow-sm flex-shrink-0" loading="lazy" />
-                    </div>
-
-                    <div className="flex items-center gap-1">
-                        <input
-                            type="number"
-                            className="w-8 h-8 md:w-10 md:h-10 text-center border border-gray-300 dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white font-bold p-0 focus:ring-2 focus:ring-brasil-blue"
-                            value={sim.home ?? ''}
-                            onChange={(e) => onScoreChange(match.id, 'home', e.target.value)}
-                            disabled={!isResolved}
-                        />
-                        <span className="text-gray-400 font-bold">-</span>
-                        <input
-                            type="number"
-                            className="w-8 h-8 md:w-10 md:h-10 text-center border border-gray-300 dark:border-gray-600 rounded bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white font-bold p-0 focus:ring-2 focus:ring-brasil-blue"
-                            value={sim.away ?? ''}
-                            onChange={(e) => onScoreChange(match.id, 'away', e.target.value)}
-                            disabled={!isResolved}
-                        />
-                    </div>
-
-                    <div className="flex items-center gap-2 md:gap-3 flex-1 justify-start min-w-0">
-                        <img src={getTeamFlag(match.awayTeamId)} className="w-7 h-5 object-cover rounded shadow-sm flex-shrink-0" loading="lazy" />
-                        <span className={`truncate leading-tight text-left ${!isResolved ? 'text-gray-400' : 'text-gray-900 dark:text-gray-200 font-bold'} text-sm md:text-base`}>{match.awayTeamId}</span>
-                    </div>
-                </div>
-            </div>
-        );
-    });
+    // --- MOVED OUTSIDE SimulatePage ---
 
     const renderMatchInput = (match: Match) => {
         const sim = simulatedScores[match.id] || { home: '', away: '' };
