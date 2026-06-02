@@ -128,6 +128,18 @@ export const LeaguesPage: React.FC = () => {
     fileInputRef.current?.click();
   };
 
+  // Local join handler: calls joinLeague AND updates searchedPrivateLeague state
+  // so the button shows "Solicitado" immediately without waiting for a full reload.
+  const handleJoinLeague = async (leagueId: string, league: League) => {
+    await joinLeague(leagueId, league);
+    // Update searchedPrivateLeague so isPending becomes true in the UI
+    if (searchedPrivateLeague && searchedPrivateLeague.id === leagueId) {
+      setSearchedPrivateLeague(prev =>
+        prev ? { ...prev, pendingRequests: [...(prev.pendingRequests || []), currentUser.id] } : prev
+      );
+    }
+  };
+
   useEffect(() => {
     const searchCode = searchTerm.trim().toUpperCase();
     if (searchCode.length === 6) {
@@ -361,7 +373,7 @@ export const LeaguesPage: React.FC = () => {
                   ) : (
                     <button
                       id={`join-league-${l.id}`}
-                      onClick={() => joinLeague(l.id, l)}
+                      onClick={() => handleJoinLeague(l.id, l)}
                       className="text-sm font-bold text-brasil-blue dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-3 py-1.5 rounded hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
                     >
                       {l.isPrivate ? 'Solicitar' : 'Entrar'}

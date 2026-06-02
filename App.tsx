@@ -1735,12 +1735,40 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const loadLeagueData = async (leagueId: string, leagueType: 'standard' | 'brazil' = 'standard') => {
     try {
       const isBrazil = leagueType === 'brazil';
+
+      // Always fetch fresh league data from the server to get latest pending_requests and participants
+      let freshLeague: any = null;
+      try {
+        freshLeague = isBrazil
+          ? await api.brazilLeagues.getById(leagueId)
+          : await api.leagues.getById(leagueId);
+        if (freshLeague) {
+          if (isBrazil) {
+            setBrazilLeagues(prev => prev.map(l => l.id === leagueId ? {
+              ...l,
+              participants: freshLeague.participants || l.participants,
+              pendingRequests: freshLeague.pending_requests || l.pendingRequests,
+            } : l));
+          } else {
+            setLeagues(prev => prev.map(l => l.id === leagueId ? {
+              ...l,
+              participants: freshLeague.participants || l.participants,
+              pendingRequests: freshLeague.pending_requests || l.pendingRequests,
+            } : l));
+          }
+        }
+      } catch (e) {
+        console.warn('Could not refresh league data:', e);
+      }
       
-      const league = isBrazil 
+      const league = freshLeague || (isBrazil 
         ? brazilLeagues.find(l => l.id === leagueId)
-        : leagues.find(l => l.id === leagueId);
+        : leagues.find(l => l.id === leagueId));
         
-      const participantIds = league ? [...(league.participants || []), ...(league.pendingRequests || [])] : [];
+      const participantIds = league ? [
+        ...(league.participants || []),
+        ...(league.pendingRequests || league.pending_requests || [])
+      ] : [];
 
       const [predsRes, profilesRes, topRes] = await Promise.all([
         isBrazil ? api.brazilPredictions.list(leagueId) : api.predictions.list(leagueId),

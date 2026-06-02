@@ -142,6 +142,15 @@ export const api = {
     leagues: {
         list: () => apiFetch<any[]>('/leagues'),
         search: (code: string) => apiFetch<any[]>(`/leagues?code=${encodeURIComponent(code)}`),
+        getById: async (id: string) => {
+            const { data, error } = await supabase
+                .from('leagues')
+                .select('*')
+                .eq('id', id)
+                .single();
+            if (error) return null;
+            return data;
+        },
         create: async (data: any) => {
             const { error } = await supabase.from('leagues').insert(data);
             if (error) throw error;
@@ -262,6 +271,15 @@ export const api = {
     brazilLeagues: {
         list: () => apiFetch<any[]>('/brazil-leagues'),
         search: (code: string) => apiFetch<any[]>(`/brazil-leagues?code=${encodeURIComponent(code)}`),
+        getById: async (id: string) => {
+            const { data, error } = await supabase
+                .from('brazil_leagues')
+                .select('*')
+                .eq('id', id)
+                .single();
+            if (error) return null;
+            return data;
+        },
         create: async (leagueData: any) => {
             const { error } = await supabase.from('brazil_leagues').insert(leagueData);
             if (error) throw error;

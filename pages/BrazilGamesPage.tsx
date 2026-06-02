@@ -122,6 +122,16 @@ export const BrazilGamesPage: React.FC = () => {
     fileInputRef.current?.click();
   };
 
+  // Local join handler: updates searchedPrivateLeague immediately so button shows "Solicitado"
+  const handleJoinBrazilLeague = async (leagueId: string, league: BrazilLeague) => {
+    await joinBrazilLeague(leagueId, league);
+    if (searchedPrivateLeague && searchedPrivateLeague.id === leagueId) {
+      setSearchedPrivateLeague(prev =>
+        prev ? { ...prev, pendingRequests: [...(prev.pendingRequests || []), currentUser.id] } : prev
+      );
+    }
+  };
+
   useEffect(() => {
     const searchCode = searchTerm.trim().toUpperCase();
     if (searchCode.length === 6) {
@@ -342,7 +352,7 @@ export const BrazilGamesPage: React.FC = () => {
                   ) : (
                     <button
                       id={`join-brazil-league-${l.id}`}
-                      onClick={() => joinBrazilLeague(l.id, l)}
+                      onClick={() => handleJoinBrazilLeague(l.id, l)}
                       className="text-sm font-bold text-brasil-green dark:text-green-400 bg-green-50 dark:bg-green-900/30 px-3 py-1.5 rounded hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors"
                     >
                       {l.isPrivate ? 'Solicitar' : 'Entrar'}
