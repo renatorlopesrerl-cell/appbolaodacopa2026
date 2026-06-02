@@ -29,10 +29,20 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
             const { data, error } = await userClient.from('league_invites').select('*').eq('email', email.toLowerCase()).eq('status', 'pending');
             if (error) throw error;
 
-            // Map data to include league_type if missing (fallback to standard)
-            const mappedData = (data || []).map((i: any) => ({
-                ...i,
-                league_type: i.league_type || 'standard'
+            const adminClient = getSupabaseClient(env);
+            
+            // Map data to include league_type if missing, and fetch league details
+            const mappedData = await Promise.all((data || []).map(async (i: any) => {
+                const type = i.league_type || 'standard';
+                const table = type === 'brazil' ? 'brazil_leagues' : 'leagues';
+                const { data: leagueData } = await adminClient.from(table).select('name, image').eq('id', i.league_id).maybeSingle();
+                
+                return {
+                    ...i,
+                    league_type: type,
+                    league_name: leagueData?.name || 'Liga Desconhecida',
+                    league_image: leagueData?.image || null
+                };
             }));
 
             return jsonResponse(mappedData);

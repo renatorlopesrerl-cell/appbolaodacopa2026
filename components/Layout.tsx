@@ -145,12 +145,12 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           <div className="divide-y divide-gray-100 dark:divide-gray-700">
             {pendingInvites.map(invite => {
               const isBrazil = invite.leagueType === 'brazil';
-              const league = isBrazil 
+              const localLeague = isBrazil 
                 ? brazilLeagues.find(l => l.id === invite.leagueId)
                 : leagues.find(l => l.id === invite.leagueId);
               
-              const leagueName = league?.name || 'Liga desconhecida';
-              const leagueImage = league?.image || `https://api.dicebear.com/7.x/identicon/svg?seed=${invite.leagueId}`;
+              const leagueName = localLeague?.name || invite.league_name || 'Liga desconhecida';
+              const leagueImage = localLeague?.image || invite.league_image || `https://api.dicebear.com/7.x/identicon/svg?seed=${invite.leagueId}`;
 
               return (
                 <div key={invite.id} className="block p-3 hover:bg-white dark:hover:bg-gray-800 transition-colors group relative">

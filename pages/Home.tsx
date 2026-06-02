@@ -213,16 +213,20 @@ export const Home: React.FC = () => {
           </h2>
           <div className="space-y-3">
             {pendingInvites.map(invite => {
-              const league = invite.leagueType === 'brazil' 
+              const localLeague = invite.leagueType === 'brazil' 
                 ? brazilLeagues.find(l => l.id === invite.leagueId)
                 : leagues.find(l => l.id === invite.leagueId);
+                
+              const leagueName = localLeague?.name || invite.league_name || 'Liga Desconhecida';
+              const leagueImage = localLeague?.image || invite.league_image;
+
               return (
                 <div key={invite.id} className="bg-white dark:bg-gray-800 p-3 rounded-lg flex flex-col sm:flex-row justify-between items-center gap-3 border border-yellow-200 dark:border-yellow-800">
                   <div className="flex items-center gap-3">
-                    {league?.image ? (
+                    {leagueImage ? (
                       <img
-                        src={league.image}
-                        alt={league.name}
+                        src={leagueImage}
+                        alt={leagueName}
                         className="w-12 h-12 rounded-xl object-cover border border-gray-100 dark:border-gray-700 shadow-sm"
                       />
                     ) : (
@@ -232,7 +236,7 @@ export const Home: React.FC = () => {
                     )}
                     <div>
                       <span className="text-sm text-gray-600 dark:text-gray-300">Você foi convidado para entrar na liga:</span>
-                      <div className="font-bold text-gray-800 dark:text-white text-lg">{league ? league.name : 'Liga não encontrada'}</div>
+                      <div className="font-bold text-gray-800 dark:text-white text-lg">{leagueName}</div>
                     </div>
                   </div>
                   <div className="flex gap-2 w-full sm:w-auto">

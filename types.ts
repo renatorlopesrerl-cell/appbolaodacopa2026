@@ -117,6 +117,8 @@ export interface Invitation {
   email: string;
   status: 'pending' | 'accepted' | 'rejected';
   leagueType: 'standard' | 'brazil';
+  league_name?: string;
+  league_image?: string;
 }
 
 export interface GroupStanding {
