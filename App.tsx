@@ -729,7 +729,9 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       if (data) {
         const mappedInvites: Invitation[] = data.map((i: any) => ({
           id: i.id, leagueId: i.league_id, email: i.email, status: i.status,
-        leagueType: i.league_type || 'standard'
+          leagueType: i.league_type || 'standard',
+          league_name: i.league_name,
+          league_image: i.league_image
         }));
         setInvitations(mappedInvites);
       }
