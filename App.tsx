@@ -92,7 +92,7 @@ interface AppState {
   logout: () => Promise<void>;
   createLeague: (name: string, isPrivate: boolean, settings: any, image: string, description: string, plan?: string) => Promise<boolean>;
   updateLeague: (id: string, updates: Partial<League>) => Promise<void>;
-  joinLeague: (leagueId: string) => Promise<void>;
+  joinLeague: (leagueId: string, leagueData?: any) => Promise<void>;
   deleteLeague: (leagueId: string) => Promise<boolean>;
   approveUser: (leagueId: string, userId: string) => Promise<void>;
   rejectUser: (leagueId: string, userId: string) => Promise<void>;
@@ -119,7 +119,7 @@ interface AppState {
   // Brazil Mode Methods
   createBrazilLeague: (name: string, isPrivate: boolean, image: string, description: string, settings: any) => Promise<boolean>;
   updateBrazilLeague: (id: string, updates: Partial<BrazilLeague>) => Promise<void>;
-  joinBrazilLeague: (leagueId: string) => Promise<void>;
+  joinBrazilLeague: (leagueId: string, leagueData?: any) => Promise<void>;
   deleteBrazilLeague: (leagueId: string) => Promise<boolean>;
   approveBrazilUser: (leagueId: string, userId: string) => Promise<void>;
   rejectBrazilUser: (leagueId: string, userId: string) => Promise<void>;
@@ -1008,15 +1008,25 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         return false;
       }
 
-      if (data.user && data.session) {
+      // 2. Create profile immediately regardless of whether email confirmation is required.
+      // data.session can be null when email confirmation is enabled, but the user IS created in Auth.
+      // We must save the profile NOW so admins can find the user by email from the start.
+      if (data.user) {
         const newUserDB = {
           id: data.user.id, email, name, avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.user.id}`,
           is_admin: false, whatsapp: whatsapp || null, notification_settings: { matchStart: true, matchEnd: true, predictionReminder: true }
         };
-        api.profiles.update(newUserDB).catch((err) => console.warn(err));
-        const newUser: User = { ...newUserDB, isAdmin: false, whatsapp: whatsapp || '', notificationSettings: newUserDB.notification_settings };
-        setCurrentUser(newUser);
-        setUsers(prev => prev.some(u => u.id === newUser.id) ? prev : [...prev, newUser]);
+        try {
+          await api.profiles.update(newUserDB);
+        } catch (err) {
+          console.warn('Profile creation during signup failed:', err);
+        }
+
+        if (data.session) {
+          const newUser: User = { ...newUserDB, isAdmin: false, whatsapp: whatsapp || '', notificationSettings: newUserDB.notification_settings, isPro: false, theme: 'light', provider: 'email' };
+          setCurrentUser(newUser);
+          setUsers(prev => prev.some(u => u.id === newUser.id) ? prev : [...prev, newUser]);
+        }
       }
 
       if (!data.session) {
@@ -1290,14 +1300,24 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     }
   };
 
-  const joinBrazilLeague = async (leagueId: string) => {
+  const joinBrazilLeague = async (leagueId: string, leagueData?: any) => {
     if (!currentUser) return;
-    const league = brazilLeagues.find(l => l.id === leagueId);
-    if (!league) return;
+    // Use the provided leagueData as fallback (for searched private leagues not yet in local state)
+    const league = brazilLeagues.find(l => l.id === leagueId) || leagueData;
+    if (!league) {
+      // Last resort: just call the API directly without local validation
+      try {
+        await api.brazilLeagues.join(leagueId);
+        addNotification('Sucesso', 'Solicitação enviada.', 'success');
+      } catch (e: any) {
+        addNotification('Erro', e.message || 'Falha ao entrar na liga.', 'warning');
+      }
+      return;
+    }
     const limit = getLeagueLimit(league);
     if (league.participants.length >= limit) { addNotification('Limite Atingido', `Limite do plano atingido.`, 'warning'); return; }
     if (league.participants.includes(currentUser.id)) return;
-    if (league.pendingRequests.includes(currentUser.id)) return;
+    if ((league.pendingRequests || []).includes(currentUser.id)) { addNotification('Aviso', 'Solicitação já enviada.', 'info'); return; }
 
     const updatedLeague = { ...league };
     if (league.isPrivate) {
@@ -1488,18 +1508,27 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     }
   };
 
-  const joinLeague = async (leagueId: string) => {
+  const joinLeague = async (leagueId: string, leagueData?: any) => {
     if (!currentUser) return;
-    const league = leagues.find(l => l.id === leagueId);
-    if (!league) return;
+    // Use the provided leagueData as fallback (for searched private leagues not yet in local state)
+    const league = leagues.find(l => l.id === leagueId) || leagueData;
+    if (!league) {
+      // Last resort: just call the API directly without local validation
+      try {
+        await api.leagues.join(leagueId);
+        addNotification('Sucesso', 'Solicitação enviada.', 'success');
+      } catch (e: any) {
+        addNotification('Erro', e.message || 'Falha ao entrar na liga.', 'warning');
+      }
+      return;
+    }
     if (league.participants.includes(currentUser.id)) { addNotification('Aviso', 'Você já participa desta liga.', 'info'); return; }
     const limit = getLeagueLimit(league);
     if (league.participants.length >= limit) { addNotification('Liga Cheia', 'O limite de participantes foi atingido.', 'warning'); return; }
 
-
     let updatedLeague = { ...league };
     if (league.isPrivate) {
-      if (!league.pendingRequests.includes(currentUser.id)) updatedLeague.pendingRequests = [...league.pendingRequests, currentUser.id];
+      if (!(league.pendingRequests || []).includes(currentUser.id)) updatedLeague.pendingRequests = [...(league.pendingRequests || []), currentUser.id];
       else { addNotification('Aviso', 'Solicitação já enviada.', 'info'); return; }
     } else {
       updatedLeague.participants = [...league.participants, currentUser.id];
