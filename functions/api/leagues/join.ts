@@ -50,7 +50,7 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
             updates = { participants: [...league.participants, authUser.id] };
         }
 
-        const { error } = await userClient.from(table).update(updates).eq('id', id);
+        const { error } = await adminClient.from(table).update(updates).eq('id', id);
         if (error) throw error;
 
         if (league.is_private) {

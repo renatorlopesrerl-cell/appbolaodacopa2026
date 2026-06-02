@@ -136,7 +136,8 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
             });
 
             // Use upsert with explicit merge behavior if supported, or just rely on partial object
-            const { error } = await userClient.from('profiles').upsert(safeBody, { onConflict: 'id' });
+            const adminClient = getSupabaseClient(env);
+            const { error } = await adminClient.from('profiles').upsert(safeBody, { onConflict: 'id' });
             if (error) throw error;
 
             return jsonResponse({ success: true });
