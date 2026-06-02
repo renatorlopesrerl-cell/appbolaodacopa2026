@@ -24,12 +24,24 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
         const { id, leagueType = 'standard' } = await request.json() as any;
         if (!id) return errorResponse(new Error("League ID required"), 400);
 
+        console.log(`[join] authUser.id=${authUser?.id}, leagueId=${id}, leagueType=${leagueType}`);
+
+        if (!authUser?.id) {
+            console.error('[join] ERRO: authUser não encontrado. Token inválido ou middleware falhou.');
+            return errorResponse(new Error("User not authenticated"), 401);
+        }
+
         const table = leagueType === 'brazil' ? 'brazil_leagues' : 'leagues';
         const adminClient = getSupabaseClient(env);
 
+        console.log(`[join] SERVICE_ROLE_KEY presente: ${!!env.SUPABASE_SERVICE_ROLE_KEY}`);
+
         // Fetch League using adminClient to ensure we have all data for the push notification
         const { data: league, error: fetchError } = await adminClient.from(table).select('*').eq('id', id).single();
-        if (fetchError || !league) return errorResponse(new Error("League not found"), 404);
+        if (fetchError || !league) {
+            console.error(`[join] Liga não encontrada: ${fetchError?.message}`);
+            return errorResponse(new Error("League not found"), 404);
+        }
 
         if (league.participants.includes(authUser.id)) {
             return jsonResponse({ success: false, message: "Already a participant" }, 400);
@@ -46,12 +58,18 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                 return jsonResponse({ success: false, message: "Request already pending" }, 400);
             }
             updates = { pending_requests: [...league.pending_requests, authUser.id] };
+            console.log(`[join] Adicionando ${authUser.id} aos pending_requests`);
         } else {
             updates = { participants: [...league.participants, authUser.id] };
+            console.log(`[join] Adicionando ${authUser.id} como participante`);
         }
 
         const { error } = await adminClient.from(table).update(updates).eq('id', id);
-        if (error) throw error;
+        if (error) {
+            console.error(`[join] Erro ao atualizar liga: ${error.message}`);
+            throw error;
+        }
+        console.log(`[join] Liga atualizada com sucesso!`);
 
         if (league.is_private) {
             // Get requester's nickname/name from profiles

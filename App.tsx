@@ -1325,7 +1325,11 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     } else {
       updatedLeague.participants = [...(league.participants || []), currentUser.id];
     }
-    setBrazilLeagues(prev => prev.map(l => l.id === leagueId ? updatedLeague : l));
+    // If league is not in local state yet (new user), ADD it. Otherwise UPDATE it.
+    setBrazilLeagues(prev => {
+      const exists = prev.some(l => l.id === leagueId);
+      return exists ? prev.map(l => l.id === leagueId ? updatedLeague : l) : [...prev, updatedLeague];
+    });
     try {
       await api.brazilLeagues.join(leagueId);
       addNotification('Sucesso', league.isPrivate ? 'Solicitação enviada.' : 'Você entrou na liga.', 'success');
@@ -1533,7 +1537,11 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     } else {
       updatedLeague.participants = [...league.participants, currentUser.id];
     }
-    setLeagues(prev => prev.map(l => l.id === leagueId ? updatedLeague : l));
+    // If league is not in local state yet (new user), ADD it. Otherwise UPDATE it.
+    setLeagues(prev => {
+      const exists = prev.some(l => l.id === leagueId);
+      return exists ? prev.map(l => l.id === leagueId ? updatedLeague : l) : [...prev, updatedLeague];
+    });
     try {
       await api.leagues.join(leagueId);
       addNotification('Sucesso', league.isPrivate ? 'Solicitação enviada.' : 'Você entrou na liga.', 'success');
