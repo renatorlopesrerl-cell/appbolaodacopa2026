@@ -174,14 +174,8 @@ export const BrazilLeagueDetails: React.FC = () => {
     }, [league, mergedUsers]);
 
     // Auto Cleanup Phantom Requests
-    useEffect(() => {
-        if (league && isAdmin && mergedUsers.length > 0) {
-            const validRequests = league.pendingRequests.filter(uid => mergedUsers.some(u => u.id === uid));
-            if (validRequests.length !== league.pendingRequests.length) {
-                updateLeague(league.id, { pendingRequests: validRequests });
-            }
-        }
-    }, [league, mergedUsers, isAdmin, updateLeague]);
+    // Removed useEffect that auto-cleaned pendingRequests.
+    // Cleanup is now handled securely by the database during account deletion.
 
     // --- MOBILE BACK BUTTON HANDLER FOR MODALS ---
     useEffect(() => {

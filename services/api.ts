@@ -85,7 +85,7 @@ async function apiFetch<T>(endpoint: string, options: RequestInit = {}, retries 
 
     for (let attempt = 0; attempt <= retries; attempt++) {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s timeout
+        const timeoutId = setTimeout(() => controller.abort(), 45000); // 45s timeout
 
         try {
             const res = await fetch(`${API_BASE}${endpoint}`, {

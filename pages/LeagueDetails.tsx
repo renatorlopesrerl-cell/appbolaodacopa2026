@@ -237,15 +237,7 @@ export const LeagueDetails: React.FC = () => {
         });
     }, [league, mergedUsers, predictions, matches, leaderboardView, topFinishersResult, topFinisherPredictions]);
 
-    // Auto Cleanup Phantom Requests
-    useEffect(() => {
-        if (league && isAdmin && mergedUsers.length > 0) {
-            const validRequests = league.pendingRequests.filter(uid => mergedUsers.some(u => u.id === uid));
-            if (validRequests.length !== league.pendingRequests.length) {
-                updateLeague(league.id, { pendingRequests: validRequests });
-            }
-        }
-    }, [league, mergedUsers, isAdmin, updateLeague]);
+    // Cleanup is now handled securely by the database during account deletion.
 
     // --- MOBILE BACK BUTTON HANDLER FOR MODALS ---
     useEffect(() => {
