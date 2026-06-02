@@ -45,8 +45,8 @@ export const ConfirmacaoCadastro: React.FC = () => {
           color: '#4b5563', 
           lineHeight: '1.5' 
         }}>
-          Seu cadastro foi confirmado com sucesso.<br/>
-          Você será redirecionado para o login.
+          Seu cadastro foi confirmado com sucesso!<br/>
+          Você será redirecionado em instantes...
         </p>
       </div>
     </div>
