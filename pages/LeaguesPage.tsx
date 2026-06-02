@@ -1,11 +1,12 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { useStore } from '../App';
 import { Plus, Lock, Globe, ArrowRight, Search, ArrowLeft, Upload, Camera, Trophy, Loader2, X, Star, Info } from 'lucide-react';
 import { processImageForUpload } from '../services/dataService';
-import { LeaguePlan } from '../types';
+import { LeaguePlan, League } from '../types';
 import { OptimizedImage } from '../components/OptimizedImage';
+import { api } from '../services/api';
 
 export const LeaguesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -19,6 +20,8 @@ export const LeaguesPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [imageProcessing, setImageProcessing] = useState(false);
+  const [searchedPrivateLeague, setSearchedPrivateLeague] = useState<League | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [settings, setSettings] = useState<{
@@ -27,7 +30,7 @@ export const LeaguesPage: React.FC = () => {
     winnerAndWinnerGoals: number | '';
     winner: number | '';
     draw: number | '';
-  }>({ exactScore: 10, winnerAndDiff: 7, winnerAndWinnerGoals: 6, winner: 5, draw: 6 });
+  }>({ exactScore: 10, winnerAndDiff: 6, winnerAndWinnerGoals: 5, winner: 4, draw: 5 });
 
   const [topFinishersEnabled, setTopFinishersEnabled] = useState(false);
   const [topFinishersPoints, setTopFinishersPoints] = useState<{
@@ -47,7 +50,7 @@ export const LeaguesPage: React.FC = () => {
     setLeagueImage('');
     setIsPrivate(true);
     setLeaguePlan('FREE');
-    setSettings({ exactScore: 10, winnerAndDiff: 7, winner: 5, draw: 6 });
+    setSettings({ exactScore: 10, winnerAndDiff: 6, winnerAndWinnerGoals: 5, winner: 4, draw: 5 });
     setTopFinishersEnabled(false);
     setTopFinishersPoints({ champion: 20, runnerUp: 15, third: 10, fourth: 5 });
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -125,9 +128,45 @@ export const LeaguesPage: React.FC = () => {
     fileInputRef.current?.click();
   };
 
+  useEffect(() => {
+    const searchCode = searchTerm.trim().toUpperCase();
+    if (searchCode.length === 6) {
+      // Check if we already have it locally
+      const existsLocally = leagues.some(l => l.leagueCode === searchCode);
+      if (!existsLocally) {
+        setIsSearching(true);
+        api.leagues.search(searchCode).then(data => {
+          if (data && data.length > 0) {
+            // Map the raw DB object to League
+            const raw = data[0];
+            const mappedLeague: League = {
+              id: raw.id, name: raw.name, description: raw.description, image: raw.image,
+              isPrivate: raw.is_private, adminId: raw.admin_id, participants: raw.participants || [],
+              pendingRequests: raw.pending_requests || [], leagueCode: raw.league_code,
+              settings: raw.settings
+            };
+            setSearchedPrivateLeague(mappedLeague);
+          } else {
+            setSearchedPrivateLeague(null);
+          }
+        }).catch(() => setSearchedPrivateLeague(null)).finally(() => setIsSearching(false));
+        return;
+      }
+    }
+    setSearchedPrivateLeague(null);
+  }, [searchTerm, leagues]);
+
   // Base lists
   const myLeagues = leagues.filter(l => l.participants.includes(currentUser.id));
   const otherLeagues = leagues.filter(l => !l.participants.includes(currentUser.id));
+
+  // If a remote league was found and we don't already participate, include it in otherLeagues
+  if (searchedPrivateLeague && !searchedPrivateLeague.participants.includes(currentUser.id)) {
+    // Only add if not already in otherLeagues
+    if (!otherLeagues.some(l => l.id === searchedPrivateLeague.id)) {
+      otherLeagues.push(searchedPrivateLeague);
+    }
+  }
 
   // Filtered lists based on search term (Name OR Code)
   const filterFn = (l: any) =>

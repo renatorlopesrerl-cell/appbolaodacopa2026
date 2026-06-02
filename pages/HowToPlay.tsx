@@ -85,17 +85,23 @@ export const HowToPlay: React.FC = () => {
                             Existem dois tipos de liga: a <strong>Privada</strong> (que já vem marcada), em que o usuário tem que solicitar convite para entrar na liga ou ser convidado pelo administrador; e a <strong>Pública</strong> (se deixar desmarcado), onde qualquer usuário pode entrar sem precisar de solicitação.
                         </p>
                         <p>
-                            Por último, defina a pontuação, opção que também não poderá ser alterada no futuro. Já vem pré-configurado com:
+                            Por último, defina a pontuação, opção que poderá ser alterada até 24 horas antes do início do primeiro jogo. Já vem pré-configurado com:
                         </p>
                         <ul className="list-disc pl-5 space-y-1">
                             <li><strong>Placar Exato = 10 pontos</strong> (ex. palpite: 1x0, placar final: 1x0)</li>
-                            <li><strong>Vencedor + Saldo = 7 pontos</strong> (ex. palpite: 1x0, placar final: 2x1)</li>
-                            <li><strong>Vencedor + Gols do Vencedor = 6 pontos</strong> (ex. palpite: 2x1, placar final: 2x0)</li>
-                            <li><strong>Empate Não Exato = 6 pontos</strong> (ex. palpite: 1x1, placar final: 2x2)</li>
-                            <li><strong>Apenas Vencedor = 5 pontos</strong> (ex. palpite: 1x0, placar final: 2x0)</li>
+                            <li><strong>Vencedor + Saldo = 6 pontos</strong> (ex. palpite: 1x0, placar final: 2x1)</li>
+                            <li><strong>Vencedor + Gols do Vencedor = 5 pontos</strong> (ex. palpite: 2x1, placar final: 2x0)</li>
+                            <li><strong>Empate Não Exato = 5 pontos</strong> (ex. palpite: 1x1, placar final: 2x2)</li>
+                            <li><strong>Apenas Vencedor = 4 pontos</strong> (ex. palpite: 1x0, placar final: 2x0)</li>
                         </ul>
                         <p>
                             Caso queira utilizar apenas duas pontuações é indicado que coloque Placar Exato = 10 pontos e Todas as outras opções = 5 pontos. Mas as pontuações também podem ser definidas do jeito que quiser. Ao finalizar as configurações é só clicar em Criar que sua liga estará pronta para os palpites.
+                        </p>
+                        <p className="mt-2 text-sm text-yellow-600 dark:text-yellow-500 font-medium">
+                            As pontuações só podem ser alteradas até 24 horas antes do início da competição. Após esse prazo, as configurações ficam bloqueadas automaticamente.
+                        </p>
+                        <p className="mt-2 text-sm text-blue-600 dark:text-blue-400 font-medium">
+                            Se quiser deixar desativado: Vencedor + Gols do Vencedor, Vencedor + Saldo ou Empate (Não Exato) basta deixar a mesma pontuação de Apenas Vencedor.
                         </p>
 
                         {/* Imagens Cria Liga */}

@@ -20,12 +20,10 @@ export const BrazilLeagueDetails: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    const { currentUser, brazilLeagues: leagues, matches, brazilPredictions: predictions, users, currentTime, loading, invitations, submitBrazilPredictions, updateBrazilLeague: updateLeague, deleteBrazilLeague: deleteLeague, approveBrazilUser: approveUser, rejectBrazilUser: rejectUser, removeUserFromBrazilLeague: removeUserFromLeague, brazilMatchGoals, addBrazilMatchGoal, addNotification, refreshPredictions, joinBrazilLeague: joinLeague, sendBrazilLeagueInvite: sendLeagueInvite, brazilPlayers } = useStore();
+    const { currentUser, brazilLeagues: leagues, matches, brazilPredictions: predictions, users, currentTime, loading, invitations, submitBrazilPredictions, updateBrazilLeague: updateLeague, deleteBrazilLeague: deleteLeague, approveBrazilUser: approveUser, rejectBrazilUser: rejectUser, removeUserFromBrazilLeague: removeUserFromLeague, brazilMatchGoals, addBrazilMatchGoal, addNotification, refreshPredictions, joinBrazilLeague: joinLeague, sendBrazilLeagueInvite: sendLeagueInvite, brazilPlayers, loadLeagueData } = useStore();
     const submitPredictions = async (preds: any, leagueId: string) => submitBrazilPredictions(preds as any, leagueId);
 
     const [activeTab, setActiveTab] = useState<'palpites' | 'classificacao' | 'regras' | 'admin'>('palpites');
-    // Local profiles cache for when global users array is incomplete
-    const [leagueProfiles, setLeagueProfiles] = useState<User[]>([]);
 
     // Handle Deep Linking Tabs
     useEffect(() => {
@@ -89,43 +87,18 @@ export const BrazilLeagueDetails: React.FC = () => {
     // Find League
     const league = leagues.find(l => l.id === id);
 
-    // Fetch participant profiles directly when not found in global users
+    // We no longer block rendering with loadLeagueData here.
+    // The data is fetched at app boot (fetchAllData).
+    // We can just rely on the global context data instantly.
+    
+    // Optional: Silent refresh in background without loading state
     useEffect(() => {
-        if (!league) return;
-        const missingIds = league.participants.filter(uid => !users.some(u => u.id === uid));
-        if (missingIds.length === 0) return;
-        
-        const fetchProfiles = async () => {
-            try {
-                // Use api.profiles.getByIds so the request goes through the server
-                // with service role key, bypassing RLS restrictions on direct Supabase calls
-                const data = await api.profiles.getByIds(missingIds);
-                if (data && data.length > 0) {
-                    const mapped: User[] = data.map((p: any) => ({
-                        id: p.id, name: p.name || 'Usuário', email: p.email || '',
-                        avatar: p.avatar || '', isAdmin: p.is_admin, whatsapp: p.whatsapp || '',
-                        theme: p.theme, isPro: p.is_pro
-                    }));
-                    setLeagueProfiles(prev => {
-                        const map = new Map(prev.map(u => [u.id, u]));
-                        mapped.forEach(u => map.set(u.id, u));
-                        return Array.from(map.values());
-                    });
-                }
-            } catch (err: any) {
-                console.error('[BrazilLeagueDetails] fetchProfiles error:', err.message);
-            }
-        };
-        fetchProfiles();
-    }, [league?.id, league?.participants.length, users.length]);
+        if (league) {
+            loadLeagueData(league.id, 'brazil').catch(() => {});
+        }
+    }, [league?.id]);
 
-    // Merge global users with locally fetched profiles
-    const mergedUsers = useMemo(() => {
-        const map = new Map<string, User>();
-        users.forEach(u => map.set(u.id, u));
-        leagueProfiles.forEach(u => { if (!map.has(u.id)) map.set(u.id, u); });
-        return Array.from(map.values());
-    }, [users, leagueProfiles]);
+    const mergedUsers = users;
 
     const getGoalscorerBonus = (matchId: string, playerPick: string | undefined | null) => {
         if (!league) return 0;
@@ -1464,7 +1437,7 @@ export const BrazilLeagueDetails: React.FC = () => {
                         </div>
                         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-3 rounded-xl flex items-start gap-2 text-blue-700 dark:text-blue-300 text-xs leading-relaxed">
                             <Info size={16} className="mt-0.5 flex-shrink-0" />
-                            <p>Se quiser deixar desativado <strong>Vencedor + Gols do Vencedor</strong> e <strong>Vencedor + Saldo</strong>, basta deixar a mesma pontuação de <strong>Apenas Vencedor</strong>.</p>
+                            <p>Se quiser deixar desativado <strong>Vencedor + Gols do Vencedor</strong>, <strong>Vencedor + Saldo</strong> ou <strong>Empate (Não Exato)</strong> basta deixar a mesma pontuação de <strong>Apenas Vencedor</strong>.</p>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                             <div className="space-y-2">

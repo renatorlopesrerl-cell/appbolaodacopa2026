@@ -130,6 +130,7 @@ interface AppState {
   topFinishersResult: TopFinishersResult | null;
   submitTopFinisherPrediction: (leagueId: string, champion: string, runnerUp: string, third: string, fourth: string) => Promise<boolean>;
   setTopFinishersResult: (champion: string, runnerUp: string, third: string, fourth: string) => Promise<boolean>;
+  loadLeagueData: (leagueId: string, leagueType?: 'standard' | 'brazil') => Promise<void>;
 }
 
 const AppContext = createContext<AppState | null>(null);
@@ -728,7 +729,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       if (data) {
         const mappedInvites: Invitation[] = data.map((i: any) => ({
           id: i.id, leagueId: i.league_id, email: i.email, status: i.status,
-          leagueType: i.league_type || 'standard'
+        leagueType: i.league_type || 'standard'
         }));
         setInvitations(mappedInvites);
       }
@@ -748,7 +749,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     fetchingRef.current = true;
 
     // Stale-While-Revalidate: se há cache, libera o loading imediatamente
-    // e mostra um indicador sutil de sincronização em segundo plano.
     const hasCachedData = !!localStorage.getItem('cache_matches');
     if (hasCachedData && mountedRef.current) {
       setLoading(false);
@@ -756,29 +756,18 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     }
 
     try {
-      // Promise.allSettled: falhas individuais não bloqueiam as demais
-      const results = await Promise.allSettled([
+      // ─── FASE 1: Ligas e Partidas (leve, rápido) ─────────────────────────────
+      // Precisamos dos IDs das ligas para filtrar os palpites.
+      // Ligas e partidas são pequenos — chegam rápido.
+      const [leaguesRes, matchesRes, brazilLeaguesRes] = await Promise.allSettled([
         api.leagues.list(),
         api.matches.list(),
-        api.predictions.list(),
-        api.profiles.list(),
         api.brazilLeagues.list(),
-        api.brazilPredictions.list(),
-        api.brazilMatchGoals.list(),
-        api.brazilPlayers.list(),
-        api.topFinisherPredictions.list(),
-        api.topFinishersResult.get(),
       ]);
 
-      const [leaguesRes, matchesRes, predsRes, profilesRes, brazilLeaguesRes, brazilPredsRes, brazilGoalsRes, brazilPlayersRes, topFinisherPredsRes, topFinishersResultRes] = results;
-
-      // Reportar falhas sem bloquear o restante
-      results.forEach((r, i) => {
-        if (r.status === 'rejected' && !silent) {
-          const labels = ['Ligas', 'Partidas', 'Palpites', 'Perfis', 'Ligas Brasil', 'Palpites Brasil', 'Gols Brasil', 'Jogadores Brasil', 'Artilharia', 'Resultado Artilharia'];
-          console.error(`[fetchAllData] ${labels[i]} error:`, r.reason);
-        }
-      });
+      // Processar e atualizar UI imediatamente após ligas/partidas chegarem
+      let userLeagueIds: string[] = [];
+      let userBrazilLeagueIds: string[] = [];
 
       if (leaguesRes.status === 'fulfilled' && leaguesRes.value) {
         const leaguesData = leaguesRes.value;
@@ -794,6 +783,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         }));
         setLeagues(mappedLeagues);
         try { localStorage.setItem('cache_leagues', JSON.stringify(mappedLeagues)); } catch (e) { console.warn('cache_leagues write failed:', e); }
+        userLeagueIds = mappedLeagues.map(l => l.id);
       }
 
       if (matchesRes.status === 'fulfilled' && matchesRes.value && matchesRes.value.length > 0) {
@@ -807,61 +797,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         setMatches(mappedMatches);
         try { localStorage.setItem('cache_matches', JSON.stringify(mappedMatches)); } catch (e) { console.warn('cache_matches write failed:', e); }
       }
-
-      if (predsRes.status === 'fulfilled' && predsRes.value) {
-        const predsData = predsRes.value;
-        const mappedPreds: Prediction[] = predsData.map((p: any) => ({
-          userId: p.user_id, matchId: p.match_id, leagueId: p.league_id,
-          homeScore: Number(p.home_score), awayScore: Number(p.away_score),
-          points: p.points ? Number(p.points) : 0
-        }));
-        setPredictions(mappedPreds);
-        try { localStorage.setItem('cache_predictions', JSON.stringify(mappedPreds)); } catch (e) { console.warn('cache_predictions write failed:', e); }
-      }
-
-      if (profilesRes.status === 'fulfilled' && profilesRes.value && profilesRes.value.length > 0) {
-        const profilesData = profilesRes.value;
-        const mappedUsers: User[] = profilesData.map((p: any) => ({
-          id: p.id, name: p.name, email: p.email, avatar: p.avatar, isAdmin: p.is_admin,
-          whatsapp: p.whatsapp || '', notificationSettings: p.notification_settings, theme: p.theme, isPro: p.is_pro
-        }));
-        setUsers(mappedUsers);
-      } else {
-        // Fallback: if profiles list failed or is empty, fetch only the IDs we actually need
-        console.warn('[fetchAllData] Profiles list empty or failed. Fetching by participant IDs as fallback...');
-        try {
-          const leaguesData = leaguesRes.status === 'fulfilled' ? (leaguesRes.value || []) : [];
-          const brazilLeaguesData = brazilLeaguesRes.status === 'fulfilled' ? (brazilLeaguesRes.value || []) : [];
-          const allParticipantIds = [...new Set([
-            ...leaguesData.flatMap((l: any) => [...(l.participants || []), ...(l.pending_requests || [])]),
-            ...brazilLeaguesData.flatMap((l: any) => [...(l.participants || []), ...(l.pending_requests || [])])
-          ])];
-          if (allParticipantIds.length > 0) {
-            const chunkSize = 30;
-            const fallbackProfiles: any[] = [];
-            for (let i = 0; i < allParticipantIds.length; i += chunkSize) {
-              const chunk = allParticipantIds.slice(i, i + chunkSize);
-              const { data, error } = await supabase
-                .from('profiles')
-                .select('id, email, name, avatar, is_admin, whatsapp, theme')
-                .in('id', chunk);
-              if (data) fallbackProfiles.push(...data);
-              if (error) console.error('[fetchAllData] Fallback chunk error:', error.message);
-            }
-            if (fallbackProfiles.length > 0) {
-              const mappedFallback: User[] = fallbackProfiles.map((p: any) => ({
-                id: p.id, name: p.name, email: p.email, avatar: p.avatar, isAdmin: p.is_admin,
-                whatsapp: p.whatsapp || '', notificationSettings: p.notification_settings, theme: p.theme, isPro: p.is_pro
-              }));
-              setUsers(mappedFallback);
-              console.log(`[fetchAllData] Fallback loaded ${mappedFallback.length} profiles from participant IDs.`);
-            }
-          }
-        } catch (fallbackErr: any) {
-          console.error('[fetchAllData] Fallback profiles fetch failed:', fallbackErr.message);
-        }
-      }
-
 
       if (brazilLeaguesRes.status === 'fulfilled' && brazilLeaguesRes.value) {
         const brazilLeaguesData = brazilLeaguesRes.value;
@@ -882,84 +817,118 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         }));
         setBrazilLeagues(mappedBrazilLeagues);
         try { localStorage.setItem('cache_brazil_leagues', JSON.stringify(mappedBrazilLeagues)); } catch (e) { console.warn('cache_brazil_leagues write failed:', e); }
+        userBrazilLeagueIds = mappedBrazilLeagues.map(l => l.id);
       }
 
-      if (brazilPredsRes.status === 'fulfilled' && brazilPredsRes.value) {
-        const brazilPredsData = brazilPredsRes.value;
-        const mappedBrazilPreds: BrazilPrediction[] = brazilPredsData.map((p: any) => ({
+      // ─── FASE 2: Tudo em paralelo, filtrado por liga (Batch) ────────────────
+      const allLeagueIds = [...userLeagueIds, ...userBrazilLeagueIds];
+      
+      const leaguesData = leaguesRes.status === 'fulfilled' ? (leaguesRes.value || []) : [];
+      const brazilLeaguesData = brazilLeaguesRes.status === 'fulfilled' ? (brazilLeaguesRes.value || []) : [];
+      const allParticipantIds = [...new Set([
+        ...leaguesData.flatMap((l: any) => [...(l.participants || []), ...(l.pending_requests || [])]),
+        ...brazilLeaguesData.flatMap((l: any) => [...(l.participants || []), ...(l.pending_requests || [])])
+      ])];
+
+      const allResults = await Promise.allSettled([
+        api.brazilMatchGoals.list(),
+        api.brazilPlayers.list(),
+        api.topFinishersResult.get(),
+        userLeagueIds.length > 0 ? api.predictions.list(userLeagueIds) : Promise.resolve([]),
+        userBrazilLeagueIds.length > 0 ? api.brazilPredictions.list(userBrazilLeagueIds) : Promise.resolve([]),
+        allLeagueIds.length > 0 ? api.topFinisherPredictions.list(allLeagueIds) : Promise.resolve([]),
+        allParticipantIds.length > 0 ? api.profiles.getByIds(allParticipantIds) : Promise.resolve([])
+      ]);
+
+      const [goalsRes, playersRes, topResRes, stdPredsRes, brPredsRes, tfPredsRes, profRes] = allResults;
+
+      // Metadados globais
+      if (goalsRes.status === 'fulfilled' && goalsRes.value) {
+        const mapped: BrazilMatchGoal[] = goalsRes.value.map((g: any) => ({ matchId: g.match_id, playerName: g.player_name, goals: g.goals }));
+        setBrazilMatchGoals(mapped);
+        try { localStorage.setItem('cache_brazil_goals', JSON.stringify(mapped)); } catch {}
+      }
+      if (playersRes.status === 'fulfilled' && playersRes.value) {
+        const mapped: BrazilPlayer[] = playersRes.value.map((p: any) => ({ id: p.id, name: p.name, position: p.position, is_active: p.is_active }));
+        setBrazilPlayers(mapped);
+        try { localStorage.setItem('cache_brazil_players', JSON.stringify(mapped)); } catch {}
+      }
+      if (topResRes.status === 'fulfilled' && topResRes.value) {
+        setTopFinishersResultState({
+          champion: topResRes.value.champion || '', runnerUp: topResRes.value.runner_up || '',
+          third: topResRes.value.third || '', fourth: topResRes.value.fourth || ''
+        });
+      }
+
+      // Palpites padrão
+      if (stdPredsRes.status === 'fulfilled' && stdPredsRes.value) {
+        const allPreds: Prediction[] = stdPredsRes.value.map((p: any) => ({
+          userId: p.user_id, matchId: p.match_id, leagueId: p.league_id,
+          homeScore: Number(p.home_score), awayScore: Number(p.away_score),
+          points: p.points ? Number(p.points) : 0
+        }));
+        if (allPreds.length > 0) {
+          setPredictions(allPreds);
+          try { localStorage.setItem('cache_predictions', JSON.stringify(allPreds)); } catch {}
+        }
+      }
+
+      // Palpites Brasil
+      if (brPredsRes.status === 'fulfilled' && brPredsRes.value) {
+        const allBrazilPreds: BrazilPrediction[] = brPredsRes.value.map((p: any) => ({
           userId: p.user_id, matchId: p.match_id, leagueId: p.league_id,
           homeScore: Number(p.home_score), awayScore: Number(p.away_score),
           playerPick: p.player_pick,
           points: p.points ? Number(p.points) : 0,
           goalscorerPoints: p.goalscorer_points ? Number(p.goalscorer_points) : 0
         }));
-        setBrazilPredictions(mappedBrazilPreds);
-        try { localStorage.setItem('cache_brazil_predictions', JSON.stringify(mappedBrazilPreds)); } catch (e) { console.warn('cache_brazil_predictions write failed:', e); }
+        if (allBrazilPreds.length > 0) {
+          setBrazilPredictions(allBrazilPreds);
+          try { localStorage.setItem('cache_brazil_predictions', JSON.stringify(allBrazilPreds)); } catch {}
+        }
       }
 
-      if (brazilGoalsRes.status === 'fulfilled' && brazilGoalsRes.value) {
-        const brazilGoalsData = brazilGoalsRes.value;
-        const mappedBrazilGoals: BrazilMatchGoal[] = brazilGoalsData.map((g: any) => ({
-          matchId: g.match_id, playerName: g.player_name, goals: g.goals
-        }));
-        setBrazilMatchGoals(mappedBrazilGoals);
-        try { localStorage.setItem('cache_brazil_goals', JSON.stringify(mappedBrazilGoals)); } catch (e) { console.warn('cache_brazil_goals write failed:', e); }
-      }
-
-      if (brazilPlayersRes.status === 'fulfilled' && brazilPlayersRes.value) {
-        const brazilPlayersData = brazilPlayersRes.value;
-        const mappedBrazilPlayers: BrazilPlayer[] = brazilPlayersData.map((p: any) => ({
-          id: p.id, name: p.name, position: p.position, is_active: p.is_active
-        }));
-        setBrazilPlayers(mappedBrazilPlayers);
-        try { localStorage.setItem('cache_brazil_players', JSON.stringify(mappedBrazilPlayers)); } catch (e) { console.warn('cache_brazil_players write failed:', e); }
-      }
-
-      if (topFinisherPredsRes.status === 'fulfilled' && topFinisherPredsRes.value) {
-        const topPredsData = topFinisherPredsRes.value;
-        const mappedTopPreds: TopFinisherPrediction[] = topPredsData.map((p: any) => ({
+      // Top Finisher Predictions
+      if (tfPredsRes.status === 'fulfilled' && tfPredsRes.value) {
+        const allTopPreds: TopFinisherPrediction[] = tfPredsRes.value.map((p: any) => ({
           userId: p.user_id, leagueId: p.league_id,
           champion: p.champion || '', runnerUp: p.runner_up || '',
           third: p.third || '', fourth: p.fourth || ''
         }));
-        setTopFinisherPredictions(mappedTopPreds);
-        try { localStorage.setItem('cache_top_finisher_preds', JSON.stringify(mappedTopPreds)); } catch (e) { console.warn('cache_top_finisher_preds write failed:', e); }
+        if (allTopPreds.length > 0) {
+          setTopFinisherPredictions(allTopPreds);
+          try { localStorage.setItem('cache_top_finisher_preds', JSON.stringify(allTopPreds)); } catch {}
+        }
       }
 
-      if (topFinishersResultRes.status === 'fulfilled' && topFinishersResultRes.value) {
-        setTopFinishersResultState({
-          champion: topFinishersResultRes.value.champion || '',
-          runnerUp: topFinishersResultRes.value.runner_up || '',
-          third: topFinishersResultRes.value.third || '',
-          fourth: topFinishersResultRes.value.fourth || ''
-        });
+      // Perfis
+      if (profRes.status === 'fulfilled' && profRes.value) {
+        const mappedUsers: User[] = profRes.value.map((p: any) => ({
+          id: p.id, name: p.name, email: p.email, avatar: p.avatar, isAdmin: p.is_admin,
+          whatsapp: p.whatsapp || '', notificationSettings: p.notification_settings, theme: p.theme, isPro: p.is_pro
+        }));
+        if (mappedUsers.length > 0) {
+          setUsers(mappedUsers);
+        }
       }
 
-      // Buscar convites vinculados ao e-mail do usuário logado
       if (currentUserRef.current?.email) {
         fetchInvitations(currentUserRef.current.email);
       }
 
-      // Só marcar connectionError se TODAS as chamadas falharam
-      const allFailed = results.every(r => r.status === 'rejected');
-      if (allFailed) {
-        failureCountRef.current += 1;
-        if (failureCountRef.current > 3 && !connectionError) setConnectionError(true);
-      } else {
-        setConnectionError(false);
-        failureCountRef.current = 0;
-        const syncDate = new Date();
-        setLastSyncTime(syncDate);
-        try { localStorage.setItem('last_sync_time', syncDate.toISOString()); } catch {}
-      }
+      setConnectionError(false);
+      failureCountRef.current = 0;
+      const syncDate = new Date();
+      setLastSyncTime(syncDate);
+      try { localStorage.setItem('last_sync_time', syncDate.toISOString()); } catch {}
 
     } catch (e: any) {
-      console.error("fetchAllData unexpected error", e);
+      console.error('fetchAllData unexpected error', e);
       const isAuthError = e.message?.includes('401') ||
         e.message?.toLowerCase().includes('unauthorized') ||
         e.message?.toLowerCase().includes('jwt');
       if (isAuthError) {
-        console.warn("Sessão inválida detectada. Deslogando...");
+        console.warn('Sessão inválida detectada. Deslogando...');
         logout();
         return;
       }
@@ -1279,9 +1248,9 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       setBrazilLeagues(prev => [...prev, newLeague]);
       addNotification('Liga Criada', `A liga "${name}" foi criada!`, 'success');
       return true;
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      addNotification('Erro', 'Ocorreu um erro ao criar a liga.', 'warning');
+      addNotification('Erro', `Erro: ${e.message}`, 'warning');
       return false;
     }
   };
@@ -1706,7 +1675,9 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   const refreshPredictions = async () => {
     try {
-      const predsData = await api.predictions.list();
+      const userLeagueIds = leagues.filter(l => l.participants.includes(currentUser?.id || '')).map(l => l.id);
+      if (userLeagueIds.length === 0) return;
+      const predsData = await api.predictions.list(userLeagueIds);
       if (predsData) {
         const mappedPreds: Prediction[] = predsData.map((p: any) => ({
           userId: p.user_id, matchId: p.match_id, leagueId: p.league_id,
@@ -1732,6 +1703,72 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     }
   }, [currentTime, currentUser, loading, matches]);
 
+  const loadLeagueData = async (leagueId: string, leagueType: 'standard' | 'brazil' = 'standard') => {
+    try {
+      const isBrazil = leagueType === 'brazil';
+      
+      const league = isBrazil 
+        ? brazilLeagues.find(l => l.id === leagueId)
+        : leagues.find(l => l.id === leagueId);
+        
+      const participantIds = league ? [...(league.participants || []), ...(league.pendingRequests || [])] : [];
+
+      const [predsRes, profilesRes, topRes] = await Promise.all([
+        isBrazil ? api.brazilPredictions.list(leagueId) : api.predictions.list(leagueId),
+        participantIds.length > 0 ? api.profiles.getByIds(participantIds) : Promise.resolve([]),
+        api.topFinisherPredictions.list(leagueId)
+      ]);
+
+      if (isBrazil) {
+        const mappedBrPreds: BrazilPrediction[] = (predsRes || []).map((p: any) => ({
+          userId: p.user_id, matchId: p.match_id, leagueId: p.league_id,
+          homeScore: Number(p.home_score), awayScore: Number(p.away_score),
+          playerPick: p.player_pick,
+          points: p.points ? Number(p.points) : 0,
+          goalscorerPoints: p.goalscorer_points ? Number(p.goalscorer_points) : 0
+        }));
+        setBrazilPredictions(prev => {
+          const others = prev.filter(p => p.leagueId !== leagueId);
+          return [...others, ...mappedBrPreds];
+        });
+      } else {
+        const mappedPreds: Prediction[] = (predsRes || []).map((p: any) => ({
+          userId: p.user_id, matchId: p.match_id, leagueId: p.league_id,
+          homeScore: Number(p.home_score), awayScore: Number(p.away_score),
+          points: p.points ? Number(p.points) : 0
+        }));
+        setPredictions(prev => {
+          const others = prev.filter(p => p.leagueId !== leagueId);
+          return [...others, ...mappedPreds];
+        });
+      }
+
+      const mappedTopPreds: TopFinisherPrediction[] = (topRes || []).map((p: any) => ({
+        userId: p.user_id, leagueId: p.league_id,
+        champion: p.champion || '', runnerUp: p.runner_up || '',
+        third: p.third || '', fourth: p.fourth || ''
+      }));
+      setTopFinisherPredictions(prev => {
+         const others = prev.filter(p => p.leagueId !== leagueId);
+         return [...others, ...mappedTopPreds];
+      });
+
+      if (profilesRes && profilesRes.length > 0) {
+        const mappedUsers: User[] = profilesRes.map((p: any) => ({
+          id: p.id, name: p.name, email: p.email, avatar: p.avatar, isAdmin: p.is_admin,
+          whatsapp: p.whatsapp || '', notificationSettings: p.notification_settings, theme: p.theme, isPro: p.is_pro
+        }));
+        setUsers(prev => {
+          const prevMap = new Map(prev.map(u => [u.id, u]));
+          mappedUsers.forEach(u => prevMap.set(u.id, u));
+          return Array.from(prevMap.values());
+        });
+      }
+    } catch (e) {
+      console.error("Error loading league data:", e);
+    }
+  };
+
   return (
     <AppContext.Provider value={{
       currentUser, users, matches, leagues, predictions, currentTime, notifications, loading, invitations,
@@ -1740,7 +1777,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       removeUserFromLeague, submitPrediction, submitPredictions, simulateMatchResult, updateMatch, removeNotification, updateUserProfile, syncInitialMatches,
       sendLeagueInvite, respondToInvite, theme, toggleTheme, connectionError, retryConnection, addNotification, refreshPredictions, refreshAllData: () => fetchAllData(false), isRecoveryMode, lastSyncTime,
       createBrazilLeague, updateBrazilLeague, joinBrazilLeague, deleteBrazilLeague, approveBrazilUser, rejectBrazilUser, removeUserFromBrazilLeague, submitBrazilPredictions, addBrazilMatchGoal, sendBrazilLeagueInvite,
-      topFinisherPredictions, topFinishersResult, submitTopFinisherPrediction, setTopFinishersResult
+      topFinisherPredictions, topFinishersResult, submitTopFinisherPrediction, setTopFinishersResult, loadLeagueData
     }}>
       {children}
     </AppContext.Provider>

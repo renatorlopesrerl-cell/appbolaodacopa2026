@@ -24,12 +24,10 @@ export const LeagueDetails: React.FC = () => {
         currentUser, leagues, matches, predictions, users, currentTime, invitations,
         joinLeague, deleteLeague, approveUser, rejectUser,
         removeUserFromLeague, submitPredictions, sendLeagueInvite, updateLeague, loading, refreshPredictions,
-        topFinisherPredictions, topFinishersResult, submitTopFinisherPrediction
+        topFinisherPredictions, topFinishersResult, submitTopFinisherPrediction, loadLeagueData
     } = useStore();
 
     const [activeTab, setActiveTab] = useState<'palpites' | 'classificacao' | 'regras' | 'admin'>('palpites');
-    // Local profiles cache: ensures we always have participant data even if global 'users' is incomplete
-    const [leagueProfiles, setLeagueProfiles] = useState<User[]>([]);
 
     // Handle Deep Linking Tabs
     useEffect(() => {
@@ -102,45 +100,18 @@ export const LeagueDetails: React.FC = () => {
     // Find League
     const league = leagues.find(l => l.id === id);
 
-    // Fetch participant profiles directly when not found in global users
+    // We no longer block rendering with loadLeagueData here.
+    // The data is fetched at app boot (fetchAllData).
+    // We can just rely on the global context data instantly.
+    
+    // Optional: Silent refresh in background without loading state
     useEffect(() => {
-        if (!league) return;
-        const missingIds = league.participants.filter(uid => !users.some(u => u.id === uid));
-        if (missingIds.length === 0) return;
-        console.log(`[LeagueDetails] Fetching ${missingIds.length} missing profiles via API...`);
-        
-        const fetchProfiles = async () => {
-            try {
-                // Use api.profiles.getByIds so the request goes through the server
-                // with service role key, bypassing RLS restrictions on direct Supabase calls
-                const data = await api.profiles.getByIds(missingIds);
-                if (data && data.length > 0) {
-                    const mapped: User[] = data.map((p: any) => ({
-                        id: p.id, name: p.name || 'Usuário', email: p.email || '',
-                        avatar: p.avatar || '', isAdmin: p.is_admin, whatsapp: p.whatsapp || '',
-                        theme: p.theme, isPro: p.is_pro
-                    }));
-                    setLeagueProfiles(prev => {
-                        const map = new Map(prev.map(u => [u.id, u]));
-                        mapped.forEach(u => map.set(u.id, u));
-                        return Array.from(map.values());
-                    });
-                }
-            } catch (err: any) {
-                console.error('[LeagueDetails] fetchProfiles error:', err.message);
-            }
-        };
-        fetchProfiles();
-    }, [league?.id, league?.participants.length, users.length]);
+        if (league) {
+            loadLeagueData(league.id, 'standard').catch(() => {});
+        }
+    }, [league?.id]);
 
-
-    // Merge global users with locally fetched league profiles
-    const mergedUsers = useMemo(() => {
-        const map = new Map<string, User>();
-        users.forEach(u => map.set(u.id, u));
-        leagueProfiles.forEach(u => { if (!map.has(u.id)) map.set(u.id, u); });
-        return Array.from(map.values());
-    }, [users, leagueProfiles]);
+    const mergedUsers = users;
 
     // Initialize Admin State when league loads
     useEffect(() => {
@@ -384,7 +355,7 @@ export const LeagueDetails: React.FC = () => {
         ? new Date(Math.min(...matches.map(m => new Date(m.date).getTime())))
         : null;
     const topFinishersLockDate = firstMatchDate
-        ? new Date(firstMatchDate.getTime() + 5 * 60 * 1000)
+        ? new Date(firstMatchDate.getTime())
         : null;
     const isTopFinishersLocked = topFinishersLockDate
         ? currentTime > topFinishersLockDate
@@ -861,7 +832,19 @@ export const LeagueDetails: React.FC = () => {
                                                 className={`w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg p-2.5 font-bold text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-brasil-blue transition-all ${isLocked ? 'opacity-70 cursor-not-allowed bg-gray-100 dark:bg-gray-900' : ''} text-sm`}
                                             >
                                                 <option value="">-- Selecione a seleção --</option>
-                                                {allTeams.map(t => <option key={t} value={t}>{t}</option>)}
+                                                {allTeams.map(t => {
+                                                    const isSelectedElsewhere = (
+                                                        (tfChampion === t && f.key !== 'champion') ||
+                                                        (tfRunnerUp === t && f.key !== 'runnerUp') ||
+                                                        (tfThird === t && f.key !== 'third') ||
+                                                        (tfFourth === t && f.key !== 'fourth')
+                                                    );
+                                                    return (
+                                                        <option key={t} value={t} disabled={isSelectedElsewhere}>
+                                                            {t}
+                                                        </option>
+                                                    );
+                                                })}
                                             </select>
                                             {isLocked && (
                                                 <div className="mt-2 flex items-center justify-between">
@@ -1638,7 +1621,7 @@ export const LeagueDetails: React.FC = () => {
                         </div>
                         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-3 rounded-xl flex items-start gap-2 text-blue-700 dark:text-blue-300 text-xs leading-relaxed">
                             <Info size={16} className="mt-0.5 flex-shrink-0" />
-                            <p>Se quiser deixar desativado <strong>Vencedor + Gols do Vencedor</strong> e <strong>Vencedor + Saldo</strong>, basta deixar a mesma pontuação de <strong>Apenas Vencedor</strong>.</p>
+                            <p>Se quiser deixar desativado <strong>Vencedor + Gols do Vencedor</strong>, <strong>Vencedor + Saldo</strong> ou <strong>Empate (Não Exato)</strong> basta deixar a mesma pontuação de <strong>Apenas Vencedor</strong>.</p>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">

@@ -23,6 +23,35 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
             // Without this, authenticated users can only see their own profile,
             // causing everyone else to show as 'Unknown' in the leaderboard.
             const adminClient = getSupabaseClient(env);
+            
+            const leagueId = url.searchParams.get('leagueId');
+
+            // Se for pra buscar a liga toda
+            if (leagueId) {
+                // Obter os participantes da liga primeiro (standard ou brazil)
+                const [{ data: stdLeague }, { data: brLeague }] = await Promise.all([
+                    adminClient.from('leagues').select('participants').eq('id', leagueId).maybeSingle(),
+                    adminClient.from('brazil_leagues').select('participants').eq('id', leagueId).maybeSingle()
+                ]);
+
+                const participants = stdLeague?.participants || brLeague?.participants || [];
+                
+                if (participants.length === 0) return jsonResponse([]);
+
+                // Busca apenas os perfis desses participantes
+                const { data, error } = await adminClient
+                    .from('profiles')
+                    .select('id, email, name, avatar, is_admin, whatsapp, theme')
+                    .in('id', participants);
+                
+                if (error) {
+                    console.error('[profiles GET by league] error:', error.message);
+                    return jsonResponse([]);
+                }
+                return jsonResponse(data || []);
+            }
+
+            // Fallback (não deveria ser chamado pela UI nova, mas mantido por segurança)
             const step = 1000;
             const allProfiles: any[] = [];
             let offset = 0;

@@ -7,6 +7,10 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
         const authUser = data.user;
 
         if (request.method === 'GET') {
+            const url = new URL(request.url);
+            const leagueId = url.searchParams.get('leagueId');
+            const userId = url.searchParams.get('userId');
+
             // Cursor-based pagination to bypass 1000 row limit (avoids RLS count issues)
             const step = 1000;
             const allPredictions: any[] = [];
@@ -14,10 +18,21 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
             let keepFetching = true;
 
             while (keepFetching) {
-                const { data: page, error: pageError } = await userClient
+                let query = userClient
                     .from('predictions')
                     .select('user_id, match_id, league_id, home_score, away_score')
                     .range(offset, offset + step - 1);
+                
+                if (leagueId) {
+                    if (leagueId.includes(',')) {
+                        query = query.in('league_id', leagueId.split(','));
+                    } else {
+                        query = query.eq('league_id', leagueId);
+                    }
+                }
+                if (userId) query = query.eq('user_id', userId);
+
+                const { data: page, error: pageError } = await query;
 
                 if (pageError) {
                     console.error('[predictions GET] Page fetch error:', pageError.message);

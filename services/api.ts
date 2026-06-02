@@ -141,6 +141,7 @@ async function apiFetch<T>(endpoint: string, options: RequestInit = {}, retries 
 export const api = {
     leagues: {
         list: () => apiFetch<any[]>('/leagues'),
+        search: (code: string) => apiFetch<any[]>(`/leagues?code=${encodeURIComponent(code)}`),
         create: async (data: any) => {
             const { error } = await supabase.from('leagues').insert(data);
             if (error) throw error;
@@ -175,7 +176,12 @@ export const api = {
             apiFetch<any>(`/match-stats?matchId=${matchId}&leagueId=${leagueId}&leagueType=${leagueType}`)
     },
     profiles: {
-        list: () => apiFetch<any[]>('/profiles'),
+        list: (leagueId?: string) => {
+            const params = new URLSearchParams();
+            if (leagueId) params.append('leagueId', leagueId);
+            const query = params.toString();
+            return apiFetch<any[]>('/profiles' + (query ? `?${query}` : ''));
+        },
         get: (id: string) => apiFetch<any>(`/profiles?id=${id}`),
         getByIds: (ids: string[]) => apiFetch<any[]>('/profiles', { method: 'POST', body: JSON.stringify({ action: 'getByIds', ids }) }),
         update: (data: any) => apiFetch('/profiles', { method: 'POST', body: JSON.stringify(data) }),
@@ -207,7 +213,16 @@ export const api = {
         }
     },
     predictions: {
-        list: () => apiFetch<any[]>('/predictions'),
+        list: (leagueId?: string | string[], userId?: string) => {
+            const params = new URLSearchParams();
+            if (leagueId) {
+                if (Array.isArray(leagueId)) params.append('leagueId', leagueId.join(','));
+                else params.append('leagueId', leagueId);
+            }
+            if (userId) params.append('userId', userId);
+            const query = params.toString();
+            return apiFetch<any[]>('/predictions' + (query ? `?${query}` : ''));
+        },
         submit: (data: any) => apiFetch('/predictions', { method: 'POST', body: JSON.stringify(data) })
     },
     simulations: {
@@ -246,6 +261,7 @@ export const api = {
     // --- BRAZIL GAMES MODE ---
     brazilLeagues: {
         list: () => apiFetch<any[]>('/brazil-leagues'),
+        search: (code: string) => apiFetch<any[]>(`/brazil-leagues?code=${encodeURIComponent(code)}`),
         create: async (leagueData: any) => {
             const { error } = await supabase.from('brazil_leagues').insert(leagueData);
             if (error) throw error;
@@ -268,8 +284,32 @@ export const api = {
         }
     },
     brazilPredictions: {
-        list: async () => {
-            return await fetchAllPaginated('brazil_predictions');
+        list: async (leagueId?: string | string[], userId?: string) => {
+            const step = 1000;
+            const allPredictions: any[] = [];
+            let offset = 0;
+            let keepFetching = true;
+
+            while (keepFetching) {
+                let query = supabase.from('brazil_predictions').select('*').range(offset, offset + step - 1);
+                if (leagueId) {
+                    if (Array.isArray(leagueId)) query = query.in('league_id', leagueId);
+                    else query = query.eq('league_id', leagueId);
+                }
+                if (userId) query = query.eq('user_id', userId);
+
+                const data = await supabaseWithRetry(async () => await query);
+                const page = data as any[] || [];
+                
+                if (page.length === 0) {
+                    keepFetching = false;
+                } else {
+                    allPredictions.push(...page);
+                    offset += step;
+                    if (page.length < step) keepFetching = false;
+                }
+            }
+            return allPredictions;
         },
         submit: async (predictions: any[]) => {
             const { error } = await supabase.from('brazil_predictions').upsert(predictions, {
@@ -320,8 +360,32 @@ export const api = {
         }
     },
     topFinisherPredictions: {
-        list: async () => {
-            return await fetchAllPaginated('top_finisher_predictions');
+        list: async (leagueId?: string | string[], userId?: string) => {
+            const step = 1000;
+            const allPredictions: any[] = [];
+            let offset = 0;
+            let keepFetching = true;
+
+            while (keepFetching) {
+                let query = supabase.from('top_finisher_predictions').select('*').range(offset, offset + step - 1);
+                if (leagueId) {
+                    if (Array.isArray(leagueId)) query = query.in('league_id', leagueId);
+                    else query = query.eq('league_id', leagueId);
+                }
+                if (userId) query = query.eq('user_id', userId);
+
+                const data = await supabaseWithRetry(async () => await query);
+                const page = data as any[] || [];
+                
+                if (page.length === 0) {
+                    keepFetching = false;
+                } else {
+                    allPredictions.push(...page);
+                    offset += step;
+                    if (page.length < step) keepFetching = false;
+                }
+            }
+            return allPredictions;
         },
         upsert: async (prediction: {
             user_id: string; league_id: string;

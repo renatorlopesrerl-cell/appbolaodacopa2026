@@ -673,7 +673,19 @@ export const AdminMatchesPage: React.FC = () => {
                       className="w-full bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl p-3 font-bold text-gray-800 dark:text-white focus:ring-2 focus:ring-yellow-500 outline-none text-sm"
                     >
                       <option value="">-- Selecione a seleção --</option>
-                      {allTeams.map(t => <option key={t} value={t}>{t}</option>)}
+                      {allTeams.map(t => {
+                          const isSelectedElsewhere = (
+                              (tfChampion === t && f.key !== 'champion') ||
+                              (tfRunnerUp === t && f.key !== 'runnerUp') ||
+                              (tfThird === t && f.key !== 'third') ||
+                              (tfFourth === t && f.key !== 'fourth')
+                          );
+                          return (
+                              <option key={t} value={t} disabled={isSelectedElsewhere}>
+                                  {t}
+                              </option>
+                          );
+                      })}
                     </select>
                   </div>
                 );

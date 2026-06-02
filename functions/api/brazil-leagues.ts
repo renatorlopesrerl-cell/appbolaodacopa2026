@@ -8,8 +8,33 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
         const userClient = getUserClient(env, request);
 
         if (request.method === 'GET') {
+            const searchCode = url.searchParams.get('code');
+            if (searchCode) {
+                const data = await withRetry(async () => {
+                    return await userClient.from('brazil_leagues').select('*').eq('league_code', searchCode.toUpperCase());
+                });
+                const cleanLeagues = (data as any[])?.filter(l => !l.name.includes('[EXCLUÍDA]')) || [];
+                return jsonResponse(cleanLeagues);
+            }
+
             const data = await withRetry(async () => {
-                return await userClient.from('brazil_leagues').select('*');
+                // Check if user is admin via profiles table
+                const { data: profile } = await userClient
+                    .from('profiles')
+                    .select('is_admin')
+                    .eq('id', authUser.id)
+                    .single();
+                
+                const isAdmin = profile?.is_admin || false;
+
+                let query = userClient.from('brazil_leagues').select('*');
+                
+                // If user is not admin, only fetch public leagues + their own participated/pending leagues
+                if (!isAdmin) {
+                    query = query.or(`admin_id.eq.${authUser.id},participants.cs.{${authUser.id}},pending_requests.cs.{${authUser.id}},is_private.eq.false`);
+                }
+                
+                return await query.limit(5000);
             });
 
             // Filter out leagues with '[EXCLUÍDA]' in name

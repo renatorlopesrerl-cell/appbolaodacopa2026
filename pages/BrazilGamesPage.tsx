@@ -1,10 +1,12 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { useStore } from '../App';
 import { Plus, Lock, Globe, ArrowRight, Search, ArrowLeft, Upload, Camera, Trophy, Loader2, X, Info } from 'lucide-react';
 import { processImageForUpload } from '../services/dataService';
 import { OptimizedImage } from '../components/OptimizedImage';
+import { api } from '../services/api';
+import { BrazilLeague } from '../types';
 
 export const BrazilGamesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -17,13 +19,15 @@ export const BrazilGamesPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [imageProcessing, setImageProcessing] = useState(false);
+  const [searchedPrivateLeague, setSearchedPrivateLeague] = useState<BrazilLeague | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
 
   const [settings, setSettings] = useState({
     exactScore: 10 as number | string,
-    winnerAndDiff: 7 as number | string,
-    winnerAndWinnerGoals: 6 as number | string,
-    draw: 6 as number | string,
-    winner: 5 as number | string,
+    winnerAndDiff: 6 as number | string,
+    winnerAndWinnerGoals: 5 as number | string,
+    draw: 5 as number | string,
+    winner: 4 as number | string,
     goalscorer: 2 as number | string,
     plan: 'FREE' as any,
     isUnlimited: false
@@ -43,10 +47,10 @@ export const BrazilGamesPage: React.FC = () => {
     setIsPrivate(true);
     setSettings({
       exactScore: 10 as number | string,
-      winnerAndDiff: 7 as number | string,
-      winnerAndWinnerGoals: 6 as number | string,
-      draw: 6 as number | string,
-      winner: 5 as number | string,
+      winnerAndDiff: 6 as number | string,
+      winnerAndWinnerGoals: 5 as number | string,
+      draw: 5 as number | string,
+      winner: 4 as number | string,
       goalscorer: 2 as number | string,
       plan: 'FREE' as any,
       isUnlimited: false
@@ -118,8 +122,44 @@ export const BrazilGamesPage: React.FC = () => {
     fileInputRef.current?.click();
   };
 
+  useEffect(() => {
+    const searchCode = searchTerm.trim().toUpperCase();
+    if (searchCode.length === 6) {
+      // Check if we already have it locally
+      const existsLocally = brazilLeagues.some(l => l.leagueCode === searchCode);
+      if (!existsLocally) {
+        setIsSearching(true);
+        api.brazilLeagues.search(searchCode).then(data => {
+          if (data && data.length > 0) {
+            // Map the raw DB object to BrazilLeague
+            const raw = data[0];
+            const mappedLeague: BrazilLeague = {
+              id: raw.id, name: raw.name, description: raw.description, image: raw.image,
+              isPrivate: raw.is_private, adminId: raw.admin_id, participants: raw.participants || [],
+              pendingRequests: raw.pending_requests || [], leagueCode: raw.league_code,
+              settings: raw.settings
+            };
+            setSearchedPrivateLeague(mappedLeague);
+          } else {
+            setSearchedPrivateLeague(null);
+          }
+        }).catch(() => setSearchedPrivateLeague(null)).finally(() => setIsSearching(false));
+        return;
+      }
+    }
+    setSearchedPrivateLeague(null);
+  }, [searchTerm, brazilLeagues]);
+
   const myLeagues = brazilLeagues.filter(l => l.participants.includes(currentUser.id));
   const otherLeagues = brazilLeagues.filter(l => !l.participants.includes(currentUser.id));
+
+  // If a remote league was found and we don't already participate, include it in otherLeagues
+  if (searchedPrivateLeague && !searchedPrivateLeague.participants.includes(currentUser.id)) {
+    // Only add if not already in otherLeagues
+    if (!otherLeagues.some(l => l.id === searchedPrivateLeague.id)) {
+      otherLeagues.push(searchedPrivateLeague);
+    }
+  }
 
   const filterFn = (l: any) =>
     l.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
