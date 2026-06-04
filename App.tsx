@@ -823,95 +823,108 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       }
 
       // ─── FASE 2: Tudo em paralelo, filtrado por liga (Batch) ────────────────
-      const allLeagueIds = [...userLeagueIds, ...userBrazilLeagueIds];
-      
-      const leaguesData = leaguesRes.status === 'fulfilled' ? (leaguesRes.value || []) : [];
-      const brazilLeaguesData = brazilLeaguesRes.status === 'fulfilled' ? (brazilLeaguesRes.value || []) : [];
-      const allParticipantIds = [...new Set([
-        ...leaguesData.flatMap((l: any) => [...(l.participants || []), ...(l.pending_requests || [])]),
-        ...brazilLeaguesData.flatMap((l: any) => [...(l.participants || []), ...(l.pending_requests || [])])
-      ])];
+      if (currentUserRef.current?.isAdmin) {
+        const allLeagueIds = [...userLeagueIds, ...userBrazilLeagueIds];
+        
+        const leaguesData = leaguesRes.status === 'fulfilled' ? (leaguesRes.value || []) : [];
+        const brazilLeaguesData = brazilLeaguesRes.status === 'fulfilled' ? (brazilLeaguesRes.value || []) : [];
+        const allParticipantIds = [...new Set([
+          ...leaguesData.flatMap((l: any) => [...(l.participants || []), ...(l.pending_requests || [])]),
+          ...brazilLeaguesData.flatMap((l: any) => [...(l.participants || []), ...(l.pending_requests || [])])
+        ])];
 
-      const allResults = await Promise.allSettled([
-        api.brazilMatchGoals.list(),
-        api.brazilPlayers.list(),
-        api.topFinishersResult.get(),
-        userLeagueIds.length > 0 ? api.predictions.list(userLeagueIds) : Promise.resolve([]),
-        userBrazilLeagueIds.length > 0 ? api.brazilPredictions.list(userBrazilLeagueIds) : Promise.resolve([]),
-        allLeagueIds.length > 0 ? api.topFinisherPredictions.list(allLeagueIds) : Promise.resolve([]),
-        allParticipantIds.length > 0 ? api.profiles.getByIds(allParticipantIds) : Promise.resolve([])
-      ]);
+        const allResults = await Promise.allSettled([
+          api.brazilMatchGoals.list(),
+          api.brazilPlayers.list(),
+          api.topFinishersResult.get(),
+          userLeagueIds.length > 0 ? api.predictions.list(userLeagueIds) : Promise.resolve([]),
+          userBrazilLeagueIds.length > 0 ? api.brazilPredictions.list(userBrazilLeagueIds) : Promise.resolve([]),
+          allLeagueIds.length > 0 ? api.topFinisherPredictions.list(allLeagueIds) : Promise.resolve([]),
+          allParticipantIds.length > 0 ? api.profiles.getByIds(allParticipantIds) : Promise.resolve([])
+        ]);
 
-      const [goalsRes, playersRes, topResRes, stdPredsRes, brPredsRes, tfPredsRes, profRes] = allResults;
+        const [goalsRes, playersRes, topResRes, stdPredsRes, brPredsRes, tfPredsRes, profRes] = allResults;
 
-      // Metadados globais
-      if (goalsRes.status === 'fulfilled' && goalsRes.value) {
-        const mapped: BrazilMatchGoal[] = goalsRes.value.map((g: any) => ({ matchId: g.match_id, playerName: g.player_name, goals: g.goals }));
-        setBrazilMatchGoals(mapped);
-        try { localStorage.setItem('cache_brazil_goals', JSON.stringify(mapped)); } catch {}
-      }
-      if (playersRes.status === 'fulfilled' && playersRes.value) {
-        const mapped: BrazilPlayer[] = playersRes.value.map((p: any) => ({ id: p.id, name: p.name, position: p.position, is_active: p.is_active }));
-        setBrazilPlayers(mapped);
-        try { localStorage.setItem('cache_brazil_players', JSON.stringify(mapped)); } catch {}
-      }
-      if (topResRes.status === 'fulfilled' && topResRes.value) {
-        setTopFinishersResultState({
-          champion: topResRes.value.champion || '', runnerUp: topResRes.value.runner_up || '',
-          third: topResRes.value.third || '', fourth: topResRes.value.fourth || ''
-        });
-      }
-
-      // Palpites padrão
-      if (stdPredsRes.status === 'fulfilled' && stdPredsRes.value) {
-        const allPreds: Prediction[] = stdPredsRes.value.map((p: any) => ({
-          userId: p.user_id, matchId: p.match_id, leagueId: p.league_id,
-          homeScore: Number(p.home_score), awayScore: Number(p.away_score),
-          points: p.points ? Number(p.points) : 0
-        }));
-        if (allPreds.length > 0) {
-          setPredictions(allPreds);
-          try { localStorage.setItem('cache_predictions', JSON.stringify(allPreds)); } catch {}
+        // Metadados globais
+        if (goalsRes.status === 'fulfilled' && goalsRes.value) {
+          const mapped: BrazilMatchGoal[] = goalsRes.value.map((g: any) => ({ matchId: g.match_id, playerName: g.player_name, goals: g.goals }));
+          setBrazilMatchGoals(mapped);
+          try { localStorage.setItem('cache_brazil_goals', JSON.stringify(mapped)); } catch {}
         }
-      }
-
-      // Palpites Brasil
-      if (brPredsRes.status === 'fulfilled' && brPredsRes.value) {
-        const allBrazilPreds: BrazilPrediction[] = brPredsRes.value.map((p: any) => ({
-          userId: p.user_id, matchId: p.match_id, leagueId: p.league_id,
-          homeScore: Number(p.home_score), awayScore: Number(p.away_score),
-          playerPick: p.player_pick,
-          points: p.points ? Number(p.points) : 0,
-          goalscorerPoints: p.goalscorer_points ? Number(p.goalscorer_points) : 0
-        }));
-        if (allBrazilPreds.length > 0) {
-          setBrazilPredictions(allBrazilPreds);
-          try { localStorage.setItem('cache_brazil_predictions', JSON.stringify(allBrazilPreds)); } catch {}
+        if (playersRes.status === 'fulfilled' && playersRes.value) {
+          const mapped: BrazilPlayer[] = playersRes.value.map((p: any) => ({ id: p.id, name: p.name, position: p.position, is_active: p.is_active }));
+          setBrazilPlayers(mapped);
+          try { localStorage.setItem('cache_brazil_players', JSON.stringify(mapped)); } catch {}
         }
-      }
-
-      // Top Finisher Predictions
-      if (tfPredsRes.status === 'fulfilled' && tfPredsRes.value) {
-        const allTopPreds: TopFinisherPrediction[] = tfPredsRes.value.map((p: any) => ({
-          userId: p.user_id, leagueId: p.league_id,
-          champion: p.champion || '', runnerUp: p.runner_up || '',
-          third: p.third || '', fourth: p.fourth || ''
-        }));
-        if (allTopPreds.length > 0) {
-          setTopFinisherPredictions(allTopPreds);
-          try { localStorage.setItem('cache_top_finisher_preds', JSON.stringify(allTopPreds)); } catch {}
+        if (topResRes.status === 'fulfilled' && topResRes.value) {
+          setTopFinishersResultState({
+            champion: topResRes.value.champion || '', runnerUp: topResRes.value.runner_up || '',
+            third: topResRes.value.third || '', fourth: topResRes.value.fourth || ''
+          });
         }
-      }
 
-      // Perfis
-      if (profRes.status === 'fulfilled' && profRes.value) {
-        const mappedUsers: User[] = profRes.value.map((p: any) => ({
-          id: p.id, name: p.name, email: p.email, avatar: p.avatar, isAdmin: p.is_admin,
-          whatsapp: p.whatsapp || '', notificationSettings: p.notification_settings, theme: p.theme, isPro: p.is_pro
-        }));
-        if (mappedUsers.length > 0) {
-          setUsers(mappedUsers);
+        // Palpites padrão
+        if (stdPredsRes.status === 'fulfilled' && stdPredsRes.value) {
+          const allPreds: Prediction[] = stdPredsRes.value.map((p: any) => ({
+            userId: p.user_id, matchId: p.match_id, leagueId: p.league_id,
+            homeScore: Number(p.home_score), awayScore: Number(p.away_score),
+            points: p.points ? Number(p.points) : 0
+          }));
+          if (allPreds.length > 0) {
+            setPredictions(allPreds);
+            try { localStorage.setItem('cache_predictions', JSON.stringify(allPreds)); } catch {}
+          }
         }
+
+        // Palpites Brasil
+        if (brPredsRes.status === 'fulfilled' && brPredsRes.value) {
+          const allBrazilPreds: BrazilPrediction[] = brPredsRes.value.map((p: any) => ({
+            userId: p.user_id, matchId: p.match_id, leagueId: p.league_id,
+            homeScore: Number(p.home_score), awayScore: Number(p.away_score),
+            playerPick: p.player_pick,
+            points: p.points ? Number(p.points) : 0,
+            goalscorerPoints: p.goalscorer_points ? Number(p.goalscorer_points) : 0
+          }));
+          if (allBrazilPreds.length > 0) {
+            setBrazilPredictions(allBrazilPreds);
+            try { localStorage.setItem('cache_brazil_predictions', JSON.stringify(allBrazilPreds)); } catch {}
+          }
+        }
+
+        // Top Finisher Predictions
+        if (tfPredsRes.status === 'fulfilled' && tfPredsRes.value) {
+          const allTopPreds: TopFinisherPrediction[] = tfPredsRes.value.map((p: any) => ({
+            userId: p.user_id, leagueId: p.league_id,
+            champion: p.champion || '', runnerUp: p.runner_up || '',
+            third: p.third || '', fourth: p.fourth || ''
+          }));
+          if (allTopPreds.length > 0) {
+            setTopFinisherPredictions(allTopPreds);
+            try { localStorage.setItem('cache_top_finisher_preds', JSON.stringify(allTopPreds)); } catch {}
+          }
+        }
+
+        // Perfis
+        if (profRes.status === 'fulfilled' && profRes.value) {
+          const mappedUsers: User[] = profRes.value.map((p: any) => ({
+            id: p.id, name: p.name, email: p.email, avatar: p.avatar, isAdmin: p.is_admin,
+            whatsapp: p.whatsapp || '', notificationSettings: p.notification_settings, theme: p.theme, isPro: p.is_pro
+          }));
+          if (mappedUsers.length > 0) {
+            setUsers(mappedUsers);
+          }
+        }
+      } else {
+        // Usuário Comum: Baixa apenas topFinishersResult por segurança e metadados globais se precisar
+        try {
+          const topRes = await api.topFinishersResult.get();
+          if (topRes) {
+            setTopFinishersResultState({
+              champion: topRes.champion || '', runnerUp: topRes.runner_up || '',
+              third: topRes.third || '', fourth: topRes.fourth || ''
+            });
+          }
+        } catch(e) {}
       }
 
       if (currentUserRef.current?.email) {
@@ -1497,6 +1510,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     }
   };
 
+
+
   // -------------------------
 
   const deleteLeague = async (leagueId: string): Promise<boolean> => {
@@ -1780,10 +1795,12 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         ...(league.pendingRequests || league.pending_requests || [])
       ] : [];
 
-      const [predsRes, profilesRes, topRes] = await Promise.all([
+      const [predsRes, profilesRes, topRes, playersRes, goalsRes] = await Promise.all([
         isBrazil ? api.brazilPredictions.list(leagueId) : api.predictions.list(leagueId),
         participantIds.length > 0 ? api.profiles.getByIds(participantIds) : Promise.resolve([]),
-        api.topFinisherPredictions.list(leagueId)
+        api.topFinisherPredictions.list(leagueId),
+        isBrazil ? api.brazilPlayers.list() : Promise.resolve([]),
+        isBrazil ? api.brazilMatchGoals.list() : Promise.resolve([])
       ]);
 
       if (isBrazil) {
@@ -1830,6 +1847,18 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           mappedUsers.forEach(u => prevMap.set(u.id, u));
           return Array.from(prevMap.values());
         });
+      }
+
+      if (isBrazil) {
+        if (playersRes && playersRes.length > 0) {
+          const mapped: BrazilPlayer[] = playersRes.map((p: any) => ({ id: p.id, name: p.name, position: p.position, is_active: p.is_active }));
+          setBrazilPlayers(mapped);
+        }
+
+        if (goalsRes && goalsRes.length > 0) {
+          const mapped: BrazilMatchGoal[] = goalsRes.map((g: any) => ({ matchId: g.match_id, playerName: g.player_name, goals: g.goals }));
+          setBrazilMatchGoals(mapped);
+        }
       }
     } catch (e) {
       console.error("Error loading league data:", e);

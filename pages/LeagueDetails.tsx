@@ -100,14 +100,13 @@ export const LeagueDetails: React.FC = () => {
     // Find League
     const league = leagues.find(l => l.id === id);
 
-    // We no longer block rendering with loadLeagueData here.
-    // The data is fetched at app boot (fetchAllData).
-    // We can just rely on the global context data instantly.
-    
-    // Optional: Silent refresh in background without loading state
+    const [isLeagueLoading, setIsLeagueLoading] = useState(true);
+
     useEffect(() => {
         if (league) {
-            loadLeagueData(league.id, 'standard').catch(() => {});
+            setIsLeagueLoading(true);
+            loadLeagueData(league.id, 'standard')
+                .finally(() => setIsLeagueLoading(false));
         }
     }, [league?.id]);
 
@@ -328,7 +327,7 @@ export const LeagueDetails: React.FC = () => {
         fetchStats();
     }, [selectedMatchForStats, league?.id]);
 
-    if (loading) return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin text-brasil-green" size={48} /></div>;
+    if (loading || isLeagueLoading) return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin text-brasil-green" size={48} /></div>;
     if (!currentUser) return <Navigate to="/" replace />;
     if (!league) return <Navigate to="/leagues" />;
 

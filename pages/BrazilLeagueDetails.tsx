@@ -87,14 +87,13 @@ export const BrazilLeagueDetails: React.FC = () => {
     // Find League
     const league = leagues.find(l => l.id === id);
 
-    // We no longer block rendering with loadLeagueData here.
-    // The data is fetched at app boot (fetchAllData).
-    // We can just rely on the global context data instantly.
-    
-    // Optional: Silent refresh in background without loading state
+    const [isLeagueLoading, setIsLeagueLoading] = useState(true);
+
     useEffect(() => {
         if (league) {
-            loadLeagueData(league.id, 'brazil').catch(() => {});
+            setIsLeagueLoading(true);
+            loadLeagueData(league.id, 'brazil')
+                .finally(() => setIsLeagueLoading(false));
         }
     }, [league?.id]);
 
@@ -326,7 +325,7 @@ export const BrazilLeagueDetails: React.FC = () => {
         fetchStats();
     }, [selectedMatchForStats, league?.id]);
 
-    if (loading) return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin text-brasil-green" size={48} /></div>;
+    if (loading || isLeagueLoading) return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin text-brasil-green" size={48} /></div>;
     if (!currentUser) return <Navigate to="/" replace />;
     if (!league) return <Navigate to="/brazil-games" />;
 
@@ -933,10 +932,10 @@ export const BrazilLeagueDetails: React.FC = () => {
                             </div>
                             <div>
                                 <p className="text-sm font-black uppercase tracking-wider mb-1">Próximas Fases</p>
-                                <p className="text-sm font-medium leading-relaxed">
+                                <div className="text-sm font-medium leading-relaxed">
                                     Progressão Automática: Caso o Brasil passe de fase, os novos jogos da Seleção aparecerão automaticamente para palpites nesta liga!
-                                    <div>Essa competição só é finalizada quando o Brasil for eliminado ou chegar na fase Final.</div>
-                                </p>
+                                    <div className="mt-2">Essa competição só é finalizada quando o Brasil for eliminado ou chegar na fase Final.</div>
+                                </div>
                             </div>
                         </div>
 
