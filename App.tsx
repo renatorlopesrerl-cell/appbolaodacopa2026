@@ -822,6 +822,45 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         userBrazilLeagueIds = mappedBrazilLeagues.map(l => l.id);
       }
 
+      // ─── FASE 1.5: Carregar perfis pendentes para notificações do Admin ──────
+      if (currentUserRef.current) {
+        const adminPendingUserIds: string[] = [];
+        
+        const allMappedLeagues = leaguesRes.status === 'fulfilled' ? leaguesRes.value : [];
+        allMappedLeagues.forEach((l: any) => {
+          if (l.admin_id === currentUserRef.current?.id && l.pending_requests?.length > 0) {
+            adminPendingUserIds.push(...l.pending_requests);
+          }
+        });
+
+        const allMappedBrazilLeagues = brazilLeaguesRes.status === 'fulfilled' ? brazilLeaguesRes.value : [];
+        allMappedBrazilLeagues.forEach((l: any) => {
+          if (l.admin_id === currentUserRef.current?.id && l.pending_requests?.length > 0) {
+            adminPendingUserIds.push(...l.pending_requests);
+          }
+        });
+
+        if (adminPendingUserIds.length > 0) {
+          const uniqueIds = [...new Set(adminPendingUserIds)];
+          try {
+            const profRes = await api.profiles.getByIds(uniqueIds);
+            if (profRes && profRes.length > 0) {
+              const mappedUsers: User[] = profRes.map((p: any) => ({
+                id: p.id, name: p.name, email: p.email, avatar: p.avatar, isAdmin: p.is_admin,
+                whatsapp: p.whatsapp || '', notificationSettings: p.notification_settings, theme: p.theme, isPro: p.is_pro
+              }));
+              setUsers(prev => {
+                const newUsers = [...prev];
+                mappedUsers.forEach(mu => {
+                  if (!newUsers.some(u => u.id === mu.id)) newUsers.push(mu);
+                });
+                return newUsers;
+              });
+            }
+          } catch(e) { console.warn("Falha ao carregar perfis pendentes", e); }
+        }
+      }
+
       // ─── FASE 2: Tudo em paralelo, filtrado por liga (Batch) ────────────────
       if (currentUserRef.current?.isAdmin) {
         const allLeagueIds = [...userLeagueIds, ...userBrazilLeagueIds];
