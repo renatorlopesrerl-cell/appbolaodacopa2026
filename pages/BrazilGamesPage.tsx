@@ -240,7 +240,7 @@ export const BrazilGamesPage: React.FC = () => {
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
             {sortedMyLeagues.map(l => {
-              const validPendingCount = l.pendingRequests.filter(uid => users.some(u => u.id === uid)).length;
+              const validPendingCount = l.pendingRequests.length;
               return (
                 <Link to={`/brazil-league/${l.id}`} key={l.id} className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 hover:border-brasil-green dark:hover:border-green-500 transition-all group relative overflow-hidden">
                   <div className="flex justify-between items-start">

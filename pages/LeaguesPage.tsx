@@ -256,8 +256,8 @@ export const LeaguesPage: React.FC = () => {
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
             {sortedMyLeagues.map(l => {
-              // Only count pending requests from users that actually exist in the database
-              const validPendingCount = l.pendingRequests.filter(uid => users.some(u => u.id === uid)).length;
+              // Show pending requests badge directly from the league metadata array length
+              const validPendingCount = l.pendingRequests.length;
 
               return (
                 <Link to={`/league/${l.id}`} key={l.id} className="bg-white dark:bg-gray-800 p-5 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 hover:border-brasil-blue dark:hover:border-blue-500 transition-all group relative overflow-hidden">
