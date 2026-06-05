@@ -130,7 +130,7 @@ interface AppState {
   topFinishersResult: TopFinishersResult | null;
   submitTopFinisherPrediction: (leagueId: string, champion: string, runnerUp: string, third: string, fourth: string) => Promise<boolean>;
   setTopFinishersResult: (champion: string, runnerUp: string, third: string, fourth: string) => Promise<boolean>;
-  loadLeagueData: (leagueId: string, leagueType?: 'standard' | 'brazil') => Promise<void>;
+  loadLeagueData: (leagueId: string, leagueType?: 'standard' | 'brazil', forceRefresh?: boolean) => Promise<void>;
 }
 
 const AppContext = createContext<AppState | null>(null);
@@ -226,6 +226,8 @@ const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 };
 
 const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const lastFetchedLeaguesRef = useRef<Record<string, number>>({});
+  const activeFetchesRef = useRef<Record<string, Promise<void>>>({});
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [matches, setMatches] = useState<Match[]>(() => {
@@ -1799,9 +1801,22 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     }
   }, [currentTime, currentUser, loading, matches]);
 
-  const loadLeagueData = async (leagueId: string, leagueType: 'standard' | 'brazil' = 'standard') => {
-    try {
-      const isBrazil = leagueType === 'brazil';
+  const loadLeagueData = async (leagueId: string, leagueType: 'standard' | 'brazil' = 'standard', forceRefresh: boolean = false) => {
+    const CACHE_TIME = 5 * 60 * 1000; // 5 minutos
+    const now = Date.now();
+    const cacheKey = `${leagueType}_${leagueId}`;
+    
+    if (!forceRefresh && lastFetchedLeaguesRef.current[cacheKey] && (now - lastFetchedLeaguesRef.current[cacheKey] < CACHE_TIME)) {
+      return; // Retorna imediatamente pois os dados no contexto já estão atualizados pelo cache
+    }
+
+    if (!forceRefresh && activeFetchesRef.current[cacheKey]) {
+      return activeFetchesRef.current[cacheKey]; // Aguarda a chamada que já está em andamento (resolve o bug do Strict Mode / Race condition)
+    }
+    
+    const fetchPromise = (async () => {
+      try {
+        const isBrazil = leagueType === 'brazil';
 
       // Always fetch fresh league data from the server to get latest pending_requests and participants
       let freshLeague: any = null;
@@ -1902,10 +1917,18 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           setBrazilMatchGoals(mapped);
         }
       }
+      
+      lastFetchedLeaguesRef.current[cacheKey] = Date.now(); // Marca como carregado apenas após sucesso
     } catch (e) {
       console.error("Error loading league data:", e);
+    } finally {
+      delete activeFetchesRef.current[cacheKey]; // Limpa a promise ativa
     }
-  };
+  })();
+  
+  activeFetchesRef.current[cacheKey] = fetchPromise;
+  return fetchPromise;
+};
 
   return (
     <AppContext.Provider value={{
