@@ -49,8 +49,8 @@ export const AdminMatchesPage: React.FC = () => {
   const editingMatchRef = useRef<Match | null>(null);
   editingMatchRef.current = editingMatch;
 
-  // If not admin, show authorization block
-  if (!currentUser?.isAdmin) {
+  // If not admin and not match admin, show authorization block
+  if (!currentUser?.isAdmin && !currentUser?.isMatchAdmin) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] p-6 text-center">
         <div className="bg-red-50 dark:bg-red-900/20 p-8 rounded-2xl max-w-md w-full border border-red-100 dark:border-red-800">

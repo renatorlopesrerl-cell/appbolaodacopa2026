@@ -1,7 +1,7 @@
+import { getUserClient, jsonResponse, errorResponse, getSupabaseClient, extractTokens, processBulkNotifications } from '../_shared';
 
-import { getUserClient, jsonResponse, errorResponse, sendPushNotificationToUser, getSupabaseClient } from '../_shared';
-
-export const onRequest = async ({ request, env, data }: { request: Request, env: any, data: any }) => {
+export const onRequest = async (context: any) => {
+    const { request, env, data, waitUntil } = context;
     try {
         // middleware handles admin check
         const userClient = getUserClient(env, request);
@@ -35,27 +35,28 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                 }
 
                 if (title) {
-                    // Send to all users who have match notifications enabled
                     const supabase = getSupabaseClient(env);
-                    const { data: profiles } = await supabase
-                        .from('profiles')
-                        .select('id, notification_settings')
-                        .not('fcm_token', 'is', null);
+                    
+                    // Fetch profiles and tokens for bulk push
+                    const { data: users } = await supabase.from('profiles').select('id, notification_settings, fcm_token');
+                    const { data: tokenRows } = await supabase.from('user_fcm_tokens').select('user_id, token');
 
-                    if (profiles) {
-                        const tasks = profiles
-                            .filter(profile => {
-                                const settings = profile.notification_settings || {};
+                    if (users) {
+                        const userIdsToNotify = users
+                            .filter((u: any) => {
+                                const settings = u.notification_settings || {};
                                 const wantsStart = updates.status === 'IN_PROGRESS' && settings.matchStart !== false;
                                 const wantsEnd = updates.status === 'FINISHED' && settings.matchEnd !== false;
                                 return wantsStart || wantsEnd;
                             })
-                            .map(profile =>
-                                sendPushNotificationToUser(env, profile.id, title, bodyText, { url: '/table' })
-                                    .catch(err => console.error(`Push failed for ${profile.id}:`, err))
-                            );
+                            .map((u: any) => u.id);
 
-                        await Promise.all(tasks);
+                        const tokensToNotify = extractTokens(userIdsToNotify, users, tokenRows);
+
+                        if (tokensToNotify.length > 0) {
+                            // Run the bulk notification in the background
+                            waitUntil(processBulkNotifications(env, tokensToNotify, title, bodyText, { url: '/table' }));
+                        }
                     }
                 }
             }

@@ -63,7 +63,7 @@ export async function withRetry<T>(fn: () => Promise<{ data: T | null; error: an
 
 // ---- OAuth2 / JWT Helpers for FCM v1 (Web Crypto) ----
 
-async function getAccessToken(env: any) {
+export async function getAccessToken(env: any) {
     const clientEmail = env.FCM_CLIENT_EMAIL;
     const rawKey = env.FCM_PRIVATE_KEY;
 
@@ -242,5 +242,105 @@ export async function sendPushNotificationToUser(env: any, userId: string, title
     } catch (e: any) {
         console.error("Critical Push v1 error:", e);
         return { success: false, message: "Erro no serviço de notificações" };
+    }
+}
+
+// ---- Bulk Push Helpers (Scalability) ----
+
+export function extractTokens(userIds: string[], allUsers: any[], tokenRows: any[] | null): string[] {
+    const tokens = new Set<string>();
+    
+    // Mapa rápido da tabela user_fcm_tokens
+    const tokenMap = new Map<string, string[]>();
+    if (tokenRows) {
+        tokenRows.forEach((r: any) => {
+            if (!tokenMap.has(r.user_id)) tokenMap.set(r.user_id, []);
+            tokenMap.get(r.user_id)!.push(r.token);
+        });
+    }
+
+    // Mapa rápido dos profiles
+    const profileMap = new Map<string, any>();
+    allUsers.forEach((u: any) => profileMap.set(u.id, u));
+
+    for (const uid of userIds) {
+        let added = false;
+        if (tokenMap.has(uid)) {
+            tokenMap.get(uid)!.forEach(t => {
+                if (t && t.trim()) {
+                    tokens.add(t.trim());
+                    added = true;
+                }
+            });
+        }
+        
+        if (!added && profileMap.has(uid)) {
+            const legacyToken = profileMap.get(uid).fcm_token;
+            if (legacyToken && legacyToken.trim()) {
+                tokens.add(legacyToken.trim());
+            }
+        }
+    }
+
+    return Array.from(tokens);
+}
+
+export async function processBulkNotifications(env: any, tokens: string[], title: string, body: string, dataObj?: any) {
+    try {
+        console.log(`[Bulk Push] Iniciando envio para ${tokens.length} tokens.`);
+        const accessToken = await getAccessToken(env);
+        const projectId = (env.FCM_PROJECT_ID || "batepapobase").trim();
+        
+        const CHUNK_SIZE = 50;
+        let successCount = 0;
+        let failCount = 0;
+
+        for (let i = 0; i < tokens.length; i += CHUNK_SIZE) {
+            const chunk = tokens.slice(i, i + CHUNK_SIZE);
+            
+            const promises = chunk.map(token => {
+                return fetch(`https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${accessToken}`
+                    },
+                    body: JSON.stringify({
+                        message: {
+                            token: token.trim(),
+                            notification: { title, body },
+                            data: { 
+                                ...(dataObj || {}),
+                                click_action: "FLUTTER_NOTIFICATION_CLICK" 
+                            },
+                            android: { priority: "high" },
+                            webpush: {
+                                headers: { Urgency: "high" },
+                                notification: {
+                                    title: title,
+                                    body: body,
+                                    icon: "https://bolaodacopa2026.app/favicon.png"
+                                }
+                            }
+                        }
+                    })
+                }).then(res => res.json().then(data => ({ status: res.status, ok: res.ok, data })))
+                  .catch(err => ({ status: 500, ok: false, error: err }));
+            });
+
+            const results = await Promise.all(promises);
+            results.forEach(r => {
+                if (r.ok) successCount++;
+                else failCount++;
+            });
+
+            if (i + CHUNK_SIZE < tokens.length) {
+                await new Promise(res => setTimeout(res, 200));
+            }
+        }
+
+        console.log(`[Bulk Push] Finalizado. Sucessos: ${successCount}, Falhas: ${failCount}`);
+    } catch (error) {
+        console.error(`[Bulk Push] Erro crítico no background process:`, error);
     }
 }

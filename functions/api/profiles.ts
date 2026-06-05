@@ -47,7 +47,7 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                 // Busca apenas os perfis desses participantes
                 const { data, error } = await adminClient
                     .from('profiles')
-                    .select('id, email, name, avatar, is_admin, whatsapp, theme')
+                    .select('id, email, name, avatar, is_admin, is_match_admin, whatsapp, theme')
                     .in('id', participants);
                 
                 if (error) {
@@ -66,7 +66,7 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
             while (keepFetching) {
                 const { data: page, error: pageError } = await adminClient
                     .from('profiles')
-                    .select('id, email, name, avatar, is_admin, whatsapp, theme')
+                    .select('id, email, name, avatar, is_admin, is_match_admin, whatsapp, theme')
                     .range(offset, offset + step - 1);
 
                 if (pageError) {
@@ -98,7 +98,7 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                     const chunk = ids.slice(i, i + chunkSize);
                     const { data: chunk_data, error: chunk_err } = await adminClient
                         .from('profiles')
-                        .select('id, email, name, avatar, is_admin, whatsapp, theme')
+                        .select('id, email, name, avatar, is_admin, is_match_admin, whatsapp, theme')
                         .in('id', chunk);
                     if (chunk_data) results.push(...chunk_data);
                     if (chunk_err) console.error('[profiles POST getByIds] chunk error:', chunk_err.message);
@@ -122,7 +122,9 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                 return jsonResponse({ success: true, message: "Token registered" });
             }
 
-            // Sanitize input: Prevent is_admin escalation or Id spoofing
+            // Sanitize input: Prevent is_admin or is_match_admin escalation or Id spoofing
+            delete body.is_admin;
+            delete body.is_match_admin;
             const safeBody: any = {
                 id: authUser.id, // Enforce ID
                 email: body.email,

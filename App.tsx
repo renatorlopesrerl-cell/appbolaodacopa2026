@@ -468,6 +468,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             name: metadata.full_name || metadata.name || user.email?.split('@')[0] || 'Usuário',
             avatar: avatarUrl,
             isAdmin: metadata.is_admin || false,
+            isMatchAdmin: metadata.is_match_admin || false,
             whatsapp: metadata.whatsapp || '',
             notificationSettings: { matchStart: true, matchEnd: true },
             isPro: metadata.is_pro || false,
@@ -526,6 +527,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             name: metadata.full_name || metadata.name || user.email?.split('@')[0] || 'Usuário',
             avatar: avatarUrl,
             isAdmin: metadata.is_admin || false,
+            isMatchAdmin: metadata.is_match_admin || false,
             whatsapp: metadata.whatsapp || '',
             notificationSettings: { matchStart: true, matchEnd: true },
             isPro: metadata.is_pro || false,
@@ -677,6 +679,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           email: data.email || email,
           avatar: (data.avatar && data.avatar.trim() !== "") ? data.avatar : fallbackUser.avatar,
           isAdmin: data.is_admin === true,
+          isMatchAdmin: data.is_match_admin === true,
           whatsapp: data.whatsapp || '',
           notificationSettings: data.notification_settings || fallbackPrefs,
           theme: data.theme,
@@ -846,7 +849,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             const profRes = await api.profiles.getByIds(uniqueIds);
             if (profRes && profRes.length > 0) {
               const mappedUsers: User[] = profRes.map((p: any) => ({
-                id: p.id, name: p.name, email: p.email, avatar: p.avatar, isAdmin: p.is_admin,
+                id: p.id, name: p.name, email: p.email, avatar: p.avatar, isAdmin: p.is_admin, isMatchAdmin: p.is_match_admin,
                 whatsapp: p.whatsapp || '', notificationSettings: p.notification_settings, theme: p.theme, isPro: p.is_pro
               }));
               setUsers(prev => {
@@ -946,7 +949,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         // Perfis
         if (profRes.status === 'fulfilled' && profRes.value) {
           const mappedUsers: User[] = profRes.value.map((p: any) => ({
-            id: p.id, name: p.name, email: p.email, avatar: p.avatar, isAdmin: p.is_admin,
+            id: p.id, name: p.name, email: p.email, avatar: p.avatar, isAdmin: p.is_admin, isMatchAdmin: p.is_match_admin,
             whatsapp: p.whatsapp || '', notificationSettings: p.notification_settings, theme: p.theme, isPro: p.is_pro
           }));
           if (mappedUsers.length > 0) {
@@ -1077,7 +1080,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         }
 
         if (data.session) {
-          const newUser: User = { ...newUserDB, isAdmin: false, whatsapp: whatsapp || '', notificationSettings: newUserDB.notification_settings, isPro: false, theme: 'light', provider: 'email' };
+          const newUser: User = { ...newUserDB, isAdmin: false, isMatchAdmin: false, whatsapp: whatsapp || '', notificationSettings: newUserDB.notification_settings, isPro: false, theme: 'light', provider: 'email' };
           setCurrentUser(newUser);
           setUsers(prev => prev.some(u => u.id === newUser.id) ? prev : [...prev, newUser]);
         }
@@ -1535,7 +1538,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   };
 
   const setTopFinishersResult = async (champion: string, runnerUp: string, third: string, fourth: string): Promise<boolean> => {
-    if (!currentUser?.isAdmin) return false;
+    if (!currentUser?.isAdmin && !currentUser?.isMatchAdmin) return false;
     try {
       const result: TopFinishersResult = { champion, runnerUp, third, fourth };
       setTopFinishersResultState(result);
@@ -1878,7 +1881,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
       if (profilesRes && profilesRes.length > 0) {
         const mappedUsers: User[] = profilesRes.map((p: any) => ({
-          id: p.id, name: p.name, email: p.email, avatar: p.avatar, isAdmin: p.is_admin,
+          id: p.id, name: p.name, email: p.email, avatar: p.avatar, isAdmin: p.is_admin, isMatchAdmin: p.is_match_admin,
           whatsapp: p.whatsapp || '', notificationSettings: p.notification_settings, theme: p.theme, isPro: p.is_pro
         }));
         setUsers(prev => {

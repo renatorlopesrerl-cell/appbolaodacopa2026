@@ -1,5 +1,4 @@
-
-import { jsonResponse, errorResponse, sendPushNotificationToUser, getSupabaseClient } from './_shared';
+import { jsonResponse, errorResponse, getSupabaseClient, extractTokens, processBulkNotifications } from './_shared';
 
 /**
  * Master Maintenance Worker (Match Starter + Notifications)
@@ -8,7 +7,8 @@ import { jsonResponse, errorResponse, sendPushNotificationToUser, getSupabaseCli
  * 2. Sends "Match Started" notifications
  * 3. Sends "Prediction Reminders" (30 min before)
  */
-export const onRequest = async ({ request, env }: { request: Request, env: any }) => {
+export const onRequest = async (context: any) => {
+    const { request, env, waitUntil } = context;
     const url = new URL(request.url);
     const secretFromUrl = url.searchParams.get('secret');
 
@@ -29,15 +29,16 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
         const supabase = getSupabaseClient(env);
         const results = {
             matchesStarted: 0,
-            notificationsSent: 0,
-            remindersSent: 0
+            notificationsQueued: 0,
+            remindersQueued: 0
         };
 
         const now = new Date().toISOString();
 
+        // Arrays to hold all background jobs
+        const backgroundTasks: Promise<void>[] = [];
+
         // --- 1. START MATCHES AUTOMATICALLY (Internal Logic) ---
-        // We look for matches that are past their start time but still 'SCHEDULED'
-        // We update them to 'IN_PROGRESS' and set score to 0x0
         const { data: toStart } = await supabase
             .from('matches')
             .select('id, home_team_id, away_team_id')
@@ -45,6 +46,10 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
             .lte('date', now);
 
         if (toStart && toStart.length > 0) {
+            // Load profiles and tokens once if needed
+            const { data: users } = await supabase.from('profiles').select('id, notification_settings, fcm_token');
+            const { data: tokenRows } = await supabase.from('user_fcm_tokens').select('user_id, token');
+            
             for (const match of toStart) {
                 // Update Match to IN_PROGRESS
                 const { error: updateErr } = await supabase
@@ -59,30 +64,27 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
                 if (!updateErr) {
                     results.matchesStarted++;
 
-                    // --- 2. SEND START NOTIFICATION AFTER 10 SECONDS ---
-                    // Wait 10 seconds to ensure DB consistency and avoid sync issues
-                    await new Promise(resolve => setTimeout(resolve, 10000));
-
-                    const { data: users } = await supabase.from('profiles').select('id, notification_settings');
                     if (users) {
                         const title = "Jogo Iniciado! ⚽";
                         const bodyText = `A partida entre ${match.home_team_id} x ${match.away_team_id} começou!`;
 
-                        const tasks = users
-                            .filter(u => (u.notification_settings?.matchStart ?? true) !== false)
-                            .map(u => sendPushNotificationToUser(env, u.id, title, bodyText, { url: '/table' }));
+                        const userIdsToNotify = users
+                            .filter((u: any) => (u.notification_settings?.matchStart ?? true) !== false)
+                            .map((u: any) => u.id);
 
-                        await Promise.allSettled(tasks);
+                        const tokensToNotify = extractTokens(userIdsToNotify, users, tokenRows);
 
-                        // Mark as notified/started in results
-                        results.notificationsSent++;
+                        if (tokensToNotify.length > 0) {
+                            // Enqueue background task
+                            backgroundTasks.push(processBulkNotifications(env, tokensToNotify, title, bodyText, { url: '/table' }));
+                            results.notificationsQueued += tokensToNotify.length;
+                        }
                     }
                 }
             }
         }
 
         // --- 3. PREDICTION REMINDERS (30m before kickoff) ---
-        // We look for matches starting in about 30 minutes
         const nowObj = new Date();
         const windowStart = new Date(nowObj.getTime() + 28 * 60 * 1000).toISOString();
         const windowEnd = new Date(nowObj.getTime() + 30 * 60 * 1000).toISOString();
@@ -91,32 +93,44 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
             .from('matches')
             .select('id, home_team_id, away_team_id')
             .eq('status', 'SCHEDULED')
-            .eq('reminder_30m_sent', false) // Use DB flag to prevent duplicates
+            .eq('reminder_30m_sent', false)
             .gte('date', windowStart)
             .lte('date', windowEnd);
 
         if (upcomingMatches && upcomingMatches.length > 0) {
-            const { data: users } = await supabase.from('profiles').select('id, notification_settings');
+            const { data: users } = await supabase.from('profiles').select('id, notification_settings, fcm_token');
+            const { data: tokenRows } = await supabase.from('user_fcm_tokens').select('user_id, token');
+
             if (users) {
-                const wantsReminder = users.filter(u => (u.notification_settings?.predictionReminder ?? true) !== false);
-                for (const match of upcomingMatches) {
-                    const matchLabel = `${match.home_team_id} x ${match.away_team_id}`;
+                const userIdsToNotify = users
+                    .filter((u: any) => (u.notification_settings?.predictionReminder ?? true) !== false)
+                    .map((u: any) => u.id);
 
-                    const tasks = wantsReminder.map(u =>
-                        sendPushNotificationToUser(
-                            env,
-                            u.id,
-                            "Lembrete de Palpite ⏳",
-                            `O jogo ${matchLabel} vai começar em 30 minutos. Revise ou faça seu palpite!`,
-                            { url: '/leagues' }
-                        ).then(res => { if (res.success) results.remindersSent++; })
-                    );
-                    await Promise.allSettled(tasks);
+                const tokensToNotify = extractTokens(userIdsToNotify, users, tokenRows);
 
-                    // Mark as sent in DB
-                    await supabase.from('matches').update({ reminder_30m_sent: true }).eq('id', match.id);
+                if (tokensToNotify.length > 0) {
+                    for (const match of upcomingMatches) {
+                        const matchLabel = `${match.home_team_id} x ${match.away_team_id}`;
+                        const title = "Lembrete de Palpite ⏳";
+                        const bodyText = `O jogo ${matchLabel} vai começar em 30 minutos. Revise ou faça seu palpite!`;
+
+                        // Mark as sent in DB
+                        await supabase.from('matches').update({ reminder_30m_sent: true }).eq('id', match.id);
+
+                        backgroundTasks.push(processBulkNotifications(env, tokensToNotify, title, bodyText, { url: '/leagues' }));
+                        results.remindersQueued += tokensToNotify.length;
+                    }
+                } else {
+                    for (const match of upcomingMatches) {
+                        await supabase.from('matches').update({ reminder_30m_sent: true }).eq('id', match.id);
+                    }
                 }
             }
+        }
+
+        if (backgroundTasks.length > 0) {
+            // Processa todas as tarefas assíncronas em plano de fundo sem bloquear a resposta do webhook
+            waitUntil(Promise.all(backgroundTasks).catch(e => console.error("Error in background tasks", e)));
         }
 
         return jsonResponse({ success: true, results });

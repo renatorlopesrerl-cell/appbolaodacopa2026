@@ -298,7 +298,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             <Link to="/brazil-games" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/brazil-games')}`}>Modo BR</Link>
             <Link to="/como-jogar" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/como-jogar')}`}>Como Funciona</Link>
 
-            {currentUser?.isAdmin && (
+            {(currentUser?.isAdmin || currentUser?.isMatchAdmin) && (
               <Link id="admin-link" to="/admin" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap flex items-center gap-1 ${isActive('/admin')}`}>
                 <Settings size={16} />
                 Admin
@@ -391,7 +391,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             <Link onClick={() => setIsMenuOpen(false)} to="/leagues" className={`block px-3 py-2 rounded-md ${isActive('/leagues')}`}>Ligas</Link>
             <Link onClick={() => setIsMenuOpen(false)} to="/brazil-games" className={`block px-3 py-2 rounded-md ${isActive('/brazil-games')}`}>Modo BR</Link>
             <Link onClick={() => setIsMenuOpen(false)} to="/como-jogar" className={`block px-3 py-2 rounded-md ${isActive('/como-jogar')}`}>Como Funciona</Link>
-            {currentUser?.isAdmin && (
+            {(currentUser?.isAdmin || currentUser?.isMatchAdmin) && (
               <Link id="admin-link-mobile" onClick={() => setIsMenuOpen(false)} to="/admin" className={`block px-3 py-2 rounded-md ${isActive('/admin')}`}>Admin Painel</Link>
             )}
             <div className="mt-4 pt-4 border-t border-white/10">

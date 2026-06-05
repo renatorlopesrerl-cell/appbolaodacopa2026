@@ -2,12 +2,16 @@ import React, { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useStore } from '../App';
 import { api } from '../services/api';
-import { Settings, Shield, Database, ArrowLeft, Users, Bell, RefreshCw } from 'lucide-react';
+import { supabase } from '../services/supabase';
+import { Settings, Shield, Database, ArrowLeft, Users, Bell, RefreshCw, Send, AlertTriangle } from 'lucide-react';
 
 export const AdminPage: React.FC = () => {
   const navigate = useNavigate();
   const { currentUser, addNotification } = useStore();
   const [testPushLoading, setTestPushLoading] = useState(false);
+  const [broadcastLoading, setBroadcastLoading] = useState(false);
+  const [broadcastTitle, setBroadcastTitle] = useState('');
+  const [broadcastMessage, setBroadcastMessage] = useState('');
 
   const handleTestPush = async () => {
     setTestPushLoading(true);
@@ -29,8 +33,46 @@ export const AdminPage: React.FC = () => {
     }
   };
 
-  // If not admin, redirect
-  if (!currentUser?.isAdmin) {
+  const handleBroadcastPush = async () => {
+    if (!broadcastTitle.trim() || !broadcastMessage.trim()) {
+      addNotification('Campos obrigatórios', 'Preencha o título e a mensagem para enviar o broadcast.', 'warning');
+      return;
+    }
+
+    if (!window.confirm(`🚨 ATENÇÃO: Você está prestes a enviar uma notificação Push para TODOS os usuários ativos do sistema.\n\nTítulo: ${broadcastTitle}\n\nTem certeza absoluta?`)) {
+      return;
+    }
+
+    setBroadcastLoading(true);
+    try {
+      const response = await fetch('/api/admin/broadcast-push', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+        },
+        body: JSON.stringify({ title: broadcastTitle, message: broadcastMessage })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        addNotification('Broadcast Iniciado', data.message, 'success');
+        setBroadcastTitle('');
+        setBroadcastMessage('');
+      } else {
+        addNotification('Erro no Servidor', data.message || data.error, 'warning');
+      }
+    } catch (e: any) {
+      console.error("Broadcast Push Error:", e);
+      addNotification('Erro de Conexão', e.message || 'Não foi possível contatar o servidor.', 'warning');
+    } finally {
+      setBroadcastLoading(false);
+    }
+  };
+
+  // If not admin and not match admin, redirect
+  if (!currentUser?.isAdmin && !currentUser?.isMatchAdmin) {
     return <Navigate to="/" />;
   }
 
@@ -59,6 +101,7 @@ export const AdminPage: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto mt-8">
 
         {/* Card: Ligas */}
+        {currentUser?.isAdmin && (
         <button
           id="admin-leagues-btn"
           onClick={() => navigate('/admin/leagues')}
@@ -81,8 +124,10 @@ export const AdminPage: React.FC = () => {
             </div>
           </div>
         </button>
+        )}
 
         {/* Card: Modo BR */}
+        {currentUser?.isAdmin && (
         <button
           id="admin-brazil-leagues-btn"
           onClick={() => navigate('/admin/brazil-leagues')}
@@ -105,6 +150,7 @@ export const AdminPage: React.FC = () => {
             </div>
           </div>
         </button>
+        )}
 
         {/* Card: Jogos */}
         <button
@@ -131,6 +177,7 @@ export const AdminPage: React.FC = () => {
         </button>
 
         {/* Card: Test Push */}
+        {currentUser?.isAdmin && (
         <button
           id="admin-test-push-btn"
           disabled={testPushLoading}
@@ -154,8 +201,55 @@ export const AdminPage: React.FC = () => {
             </div>
           </div>
         </button>
+        )}
 
       </div>
+
+      {/* Seção Broadcast (Somente Super Admin) */}
+      {currentUser?.isAdmin && (
+        <div className="max-w-4xl mx-auto mt-8 bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="bg-red-50 dark:bg-red-900/20 px-6 py-4 border-b border-red-100 dark:border-red-900/50 flex items-center gap-3">
+            <div className="bg-red-100 dark:bg-red-800/50 p-2 rounded-lg">
+              <AlertTriangle size={24} className="text-red-600 dark:text-red-400" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-gray-800 dark:text-white">Disparo Global (Broadcast)</h2>
+              <p className="text-red-600 dark:text-red-400 text-sm font-medium">Envia uma notificação Push para TODOS os usuários ativos.</p>
+            </div>
+          </div>
+          <div className="p-6 space-y-4">
+            <div>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Título da Notificação</label>
+              <input
+                type="text"
+                value={broadcastTitle}
+                onChange={e => setBroadcastTitle(e.target.value)}
+                placeholder="Ex: Novo Jogo Adicionado!"
+                className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-brasil-blue outline-none text-gray-800 dark:text-white"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Mensagem</label>
+              <textarea
+                value={broadcastMessage}
+                onChange={e => setBroadcastMessage(e.target.value)}
+                placeholder="Digite a mensagem que aparecerá na tela do usuário..."
+                rows={3}
+                className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-brasil-blue outline-none text-gray-800 dark:text-white resize-none"
+              />
+            </div>
+            <button
+              onClick={handleBroadcastPush}
+              disabled={broadcastLoading || !broadcastTitle.trim() || !broadcastMessage.trim()}
+              className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide shadow-md"
+            >
+              <Send size={18} />
+              {broadcastLoading ? 'Iniciando Disparo...' : 'Disparar para todos os usuários'}
+            </button>
+          </div>
+        </div>
+      )}
+
     </div >
   );
 };

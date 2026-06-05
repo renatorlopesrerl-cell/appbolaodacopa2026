@@ -102,13 +102,21 @@ export const onRequest = async ({ request, env, next, data }) => {
             const { data: profile } = await retry(() =>
                 supabase
                     .from('profiles')
-                    .select('is_admin')
+                    .select('is_admin, is_match_admin')
                     .eq('id', userData.user.id)
                     .single()
             )
 
-            if (!profile?.is_admin) {
+            const isSuperAdmin = profile?.is_admin === true;
+            const isMatchAdmin = profile?.is_match_admin === true;
+
+            if (!isSuperAdmin && !isMatchAdmin) {
                 return withCors(new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403 }));
+            }
+
+            // Only Super Admins can access endpoints other than matches
+            if (!isSuperAdmin && isMatchAdmin && !request.url.includes('/admin/matches')) {
+                 return withCors(new Response(JSON.stringify({ error: 'Forbidden. Matches admin only.' }), { status: 403 }));
             }
         }
 

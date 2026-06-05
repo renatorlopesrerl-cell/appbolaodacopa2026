@@ -39,6 +39,7 @@ export interface User {
   email: string;
   avatar: string;
   isAdmin?: boolean;
+  isMatchAdmin?: boolean;
   whatsapp?: string;
   theme?: 'light' | 'dark'; // New field for theme preference
   notificationSettings?: {
