@@ -1944,11 +1944,11 @@ const CapacitorBackButtonHandler: React.FC = () => {
 
           console.log('Native Back Pressed. Current path:', path);
 
-          // Permite que componentes interceptem o botão voltar
-          const event = new CustomEvent('appBackButton', { cancelable: true });
-          const notCancelled = window.dispatchEvent(event);
+          // Permite que componentes interceptem o botão voltar usando um objeto mutável
+          const event = new CustomEvent('appBackButton', { detail: { handled: false } });
+          window.dispatchEvent(event);
 
-          if (!notCancelled) {
+          if (event.detail.handled) {
             console.log('Back button intercepted by a component');
             return;
           }

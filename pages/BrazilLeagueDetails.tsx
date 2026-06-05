@@ -227,7 +227,7 @@ export const BrazilLeagueDetails: React.FC = () => {
 
             // Se não estiver na aba palpites, intercepta o voltar e vai para palpites
             if (activeTab !== 'palpites') {
-                e.preventDefault();
+                e.detail.handled = true;
                 setActiveTab('palpites');
             }
         };
