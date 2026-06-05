@@ -208,7 +208,7 @@ const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { currentUser, loading } = useStore();
   if (loading) return <AppLoading />;
   if (!currentUser) return <Navigate to="/login" replace />;
-  if (!currentUser.isAdmin) {
+  if (!currentUser.isAdmin && !currentUser.isMatchAdmin) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 p-6 text-center">
         <div className="bg-red-50 dark:bg-red-900/20 p-6 rounded-2xl max-w-md w-full border border-red-100 dark:border-red-800">
