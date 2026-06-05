@@ -836,7 +836,7 @@ export const LeagueDetails: React.FC = () => {
                                     <LiveCountdown 
                                         date={topFinishersLockDate?.toISOString() || new Date().toISOString()} 
                                         isLocked={isLocked} 
-                                        className="flex items-center gap-1 text-yellow-300 bg-yellow-900/40 px-2 py-0.5 rounded-md text-[10px] font-bold shadow-sm border border-yellow-700/50 animate-fade-in"
+                                        className="flex items-center gap-1 text-yellow-300 bg-yellow-900/40 px-2 py-0.5 rounded-md text-[10px] font-bold shadow-sm border border-yellow-700/50 animate-fade-in whitespace-nowrap"
                                     />
                                 </div>
                             </div>
