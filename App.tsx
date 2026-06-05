@@ -1944,6 +1944,15 @@ const CapacitorBackButtonHandler: React.FC = () => {
 
           console.log('Native Back Pressed. Current path:', path);
 
+          // Permite que componentes interceptem o botão voltar
+          const event = new CustomEvent('appBackButton', { cancelable: true });
+          const notCancelled = window.dispatchEvent(event);
+
+          if (!notCancelled) {
+            console.log('Back button intercepted by a component');
+            return;
+          }
+
           // Se estiver na raiz ou na home, sai do app
           // Adicionamos check para paths vazios ou index.html que podem ocorrer no APK
           if (path === '/' || path === '/home' || path === '' || path.endsWith('index.html')) {

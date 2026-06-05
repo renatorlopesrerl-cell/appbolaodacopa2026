@@ -280,6 +280,25 @@ export const LeagueDetails: React.FC = () => {
         return () => window.removeEventListener('hashchange', handleHashChange);
     }, [selectedMatchForDetails, selectedMatchForStats, selectedUserId, showDeleteConfirm, showLeaveConfirm, showUpgradeModal, showTopFinishersModal, userToRemove]);
 
+    // --- CUSTOM BACK BUTTON HANDLER FOR TABS ---
+    useEffect(() => {
+        const handleAppBack = (e: any) => {
+            const isModalOpen = !!(selectedMatchForDetails || selectedMatchForStats || selectedUserId || showDeleteConfirm || showLeaveConfirm || showUpgradeModal || showTopFinishersModal || userToRemove || zoomedImage);
+            
+            // If a modal is open, let the default behavior (window.history.back) pop the hash
+            if (isModalOpen) return;
+
+            // Se não estiver na aba palpites, intercepta o voltar e vai para palpites
+            if (activeTab !== 'palpites') {
+                e.preventDefault();
+                setActiveTab('palpites');
+            }
+        };
+
+        window.addEventListener('appBackButton', handleAppBack);
+        return () => window.removeEventListener('appBackButton', handleAppBack);
+    }, [activeTab, selectedMatchForDetails, selectedMatchForStats, selectedUserId, showDeleteConfirm, showLeaveConfirm, showUpgradeModal, showTopFinishersModal, userToRemove, zoomedImage]);
+
 
     // --- SMART POLLING LOGIC ---
     useEffect(() => {

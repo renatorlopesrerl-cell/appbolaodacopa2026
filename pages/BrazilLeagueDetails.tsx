@@ -189,7 +189,7 @@ export const BrazilLeagueDetails: React.FC = () => {
 
     // --- MOBILE BACK BUTTON HANDLER FOR MODALS ---
     useEffect(() => {
-        const isModalOpen = !!(selectedMatchForDetails || selectedMatchForStats || selectedUserId || showDeleteConfirm || showLeaveConfirm || showUpgradeModal);
+        const isModalOpen = !!(selectedMatchForDetails || selectedMatchForStats || selectedUserId || showDeleteConfirm || showLeaveConfirm || showUpgradeModal || userToRemove);
 
         if (isModalOpen) {
             if (window.location.hash !== '#modal') {
@@ -209,12 +209,32 @@ export const BrazilLeagueDetails: React.FC = () => {
                 setShowDeleteConfirm(false);
                 setShowLeaveConfirm(false);
                 setShowUpgradeModal(false);
+                setUserToRemove(null);
             }
         };
 
         window.addEventListener('hashchange', handleHashChange);
         return () => window.removeEventListener('hashchange', handleHashChange);
-    }, [selectedMatchForDetails, selectedMatchForStats, selectedUserId, showDeleteConfirm, showLeaveConfirm, showUpgradeModal]);
+    }, [selectedMatchForDetails, selectedMatchForStats, selectedUserId, showDeleteConfirm, showLeaveConfirm, showUpgradeModal, userToRemove]);
+
+    // --- CUSTOM BACK BUTTON HANDLER FOR TABS ---
+    useEffect(() => {
+        const handleAppBack = (e: any) => {
+            const isModalOpen = !!(selectedMatchForDetails || selectedMatchForStats || selectedUserId || showDeleteConfirm || showLeaveConfirm || showUpgradeModal || userToRemove || zoomedImage);
+            
+            // If a modal is open, let the default behavior (window.history.back) pop the hash
+            if (isModalOpen) return;
+
+            // Se não estiver na aba palpites, intercepta o voltar e vai para palpites
+            if (activeTab !== 'palpites') {
+                e.preventDefault();
+                setActiveTab('palpites');
+            }
+        };
+
+        window.addEventListener('appBackButton', handleAppBack);
+        return () => window.removeEventListener('appBackButton', handleAppBack);
+    }, [activeTab, selectedMatchForDetails, selectedMatchForStats, selectedUserId, showDeleteConfirm, showLeaveConfirm, showUpgradeModal, userToRemove, zoomedImage]);
 
 
     // --- HELPER: Match Logic ---
