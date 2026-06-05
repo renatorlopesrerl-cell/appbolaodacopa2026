@@ -32,8 +32,26 @@ export const BrazilLeagueDetails: React.FC = () => {
         if (tabParam === 'admin') setActiveTab('admin');
         else if (tabParam === 'classificacao') setActiveTab('classificacao');
         else if (tabParam === 'regras') setActiveTab('regras');
+        else setActiveTab('palpites');
     }, [searchParams]);
 
+    const handleTabChange = (newTab: 'palpites' | 'classificacao' | 'regras' | 'admin') => {
+        if (newTab === activeTab) return;
+        
+        if (newTab === 'palpites') {
+            if (searchParams.has('tab')) {
+                navigate(-1);
+            } else {
+                setActiveTab('palpites');
+            }
+        } else {
+            if (activeTab === 'palpites') {
+                navigate(`?tab=${newTab}`);
+            } else {
+                navigate(`?tab=${newTab}`, { replace: true });
+            }
+        }
+    };
     // --- GLOBAL STATE (HOISTED) ---
 
     const [toast, setToast] = useState<{ title: string; message: string; type: 'success' | 'info' | 'warning' } | null>(null);
@@ -216,26 +234,6 @@ export const BrazilLeagueDetails: React.FC = () => {
         window.addEventListener('hashchange', handleHashChange);
         return () => window.removeEventListener('hashchange', handleHashChange);
     }, [selectedMatchForDetails, selectedMatchForStats, selectedUserId, showDeleteConfirm, showLeaveConfirm, showUpgradeModal, userToRemove]);
-
-    // --- CUSTOM BACK BUTTON HANDLER FOR TABS ---
-    useEffect(() => {
-        const handleAppBack = (e: any) => {
-            const isModalOpen = !!(selectedMatchForDetails || selectedMatchForStats || selectedUserId || showDeleteConfirm || showLeaveConfirm || showUpgradeModal || userToRemove || zoomedImage);
-            
-            // If a modal is open, let the default behavior (window.history.back) pop the hash
-            if (isModalOpen) return;
-
-            // Se não estiver na aba palpites, intercepta o voltar e vai para palpites
-            if (activeTab !== 'palpites') {
-                e.detail.handled = true;
-                setActiveTab('palpites');
-            }
-        };
-
-        window.addEventListener('appBackButton', handleAppBack);
-        return () => window.removeEventListener('appBackButton', handleAppBack);
-    }, [activeTab, selectedMatchForDetails, selectedMatchForStats, selectedUserId, showDeleteConfirm, showLeaveConfirm, showUpgradeModal, userToRemove, zoomedImage]);
-
 
     // --- HELPER: Match Logic ---
     const getMatchRound = (match: Match) => {
@@ -1658,7 +1656,7 @@ export const BrazilLeagueDetails: React.FC = () => {
             <div className="mb-6 space-y-4">
                 <div className="flex items-center justify-between mb-4">
                     <button onClick={() => navigate('/brazil-games')} className="flex items-center gap-2 text-sm font-bold text-brasil-blue hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors group"><div className="bg-blue-50 dark:bg-gray-800 p-1.5 rounded-full group-hover:bg-blue-100 dark:group-hover:bg-gray-700"><ArrowLeft size={18} /></div> Voltar</button>
-                    {isAdmin && validPendingRequestsCount > 0 && (<button onClick={() => setActiveTab('admin')} className="flex items-center gap-1.5 bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-full font-bold text-xs shadow-md transition-all animate-pulse hover:animate-none"><Bell size={14} fill="currentColor" /> {validPendingRequestsCount} pendentes</button>)}
+                    {isAdmin && validPendingRequestsCount > 0 && (<button onClick={() => handleTabChange('admin')} className="flex items-center gap-1.5 bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-full font-bold text-xs shadow-md transition-all animate-pulse hover:animate-none"><Bell size={14} fill="currentColor" /> {validPendingRequestsCount} pendentes</button>)}
                 </div>
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div className="flex items-center gap-4">
@@ -1708,10 +1706,10 @@ export const BrazilLeagueDetails: React.FC = () => {
             </div>
 
             <div className="flex gap-1 bg-gray-200 dark:bg-gray-700 p-1 rounded-lg mb-6 overflow-x-auto">
-                <button onClick={() => setActiveTab('palpites')} className={`flex-1 py-2 px-4 rounded-md text-sm font-bold transition-colors whitespace-nowrap ${activeTab === 'palpites' ? 'bg-white dark:bg-gray-600 shadow text-brasil-blue dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Palpites</button>
-                <button onClick={() => setActiveTab('classificacao')} className={`flex-1 py-2 px-4 rounded-md text-sm font-bold transition-colors whitespace-nowrap ${activeTab === 'classificacao' ? 'bg-white dark:bg-gray-600 shadow text-brasil-blue dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Classificação</button>
-                <button onClick={() => setActiveTab('regras')} className={`flex-1 py-2 px-4 rounded-md text-sm font-bold transition-colors whitespace-nowrap ${activeTab === 'regras' ? 'bg-white dark:bg-gray-600 shadow text-brasil-blue dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Regras</button>
-                {isAdmin && <button onClick={() => setActiveTab('admin')} className={`flex-1 py-2 px-4 rounded-md text-sm font-bold transition-colors whitespace-nowrap ${activeTab === 'admin' ? 'bg-white dark:bg-gray-600 shadow text-brasil-blue dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Admin {validPendingRequestsCount > 0 && <span className="ml-2 w-2 h-2 inline-block bg-red-500 rounded-full"></span>}</button>}
+                <button onClick={() => handleTabChange('palpites')} className={`flex-1 py-2 px-4 rounded-md text-sm font-bold transition-colors whitespace-nowrap ${activeTab === 'palpites' ? 'bg-white dark:bg-gray-600 shadow text-brasil-blue dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Palpites</button>
+                <button onClick={() => handleTabChange('classificacao')} className={`flex-1 py-2 px-4 rounded-md text-sm font-bold transition-colors whitespace-nowrap ${activeTab === 'classificacao' ? 'bg-white dark:bg-gray-600 shadow text-brasil-blue dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Classificação</button>
+                <button onClick={() => handleTabChange('regras')} className={`flex-1 py-2 px-4 rounded-md text-sm font-bold transition-colors whitespace-nowrap ${activeTab === 'regras' ? 'bg-white dark:bg-gray-600 shadow text-brasil-blue dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Regras</button>
+                {isAdmin && <button onClick={() => handleTabChange('admin')} className={`flex-1 py-2 px-4 rounded-md text-sm font-bold transition-colors whitespace-nowrap ${activeTab === 'admin' ? 'bg-white dark:bg-gray-600 shadow text-brasil-blue dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Admin {validPendingRequestsCount > 0 && <span className="ml-2 w-2 h-2 inline-block bg-red-500 rounded-full"></span>}</button>}
             </div>
 
             <div className="min-h-[400px]">
