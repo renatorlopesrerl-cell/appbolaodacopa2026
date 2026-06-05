@@ -143,7 +143,9 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                         pending_requests: updatedPending
                     }).eq('id', league.id);
 
-                    const requesterName = authUser.user_metadata?.full_name || authUser.email || "Um usuário";
+                    // Fetch the user's name from profiles to ensure it's displayed correctly
+                    const { data: profile } = await userClient.from('profiles').select('name').eq('id', authUser.id).maybeSingle();
+                    const requesterName = profile?.name || authUser.user_metadata?.full_name || authUser.email || "Um usuário";
                     const url = invite.league_type === 'brazil' ? `/brazil-league/${league.id}?tab=admin` : `/league/${league.id}?tab=admin`;
                     await sendPushNotificationToUser(
                         env,
