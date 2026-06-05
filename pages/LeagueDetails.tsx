@@ -13,6 +13,7 @@ import {
     Target, Mail, AlertTriangle, Camera, Upload, MessageCircle, Copy, Bell, Star, StarHalf, Infinity as InfinityIcon, Zap, BarChart2
 } from 'lucide-react';
 import { OptimizedImage } from '../components/OptimizedImage';
+import { LiveCountdown } from '../components/LiveCountdown';
 import { supabase } from '../services/supabase';
 
 
@@ -101,6 +102,16 @@ export const LeagueDetails: React.FC = () => {
     const league = leagues.find(l => l.id === id);
 
     const [isLeagueLoading, setIsLeagueLoading] = useState(true);
+    const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (zoomedImage) {
+            window.history.pushState({ zoomed: true }, '');
+            const handlePopState = () => setZoomedImage(null);
+            window.addEventListener('popstate', handlePopState);
+            return () => window.removeEventListener('popstate', handlePopState);
+        }
+    }, [zoomedImage]);
 
     useEffect(() => {
         if (league) {
@@ -1091,6 +1102,7 @@ export const LeagueDetails: React.FC = () => {
                                         {locked ? (
                                             match.status === MatchStatus.IN_PROGRESS ? <div className="bg-red-100 text-red-600 px-3 py-1 rounded-bl-lg text-[10px] font-bold flex items-center gap-1 animate-pulse"><Lock size={10} /> Em Andamento</div> : match.status === MatchStatus.FINISHED ? <div className="bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-300 px-3 py-1 rounded-bl-lg text-[10px] font-bold flex items-center gap-1"><Lock size={10} /> Finalizado</div> : <div className="bg-yellow-100 dark:bg-yellow-900 text-orange-600 dark:text-orange-300 px-3 py-1 rounded-bl-lg text-[10px] font-bold flex items-center gap-1"><Lock size={10} /> Palpite Encerrado</div>
                                         ) : userPred ? <div className="bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-300 px-3 py-1 rounded-bl-lg text-[10px] font-bold flex items-center gap-1"><CheckCircle2 size={10} /> Palpite Salvo</div> : <div className="bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 px-3 py-1 rounded-bl-lg text-[10px] font-bold flex items-center gap-1"><Unlock size={10} /> Palpite Aberto</div>}
+                                        <LiveCountdown date={match.date} isLocked={locked} />
                                     </div>
                                     {canClick && locked && <div className="absolute bottom-2 right-2 opacity-50 text-brasil-blue dark:text-blue-400"><Users size={16} /></div>}
                                     {canClick && !locked && <div className="absolute bottom-2 right-2 opacity-40 text-green-500 dark:text-green-400"><BarChart2 size={16} /></div>}
@@ -1164,7 +1176,7 @@ export const LeagueDetails: React.FC = () => {
                         {selectedMatchForDetails && detailsData && createPortal(
                             <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setSelectedMatchForDetails(null)}>
                                 <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-300" onClick={(e) => e.stopPropagation()}>
-                                    <div className="bg-brasil-blue dark:bg-blue-900 text-white p-4 shrink-0">
+                                    <div className="bg-gradient-to-r from-brasil-blue to-blue-500 dark:from-blue-900 dark:to-blue-700 text-white p-4 shrink-0">
                                         <div className="flex justify-between items-start mb-2"><h3 className="font-bold text-sm uppercase tracking-wide opacity-80">Palpites da Liga</h3><button onClick={() => setSelectedMatchForDetails(null)} className="p-1 hover:bg-white/20 rounded-full transition-colors"><X size={20} /></button></div>
                                         <div className="flex items-center justify-between gap-4"><div className="flex flex-col items-center w-1/3"><img src={getTeamFlag(detailsData.match.homeTeamId)} className="w-10 h-7 object-cover rounded shadow-sm mb-1" /><span className="text-xs font-bold text-center leading-tight">{detailsData.match.homeTeamId}</span></div><div className="flex flex-col items-center"><div className="text-2xl font-black bg-white/10 px-3 py-1 rounded-lg backdrop-blur-sm border border-white/20 whitespace-nowrap">{detailsData.match.homeScore ?? '-'} <span className="text-sm mx-1">x</span> {detailsData.match.awayScore ?? '-'}</div><span className={`text-[10px] mt-1 font-bold px-2 py-0.5 rounded-full ${detailsData.match.status === MatchStatus.IN_PROGRESS ? 'bg-red-500 text-white animate-pulse' : detailsData.match.status === MatchStatus.FINISHED ? 'bg-black/30 text-white' : 'bg-blue-800 text-blue-200'}`}>{detailsData.match.status === MatchStatus.IN_PROGRESS ? 'AO VIVO' : detailsData.match.status === MatchStatus.FINISHED ? 'ENCERRADO' : 'AGUARDANDO'}</span></div><div className="flex flex-col items-center w-1/3"><img src={getTeamFlag(detailsData.match.awayTeamId)} className="w-10 h-7 object-cover rounded shadow-sm mb-1" /><span className="text-xs font-bold text-center leading-tight">{detailsData.match.awayTeamId}</span></div></div>
                                     </div>
@@ -1356,6 +1368,7 @@ export const LeagueDetails: React.FC = () => {
                                 </div>, document.body
                             );
                         })()}
+
                     </div>
                 )}
             </div>
@@ -1395,35 +1408,23 @@ export const LeagueDetails: React.FC = () => {
                 </div>
                 <div className="w-full overflow-x-auto">
                     <table className="w-full text-sm md:text-base">
-                        <thead className="bg-brasil-blue dark:bg-blue-900 text-white"><tr><th className="px-2 py-3 text-center w-12 md:w-16 text-xs md:text-sm">Pos.</th><th className="px-2 py-3 text-left">Participantes</th><th className="hidden md:table-cell px-2 py-3 text-center w-20"><span className="flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-2 py-1 rounded font-bold whitespace-nowrap">Pontos</span></th><th className="hidden md:table-cell px-2 py-3 text-center w-20"><span className="flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-2 py-1 rounded whitespace-nowrap"><Target size={14} /> Cravadas</span></th><th className="hidden md:table-cell px-2 py-3 text-center w-16"><span className="flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-1.5 py-1 rounded whitespace-nowrap">V+S</span></th><th className="hidden md:table-cell px-2 py-3 text-center w-16"><span className="flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-1.5 py-1 rounded whitespace-nowrap">V+G</span></th><th className="hidden md:table-cell px-2 py-3 text-center w-16"><span className="flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-1.5 py-1 rounded whitespace-nowrap">Emp</span></th><th className="md:hidden px-2 py-3 text-center w-14 whitespace-nowrap">Pontos</th>{isAdmin && <th className="px-0 py-3 w-8"></th>}</tr></thead>
+                        <thead className="bg-brasil-blue dark:bg-blue-900 text-white"><tr><th className="px-2 py-3 text-center w-12 md:w-16 text-xs md:text-sm">Pos.</th><th className="px-2 py-3 text-left">Participantes</th><th className="hidden md:table-cell px-2 py-3 text-center w-20"><span className="flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-2 py-1 rounded font-bold whitespace-nowrap">Pontos</span></th><th className="hidden md:table-cell px-2 py-3 text-center w-20"><span className="flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-2 py-1 rounded whitespace-nowrap"><Target size={14} /> Cravadas</span></th><th className="hidden md:table-cell px-2 py-3 text-center w-16"><span className="flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-1.5 py-1 rounded whitespace-nowrap">V+S</span></th><th className="hidden md:table-cell px-2 py-3 text-center w-16"><span className="flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-1.5 py-1 rounded whitespace-nowrap">V+G</span></th><th className="hidden md:table-cell px-2 py-3 text-center w-16"><span className="flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-1.5 py-1 rounded whitespace-nowrap">Emp</span></th><th className="md:hidden px-2 py-3 text-center w-20 whitespace-nowrap">Pontos</th>{isAdmin && <th className="px-0 py-3 w-8"></th>}</tr></thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                         {filteredLeaderboard.length === 0 ? <tr><td colSpan={7} className="text-center py-8 text-gray-400 italic">Nenhum participante encontrado.</td></tr> : filteredLeaderboard.map((entry, idx) => {
                             const rank = idx + 1; return (<tr key={entry.user.id} className={entry.user.id === currentUser.id ? 'bg-yellow-50 dark:bg-yellow-900/20' : ''}><td className="px-2 py-3 font-bold text-center text-sm align-middle">{rank === 1 ? <div className="w-6 h-6 mx-auto bg-yellow-400 text-yellow-900 rounded-full flex items-center justify-center shadow-sm font-black text-xs">1</div> : rank === 2 ? <div className="w-6 h-6 mx-auto bg-gray-300 text-gray-800 rounded-full flex items-center justify-center shadow-sm font-black text-xs">2</div> : rank === 3 ? <div className="w-6 h-6 mx-auto bg-orange-400 text-orange-900 rounded-full flex items-center justify-center shadow-sm font-black text-xs">3</div> : <span className="text-gray-500 dark:text-gray-400">{rank}</span>}</td><td className="px-2 py-3 relative w-full max-w-[130px] sm:max-w-[200px] md:max-w-none"><div className="flex items-center gap-2 md:gap-3 cursor-pointer group" onClick={() => setSelectedUserId(entry.user.id)}>
-                                <OptimizedImage
-                                    src={entry.user.avatar}
-                                    containerClassName="w-8 h-8 md:w-10 md:h-10 rounded-full"
-                                    className="w-full h-full object-cover"
-                                    alt=""
-                                />
+                                <div onClick={(e) => { e.stopPropagation(); setZoomedImage(entry.user.avatar); }}>
+                                    <OptimizedImage
+                                        src={entry.user.avatar}
+                                        containerClassName="w-10 h-10 md:w-12 md:h-12 rounded-full cursor-pointer hover:ring-2 hover:ring-brasil-blue transition-all"
+                                        className="w-full h-full object-cover"
+                                        alt=""
+                                    />
+                                </div>
                                 <div className="flex flex-col min-w-0 flex-1">
-                                    <span className="font-medium decoration-dotted decoration-gray-400 dark:decoration-gray-500 underline-offset-4 group-hover:text-brasil-blue dark:group-hover:text-blue-400 group-hover:underline text-sm md:text-base line-clamp-1 text-gray-900 dark:text-white flex items-center gap-1 truncate">
+                                    <span className="font-medium decoration-dotted decoration-gray-400 dark:decoration-gray-500 underline-offset-4 group-hover:text-brasil-blue dark:group-hover:text-blue-400 group-hover:underline text-base md:text-lg line-clamp-1 text-gray-900 dark:text-white flex items-center gap-1 truncate">
                                         {entry.user.name} {entry.user.id === currentUser.id && <span className="text-[10px] font-normal text-gray-500 dark:text-gray-400 shrink-0">(Você)</span>}
                                     </span>
-                                    <div className="md:hidden flex flex-nowrap items-center gap-0.5 mt-1.5 overflow-visible">
-                                        <span className="flex items-center gap-0.5 text-[8px] sm:text-[9px] font-bold bg-blue-50 dark:bg-blue-900/30 text-brasil-blue dark:text-blue-400 px-1 py-0.5 rounded shadow-sm border border-blue-100 dark:border-blue-800 whitespace-nowrap">
-                                            <Target size={8} /> {entry.exactScores} Crv
-                                        </span>
-                                        <span className="flex items-center gap-0.5 text-[8px] sm:text-[9px] font-bold bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-1 py-0.5 rounded shadow-sm border border-green-100 dark:border-green-800 whitespace-nowrap">
-                                            {entry.winnerAndDiffCount} V+S
-                                        </span>
-                                        <span className="flex items-center gap-0.5 text-[8px] sm:text-[9px] font-bold bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 px-1 py-0.5 rounded shadow-sm border border-yellow-100 dark:border-yellow-800 whitespace-nowrap">
-                                            {entry.winnerAndWinnerGoalsCount} V+G
-                                        </span>
-                                        <span className="flex items-center gap-0.5 text-[8px] sm:text-[9px] font-bold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-1 py-0.5 rounded shadow-sm border border-gray-200 dark:border-gray-700 whitespace-nowrap">
-                                            {entry.drawCount} Emp
-                                        </span>
-                                    </div>
-                                </div><Eye size={16} className="text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity ml-auto hidden md:block" /></div></td><td className="hidden md:table-cell px-2 py-3 text-center font-black text-gray-800 dark:text-gray-200 text-base">
+                                </div><Eye size={16} className="text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity ml-auto hidden md:block" /></div></td><td className="hidden md:table-cell px-2 py-3 text-center font-black text-gray-800 dark:text-gray-200 text-base md:text-lg whitespace-nowrap">
                                     <div className="flex flex-col items-center justify-center">
                                         <span>{entry.totalPoints}</span>
                                         {entry.tfTotal > 0 && (
@@ -1432,7 +1433,7 @@ export const LeagueDetails: React.FC = () => {
                                             </span>
                                         )}
                                     </div>
-                                </td><td className="hidden md:table-cell px-2 py-3 text-center"><span className="bg-blue-50 dark:bg-blue-900/30 text-brasil-blue dark:text-blue-300 font-bold px-2 py-1 rounded text-sm">{entry.exactScores}</span></td><td className="hidden md:table-cell px-2 py-3 text-center"><span className="bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-bold px-2 py-1 rounded text-sm">{entry.winnerAndDiffCount}</span></td><td className="hidden md:table-cell px-2 py-3 text-center"><span className="bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 font-bold px-2 py-1 rounded text-sm">{entry.winnerAndWinnerGoalsCount}</span></td><td className="hidden md:table-cell px-2 py-3 text-center"><span className="bg-gray-100 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 font-bold px-2 py-1 rounded text-sm">{entry.drawCount}</span></td><td className="md:hidden px-2 py-3 text-center font-bold text-brasil-green dark:text-green-400 text-base">
+                                </td><td className="hidden md:table-cell px-2 py-3 text-center"><span className="bg-blue-50 dark:bg-blue-900/30 text-brasil-blue dark:text-blue-300 font-bold px-2 py-1 rounded text-sm">{entry.exactScores}</span></td><td className="hidden md:table-cell px-2 py-3 text-center"><span className="bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-bold px-2 py-1 rounded text-sm">{entry.winnerAndDiffCount}</span></td><td className="hidden md:table-cell px-2 py-3 text-center"><span className="bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 font-bold px-2 py-1 rounded text-sm">{entry.winnerAndWinnerGoalsCount}</span></td><td className="hidden md:table-cell px-2 py-3 text-center"><span className="bg-gray-100 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 font-bold px-2 py-1 rounded text-sm">{entry.drawCount}</span></td><td className="md:hidden px-2 py-3 text-center font-bold text-brasil-green dark:text-green-400 text-base md:text-lg whitespace-nowrap">
                                     <div className="flex flex-col items-center justify-center">
                                         <span>{entry.totalPoints}</span>
                                         {entry.tfTotal > 0 && (
@@ -1449,7 +1450,19 @@ export const LeagueDetails: React.FC = () => {
                 {selectedUserId && selectedUser && createPortal(
                     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setSelectedUserId(null)}>
                         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-300" onClick={(e) => e.stopPropagation()}>
-                            <div className="bg-brasil-blue dark:bg-blue-900 text-white p-4 flex justify-between items-center shrink-0"><div className="flex items-center gap-3"><OptimizedImage src={selectedUser.avatar} containerClassName="w-10 h-10 rounded-full border-2 border-white/30" className="w-full h-full object-cover" alt="" /><div><h3 className="font-bold text-lg leading-tight">{selectedUser.name}</h3><p className="text-xs text-blue-200">Histórico de Palpites</p></div></div><button onClick={() => setSelectedUserId(null)} className="p-2 hover:bg-white/20 rounded-full transition-colors"><X size={20} /></button></div>
+                            <div className="bg-brasil-blue dark:bg-blue-900 text-white p-4 flex justify-between items-center shrink-0"><div className="flex items-center gap-3"><div onClick={(e) => { e.stopPropagation(); setZoomedImage(selectedUser.avatar); }} className="cursor-pointer hover:ring-2 hover:ring-white/50 rounded-full transition-all"><OptimizedImage src={selectedUser.avatar} containerClassName="w-10 h-10 rounded-full border-2 border-white/30" className="w-full h-full object-cover" alt="" /></div><div><h3 className="font-bold text-lg leading-tight">{selectedUser.name}</h3><p className="text-xs text-blue-200">Histórico de Palpites</p></div></div><button onClick={() => setSelectedUserId(null)} className="p-2 hover:bg-white/20 rounded-full transition-colors"><X size={20} /></button></div>
+                            {(() => {
+                                const selEntry = leaderboard.find(e => e.user.id === selectedUserId);
+                                if (!selEntry) return null;
+                                return (
+                                    <div className="flex flex-nowrap items-center justify-between px-4 py-2 bg-blue-50 dark:bg-blue-900/40 border-b border-blue-100 dark:border-blue-800/50">
+                                        <span className="flex items-center gap-1 text-sm font-bold text-brasil-blue dark:text-blue-400" title="Cravadas"><Target size={14} /> {selEntry.exactScores} Cravadas</span>
+                                        <span className="flex items-center gap-1 text-sm font-bold text-green-700 dark:text-green-400" title="Vencedor + Saldo">{selEntry.winnerAndDiffCount} V+S</span>
+                                        <span className="flex items-center gap-1 text-sm font-bold text-yellow-700 dark:text-yellow-400" title="Vencedor + Gols">{selEntry.winnerAndWinnerGoalsCount} V+G</span>
+                                        <span className="flex items-center gap-1 text-sm font-bold text-gray-600 dark:text-gray-400" title="Empate">{selEntry.drawCount} Emp</span>
+                                    </div>
+                                );
+                            })()}
                             <div className="bg-gray-50 dark:bg-gray-700 p-3 border-b border-gray-200 dark:border-gray-600 flex flex-col gap-2 shrink-0">
                                 <div className="flex justify-between items-center px-1"><div className="flex items-center gap-2"><span className="text-xs font-bold text-gray-500 dark:text-gray-300 uppercase flex items-center gap-1"><Filter size={12} /> Filtrar Jogos</span>{hasHistoryFilters && (<button onClick={clearHistoryFilters} className="text-[10px] font-bold text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors flex items-center gap-1 bg-white dark:bg-gray-600 border border-red-200 dark:border-red-800 px-2 py-0.5 rounded shadow-sm"><X size={10} /> Limpar</button>)}</div><span className="text-[10px] bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded font-bold">{filteredHistory.length} resultados</span></div>
                                 <div className="flex flex-wrap gap-2 pb-1"><select value={histPhase} onChange={(e) => { setHistPhase(e.target.value); if (e.target.value !== Phase.GROUP) { setHistGroup('all'); setHistRound('all'); } }} className="w-full sm:w-auto flex-1 min-w-[120px] text-xs border border-gray-600 bg-gray-700 text-white rounded-lg p-2 outline-none focus:border-brasil-blue focus:ring-1 focus:ring-brasil-blue"><option value="all">Todas as Fases</option>{Object.values(Phase).map(p => <option key={p} value={p}>{p}</option>)}</select>{(histPhase === 'all' || histPhase === Phase.GROUP) && (<><select value={histGroup} onChange={(e) => setHistGroup(e.target.value)} className="flex-1 min-w-[45%] text-xs border border-gray-600 bg-gray-700 text-white rounded-lg p-2 outline-none focus:border-brasil-blue focus:ring-1 focus:ring-brasil-blue"><option value="all">Todos Grupos</option>{groupsList.map(g => <option key={g} value={g}>Grupo {g}</option>)}</select><select value={histRound} onChange={(e) => setHistRound(e.target.value)} className="flex-1 min-w-[45%] text-xs border border-gray-600 bg-gray-700 text-white rounded-lg p-2 outline-none focus:border-brasil-blue focus:ring-1 focus:ring-brasil-blue"><option value="all">Todas Rodadas</option><option value="1">1ª Rodada</option><option value="2">2ª Rodada</option><option value="3">3ª Rodada</option></select></>)}</div>
@@ -1845,12 +1858,14 @@ export const LeagueDetails: React.FC = () => {
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                     <div className="flex items-center gap-4">
                         {league.image ? (
-                            <OptimizedImage
-                                src={league.image}
-                                alt={league.name}
-                                containerClassName="w-16 h-16 rounded-full object-cover border-4 border-gray-50 dark:border-gray-700 shadow-sm"
-                                className="w-full h-full object-cover"
-                            />
+                            <div onClick={() => setZoomedImage(league.image)} className="cursor-pointer hover:ring-2 hover:ring-brasil-blue rounded-full transition-all">
+                                <OptimizedImage
+                                    src={league.image}
+                                    alt={league.name}
+                                    containerClassName="w-16 h-16 rounded-full object-cover border-4 border-gray-50 dark:border-gray-700 shadow-sm"
+                                    className="w-full h-full object-cover"
+                                />
+                            </div>
                         ) : (<div className="w-16 h-16 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-brasil-blue dark:text-blue-400"><Trophy size={32} /></div>)}
                         <div>
                             <h1 className="text-2xl font-black text-gray-800 dark:text-white">{league.name}</h1>
@@ -1899,7 +1914,13 @@ export const LeagueDetails: React.FC = () => {
                 {activeTab === 'admin' && renderAdminTab()}
             </div>
 
-
+            {/* ZOOMED IMAGE MODAL */}
+            {zoomedImage && createPortal(
+                <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200" onClick={() => setZoomedImage(null)}>
+                    <button onClick={() => setZoomedImage(null)} className="absolute top-4 right-4 text-white hover:text-gray-300 p-2"><X size={32} /></button>
+                    <img src={zoomedImage} alt="Zoom" className="max-w-full max-h-full object-contain rounded-lg animate-in zoom-in duration-300 shadow-2xl" onClick={e => e.stopPropagation()} />
+                </div>, document.body
+            )}
         </div>
     );
 };
