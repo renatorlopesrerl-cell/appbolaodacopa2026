@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Timer } from 'lucide-react';
 
-export const LiveCountdown: React.FC<{ date: string; isLocked: boolean }> = ({ date, isLocked }) => {
+export const LiveCountdown: React.FC<{ date: string; isLocked: boolean; className?: string }> = ({ date, isLocked, className }) => {
   const [timeLeft, setTimeLeft] = useState('');
   
   useEffect(() => {
@@ -44,8 +44,10 @@ export const LiveCountdown: React.FC<{ date: string; isLocked: boolean }> = ({ d
 
   if (isLocked || !timeLeft) return null;
 
+  const defaultClasses = "flex items-center justify-end gap-1 text-yellow-800 dark:text-yellow-200 text-[10px] sm:text-xs font-bold bg-yellow-50 dark:bg-yellow-900/20 px-2 py-0.5 rounded-bl-lg shadow-sm border border-yellow-100 dark:border-yellow-800/50 absolute right-0 top-7 animate-fade-in";
+  
   return (
-    <div className="flex items-center justify-end gap-1 text-yellow-800 dark:text-yellow-200 text-[10px] sm:text-xs font-bold mt-1 pr-1 bg-yellow-50 dark:bg-yellow-900/20 px-2 py-0.5 rounded-bl-lg shadow-sm border border-yellow-100 dark:border-yellow-800/50 absolute right-0 top-7 animate-fade-in">
+    <div className={className || defaultClasses}>
       <Timer size={12} className="animate-pulse" />
       <span>{timeLeft}</span>
     </div>

@@ -824,13 +824,20 @@ export const LeagueDetails: React.FC = () => {
                                         </p>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    {isLocked && <Eye size={16} className="text-gray-400 group-hover:text-white transition-colors" />}
-                                    {existingPred && (
-                                        <span className="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2.5 py-1 rounded-full font-bold tracking-wide flex items-center gap-1">
-                                            <CheckCircle2 size={10} /> SALVO
-                                        </span>
-                                    )}
+                                <div className="flex flex-col items-end gap-1">
+                                    <div className="flex items-center gap-2">
+                                        {isLocked && <Eye size={16} className="text-gray-400 group-hover:text-white transition-colors" />}
+                                        {existingPred && (
+                                            <span className="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2.5 py-1 rounded-full font-bold tracking-wide flex items-center gap-1">
+                                                <CheckCircle2 size={10} /> SALVO
+                                            </span>
+                                        )}
+                                    </div>
+                                    <LiveCountdown 
+                                        date={topFinishersLockDate?.toISOString() || new Date().toISOString()} 
+                                        isLocked={isLocked} 
+                                        className="flex items-center gap-1 text-yellow-300 bg-yellow-900/40 px-2 py-0.5 rounded-md text-[10px] font-bold shadow-sm border border-yellow-700/50 animate-fade-in"
+                                    />
                                 </div>
                             </div>
 
