@@ -2003,6 +2003,16 @@ const CapacitorBackButtonHandler: React.FC = () => {
   return null;
 };
 
+const OfflineRedirect: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { connectionError } = useStore();
+  const location = useLocation();
+  
+  if (connectionError && location.pathname !== '/' && location.pathname !== '/table' && location.pathname !== '/login') {
+    return <Navigate to="/" replace />;
+  }
+  return <>{children}</>;
+};
+
 const AppRoutes: React.FC = () => {
   const { currentUser, loading, connectionError, retryConnection, isRecoveryMode } = useStore();
 
@@ -2014,34 +2024,36 @@ const AppRoutes: React.FC = () => {
     <BrowserRouter>
       <CapacitorBackButtonHandler />
       <Layout>
-        <Routes>
-          <Route path="/" element={isRecoveryMode ? <Navigate to="/reset-password" /> : <Home />} />
-          <Route path="/table" element={isRecoveryMode ? <Navigate to="/reset-password" /> : <TablePage />} />
-          <Route path="/leagues" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <LeaguesPage /> : <Navigate to="/" />)} />
-          <Route path="/league/:id" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <LeagueDetails /> : <Navigate to="/" />)} />
-          <Route path="/brazil-games" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <BrazilGamesPage /> : <Navigate to="/" />)} />
-          <Route path="/brazil-league/:id" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <BrazilLeagueDetails /> : <Navigate to="/" />)} />
-          <Route path="/simulador" element={currentUser ? <SimulatePage /> : <Navigate to="/" />} />
-          <Route path="/como-jogar" element={<HowToPlay />} />
-          <Route path="/bolao-copa-2026" element={<SEOLanding variant="bolao" />} />
-          <Route path="/simulador-copa-2026" element={<SEOLanding variant="simulador" />} />
-          <Route path="/tabela-copa-2026" element={<SEOLanding variant="tabela" />} />
-          <Route path="/bolao-jogos-do-brasil" element={<SEOLanding variant="brazil" />} />
-          <Route path="/termos" element={<TermsPage />} />
-          <Route path="/privacidade" element={<PrivacyPage />} />
-          <Route path="/exclusao-conta" element={<AccountDeletionPage />} />
-          <Route path="/reset-password" element={<ResetPasswordPage />} />
-          <Route path="/profile" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <ProfilePage /> : <Navigate to="/" />)} />
+        <OfflineRedirect>
+          <Routes>
+            <Route path="/" element={isRecoveryMode ? <Navigate to="/reset-password" /> : <Home />} />
+            <Route path="/table" element={isRecoveryMode ? <Navigate to="/reset-password" /> : <TablePage />} />
+            <Route path="/leagues" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <LeaguesPage /> : <Navigate to="/" />)} />
+            <Route path="/league/:id" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <LeagueDetails /> : <Navigate to="/" />)} />
+            <Route path="/brazil-games" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <BrazilGamesPage /> : <Navigate to="/" />)} />
+            <Route path="/brazil-league/:id" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <BrazilLeagueDetails /> : <Navigate to="/" />)} />
+            <Route path="/simulador" element={currentUser ? <SimulatePage /> : <Navigate to="/" />} />
+            <Route path="/como-jogar" element={<HowToPlay />} />
+            <Route path="/bolao-copa-2026" element={<SEOLanding variant="bolao" />} />
+            <Route path="/simulador-copa-2026" element={<SEOLanding variant="simulador" />} />
+            <Route path="/tabela-copa-2026" element={<SEOLanding variant="tabela" />} />
+            <Route path="/bolao-jogos-do-brasil" element={<SEOLanding variant="brazil" />} />
+            <Route path="/termos" element={<TermsPage />} />
+            <Route path="/privacidade" element={<PrivacyPage />} />
+            <Route path="/exclusao-conta" element={<AccountDeletionPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
+            <Route path="/profile" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <ProfilePage /> : <Navigate to="/" />)} />
 
-          <Route path="/admin" element={isRecoveryMode ? <Navigate to="/reset-password" /> : <AdminRoute><AdminPage /></AdminRoute>} />
-          <Route path="/admin/leagues" element={<AdminRoute><AdminLeaguesPage /></AdminRoute>} />
-          <Route path="/admin/brazil-leagues" element={<AdminRoute><AdminBrazilLeaguesPage /></AdminRoute>} />
-          <Route path="/admin/matches" element={<AdminRoute><AdminMatchesPage /></AdminRoute>} />
+            <Route path="/admin" element={isRecoveryMode ? <Navigate to="/reset-password" /> : <AdminRoute><AdminPage /></AdminRoute>} />
+            <Route path="/admin/leagues" element={<AdminRoute><AdminLeaguesPage /></AdminRoute>} />
+            <Route path="/admin/brazil-leagues" element={<AdminRoute><AdminBrazilLeaguesPage /></AdminRoute>} />
+            <Route path="/admin/matches" element={<AdminRoute><AdminMatchesPage /></AdminRoute>} />
 
-          <Route path="/auth/callback" element={<ConfirmacaoCadastro />} />
-          <Route path="/login" element={!currentUser ? <Login /> : <Navigate to="/" />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+            <Route path="/auth/callback" element={<ConfirmacaoCadastro />} />
+            <Route path="/login" element={!currentUser ? <Login /> : <Navigate to="/" />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </OfflineRedirect>
       </Layout>
     </BrowserRouter>
   );
