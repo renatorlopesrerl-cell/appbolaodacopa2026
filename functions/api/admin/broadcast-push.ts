@@ -39,20 +39,35 @@ export const onRequest = async (context: any) => {
             }, 500);
         }
 
+        // Helper to fetch all rows handling pagination
+        const fetchAll = async (table: string, column: string) => {
+            let allRows: any[] = [];
+            let hasMore = true;
+            let page = 0;
+            const PAGE_SIZE = 1000;
+            while (hasMore) {
+                const { data, error } = await supabase
+                    .from(table)
+                    .select(column)
+                    .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+                if (error) throw error;
+                if (data && data.length > 0) {
+                    allRows.push(...data);
+                    page++;
+                    if (data.length < PAGE_SIZE) hasMore = false;
+                } else {
+                    hasMore = false;
+                }
+            }
+            return allRows;
+        };
+
         // Get all unique FCM tokens
-        const { data: tokenRows, error: tokenError } = await supabase
-            .from('user_fcm_tokens')
-            .select('token');
-
-        if (tokenError) throw tokenError;
-
+        const tokenRows = await fetchAll('user_fcm_tokens', 'token');
         let tokens = [...new Set((tokenRows || []).map((r: any) => r.token).filter((t: string) => t && t.trim() !== ''))];
 
         // Also get legacy tokens from profiles
-        const { data: profileRows } = await supabase
-            .from('profiles')
-            .select('fcm_token');
-        
+        const profileRows = await fetchAll('profiles', 'fcm_token');
         if (profileRows) {
             profileRows.forEach((p: any) => {
                 if (p.fcm_token && p.fcm_token.trim() !== '' && !tokens.includes(p.fcm_token)) {
