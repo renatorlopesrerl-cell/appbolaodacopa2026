@@ -127,11 +127,11 @@ export const LeagueDetails: React.FC = () => {
     // --- APP STATE REF FOR CAPACITOR BACK BUTTON ---
     const appStateRef = useRef({
         pendingEdits, tfChampion, tfRunnerUp, tfThird, tfFourth, topFinisherPredictions,
-        showUnsavedModal, zoomedImage, currentUser, league
+        showUnsavedModal, zoomedImage, currentUser, league, activeTab
     });
     appStateRef.current = {
         pendingEdits, tfChampion, tfRunnerUp, tfThird, tfFourth, topFinisherPredictions,
-        showUnsavedModal, zoomedImage, currentUser, league
+        showUnsavedModal, zoomedImage, currentUser, league, activeTab
     };
 
     useEffect(() => {
@@ -160,7 +160,19 @@ export const LeagueDetails: React.FC = () => {
             const hasUnsaved = Object.keys(state.pendingEdits).length > 0 || (anyFieldFilled && differsFromSaved);
             
             if (hasUnsaved) {
-                setShowUnsavedModal({ action: () => window.history.back() });
+                setShowUnsavedModal({ action: () => {
+                    if (state.activeTab !== 'palpites') {
+                        navigate('', { replace: true });
+                    } else {
+                        window.history.back();
+                    }
+                } });
+                e.preventDefault();
+                return;
+            }
+
+            if (state.activeTab !== 'palpites') {
+                navigate('', { replace: true });
                 e.preventDefault();
             }
         };
@@ -313,17 +325,8 @@ export const LeagueDetails: React.FC = () => {
         if (newTab === activeTab) return;
         
         confirmNavigation(() => {
-            window.scrollTo(0, 0); // Sempre reseta o scroll ao trocar de aba
-
-            if (newTab === 'palpites') {
-                navigate('', { replace: true });
-            } else {
-                if (activeTab === 'palpites') {
-                    navigate(`?tab=${newTab}`); // Empurra no histórico para o botão voltar do celular funcionar
-                } else {
-                    navigate(`?tab=${newTab}`, { replace: true });
-                }
-            }
+            window.scrollTo(0, 0);
+            navigate(newTab === 'palpites' ? '' : `?tab=${newTab}`, { replace: true });
         });
     };
 

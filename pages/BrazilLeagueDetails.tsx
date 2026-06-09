@@ -42,17 +42,8 @@ export const BrazilLeagueDetails: React.FC = () => {
         if (newTab === activeTab) return;
 
         confirmNavigation(() => {
-            window.scrollTo(0, 0); // Sempre reseta o scroll ao trocar de aba
-
-            if (newTab === 'palpites') {
-                navigate('', { replace: true });
-            } else {
-                if (activeTab === 'palpites') {
-                    navigate(`?tab=${newTab}`); // Empurra no histórico para o botão voltar do celular funcionar
-                } else {
-                    navigate(`?tab=${newTab}`, { replace: true });
-                }
-            }
+            window.scrollTo(0, 0);
+            navigate(newTab === 'palpites' ? '' : `?tab=${newTab}`, { replace: true });
         });
     };
     // --- GLOBAL STATE (HOISTED) ---
@@ -131,8 +122,8 @@ export const BrazilLeagueDetails: React.FC = () => {
     }, [league?.id]);
 
     // --- APP STATE REF FOR CAPACITOR BACK BUTTON ---
-    const appStateRef = useRef({ pendingEdits, showUnsavedModal, zoomedImage, currentUser, league });
-    appStateRef.current = { pendingEdits, showUnsavedModal, zoomedImage, currentUser, league };
+    const appStateRef = useRef({ pendingEdits, showUnsavedModal, zoomedImage, currentUser, league, activeTab });
+    appStateRef.current = { pendingEdits, showUnsavedModal, zoomedImage, currentUser, league, activeTab };
 
     useEffect(() => {
         const handleAppBack = (e: any) => {
@@ -152,7 +143,19 @@ export const BrazilLeagueDetails: React.FC = () => {
             const hasUnsaved = Object.keys(state.pendingEdits).length > 0;
             
             if (hasUnsaved) {
-                setShowUnsavedModal({ action: () => window.history.back() });
+                setShowUnsavedModal({ action: () => {
+                    if (state.activeTab !== 'palpites') {
+                        navigate('', { replace: true });
+                    } else {
+                        window.history.back();
+                    }
+                } });
+                e.preventDefault();
+                return;
+            }
+
+            if (state.activeTab !== 'palpites') {
+                navigate('', { replace: true });
                 e.preventDefault();
             }
         };
