@@ -71,9 +71,6 @@ async function apiFetch<T>(endpoint: string, options: RequestInit = {}, retries 
 
     const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0',
         ...((options.headers as any) || {}),
     };
 
@@ -259,7 +256,8 @@ export const api = {
         // to prevent any authenticated user from promoting themselves via the ANON key.
         togglePro: (userId: string, isPro: boolean) =>
             apiFetch('/admin/toggle-pro', { method: 'POST', body: JSON.stringify({ userId, isPro }) }),
-        testPush: () => apiFetch<any>('/admin/test-push')
+        testPush: () => apiFetch<any>('/admin/test-push'),
+        broadcastPush: (body: any) => apiFetch<any>('/admin/broadcast-push', { method: 'POST', body: JSON.stringify(body) })
     },
     // --- BRAZIL GAMES MODE ---
     brazilLeagues: {
@@ -452,6 +450,11 @@ export const api = {
             
             teamHistoryCache[cacheKey] = { data: mappedData, timestamp: Date.now() };
             return mappedData;
+        }
+    },
+    system: {
+        triggerPushReminder: () => {
+            fetch(`${getApiBase()}/push_reminder?secret=bolao2026_secure_webhook_key`).catch(() => {});
         }
     }
 };

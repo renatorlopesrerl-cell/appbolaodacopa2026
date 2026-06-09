@@ -48,19 +48,8 @@ export const AdminPage: React.FC = () => {
     setBroadcastProgress({ current: 0, total: 0 });
     
     try {
-      const authHeader = `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`;
-      
       // 1. Obter todos os tokens
-      const tokenResponse = await fetch('/api/admin/broadcast-push', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': authHeader
-        },
-        body: JSON.stringify({ action: 'get_tokens' })
-      });
-      
-      const tokenData = await tokenResponse.json();
+      const tokenData = await api.admin.broadcastPush({ action: 'get_tokens' });
       
       if (!tokenData.success || !tokenData.tokens) {
         addNotification('Erro', tokenData.message || tokenData.error || 'Erro ao buscar dispositivos.', 'warning');
@@ -86,21 +75,13 @@ export const AdminPage: React.FC = () => {
       for (let i = 0; i < tokens.length; i += CHUNK_SIZE) {
         const chunk = tokens.slice(i, i + CHUNK_SIZE);
         
-        const chunkResponse = await fetch('/api/admin/broadcast-push', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': authHeader
-          },
-          body: JSON.stringify({ 
-            action: 'send_chunk', 
-            title: broadcastTitle, 
-            message: broadcastMessage, 
-            tokens: chunk 
-          })
+        const chunkData = await api.admin.broadcastPush({ 
+          action: 'send_chunk', 
+          title: broadcastTitle, 
+          message: broadcastMessage, 
+          tokens: chunk 
         });
         
-        const chunkData = await chunkResponse.json();
         if (!chunkData.success) {
           console.error('Falha no envio de um lote:', chunkData);
         }

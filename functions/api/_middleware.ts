@@ -49,7 +49,7 @@ export const onRequest = async ({ request, env, next, data }) => {
     }
 
     // Common Supabase and Auth headers used in web and mobile
-    const allowHeaders = 'Content-Type, Authorization, x-requested-with, apikey, x-client-info, x-supabase-auth';
+    const allowHeaders = 'Content-Type, Authorization, x-requested-with, apikey, x-client-info, x-supabase-auth, cache-control, pragma, expires';
 
     // Handle OPTIONS Preflight
     if (request.method === 'OPTIONS') {
