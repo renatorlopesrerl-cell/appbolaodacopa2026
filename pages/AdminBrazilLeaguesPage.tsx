@@ -119,7 +119,7 @@ export const AdminBrazilLeaguesPage: React.FC = () => {
                             onClick={async () => {
                                 if (window.confirm('Deseja BLOQUEAR a edição de pontos de TODAS as ligas do modo Brasil?')) {
                                     for (const l of filteredLeagues) {
-                                        await updateBrazilLeague(l.id, { settings: { ...(l.settings || {}), manualScoringLock: true } });
+                                        await updateBrazilLeague(l.id, { settings: { ...(l.settings || {}), manualScoringLock: true } as any });
                                     }
                                 }
                             }}
@@ -131,7 +131,7 @@ export const AdminBrazilLeaguesPage: React.FC = () => {
                             onClick={async () => {
                                 if (window.confirm('Deseja DESBLOQUEAR a edição de pontos de TODAS as ligas do modo Brasil?')) {
                                     for (const l of filteredLeagues) {
-                                        await updateBrazilLeague(l.id, { settings: { ...(l.settings || {}), manualScoringLock: false } });
+                                        await updateBrazilLeague(l.id, { settings: { ...(l.settings || {}), manualScoringLock: false } as any });
                                     }
                                 }
                             }}
@@ -210,7 +210,7 @@ export const AdminBrazilLeaguesPage: React.FC = () => {
                                                         settings: { 
                                                             ...(l.settings || {}), 
                                                             manualScoringLock: !currentLock 
-                                                        } 
+                                                        } as any
                                                     });
                                                 }}
                                                 className={`p-1.5 rounded-lg transition-colors ${l.settings?.manualScoringLock ? 'bg-red-100 text-red-600 hover:bg-red-200' : 'bg-green-100 text-green-600 hover:bg-green-200'}`}
@@ -322,7 +322,7 @@ export const AdminBrazilLeaguesPage: React.FC = () => {
                                             settings: { 
                                                 ...(l.settings || {}), 
                                                 manualScoringLock: !currentLock 
-                                            } 
+                                            } as any
                                         });
                                     }}
                                     className={`py-2.5 px-3 rounded-lg font-bold text-xs transition-colors border flex items-center justify-center gap-1 uppercase tracking-wide ${l.settings?.manualScoringLock ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800' : 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800'}`}
