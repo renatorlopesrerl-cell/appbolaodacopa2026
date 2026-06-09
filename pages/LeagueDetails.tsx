@@ -127,11 +127,11 @@ export const LeagueDetails: React.FC = () => {
     // --- APP STATE REF FOR CAPACITOR BACK BUTTON ---
     const appStateRef = useRef({
         pendingEdits, tfChampion, tfRunnerUp, tfThird, tfFourth, topFinisherPredictions,
-        showUnsavedModal, zoomedImage
+        showUnsavedModal, zoomedImage, currentUser, league
     });
     appStateRef.current = {
         pendingEdits, tfChampion, tfRunnerUp, tfThird, tfFourth, topFinisherPredictions,
-        showUnsavedModal, zoomedImage
+        showUnsavedModal, zoomedImage, currentUser, league
     };
 
     useEffect(() => {
@@ -140,18 +140,18 @@ export const LeagueDetails: React.FC = () => {
             
             if (state.zoomedImage) {
                 setZoomedImage(null);
-                e.detail.handled = true;
+                e.preventDefault();
                 return;
             }
             if (state.showUnsavedModal) {
                 setShowUnsavedModal(null);
-                e.detail.handled = true;
+                e.preventDefault();
                 return;
             }
             
-            if (!league) return;
+            if (!state.league || !state.currentUser) return;
             
-            const existingPred = state.topFinisherPredictions.find(p => p.userId === currentUser.id && p.leagueId === league.id);
+            const existingPred = state.topFinisherPredictions.find(p => p.userId === state.currentUser!.id && p.leagueId === state.league!.id);
             const anyFieldFilled = state.tfChampion || state.tfRunnerUp || state.tfThird || state.tfFourth;
             const differsFromSaved = !existingPred
                 ? !!anyFieldFilled
@@ -161,7 +161,7 @@ export const LeagueDetails: React.FC = () => {
             
             if (hasUnsaved) {
                 setShowUnsavedModal({ action: () => window.history.back() });
-                e.detail.handled = true;
+                e.preventDefault();
             }
         };
         

@@ -131,8 +131,8 @@ export const BrazilLeagueDetails: React.FC = () => {
     }, [league?.id]);
 
     // --- APP STATE REF FOR CAPACITOR BACK BUTTON ---
-    const appStateRef = useRef({ pendingEdits, showUnsavedModal, zoomedImage });
-    appStateRef.current = { pendingEdits, showUnsavedModal, zoomedImage };
+    const appStateRef = useRef({ pendingEdits, showUnsavedModal, zoomedImage, currentUser, league });
+    appStateRef.current = { pendingEdits, showUnsavedModal, zoomedImage, currentUser, league };
 
     useEffect(() => {
         const handleAppBack = (e: any) => {
@@ -140,12 +140,12 @@ export const BrazilLeagueDetails: React.FC = () => {
             
             if (state.zoomedImage) {
                 setZoomedImage(null);
-                e.detail.handled = true;
+                e.preventDefault();
                 return;
             }
             if (state.showUnsavedModal) {
                 setShowUnsavedModal(null);
-                e.detail.handled = true;
+                e.preventDefault();
                 return;
             }
             
@@ -153,7 +153,7 @@ export const BrazilLeagueDetails: React.FC = () => {
             
             if (hasUnsaved) {
                 setShowUnsavedModal({ action: () => window.history.back() });
-                e.detail.handled = true;
+                e.preventDefault();
             }
         };
         
