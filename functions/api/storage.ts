@@ -22,6 +22,19 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
             }
         }
 
+        // SECURITY: Only allow image types
+        const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+        if (!ALLOWED_TYPES.includes(contentType)) {
+            return errorResponse(new Error('Tipo de arquivo não permitido. Use JPEG, PNG, WEBP ou GIF.'), 400);
+        }
+
+        // SECURITY: Limit file size to 5MB (base64 is ~33% larger than binary)
+        const MAX_SIZE_BYTES = 5 * 1024 * 1024;
+        const estimatedBytes = Math.ceil((base64Data.length * 3) / 4);
+        if (estimatedBytes > MAX_SIZE_BYTES) {
+            return errorResponse(new Error('Arquivo muito grande. Tamanho máximo: 5MB.'), 400);
+        }
+
         // Convert Base64 to Buffer/Uint8Array for Supabase
         const binary = atob(base64Data);
         const bytes = new Uint8Array(binary.length);

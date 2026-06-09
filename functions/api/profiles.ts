@@ -47,7 +47,7 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                 // Busca apenas os perfis desses participantes
                 const { data, error } = await adminClient
                     .from('profiles')
-                    .select('id, email, name, avatar, is_admin, is_match_admin, whatsapp, theme')
+                    .select('id, email, name, avatar, is_admin, is_match_admin, whatsapp, theme, is_pro')
                     .in('id', participants);
                 
                 if (error) {
@@ -66,7 +66,7 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
             while (keepFetching) {
                 const { data: page, error: pageError } = await adminClient
                     .from('profiles')
-                    .select('id, email, name, avatar, is_admin, is_match_admin, whatsapp, theme')
+                    .select('id, email, name, avatar, is_admin, is_match_admin, whatsapp, theme, is_pro')
                     .range(offset, offset + step - 1);
 
                 if (pageError) {
@@ -98,7 +98,7 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                     const chunk = ids.slice(i, i + chunkSize);
                     const { data: chunk_data, error: chunk_err } = await adminClient
                         .from('profiles')
-                        .select('id, email, name, avatar, is_admin, is_match_admin, whatsapp, theme')
+                        .select('id, email, name, avatar, is_admin, is_match_admin, whatsapp, theme, is_pro')
                         .in('id', chunk);
                     if (chunk_data) results.push(...chunk_data);
                     if (chunk_err) console.error('[profiles POST getByIds] chunk error:', chunk_err.message);

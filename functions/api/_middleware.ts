@@ -18,24 +18,34 @@ export const onRequest = async ({ request, env, next, data }) => {
     const url = new URL(request.url);
     const isPushTest = url.pathname.includes('/admin/test-push');
 
-    // CORS Configuration (Updated for APK/Supabase compatibility)
-    // 1. If it's the push test route, allow '*'
-    // 2. If it's a localhost origin (standard for Capacitor Android/iOS), echo it back.
-    // 3. Otherwise default to '*' (disables credentials security).
-    let allowedOrigin = '*';
+    // CORS Configuration
+    // 1. If it's a localhost origin (standard for Capacitor Android/iOS dev), echo it back.
+    // 2. If it's our production domain, allow it.
+    // 3. If it's a push test, allow *.
+    // 4. Otherwise, block (origin: 'null') — prevents CSRF from third-party sites.
+    let allowedOrigin = 'null';
     let allowCredentials = 'false';
+
+    const PRODUCTION_ORIGIN = 'https://bolaodacopa2026.app';
 
     if (isPushTest) {
         allowedOrigin = '*';
         allowCredentials = 'false';
-    } else if (originHeader) {
-        if (originHeader.includes('localhost') || originHeader.includes('127.0.0.1')) {
-            allowedOrigin = originHeader;
-            allowCredentials = 'true';
-        } else {
-            allowedOrigin = '*';
-            allowCredentials = 'false';
-        }
+    } else if (!originHeader) {
+        // No Origin header — likely a direct request from the APK (Capacitor native).
+        // Allow it, but don't set Allow-Credentials since there's no origin to check.
+        allowedOrigin = PRODUCTION_ORIGIN;
+        allowCredentials = 'false';
+    } else if (originHeader.includes('localhost') || originHeader.includes('127.0.0.1')) {
+        allowedOrigin = originHeader;
+        allowCredentials = 'true';
+    } else if (originHeader === PRODUCTION_ORIGIN) {
+        allowedOrigin = PRODUCTION_ORIGIN;
+        allowCredentials = 'true';
+    } else {
+        // Unknown origin — reject CORS (still processes the request, but browser will block response)
+        allowedOrigin = 'null';
+        allowCredentials = 'false';
     }
 
     // Common Supabase and Auth headers used in web and mobile
@@ -66,7 +76,6 @@ export const onRequest = async ({ request, env, next, data }) => {
 
     try {
         const isPublic = url.pathname.includes('/health') || 
-                        url.pathname.includes('/debug') || 
                         url.pathname.includes('/push_webhook') || 
                         url.pathname.includes('/push_reminder');
 
@@ -128,7 +137,9 @@ export const onRequest = async ({ request, env, next, data }) => {
         const response = await next();
         return withCors(response);
     } catch (err) {
-        return withCors(new Response(JSON.stringify({ error: err.message }), { status: 500 }));
+        // SECURITY: Log full error server-side, never expose technical details to client
+        console.error('[Middleware] Internal error:', err);
+        return withCors(new Response(JSON.stringify({ error: 'Internal server error' }), { status: 500 }));
     }
 }
 

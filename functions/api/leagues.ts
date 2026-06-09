@@ -50,6 +50,17 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                 return errorResponse(new Error("League name is required"), 400);
             }
 
+            // Verify if a league with this name already exists
+            const { data: existingLeagues } = await userClient
+                .from('leagues')
+                .select('id')
+                .ilike('name', body.name.trim())
+                .limit(1);
+
+            if (existingLeagues && existingLeagues.length > 0) {
+                return errorResponse(new Error("Já existe uma liga com este nome. Escolha outro."), 409);
+            }
+
             const generatedId = `l-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
             const getLeagueCode = () => {
                 let code = '';
@@ -59,7 +70,7 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
             };
 
             const safeLeague = {
-                id: body.id || generatedId,
+                id: generatedId, // SECURITY: Always use server-generated ID, never trust client-supplied IDs
                 league_code: body.league_code || getLeagueCode(),
                 name: body.name,
                 image: body.image,

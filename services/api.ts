@@ -74,6 +74,9 @@ async function apiFetch<T>(endpoint: string, options: RequestInit = {}, retries 
 
     const headers: Record<string, string> = {
         'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
         ...((options.headers as any) || {}),
     };
 
@@ -89,6 +92,7 @@ async function apiFetch<T>(endpoint: string, options: RequestInit = {}, retries 
 
         try {
             const res = await fetch(`${API_BASE}${endpoint}`, {
+                cache: 'no-store',
                 ...options,
                 headers,
                 signal: controller.signal
@@ -137,6 +141,8 @@ async function apiFetch<T>(endpoint: string, options: RequestInit = {}, retries 
     throw lastError || new Error('Erro desconhecido na requisição');
 }
 
+const CACHE_TIME_MS = 5 * 60 * 1000; // 5 minutos
+const teamHistoryCache: Record<string, { data: any, timestamp: number }> = {};
 
 export const api = {
     leagues: {
@@ -181,8 +187,10 @@ export const api = {
     matches: {
         list: () => apiFetch<any[]>('/matches'),
         update: (data: any) => apiFetch('/admin/matches', { method: 'POST', body: JSON.stringify(data) }), // Admin
-        getStats: (matchId: string, leagueId: string, leagueType: 'standard' | 'brazil') => 
-            apiFetch<any>(`/match-stats?matchId=${matchId}&leagueId=${leagueId}&leagueType=${leagueType}`)
+        getStats: async (matchId: string, leagueId: string, leagueType: 'standard' | 'brazil') => {
+            const data = await apiFetch<any>(`/match-stats?matchId=${matchId}&leagueId=${leagueId}&leagueType=${leagueType}`);
+            return data;
+        }
     },
     profiles: {
         list: (leagueId?: string) => {
@@ -250,13 +258,10 @@ export const api = {
                 await supabase.from('profiles').select('*').order('name')
             );
         },
-        togglePro: async (userId: string, isPro: boolean) => {
-            const { error } = await supabase
-                .from('profiles')
-                .update({ is_pro: isPro })
-                .eq('id', userId);
-            if (error) throw error;
-        },
+        // SECURITY: togglePro goes through the Cloudflare Worker (admin-only middleware)
+        // to prevent any authenticated user from promoting themselves via the ANON key.
+        togglePro: (userId: string, isPro: boolean) =>
+            apiFetch('/admin/toggle-pro', { method: 'POST', body: JSON.stringify({ userId, isPro }) }),
         testPush: () => apiFetch<any>('/admin/test-push')
     },
     // --- BRAZIL GAMES MODE ---
@@ -272,16 +277,18 @@ export const api = {
             if (error) return null;
             return data;
         },
-        create: async (leagueData: any) => {
-            const { error } = await supabase.from('brazil_leagues').insert(leagueData);
-            if (error) throw error;
-            return { error: null };
-        },
-        update: async (id: string, updates: any) => {
-            const { error } = await supabase.from('brazil_leagues').update(updates).eq('id', id);
-            if (error) throw error;
-            return { error: null };
-        },
+        // SECURITY: create and update go through the Worker for server-side ownership validation.
+        // This prevents users from injecting arbitrary admin_id or other fields.
+        create: (leagueData: any) =>
+            apiFetch<{ success: boolean; data: any }>('/brazil-leagues', {
+                method: 'POST',
+                body: JSON.stringify(leagueData)
+            }),
+        update: (id: string, updates: any) =>
+            apiFetch('/brazil-leagues', {
+                method: 'PUT',
+                body: JSON.stringify({ id, ...updates })
+            }),
         delete: async (id: string) => {
             return apiFetch(`/brazil-leagues?id=${id}`, { method: 'DELETE' });
         },
@@ -420,6 +427,34 @@ export const api = {
                 { onConflict: 'id' }
             );
             if (error) throw error;
+        }
+    },
+    teamHistory: {
+        getForTeams: async (teams: string[]) => {
+            const cacheKey = teams.sort().join('|');
+            const cached = teamHistoryCache[cacheKey];
+            if (cached && Date.now() - cached.timestamp < CACHE_TIME_MS) {
+                return cached.data;
+            }
+
+            const dbTeams = teams.map(t => t === 'Coréia do Sul' ? 'Coreia do Sul' : t);
+            const { data, error } = await supabase
+                .from('team_matches_history')
+                .select('*')
+                .in('team_id', dbTeams)
+                .order('match_order', { ascending: true });
+            if (error) {
+                console.error('Error fetching team history:', error);
+                return [];
+            }
+            
+            const mappedData = (data || []).map(h => ({
+                ...h,
+                team_id: h.team_id === 'Coreia do Sul' ? 'Coréia do Sul' : h.team_id
+            }));
+            
+            teamHistoryCache[cacheKey] = { data: mappedData, timestamp: Date.now() };
+            return mappedData;
         }
     }
 };

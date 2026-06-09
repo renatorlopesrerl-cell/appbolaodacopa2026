@@ -10,6 +10,7 @@ export const AdminPage: React.FC = () => {
   const { currentUser, addNotification } = useStore();
   const [testPushLoading, setTestPushLoading] = useState(false);
   const [broadcastLoading, setBroadcastLoading] = useState(false);
+  const [broadcastProgress, setBroadcastProgress] = useState<{ current: number, total: number } | null>(null);
   const [broadcastTitle, setBroadcastTitle] = useState('');
   const [broadcastMessage, setBroadcastMessage] = useState('');
 
@@ -44,30 +45,80 @@ export const AdminPage: React.FC = () => {
     }
 
     setBroadcastLoading(true);
+    setBroadcastProgress({ current: 0, total: 0 });
+    
     try {
-      const response = await fetch('/api/admin/broadcast-push', {
+      const authHeader = `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`;
+      
+      // 1. Obter todos os tokens
+      const tokenResponse = await fetch('/api/admin/broadcast-push', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+          'Authorization': authHeader
         },
-        body: JSON.stringify({ title: broadcastTitle, message: broadcastMessage })
+        body: JSON.stringify({ action: 'get_tokens' })
       });
-
-      const data = await response.json();
-
-      if (data.success) {
-        addNotification('Broadcast Iniciado', data.message, 'success');
-        setBroadcastTitle('');
-        setBroadcastMessage('');
-      } else {
-        addNotification('Erro no Servidor', data.message || data.error, 'warning');
+      
+      const tokenData = await tokenResponse.json();
+      
+      if (!tokenData.success || !tokenData.tokens) {
+        addNotification('Erro', tokenData.message || tokenData.error || 'Erro ao buscar dispositivos.', 'warning');
+        setBroadcastLoading(false);
+        setBroadcastProgress(null);
+        return;
       }
+      
+      const tokens: string[] = tokenData.tokens;
+      if (tokens.length === 0) {
+        addNotification('Aviso', 'Nenhum dispositivo encontrado.', 'info');
+        setBroadcastLoading(false);
+        setBroadcastProgress(null);
+        return;
+      }
+
+      setBroadcastProgress({ current: 0, total: tokens.length });
+      
+      // 2. Disparar em lotes de 40 (Limite seguro do Cloudflare)
+      const CHUNK_SIZE = 40;
+      let sentCount = 0;
+      
+      for (let i = 0; i < tokens.length; i += CHUNK_SIZE) {
+        const chunk = tokens.slice(i, i + CHUNK_SIZE);
+        
+        const chunkResponse = await fetch('/api/admin/broadcast-push', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': authHeader
+          },
+          body: JSON.stringify({ 
+            action: 'send_chunk', 
+            title: broadcastTitle, 
+            message: broadcastMessage, 
+            tokens: chunk 
+          })
+        });
+        
+        const chunkData = await chunkResponse.json();
+        if (!chunkData.success) {
+          console.error('Falha no envio de um lote:', chunkData);
+        }
+        
+        sentCount += chunk.length;
+        setBroadcastProgress({ current: sentCount, total: tokens.length });
+      }
+
+      addNotification('Broadcast Concluído', `Mensagem disparada para ${tokens.length} dispositivos.`, 'success');
+      setBroadcastTitle('');
+      setBroadcastMessage('');
+      
     } catch (e: any) {
       console.error("Broadcast Push Error:", e);
       addNotification('Erro de Conexão', e.message || 'Não foi possível contatar o servidor.', 'warning');
     } finally {
       setBroadcastLoading(false);
+      setTimeout(() => setBroadcastProgress(null), 3000);
     }
   };
 
@@ -241,10 +292,17 @@ export const AdminPage: React.FC = () => {
             <button
               onClick={handleBroadcastPush}
               disabled={broadcastLoading || !broadcastTitle.trim() || !broadcastMessage.trim()}
-              className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide shadow-md"
+              className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-4 rounded-xl flex flex-col items-center justify-center transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
             >
-              <Send size={18} />
-              {broadcastLoading ? 'Iniciando Disparo...' : 'Disparar para todos os usuários'}
+              <div className="flex items-center gap-2 uppercase tracking-wide">
+                <Send size={18} />
+                {broadcastLoading ? 'Processando Lotes...' : 'Disparar para todos os usuários'}
+              </div>
+              {broadcastProgress && (
+                <div className="mt-2 text-xs font-semibold bg-black/20 px-3 py-1 rounded-full">
+                  Enviando: {Math.min(broadcastProgress.current, broadcastProgress.total)} / {broadcastProgress.total}
+                </div>
+              )}
             </button>
           </div>
         </div>

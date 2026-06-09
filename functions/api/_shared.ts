@@ -291,7 +291,7 @@ export async function processBulkNotifications(env: any, tokens: string[], title
         const accessToken = await getAccessToken(env);
         const projectId = (env.FCM_PROJECT_ID || "batepapobase").trim();
         
-        const CHUNK_SIZE = 50;
+        const CHUNK_SIZE = 40;
         let successCount = 0;
         let failCount = 0;
 

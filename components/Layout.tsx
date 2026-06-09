@@ -297,6 +297,9 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             <Link to="/leagues" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/leagues')}`}>Ligas</Link>
             <Link to="/brazil-games" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/brazil-games')}`}>Modo BR</Link>
             <Link to="/como-jogar" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/como-jogar')}`}>Como Funciona</Link>
+            {!currentUser?.isPro && (
+              <Link to="/seja-pro" className="px-3 py-1.5 rounded-full bg-gradient-to-r from-yellow-200 to-amber-300 text-gray-900 font-black text-sm whitespace-nowrap hover:from-yellow-300 hover:to-amber-400 transition-all shadow-sm border border-yellow-300 flex items-center gap-1.5 active:scale-95">⭐ Seja PRO</Link>
+            )}
 
             {(currentUser?.isAdmin || currentUser?.isMatchAdmin) && (
               <Link id="admin-link" to="/admin" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap flex items-center gap-1 ${isActive('/admin')}`}>
@@ -391,6 +394,9 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
             <Link onClick={() => setIsMenuOpen(false)} to="/leagues" className={`block px-3 py-2 rounded-md ${isActive('/leagues')}`}>Ligas</Link>
             <Link onClick={() => setIsMenuOpen(false)} to="/brazil-games" className={`block px-3 py-2 rounded-md ${isActive('/brazil-games')}`}>Modo BR</Link>
             <Link onClick={() => setIsMenuOpen(false)} to="/como-jogar" className={`block px-3 py-2 rounded-md ${isActive('/como-jogar')}`}>Como Funciona</Link>
+            {!currentUser?.isPro && (
+              <Link onClick={() => setIsMenuOpen(false)} to="/seja-pro" className="flex items-center gap-2 px-3 py-2 rounded-full bg-gradient-to-r from-yellow-200 to-amber-300 text-gray-900 font-black text-sm mt-1 active:scale-95 transition-all shadow-sm border border-yellow-300">⭐ Seja PRO</Link>
+            )}
             {(currentUser?.isAdmin || currentUser?.isMatchAdmin) && (
               <Link id="admin-link-mobile" onClick={() => setIsMenuOpen(false)} to="/admin" className={`block px-3 py-2 rounded-md ${isActive('/admin')}`}>Admin Painel</Link>
             )}

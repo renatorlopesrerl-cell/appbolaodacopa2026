@@ -137,9 +137,12 @@ export const ProfilePage: React.FC = () => {
             <UserIcon size={24} />
           </div>
           <h1 className="text-2xl font-bold text-gray-800 dark:text-white">Meu Perfil</h1>
+          {currentUser.isPro && (
+            <span className="text-[10px] font-black bg-gradient-to-r from-yellow-200 to-amber-300 text-gray-900 px-2 py-1 rounded-full uppercase tracking-widest shadow-sm border border-yellow-300 flex items-center gap-1">
+              ⭐ PRO
+            </span>
+          )}
         </div>
-
-
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -174,6 +177,16 @@ export const ProfilePage: React.FC = () => {
               </div>
             </div>
 
+            {/* PRO Status Badge next to avatar */}
+            {currentUser.isPro && (
+              <div className="mb-2 flex items-center gap-2 bg-gradient-to-r from-yellow-200 to-amber-300 text-gray-900 px-3 py-1.5 rounded-xl shadow-sm border border-yellow-400">
+                <span className="text-base">👑</span>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest leading-none">Usuário PRO</p>
+                  <p className="text-[9px] font-bold text-gray-700 leading-none mt-0.5">Estatísticas desbloqueadas</p>
+                </div>
+              </div>
+            )}
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6" id="profile-form">

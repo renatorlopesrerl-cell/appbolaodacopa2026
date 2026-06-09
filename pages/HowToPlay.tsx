@@ -122,6 +122,9 @@ export const HowToPlay: React.FC = () => {
                         <p>
                             Quando abrir a liga criada vai dar de cara com a opção de dar os palpites. É só palpitar quantos jogos quiser e clicar no botão <strong>Salvar Palpites</strong>. Após a confirmação, clique em <strong>Atualizar Palpites</strong> e verifique se onde estava 'Palpite Aberto' agora está 'Palpite Salvo'. Temos filtros para verificar palpites Pendentes ou Preenchidos, por Fases (Grupos ou Mata-Mata) ou por Rodada.
                         </p>
+                        <p className="bg-amber-50 dark:bg-amber-900/20 p-4 rounded-xl border border-amber-200 dark:border-amber-800 text-amber-900 dark:text-amber-200 mt-4 mb-4">
+                            👑 <strong>Estatísticas Avançadas:</strong> Ao <strong>clicar em cima de uma partida</strong>, você terá acesso às Estatísticas do Jogo. Nela você poderá visualizar os últimos jogos de cada seleção (para analisar o momento das equipes) e também a tendência geral de vitórias, empates e derrotas baseada em dados reais. Essa funcionalidade é <strong>exclusiva para assinantes do Plano PRO</strong>.
+                        </p>
                         <p>
                             O palpite de cada jogo será encerrado <strong>5 minutos antes do início da partida</strong>, ficando marcado como 'Palpite Encerrado'. É quando os participantes poderão visualizar os palpites dos adversários clicando em cima da partida. Quando iniciar a partida a pontuação poderá ser acompanhada em tempo real.
                         </p>

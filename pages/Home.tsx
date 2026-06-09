@@ -262,7 +262,7 @@ export const Home: React.FC = () => {
 
       {/* Main Actions Grid */}
       {/* Main Actions Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Link to="/table" className="group bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm hover:shadow-xl transition-all border border-gray-100 dark:border-gray-700 hover:border-brasil-green relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:scale-110 duration-500">
             <Calendar size={80} className="text-brasil-green dark:text-green-400" />
@@ -319,20 +319,37 @@ export const Home: React.FC = () => {
           </div>
         </Link>
 
-        <Link to="/brazil-games" className="md:col-span-2 group bg-gradient-to-r from-green-100 via-white to-yellow-100 dark:from-green-900/30 dark:via-gray-800 dark:to-yellow-900/30 p-6 rounded-2xl shadow-sm hover:shadow-xl transition-all border border-green-200 dark:border-green-800 relative overflow-hidden text-gray-800 dark:text-white">
+        <Link to="/brazil-games" className={`group bg-gradient-to-br from-green-50 to-yellow-50 dark:from-green-900/30 dark:to-yellow-900/20 p-6 rounded-2xl shadow-sm hover:shadow-xl transition-all border border-green-200 dark:border-green-800 relative overflow-hidden${currentUser.isPro ? ' md:col-span-2 lg:col-span-2' : ''}`}>
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:scale-110 duration-500">
             <Trophy size={80} className="text-brasil-green dark:text-green-400" />
           </div>
-          <div className="relative z-10 flex flex-col md:flex-row items-center gap-4">
-            <div className="p-3 bg-green-100 dark:bg-green-800 rounded-xl w-fit group-hover:bg-brasil-green group-hover:text-white transition-colors">
-              <span className="text-2xl">🇧🇷</span>
+          <div className="relative z-10">
+            <div className="p-3 bg-green-100 dark:bg-green-800 rounded-xl w-fit mb-4 group-hover:bg-brasil-green group-hover:text-white transition-colors">
+              <span className="text-2xl leading-none">🇧🇷</span>
             </div>
-            <div className="text-center md:text-left">
-              <h2 className="text-2xl font-black mb-1">Modo Jogos do Brasil</h2>
-              <p className="text-green-700 dark:text-green-300 text-sm font-medium">Todos os jogos do Brasil + Palpite de Artilheiro!</p>
-            </div>
+            <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-1">Modo Jogos do Brasil</h2>
+            <p className="text-green-700 dark:text-green-300 text-sm font-medium">Todos os jogos do Brasil + Palpite de Artilheiro!</p>
           </div>
         </Link>
+
+        {!loading && !currentUser.isPro && (
+        <Link to="/seja-pro" className="group bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 p-6 rounded-2xl shadow-sm hover:shadow-xl transition-all border border-yellow-200 dark:border-yellow-800 relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:scale-110 duration-500">
+            <Trophy size={80} className="text-amber-500 dark:text-amber-400" />
+          </div>
+          <div className="relative z-10">
+            <div className="p-3 bg-gradient-to-br from-yellow-100 to-amber-100 dark:from-yellow-900/50 dark:to-amber-900/50 rounded-xl w-fit mb-4 group-hover:bg-gradient-to-br group-hover:from-yellow-400 group-hover:to-amber-500 transition-colors">
+              <span className="text-2xl leading-none">⭐</span>
+            </div>
+            <div className="flex items-center gap-2 mb-1">
+              <h2 className="text-xl font-bold text-gray-800 dark:text-white">Seja PRO</h2>
+              <span className="text-[9px] font-black bg-gradient-to-r from-yellow-400 to-amber-500 text-white px-1.5 py-0.5 rounded-full uppercase tracking-wide">R$ 5,99</span>
+            </div>
+            <p className="text-amber-700 dark:text-amber-300 text-sm font-medium">Desbloqueie estatísticas exclusivas de cada jogo!</p>
+          </div>
+        </Link>
+        )}
+
       </div>
 
 
@@ -404,7 +421,7 @@ export const Home: React.FC = () => {
 
       {/* Floating Banner */}
       {showFloatingBanner && (
-        <div className="fixed bottom-24 md:bottom-8 left-4 right-4 md:left-1/2 md:-translate-x-1/2 z-50 w-auto md:w-full max-w-3xl animate-in slide-in-from-bottom-8 fade-in duration-500">
+        <div className="fixed bottom-24 md:bottom-8 left-4 right-4 md:left-1/2 md:-translate-x-1/2 z-50 w-auto md:w-full max-w-4xl lg:max-w-5xl animate-in slide-in-from-bottom-8 fade-in duration-500">
           <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.3)] border-2 border-brasil-yellow dark:border-yellow-600 overflow-hidden flex flex-col md:flex-row items-center">
             {/* Background pattern/gradient */}
             <div className="absolute inset-0 bg-gradient-to-br from-yellow-50 to-green-50 dark:from-yellow-900/20 dark:to-green-900/20 opacity-50"></div>
@@ -427,10 +444,10 @@ export const Home: React.FC = () => {
               <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300 font-medium">Crie ou participe de uma liga agora mesmo, escolha uma modalidade:</p>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-stretch w-full md:w-auto gap-3 p-4 pt-0 md:pt-4 relative z-10">
+            <div className="flex flex-col lg:flex-row items-stretch lg:items-center w-full md:w-auto gap-3 p-4 pt-0 md:pt-4 relative z-10 justify-center">
               <Link 
                 to="/leagues" 
-                className="flex items-center justify-center gap-2 px-5 py-3 bg-brasil-blue hover:bg-blue-800 text-white font-bold rounded-xl text-sm shadow-md transition-transform active:scale-95 border border-blue-400"
+                className="flex items-center justify-center gap-2 px-4 py-3 bg-brasil-blue hover:bg-blue-800 text-white font-bold rounded-xl text-sm shadow-md transition-transform active:scale-95 border border-blue-400 whitespace-nowrap"
               >
                 <Globe size={18} />
                 <div className="flex items-center text-left leading-none">
@@ -439,13 +456,24 @@ export const Home: React.FC = () => {
               </Link>
               <Link 
                 to="/brazil-games" 
-                className="flex items-center justify-center gap-2 px-5 py-3 bg-brasil-green hover:bg-green-700 text-white font-bold rounded-xl text-sm shadow-md transition-transform active:scale-95 border border-green-400"
+                className="flex items-center justify-center gap-2 px-4 py-3 bg-brasil-green hover:bg-green-700 text-white font-bold rounded-xl text-sm shadow-md transition-transform active:scale-95 border border-green-400 whitespace-nowrap"
               >
                 <span className="text-xl leading-none">🇧🇷</span>
                 <div className="flex items-center text-left leading-none">
                   <span className="uppercase text-sm font-black">Jogos do Brasil</span>
                 </div>
               </Link>
+              {!loading && !currentUser.isPro && (
+                <Link 
+                  to="/seja-pro" 
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-yellow-200 to-amber-300 hover:from-yellow-300 hover:to-amber-400 text-gray-900 font-bold rounded-xl text-sm shadow-sm transition-transform active:scale-95 border border-yellow-300 whitespace-nowrap"
+                >
+                  <span className="text-xl leading-none">⭐</span>
+                  <div className="flex items-center text-left leading-none">
+                    <span className="uppercase text-sm font-black">Seja PRO</span>
+                  </div>
+                </Link>
+              )}
             </div>
           </div>
         </div>

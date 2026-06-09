@@ -3,11 +3,11 @@ import { createPortal } from 'react-dom';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useStore } from '../App';
 import { Shield, Crown, Search, ArrowLeft, Star, StarHalf, Infinity as InfinityIcon, Users, Trash2, AlertCircle, Lock, Unlock } from 'lucide-react';
-import { LeaguePlan } from '../types';
+import { LeaguePlan, LeagueSettings } from '../types';
 
 export const AdminLeaguesPage: React.FC = () => {
     const navigate = useNavigate();
-    const { currentUser, users, leagues, updateLeague, deleteLeague } = useStore();
+    const { currentUser, users, leagues, updateLeague, deleteLeague, isSyncing } = useStore();
     const [leagueSearch, setLeagueSearch] = useState('');
 
     const [toast, setToast] = useState<string | null>(null);
@@ -119,7 +119,7 @@ export const AdminLeaguesPage: React.FC = () => {
                             onClick={async () => {
                                 if (window.confirm('Deseja BLOQUEAR a edição de pontos de TODAS as ligas padrão?')) {
                                     for (const l of filteredLeagues) {
-                                        await updateLeague(l.id, { settings: { ...(l.settings || {}), manualScoringLock: true } });
+                                        await updateLeague(l.id, { settings: { ...(l.settings || {}), manualScoringLock: true } as LeagueSettings });
                                     }
                                 }
                             }}
@@ -131,7 +131,7 @@ export const AdminLeaguesPage: React.FC = () => {
                             onClick={async () => {
                                 if (window.confirm('Deseja DESBLOQUEAR a edição de pontos de TODAS as ligas padrão?')) {
                                     for (const l of filteredLeagues) {
-                                        await updateLeague(l.id, { settings: { ...(l.settings || {}), manualScoringLock: false } });
+                                        await updateLeague(l.id, { settings: { ...(l.settings || {}), manualScoringLock: false } as LeagueSettings });
                                     }
                                 }
                             }}
@@ -177,7 +177,7 @@ export const AdminLeaguesPage: React.FC = () => {
                                     <tr key={l.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                                         <td className="px-4 py-3 font-medium text-gray-800 dark:text-gray-100">{l.name}</td>
                                         <td className="px-4 py-3 font-mono text-xs text-gray-600 dark:text-gray-400">{l.leagueCode || '-'}</td>
-                                        <td className="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">{adminUser?.name || 'Unknown'}</td>
+                                        <td className="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">{adminUser?.name || (isSyncing ? 'Carregando...' : 'Desconhecido')}</td>
                                         <td className="px-4 py-3 text-center font-bold text-gray-800 dark:text-gray-100">{l.participants.length}</td>
                                         <td className="px-4 py-3 text-center">
                                             {plan === 'VIP_UNLIMITED' ? (
@@ -210,7 +210,7 @@ export const AdminLeaguesPage: React.FC = () => {
                                                         settings: { 
                                                             ...(l.settings || {}), 
                                                             manualScoringLock: !currentLock 
-                                                        } 
+                                                        } as LeagueSettings
                                                     });
                                                 }}
                                                 className={`p-1.5 rounded-lg transition-colors ${l.settings?.manualScoringLock ? 'bg-red-100 text-red-600 hover:bg-red-200' : 'bg-green-100 text-green-600 hover:bg-green-200'}`}
@@ -268,7 +268,7 @@ export const AdminLeaguesPage: React.FC = () => {
                                 <div>
                                     <h3 className="font-bold text-gray-800 dark:text-white text-lg leading-tight">{l.name}</h3>
                                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1">
-                                        <Users size={12} /> Admin: <span className="font-medium text-gray-700 dark:text-gray-300">{adminUser?.name || 'Desconhecido'}</span>
+                                        <Users size={12} /> Admin: <span className="font-medium text-gray-700 dark:text-gray-300">{adminUser?.name || (isSyncing ? 'Carregando...' : 'Desconhecido')}</span>
                                     </p>
                                 </div>
                                 <div className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-xs font-mono font-bold text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600">
@@ -322,7 +322,7 @@ export const AdminLeaguesPage: React.FC = () => {
                                             settings: { 
                                                 ...(l.settings || {}), 
                                                 manualScoringLock: !currentLock 
-                                            } 
+                                            } as LeagueSettings
                                         });
                                     }}
                                     className={`py-2.5 px-3 rounded-lg font-bold text-xs transition-colors border flex items-center justify-center gap-1 uppercase tracking-wide ${l.settings?.manualScoringLock ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800' : 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800'}`}

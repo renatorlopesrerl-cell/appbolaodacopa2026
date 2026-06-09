@@ -1,18 +1,49 @@
-
 import { createClient } from '@supabase/supabase-js';
 
-export const onRequest = async ({ env }: { env: any }) => {
+export const onRequest = async ({ request, env, data }: { request: Request; env: any; data: any }) => {
+    // SECURITY: /debug is no longer public. Requires authentication (handled by middleware).
+    // Additionally, only super admins can access this endpoint.
+    const authUser = data?.user;
+    if (!authUser) {
+        return new Response(JSON.stringify({ error: 'Not authenticated' }), {
+            status: 401,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
+
     const url = env.SUPABASE_URL || '';
     const key = env.SUPABASE_ANON_KEY || '';
     const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY || '';
-    
-    // Cloudflare FCM Keys (FCM v1)
+
+    // Check if requester is admin
+    try {
+        const supabase = createClient(url, serviceKey || key);
+        const { data: profile } = await supabase
+            .from('profiles')
+            .select('is_admin')
+            .eq('id', authUser.id)
+            .single();
+
+        if (!profile?.is_admin) {
+            return new Response(JSON.stringify({ error: 'Forbidden' }), {
+                status: 403,
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+    } catch (e: any) {
+        return new Response(JSON.stringify({ error: 'Internal server error' }), {
+            status: 500,
+            headers: { 'Content-Type': 'application/json' }
+        });
+    }
+
+    // FCM Keys check
     const fcmClientEmail = env.FCM_CLIENT_EMAIL || '';
     const fcmPrivateKey = env.FCM_PRIVATE_KEY || '';
     const fcmProjectId = env.FCM_PROJECT_ID || '';
 
     // Testing DB access
-    let supabaseStatus = "Checking...";
+    let supabaseStatus = 'Checking...';
     let profilesCount = 0;
     let tokensCount = 0;
 
@@ -20,10 +51,10 @@ export const onRequest = async ({ env }: { env: any }) => {
         const supabase = createClient(url, serviceKey || key);
         const { data: profs, error: pErr } = await supabase.from('profiles').select('id', { count: 'exact' });
         const { data: toks, error: tErr } = await supabase.from('user_fcm_tokens').select('token', { count: 'exact' });
-        
+
         profilesCount = profs?.length || 0;
         tokensCount = toks?.length || 0;
-        supabaseStatus = (pErr || tErr) ? `Error: ${pErr?.message || tErr?.message}` : "Connected Successfully";
+        supabaseStatus = (pErr || tErr) ? `Error: ${pErr?.message || tErr?.message}` : 'Connected Successfully';
     } catch (e: any) {
         supabaseStatus = `Exception: ${e.message}`;
     }
@@ -33,6 +64,8 @@ export const onRequest = async ({ env }: { env: any }) => {
         environment: {
             SUPABASE_URL: !!url,
             SUPABASE_ANON_KEY: !!key,
+            // SECURITY: Never expose whether SERVICE_ROLE_KEY is set in detail,
+            // just confirm presence as boolean to avoid intel gathering.
             SUPABASE_SERVICE_ROLE_KEY: !!serviceKey,
             FCM_V1_CONFIGURED: !!(fcmClientEmail && fcmPrivateKey && fcmProjectId)
         },
@@ -41,7 +74,9 @@ export const onRequest = async ({ env }: { env: any }) => {
             total_profiles: profilesCount,
             total_tokens_registered: tokensCount
         },
-        tips: tokensCount === 0 ? "⚠️ No tokens found! Users must click 'Sincronizar este dispositivo' in their profile." : "Tokens are present. If notifications fail, check FCM credentials."
+        tips: tokensCount === 0
+            ? "⚠️ No tokens found! Users must click 'Sincronizar este dispositivo' in their profile."
+            : 'Tokens are present. If notifications fail, check FCM credentials.'
     };
 
     return new Response(JSON.stringify(report, null, 2), {

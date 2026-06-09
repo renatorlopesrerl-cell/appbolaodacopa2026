@@ -20,7 +20,11 @@ export const onRequest = async (context: any) => {
         } catch (e) { }
     }
 
-    const WEBHOOK_SECRET = env.WEBHOOK_SECRET || "bolao2026_secure_webhook_key";
+    const WEBHOOK_SECRET = env.WEBHOOK_SECRET;
+    if (!WEBHOOK_SECRET) {
+        console.error('[push_reminder] WEBHOOK_SECRET not configured in environment variables!');
+        return errorResponse(new Error('Webhook not configured'), 500);
+    }
     if (secret !== WEBHOOK_SECRET) {
         return errorResponse(new Error("Unauthorized"), 401);
     }

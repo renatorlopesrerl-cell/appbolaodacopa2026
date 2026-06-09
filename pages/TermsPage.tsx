@@ -25,7 +25,7 @@ export const TermsPage: React.FC = () => {
 
             <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 md:p-10 space-y-6">
                 <div className="text-sm text-gray-600 dark:text-gray-300 space-y-4 text-justify leading-relaxed">
-                    <p>Ao acessar ou utilizar o aplicativo, você concorda com os termos abaixo.</p>
+                    <p>Ao acessar ou utilizar o aplicativo ou a plataforma web, você concorda com os termos abaixo.</p>
 
                     <div>
                         <strong className="block text-gray-800 dark:text-white mb-1">1. Finalidade do Aplicativo</strong>
@@ -36,7 +36,7 @@ export const TermsPage: React.FC = () => {
                             <li>Simulação de resultados e classificações</li>
                             <li>Visualização de tabelas e estatísticas</li>
                         </ul>
-                        <p className="mt-1">O aplicativo não realiza, intermedia ou incentiva apostas financeiras.</p>
+                        <p className="mt-1 font-bold text-red-600 dark:text-red-400">Aviso: O aplicativo não realiza, intermedia ou incentiva apostas financeiras.</p>
                     </div>
 
                     <div>
@@ -51,10 +51,10 @@ export const TermsPage: React.FC = () => {
 
                     <div>
                         <strong className="block text-gray-800 dark:text-white mb-1">3. Ligas e Conteúdo Gerado por Usuários</strong>
+                        <p className="mt-1">As ligas podem ser públicas ou privadas.</p>
                         <ul className="list-disc pl-5 mt-1 space-y-1">
-                            <li>As ligas podem ser públicas ou privadas</li>
-                            <li>O administrador da liga define regras e pontuação no momento da criação</li>
-                            <li>O aplicativo não interfere nas decisões internas das ligas</li>
+                            <li>O administrador da liga define regras e pontuação no momento da criação.</li>
+                            <li>O aplicativo não interfere nas decisões internas das ligas.</li>
                         </ul>
                         <p className="mt-1">Qualquer premiação, acordo ou combinação entre participantes ocorre fora da plataforma e é de responsabilidade exclusiva dos envolvidos.</p>
                     </div>
@@ -62,8 +62,8 @@ export const TermsPage: React.FC = () => {
                     <div>
                         <strong className="block text-gray-800 dark:text-white mb-1">4. Palpites e Prazos</strong>
                         <ul className="list-disc pl-5 mt-1 space-y-1">
-                            <li>Os palpites podem ser realizados até 5 minutos antes do início da partida</li>
-                            <li>Após esse prazo, os palpites são automaticamente encerrados</li>
+                            <li>Os palpites podem ser realizados até 5 minutos antes do início da partida.</li>
+                            <li>Após esse prazo, os palpites são automaticamente encerrados.</li>
                             <li>Os palpites dos participantes tornam-se visíveis a partir do encerramento dos palpites.</li>
                         </ul>
                     </div>
@@ -74,12 +74,24 @@ export const TermsPage: React.FC = () => {
                     </div>
 
                     <div>
-                        <strong className="block text-gray-800 dark:text-white mb-1">6. Plano Gratuito e Plano VIP</strong>
+                        <strong className="block text-gray-800 dark:text-white mb-1">6. Plano Gratuito, Plano Pro e Processamento de Pagamentos</strong>
+                        <p className="mt-1 mb-2">O aplicativo oferece funcionalidades gratuitas e recursos adicionais pagos através do Plano Pro (como aumento de participantes por liga e funcionalidades avançadas). A liberação do plano Pro refere-se exclusivamente ao acesso a funcionalidades de software dentro da plataforma.</p>
+                        
+                        <p className="font-bold text-gray-800 dark:text-white mt-3 mb-1">6.1 Canais de Pagamento por Plataforma</p>
+                        <p>Para a segurança do usuário, o processamento de pagamentos é dividido estritamente de acordo com a plataforma utilizada:</p>
                         <ul className="list-disc pl-5 mt-1 space-y-1">
-                            <li>O aplicativo pode oferecer funcionalidades gratuitas e recursos adicionais pagos</li>
-                            <li>O plano VIP concede acesso a recursos extras, como aumento de participantes por liga e funcionalidades avançadas</li>
-                            <li>A liberação do plano VIP refere-se exclusivamente ao acesso a funcionalidades do aplicativo</li>
+                            <li><strong>No Aplicativo Móvel (Android):</strong> Todos os pagamentos e assinaturas são processados exclusivamente através do sistema oficial de faturamento do Google Play Billing.</li>
+                            <li><strong>No Site / Plataforma Web:</strong> Todos os pagamentos e assinaturas são processados de forma independente através do intermediador de pagamentos Asaas.</li>
                         </ul>
+
+                        <p className="font-bold text-gray-800 dark:text-white mt-3 mb-1">6.2 Gerenciamento e Cancelamento</p>
+                        <ul className="list-disc pl-5 mt-1 space-y-1">
+                            <li>Compras e assinaturas realizadas pelo aplicativo móvel devem ser gerenciadas, alteradas ou canceladas diretamente pelo usuário através da sua conta da Google Play Store.</li>
+                            <li>Compras realizadas pela interface web devem ser gerenciadas ou canceladas diretamente através do painel do usuário no Site ou via suporte oficial.</li>
+                        </ul>
+
+                        <p className="font-bold text-gray-800 dark:text-white mt-3 mb-1">6.3 Liberação do Acesso</p>
+                        <p>Independentemente do canal de compra escolhido (Google Play ou Asaas), os recursos Pro adquiridos serão vinculados à conta unificada do usuário e estarão disponíveis em ambas as plataformas.</p>
                     </div>
 
                     <div>

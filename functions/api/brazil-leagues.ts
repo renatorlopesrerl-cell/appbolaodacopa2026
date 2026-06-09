@@ -63,6 +63,70 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
             return jsonResponse({ success: true });
         }
 
+        if (request.method === 'POST') {
+            const body = await request.json() as any;
+
+            if (!body.name || body.name.trim() === '') {
+                return errorResponse(new Error("League name is required"), 400);
+            }
+
+            // Verify if a league with this name already exists
+            const { data: existingLeagues } = await userClient
+                .from('brazil_leagues')
+                .select('id')
+                .ilike('name', body.name.trim())
+                .limit(1);
+
+            if (existingLeagues && existingLeagues.length > 0) {
+                return errorResponse(new Error("Já existe uma liga com este nome. Escolha outro."), 409);
+            }
+
+            const generatedId = `bl-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+            const getLeagueCode = () => {
+                let code = '';
+                const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+                for (let i = 0; i < 6; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+                return code;
+            };
+
+            const safeLeague = {
+                id: generatedId, // SECURITY: Always use server-generated ID
+                league_code: getLeagueCode(),
+                name: body.name,
+                image: body.image,
+                description: body.description,
+                is_private: !!body.is_private,
+                settings: body.settings || { isUnlimited: false, plan: 'FREE' },
+                admin_id: authUser.id, // SECURITY: Enforce creator as admin
+                participants: [authUser.id],
+                pending_requests: []
+            };
+
+            const { error } = await userClient.from('brazil_leagues').insert([safeLeague]);
+            if (error) throw error;
+            return jsonResponse({ success: true, data: safeLeague }, 201);
+        }
+
+        if (request.method === 'PUT') {
+            const body = await request.json() as any;
+            const { id, ...updates } = body;
+            if (!id) return errorResponse(new Error("League ID required"), 400);
+
+            // SECURITY: Verify ownership before updating
+            const { data: league, error: fetchError } = await userClient.from('brazil_leagues').select('admin_id').eq('id', id).single();
+            if (fetchError || !league) return errorResponse(new Error("League not found"), 404);
+            if (league.admin_id !== authUser.id) return errorResponse(new Error("Forbidden"), 403);
+
+            // SECURITY: Prevent ownership hijacking
+            delete updates.admin_id;
+            delete updates.id;
+
+            const { error } = await userClient.from('brazil_leagues').update(updates).eq('id', id);
+            if (error) throw error;
+
+            return jsonResponse({ success: true });
+        }
+
         return new Response("Method not allowed", { status: 405 });
 
     } catch (e: any) {

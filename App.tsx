@@ -46,6 +46,7 @@ import { ConfirmacaoCadastro } from './pages/ConfirmacaoCadastro';
 import { SEOLanding } from './pages/SEOLanding';
 import { BrazilGamesPage } from './pages/BrazilGamesPage';
 import { BrazilLeagueDetails } from './pages/BrazilLeagueDetails';
+import { ProPage } from './pages/ProPage';
 
 
 
@@ -56,6 +57,7 @@ import { uploadBase64Image } from './services/storageService';
 import { setupPushNotifications, scheduleMatchReminder, cancelMatchReminder } from './services/pushService';
 import { onForegroundMessage } from './services/firebaseWeb';
 import { Capacitor } from '@capacitor/core';
+import { Purchases, LOG_LEVEL } from '@revenuecat/purchases-capacitor';
 
 // Types
 import { User, Match, League, Prediction, Invitation, MatchStatus, BrazilLeague, BrazilPrediction, BrazilMatchGoal, BrazilPlayer, TopFinisherPrediction, TopFinishersResult } from './types';
@@ -84,6 +86,7 @@ interface AppState {
   currentTime: Date;
   notifications: AppNotification[];
   loading: boolean;
+  isSyncing: boolean;
   theme: 'light' | 'dark';
   setCurrentTime: (date: Date) => void;
   loginGoogle: () => Promise<void>;
@@ -381,6 +384,22 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     fetchAllData();
   }, []);
 
+  // --- REVENUECAT INITIALIZATION ---
+  useEffect(() => {
+    const initRevenueCat = async () => {
+      if (Capacitor.isNativePlatform()) {
+        try {
+          await Purchases.setLogLevel({ level: LOG_LEVEL.DEBUG });
+          await Purchases.configure({ apiKey: "goog_bxLqLtWQVchuTbHBNljTJNpYblM" });
+          console.log("RevenueCat configured successfully.");
+        } catch (e) {
+          console.error("Error configuring RevenueCat:", e);
+        }
+      }
+    };
+    initRevenueCat();
+  }, []);
+
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentTime(new Date());
@@ -464,6 +483,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           const avatarUrl = metadata.avatar_url || metadata.picture || metadata.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`;
           const provider = user.app_metadata?.provider || 'email';
 
+          const cachedIsPro = localStorage.getItem('cache_is_pro') === 'true';
+
           const basicUser: User = {
             id: user.id,
             email: user.email || '',
@@ -473,7 +494,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             isMatchAdmin: metadata.is_match_admin || false,
             whatsapp: metadata.whatsapp || '',
             notificationSettings: { matchStart: true, matchEnd: true },
-            isPro: metadata.is_pro || false,
+            isPro: cachedIsPro || metadata.is_pro || false,
             provider
           };
 
@@ -512,6 +533,11 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         setLeagues([]);
         setPredictions([]);
         setInvitations([]);
+        try {
+          if (Capacitor.isNativePlatform()) {
+            await Purchases.logOut();
+          }
+        } catch(e) { console.warn("RevenueCat LogOut Error", e); }
         if (mountedRef.current) setLoading(false);
       } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'PASSWORD_RECOVERY') {
         if (event === 'PASSWORD_RECOVERY') {
@@ -544,6 +570,12 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           fetchAllData();
 
           setupPushNotifications(user.id).catch(e => console.error("Push Setup Error:", e));
+
+          try {
+            if (Capacitor.isNativePlatform()) {
+              await Purchases.logIn({ appUserID: user.id });
+            }
+          } catch(e) { console.warn("RevenueCat LogIn Error", e); }
 
           // Lazy Trigger: When a user logs in or opens the app, 
           // we ping the maintenance endpoint to ensure matches are started 
@@ -696,6 +728,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           api.profiles.update({ id: uid, theme }).catch(() => { });
         }
         setCurrentUser(user);
+        try { localStorage.setItem('cache_is_pro', String(!!data.is_pro)); } catch {}
         setConnectionError(false);
         failureCountRef.current = 0;
         fetchInvitations(user.email);
@@ -873,9 +906,9 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         const leaguesData = leaguesRes.status === 'fulfilled' ? (leaguesRes.value || []) : [];
         const brazilLeaguesData = brazilLeaguesRes.status === 'fulfilled' ? (brazilLeaguesRes.value || []) : [];
         const allParticipantIds = [...new Set([
-          ...leaguesData.flatMap((l: any) => [...(l.participants || []), ...(l.pending_requests || [])]),
-          ...brazilLeaguesData.flatMap((l: any) => [...(l.participants || []), ...(l.pending_requests || [])])
-        ])];
+          ...leaguesData.flatMap((l: any) => [...(l.participants || []), ...(l.pending_requests || []), l.admin_id]),
+          ...brazilLeaguesData.flatMap((l: any) => [...(l.participants || []), ...(l.pending_requests || []), l.admin_id])
+        ])].filter(Boolean);
 
         const allResults = await Promise.allSettled([
           api.brazilMatchGoals.list(),
@@ -1802,13 +1835,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   }, [currentTime, currentUser, loading, matches]);
 
   const loadLeagueData = async (leagueId: string, leagueType: 'standard' | 'brazil' = 'standard', forceRefresh: boolean = false) => {
-    const CACHE_TIME = 5 * 60 * 1000; // 5 minutos
-    const now = Date.now();
     const cacheKey = `${leagueType}_${leagueId}`;
-    
-    if (!forceRefresh && lastFetchedLeaguesRef.current[cacheKey] && (now - lastFetchedLeaguesRef.current[cacheKey] < CACHE_TIME)) {
-      return; // Retorna imediatamente pois os dados no contexto já estão atualizados pelo cache
-    }
 
     if (!forceRefresh && activeFetchesRef.current[cacheKey]) {
       return activeFetchesRef.current[cacheKey]; // Aguarda a chamada que já está em andamento (resolve o bug do Strict Mode / Race condition)
@@ -1852,12 +1879,13 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         ...(league.pendingRequests || league.pending_requests || [])
       ] : [];
 
-      const [predsRes, profilesRes, topRes, playersRes, goalsRes] = await Promise.all([
+      const [predsRes, profilesRes, topRes, playersRes, goalsRes, matchesRes] = await Promise.all([
         isBrazil ? api.brazilPredictions.list(leagueId) : api.predictions.list(leagueId),
         participantIds.length > 0 ? api.profiles.getByIds(participantIds) : Promise.resolve([]),
         api.topFinisherPredictions.list(leagueId),
         isBrazil ? api.brazilPlayers.list() : Promise.resolve([]),
-        isBrazil ? api.brazilMatchGoals.list() : Promise.resolve([])
+        isBrazil ? api.brazilMatchGoals.list() : Promise.resolve([]),
+        api.matches.list()
       ]);
 
       if (isBrazil) {
@@ -1917,6 +1945,16 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           setBrazilMatchGoals(mapped);
         }
       }
+
+      if (matchesRes && matchesRes.length > 0) {
+        const mappedMatches: Match[] = matchesRes.map((m: any) => ({
+          id: m.id, homeTeamId: m.home_team_id, awayTeamId: m.away_team_id,
+          date: m.date, location: m.location, group: m.group, phase: m.phase,
+          status: m.status, homeScore: m.home_score !== null ? Number(m.home_score) : null,
+          awayScore: m.away_score !== null ? Number(m.away_score) : null
+        }));
+        setMatches(mappedMatches);
+      }
       
       lastFetchedLeaguesRef.current[cacheKey] = Date.now(); // Marca como carregado apenas após sucesso
     } catch (e) {
@@ -1932,7 +1970,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   return (
     <AppContext.Provider value={{
-      currentUser, users, matches, leagues, predictions, currentTime, notifications, loading, invitations,
+      currentUser, users, matches, leagues, predictions, currentTime, notifications, loading, isSyncing, invitations,
       brazilLeagues, brazilPredictions, brazilMatchGoals, brazilPlayers,
       setCurrentTime, loginGoogle, signInWithEmail, signUpWithEmail, logout, createLeague, updateLeague, joinLeague, deleteLeague, approveUser, rejectUser, deleteAccount,
       removeUserFromLeague, submitPrediction, submitPredictions, simulateMatchResult, updateMatch, removeNotification, updateUserProfile, syncInitialMatches,
@@ -2043,6 +2081,7 @@ const AppRoutes: React.FC = () => {
             <Route path="/exclusao-conta" element={<AccountDeletionPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/profile" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <ProfilePage /> : <Navigate to="/" />)} />
+            <Route path="/seja-pro" element={currentUser ? <ProPage /> : <Navigate to="/login" />} />
 
             <Route path="/admin" element={isRecoveryMode ? <Navigate to="/reset-password" /> : <AdminRoute><AdminPage /></AdminRoute>} />
             <Route path="/admin/leagues" element={<AdminRoute><AdminLeaguesPage /></AdminRoute>} />

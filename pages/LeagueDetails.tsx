@@ -15,6 +15,7 @@ import {
 import { OptimizedImage } from '../components/OptimizedImage';
 import { LiveCountdown } from '../components/LiveCountdown';
 import { supabase } from '../services/supabase';
+import { getHistoryForTeam } from '../historyUtils';
 
 
 export const LeagueDetails: React.FC = () => {
@@ -54,6 +55,7 @@ export const LeagueDetails: React.FC = () => {
     const [selectedMatchForStats, setSelectedMatchForStats] = useState<string | null>(null);
     const [apiMatchStats, setApiMatchStats] = useState<any>(null);
     const [loadingStats, setLoadingStats] = useState<boolean>(false);
+    const [teamHistoryData, setTeamHistoryData] = useState<any[]>([]);
     const [matchDetailsSearch, setMatchDetailsSearch] = useState('');
     const [isSavingPalpites, setIsSavingPalpites] = useState(false);
     const [filterPhase, setFilterPhase] = useState<string>('all');
@@ -62,6 +64,7 @@ export const LeagueDetails: React.FC = () => {
     const [filterStatus, setFilterStatus] = useState<'all' | 'predicted' | 'missing' | 'live' | 'finished'>('all');
 
     // --- CLASSIFICACAO TAB STATE (HOISTED) ---
+    const [showUnsavedModal, setShowUnsavedModal] = useState<{ action: () => void } | null>(null);
     const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
     const [leaderboardSearch, setLeaderboardSearch] = useState('');
     const [leaderboardView, setLeaderboardView] = useState<string>('total');
@@ -119,6 +122,62 @@ export const LeagueDetails: React.FC = () => {
             loadLeagueData(league.id, 'standard')
                 .finally(() => setIsLeagueLoading(false));
         }
+    }, [league?.id]);
+
+    // --- APP STATE REF FOR CAPACITOR BACK BUTTON ---
+    const appStateRef = useRef({
+        pendingEdits, tfChampion, tfRunnerUp, tfThird, tfFourth, topFinisherPredictions,
+        showUnsavedModal, zoomedImage
+    });
+    appStateRef.current = {
+        pendingEdits, tfChampion, tfRunnerUp, tfThird, tfFourth, topFinisherPredictions,
+        showUnsavedModal, zoomedImage
+    };
+
+    useEffect(() => {
+        let backListener: any = null;
+        
+        const setupCapacitor = async () => {
+            try {
+                const { App } = await import('@capacitor/app');
+                backListener = await App.addListener('backButton', () => {
+                    const state = appStateRef.current;
+                    
+                    if (state.zoomedImage) {
+                        setZoomedImage(null);
+                        return;
+                    }
+                    if (state.showUnsavedModal) {
+                        setShowUnsavedModal(null);
+                        return;
+                    }
+                    
+                    if (!league) return;
+                    
+                    const existingPred = state.topFinisherPredictions.find(p => p.userId === currentUser.id && p.leagueId === league.id);
+                    const anyFieldFilled = state.tfChampion || state.tfRunnerUp || state.tfThird || state.tfFourth;
+                    const differsFromSaved = !existingPred
+                        ? !!anyFieldFilled
+                        : (existingPred.champion !== state.tfChampion || existingPred.runnerUp !== state.tfRunnerUp || existingPred.third !== state.tfThird || existingPred.fourth !== state.tfFourth);
+                    
+                    const hasUnsaved = Object.keys(state.pendingEdits).length > 0 || (anyFieldFilled && differsFromSaved);
+                    
+                    if (hasUnsaved) {
+                        setShowUnsavedModal({ action: () => window.history.back() });
+                    } else {
+                        window.history.back();
+                    }
+                });
+            } catch (e) {
+                // Not in capacitor
+            }
+        };
+        
+        setupCapacitor();
+        
+        return () => {
+            if (backListener) backListener.remove();
+        };
     }, [league?.id]);
 
     const mergedUsers = users;
@@ -261,19 +320,19 @@ export const LeagueDetails: React.FC = () => {
     const handleTabChange = (newTab: 'palpites' | 'classificacao' | 'regras' | 'admin') => {
         if (newTab === activeTab) return;
         
-        if (newTab === 'palpites') {
-            if (searchParams.has('tab')) {
-                navigate(-1);
+        confirmNavigation(() => {
+            window.scrollTo(0, 0); // Sempre reseta o scroll ao trocar de aba
+
+            if (newTab === 'palpites') {
+                navigate('', { replace: true });
             } else {
-                setActiveTab('palpites');
+                if (activeTab === 'palpites') {
+                    navigate(`?tab=${newTab}`); // Empurra no histórico para o botão voltar do celular funcionar
+                } else {
+                    navigate(`?tab=${newTab}`, { replace: true });
+                }
             }
-        } else {
-            if (activeTab === 'palpites') {
-                navigate(`?tab=${newTab}`);
-            } else {
-                navigate(`?tab=${newTab}`, { replace: true });
-            }
-        }
+        });
     };
 
     // --- MOBILE BACK BUTTON HANDLER FOR MODALS ---
@@ -353,9 +412,18 @@ export const LeagueDetails: React.FC = () => {
             try {
                 const data = await api.matches.getStats(selectedMatchForStats, league.id, 'standard');
                 setApiMatchStats(data);
+
+                const sm = matches.find(m => m.id === selectedMatchForStats);
+                if (sm && sm.homeTeamId !== 'TBD' && sm.awayTeamId !== 'TBD') {
+                    const dbHistory = await api.teamHistory.getForTeams([sm.homeTeamId, sm.awayTeamId]);
+                    setTeamHistoryData(dbHistory);
+                } else {
+                    setTeamHistoryData([]);
+                }
             } catch (e) {
                 console.error('Failed to fetch match stats:', e);
                 setApiMatchStats(null);
+                setTeamHistoryData([]);
             } finally {
                 setLoadingStats(false);
             }
@@ -500,7 +568,7 @@ export const LeagueDetails: React.FC = () => {
         });
     };
 
-    const handleSaveAll = async () => {
+    const handleSaveAll = async (): Promise<boolean> => {
         const predsToSave: { matchId: string, home: number, away: number }[] = [];
         let hasError = false;
         Object.entries(pendingEdits).forEach(([matchId, val]) => {
@@ -513,7 +581,7 @@ export const LeagueDetails: React.FC = () => {
             }
         });
 
-        if (hasError) { showToast('Atenção', 'Não é permitido placar negativo.', 'warning'); return; }
+        if (hasError) { showToast('Atenção', 'Não é permitido placar negativo.', 'warning'); return false; }
 
         if (predsToSave.length > 0) {
             setIsSavingPalpites(true);
@@ -522,9 +590,32 @@ export const LeagueDetails: React.FC = () => {
             if (success) {
                 setPendingEdits({});
                 showToast('Sucesso!', `${predsToSave.length} palpite(s) salvo(s).`, 'success');
+                return true;
             } else {
                 showToast('Erro', 'Ocorreu um erro ao salvar os palpites.', 'warning');
+                return false;
             }
+        }
+        return true;
+    };
+
+    const checkTopFinisherChanges = () => {
+        const existingPred = topFinisherPredictions.find(p => p.userId === currentUser.id && p.leagueId === league.id);
+        const anyFieldFilled = tfChampion || tfRunnerUp || tfThird || tfFourth;
+        const differsFromSaved = !existingPred
+            ? !!anyFieldFilled
+            : (existingPred.champion !== tfChampion || existingPred.runnerUp !== tfRunnerUp || existingPred.third !== tfThird || existingPred.fourth !== tfFourth);
+        return anyFieldFilled && differsFromSaved;
+    };
+
+    const confirmNavigation = async (action: () => void) => {
+        const hasTopFinisherChanges = checkTopFinisherChanges();
+        const hasUnsaved = Object.keys(pendingEdits).length > 0 || hasTopFinisherChanges;
+
+        if (hasUnsaved) {
+            setShowUnsavedModal({ action });
+        } else {
+            action();
         }
     };
 
@@ -627,15 +718,15 @@ export const LeagueDetails: React.FC = () => {
         e.preventDefault();
         if (!adminInviteEmail) return;
         setSearchStatus('searching'); setFoundUser(null);
-        
+
         try {
             const email = adminInviteEmail.toLowerCase().trim();
             let user = mergedUsers.find(u => u.email?.toLowerCase() === email);
-            
+
             if (!user) {
                 user = await api.profiles.getByEmail(email);
             }
-            
+
             if (user) {
                 if (league.participants.includes(user.id)) {
                     showToast('Aviso', 'Este usuário já participa da liga.', 'info');
@@ -769,6 +860,7 @@ export const LeagueDetails: React.FC = () => {
 
         return (
             <div className="space-y-6 pb-24">
+
                 {/* NEW TOP 4 LOCK ALERT */}
                 {league.settings?.topFinishersEnabled && (
                     <div className="bg-brasil-blue/10 dark:bg-blue-900/40 text-gray-700 dark:text-gray-300 px-4 py-3 text-xs md:text-sm font-bold border border-brasil-blue/20 dark:border-blue-800/50 rounded-xl flex items-center justify-center gap-2 text-center shadow-sm">
@@ -833,9 +925,9 @@ export const LeagueDetails: React.FC = () => {
                                             </span>
                                         )}
                                     </div>
-                                    <LiveCountdown 
-                                        date={topFinishersLockDate?.toISOString() || new Date().toISOString()} 
-                                        isLocked={isLocked} 
+                                    <LiveCountdown
+                                        date={topFinishersLockDate?.toISOString() || new Date().toISOString()}
+                                        isLocked={isLocked}
                                         className="flex items-center gap-1 text-yellow-300 bg-yellow-900/40 px-2 py-0.5 rounded-md text-[10px] font-bold shadow-sm border border-yellow-700/50 animate-fade-in whitespace-nowrap"
                                     />
                                 </div>
@@ -977,8 +1069,8 @@ export const LeagueDetails: React.FC = () => {
                                                                 const wrong = official && val && val !== official;
                                                                 return (
                                                                     <div key={f.key} className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] font-bold border ${correct ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300' :
-                                                                            wrong ? 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800/50 text-red-600 dark:text-red-400' :
-                                                                                'bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300'
+                                                                        wrong ? 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800/50 text-red-600 dark:text-red-400' :
+                                                                            'bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300'
                                                                         }`}>
                                                                         <span>{f.emoji}</span>
                                                                         <span className="truncate">{val || <span className="font-normal italic text-gray-400">—</span>}</span>
@@ -1001,11 +1093,14 @@ export const LeagueDetails: React.FC = () => {
 
                 {/* Match alerts moved below Top 4 card */}
                 <div className="space-y-3">
-                    <div className="bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 px-4 py-3 text-xs md:text-sm font-medium border border-blue-100 dark:border-blue-800 rounded-xl flex items-center justify-center gap-2 text-center shadow-sm">
-                        <MousePointerClick size={16} /><span>Clique em qualquer partida para ver as estatísticas de palpites da liga. Após o encerramento, confira os palpites da galera.</span>
+                    <div className="bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-200 px-2 sm:px-4 py-3 text-xs md:text-sm font-medium border border-green-100 dark:border-green-800 rounded-xl flex items-center justify-center gap-1.5 sm:gap-2 text-center shadow-sm">
+                        <MousePointerClick size={16} className="shrink-0" /><span>Clique em qualquer partida para ver as estatísticas.</span>
                     </div>
-                    <div className="bg-yellow-50 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 px-4 py-3 text-xs md:text-sm font-medium border border-yellow-100 dark:border-yellow-800 rounded-xl flex items-center justify-center gap-2 text-center shadow-sm">
-                        <AlertCircle size={16} /><span>O palpite é encerrado 5 min. antes do início do jogo.</span>
+                    <div className="bg-yellow-50 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 px-2 sm:px-4 py-3 text-xs md:text-sm font-medium border border-yellow-100 dark:border-yellow-800 rounded-xl flex items-center justify-center gap-1.5 sm:gap-2 text-center shadow-sm">
+                        <AlertCircle size={16} className="shrink-0" /><span>O palpite é bloqueado 5 min. antes do início do jogo.</span>
+                    </div>
+                    <div className="bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 px-2 sm:px-4 py-3 text-xs md:text-sm font-medium border border-blue-100 dark:border-blue-800 rounded-xl flex items-center justify-center gap-1.5 sm:gap-2 text-center shadow-sm">
+                        <MousePointerClick size={16} className="shrink-0" /><span>Após o bloqueio, clique na partida e confira os palpites.</span>
                     </div>
                 </div>
 
@@ -1224,6 +1319,56 @@ export const LeagueDetails: React.FC = () => {
                             const sm = matches.find(m => m.id === selectedMatchForStats);
                             if (!sm) return null;
 
+                            // Non-PRO: show teaser modal
+                            if (!currentUser?.isPro) {
+                                return createPortal(
+                                    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setSelectedMatchForStats(null)}>
+                                        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm animate-in zoom-in-95 duration-300 overflow-hidden" onClick={e => e.stopPropagation()}>
+                                            <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 text-center relative overflow-hidden">
+                                                <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/10 to-amber-500/5" />
+                                                <div className="relative z-10">
+                                                    <div className="flex justify-end mb-1">
+                                                        <button onClick={() => setSelectedMatchForStats(null)} className="p-1.5 hover:bg-white/20 rounded-full transition-colors text-white"><X size={16} /></button>
+                                                    </div>
+                                                    <div className="flex justify-center mb-3">
+                                                        <div className="bg-gradient-to-br from-yellow-400 to-amber-600 p-3.5 rounded-full shadow-lg">
+                                                            <Lock size={24} className="text-white" />
+                                                        </div>
+                                                    </div>
+                                                    <div className="inline-flex items-center gap-1 bg-gradient-to-r from-yellow-400 to-amber-500 text-gray-900 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-widest mb-2">
+                                                        <Star size={8} fill="currentColor" /> Recurso PRO
+                                                    </div>
+                                                    <h3 className="text-white font-black text-lg leading-tight">Estatísticas Exclusivas</h3>
+                                                    <p className="text-gray-400 text-xs mt-1">Disponível somente para usuários PRO</p>
+                                                </div>
+                                            </div>
+                                            <div className="p-5 space-y-3">
+                                                {[
+                                                    { icon: Trophy, text: 'Placar mais apostado pelos participantes', color: 'text-amber-500' },
+                                                    { icon: BarChart2, text: 'Distribuição: % Casa, Empate, Visitante', color: 'text-emerald-500' },
+                                                    { icon: Calendar, text: 'Histórico recente dos times', color: 'text-blue-500' },
+                                                ].map(({ icon: Icon, text, color }, i) => (
+                                                    <div key={i} className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
+                                                        <div className={`${color} shrink-0`}><Icon size={16} /></div>
+                                                        <span>{text}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            <div className="px-5 pb-5">
+                                                <button
+                                                    onClick={() => { setSelectedMatchForStats(null); navigate('/seja-pro'); }}
+                                                    className="w-full bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-300 hover:to-amber-400 text-gray-900 font-black py-3.5 px-6 rounded-xl text-sm uppercase tracking-widest shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
+                                                >
+                                                    <Crown size={16} fill="currentColor" />
+                                                    SEJA PRO
+                                                </button>
+                                                <button onClick={() => setSelectedMatchForStats(null)} className="w-full text-center text-xs text-gray-400 hover:text-gray-600 mt-3 transition-colors">Fechar</button>
+                                            </div>
+                                        </div>
+                                    </div>, document.body
+                                );
+                            }
+
                             const totalPreds = apiMatchStats?.totalPreds ?? 0;
                             const mostPredictedScore = apiMatchStats?.mostPredictedScore ?? null;
                             const homeWinPct = apiMatchStats?.homeWinPct ?? 0;
@@ -1234,16 +1379,17 @@ export const LeagueDetails: React.FC = () => {
                             const homeLeads = homeWinPct >= awayWinPct;
                             const awayLeads = awayWinPct > homeWinPct;
                             return createPortal(
+
                                 <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setSelectedMatchForStats(null)}>
-                                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md flex flex-col overflow-hidden animate-in zoom-in-95 duration-300" onClick={e => e.stopPropagation()}>
+                                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-300" onClick={e => e.stopPropagation()}>
                                         {/* Header */}
                                         <div className="bg-gradient-to-r from-emerald-700 to-green-600 text-white p-4 shrink-0">
                                             <div className="flex justify-between items-start mb-3">
                                                 <div className="flex items-center gap-2">
                                                     <div className="bg-white/15 p-1.5 rounded-lg"><BarChart2 size={16} /></div>
                                                     <div>
-                                                        <h3 className="font-black text-sm uppercase tracking-widest">Estatísticas da Liga</h3>
-                                                        <p className="text-emerald-200 text-[10px] mt-0.5">
+                                                        <h3 className="font-black text-base uppercase tracking-widest">Estatísticas da Liga</h3>
+                                                        <p className="text-emerald-100 text-sm mt-0.5 font-bold">
                                                             {loadingStats ? 'Carregando palpites...' : !apiMatchStats ? 'Erro de conexão' : `${totalPreds} palpite${totalPreds !== 1 ? 's' : ''} registrado${totalPreds !== 1 ? 's' : ''}`}
                                                         </p>
                                                     </div>
@@ -1254,27 +1400,21 @@ export const LeagueDetails: React.FC = () => {
                                             <div className="flex items-center justify-between gap-4">
                                                 <div className="flex flex-col items-center w-1/3 gap-1">
                                                     <img src={getTeamFlag(sm.homeTeamId)} className="w-12 h-8 object-cover rounded shadow-md" alt={sm.homeTeamId} />
-                                                    <span className="text-xs font-bold text-center leading-tight">{sm.homeTeamId}</span>
+                                                    <span className="text-sm font-bold text-center leading-tight">{sm.homeTeamId}</span>
                                                 </div>
                                                 <div className="flex flex-col items-center gap-1">
                                                     <div className="text-lg font-black bg-white/15 px-4 py-1.5 rounded-xl border border-white/20 tracking-widest">VS</div>
                                                 </div>
                                                 <div className="flex flex-col items-center w-1/3 gap-1">
                                                     <img src={getTeamFlag(sm.awayTeamId)} className="w-12 h-8 object-cover rounded shadow-md" alt={sm.awayTeamId} />
-                                                    <span className="text-xs font-bold text-center leading-tight">{sm.awayTeamId}</span>
+                                                    <span className="text-sm font-bold text-center leading-tight">{sm.awayTeamId}</span>
                                                 </div>
                                             </div>
                                         </div>
 
                                         {/* Content */}
-                                        <div className="p-4 space-y-4 bg-gray-50 dark:bg-gray-800 animate-in fade-in duration-200">
-                                            <div className="flex flex-col items-center justify-center py-12 gap-3 text-gray-500 dark:text-gray-400">
-                                                <BarChart2 className="text-brasil-green opacity-50" size={48} />
-                                                <span className="text-sm font-bold uppercase tracking-wider text-brasil-green">Em Breve</span>
-                                                <p className="text-xs text-center px-4">As estatísticas detalhadas estarão disponíveis em breve!</p>
-                                            </div>
-
-                                            {false && (
+                                        <div className="p-4 space-y-4 bg-gray-50 dark:bg-gray-800 flex-1 overflow-y-auto animate-in fade-in duration-200">
+                                            {true && (
                                                 <>
                                                     {loadingStats ? (
                                                         <div className="flex flex-col items-center justify-center py-12 gap-3 text-gray-500 dark:text-gray-400">
@@ -1297,18 +1437,18 @@ export const LeagueDetails: React.FC = () => {
                                                         <>
                                                             <div className="space-y-4">
                                                                 {/* Most Predicted Score */}
-                                                                <div className="bg-white dark:bg-gray-700/60 rounded-xl p-3.5 border border-gray-100 dark:border-gray-600 shadow-sm flex items-center justify-between">
-                                                                    <div className="flex flex-col">
+                                                                <div className="bg-white dark:bg-gray-700/60 rounded-xl p-4 border border-gray-100 dark:border-gray-600 shadow-sm flex flex-col items-center justify-center text-center gap-3">
+                                                                    <div className="flex flex-col items-center">
                                                                         <span className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500 mb-0.5 flex items-center gap-1.5">
                                                                             <Trophy size={10} className="text-yellow-500" /> Placar mais apostado
                                                                         </span>
                                                                         <span className="text-[10px] text-gray-500 dark:text-gray-400 leading-tight">Entre os palpites já registrados na liga</span>
                                                                     </div>
                                                                     {mHome !== null && mAway !== null && (
-                                                                        <div className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-100 dark:border-gray-700 shadow-inner">
-                                                                            <span className="text-lg font-black text-gray-800 dark:text-gray-200">{mHome}</span>
-                                                                            <span className="text-xs font-bold text-gray-400">x</span>
-                                                                            <span className="text-lg font-black text-gray-800 dark:text-gray-200">{mAway}</span>
+                                                                        <div className="flex items-center gap-3 bg-gray-50 dark:bg-gray-800 px-5 py-2 rounded-xl border border-gray-100 dark:border-gray-700 shadow-inner">
+                                                                            <span className="text-3xl font-black text-gray-800 dark:text-gray-200">{mHome}</span>
+                                                                            <span className="text-sm font-bold text-gray-400">x</span>
+                                                                            <span className="text-3xl font-black text-gray-800 dark:text-gray-200">{mAway}</span>
                                                                         </div>
                                                                     )}
                                                                 </div>
@@ -1319,77 +1459,83 @@ export const LeagueDetails: React.FC = () => {
                                                                         <BarChart2 size={10} /> Distribuição dos palpites
                                                                     </div>
 
-                                                                    {/* Progress bar */}
-                                                                    <div className="flex rounded-full overflow-hidden h-9 border border-gray-100 dark:border-gray-600 shadow-inner">
-                                                                        {homeWinPct > 0 && (
-                                                                            <div
-                                                                                className={`flex items-center justify-center text-[12px] font-black transition-all duration-500 ${
-                                                                                    homeLeads && !awayLeads ? 'bg-green-500 text-white' : 'bg-yellow-400 text-yellow-900'
-                                                                                }`}
-                                                                                style={{ width: `${homeWinPct}%` }}
-                                                                            >
-                                                                                {homeWinPct >= 12 ? `${homeWinPct}%` : ''}
-                                                                            </div>
-                                                                        )}
-                                                                        {drawPct > 0 && (
-                                                                            <div
-                                                                                className="flex items-center justify-center bg-gray-400 dark:bg-gray-500 text-white text-[12px] font-black transition-all duration-500"
-                                                                                style={{ width: `${drawPct}%` }}
-                                                                            >
-                                                                                {drawPct >= 12 ? `${drawPct}%` : ''}
-                                                                            </div>
-                                                                        )}
-                                                                        {awayWinPct > 0 && (
-                                                                            <div
-                                                                                className={`flex items-center justify-center text-[12px] font-black transition-all duration-500 ${
-                                                                                    awayLeads ? 'bg-green-500 text-white' : 'bg-yellow-400 text-yellow-900'
-                                                                                }`}
-                                                                                style={{ width: `${awayWinPct}%` }}
-                                                                            >
-                                                                                {awayWinPct >= 12 ? `${awayWinPct}%` : ''}
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-
                                                                     {/* Legend with flags */}
-                                                                    <div className="flex items-stretch justify-between gap-2 pt-1">
-                                                                        <div className={`flex-1 flex flex-col items-center gap-1 p-2 rounded-lg border ${
-                                                                            homeLeads && !awayLeads
-                                                                                ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300'
-                                                                                : 'bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200 dark:border-yellow-800/50 text-yellow-700 dark:text-yellow-400'
-                                                                        }`}>
-                                                                            <img src={getTeamFlag(sm.homeTeamId)} className="w-8 h-5 object-cover rounded shadow-sm" />
-                                                                            <span className="text-[9px] font-bold text-center leading-tight max-w-[60px] truncate">{sm.homeTeamId}</span>
-                                                                            <span className="text-lg font-black tabular-nums">{homeWinPct}%</span>
+                                                                    <div className="flex items-stretch justify-between gap-2">
+                                                                        <div className={`flex-1 flex flex-col items-center gap-1.5 p-2.5 rounded-lg border ${homeLeads && !awayLeads
+                                                                            ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300'
+                                                                            : 'bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200 dark:border-yellow-800/50 text-yellow-700 dark:text-yellow-400'
+                                                                            }`}>
+                                                                            <img src={getTeamFlag(sm.homeTeamId)} className="w-10 h-6 object-cover rounded shadow-sm" />
+                                                                            <span className="text-xs font-bold text-center leading-tight max-w-[80px] truncate">{sm.homeTeamId}</span>
+                                                                            <span className="text-2xl font-black tabular-nums">{homeWinPct}%</span>
                                                                         </div>
-                                                                        <div className="flex-1 flex flex-col items-center gap-1 p-2 rounded-lg border bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400">
-                                                                            <div className="w-8 h-5 flex items-center justify-center text-base">🤝</div>
-                                                                            <span className="text-[9px] font-bold">Empate</span>
-                                                                            <span className="text-lg font-black tabular-nums">{drawPct}%</span>
+                                                                        <div className="flex-1 flex flex-col items-center gap-1.5 p-2.5 rounded-lg border bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400">
+                                                                            <div className="w-10 h-6 flex items-center justify-center text-lg">🤝</div>
+                                                                            <span className="text-xs font-bold">Empate</span>
+                                                                            <span className="text-2xl font-black tabular-nums">{drawPct}%</span>
                                                                         </div>
-                                                                        <div className={`flex-1 flex flex-col items-center gap-1 p-2 rounded-lg border ${
-                                                                            awayLeads
-                                                                                ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300'
-                                                                                : 'bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200 dark:border-yellow-800/50 text-yellow-700 dark:text-yellow-400'
-                                                                        }`}>
-                                                                            <img src={getTeamFlag(sm.awayTeamId)} className="w-8 h-5 object-cover rounded shadow-sm" />
-                                                                            <span className="text-[9px] font-bold text-center leading-tight max-w-[60px] truncate">{sm.awayTeamId}</span>
-                                                                            <span className="text-lg font-black tabular-nums">{awayWinPct}%</span>
+                                                                        <div className={`flex-1 flex flex-col items-center gap-1.5 p-2.5 rounded-lg border ${awayLeads
+                                                                            ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300'
+                                                                            : 'bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200 dark:border-yellow-800/50 text-yellow-700 dark:text-yellow-400'
+                                                                            }`}>
+                                                                            <img src={getTeamFlag(sm.awayTeamId)} className="w-10 h-6 object-cover rounded shadow-sm" />
+                                                                            <span className="text-xs font-bold text-center leading-tight max-w-[80px] truncate">{sm.awayTeamId}</span>
+                                                                            <span className="text-2xl font-black tabular-nums">{awayWinPct}%</span>
                                                                         </div>
                                                                     </div>
 
-                                                                    {/* Color legend */}
-                                                                    <div className="flex items-center justify-center gap-4 text-[10px] text-gray-400 dark:text-gray-500 pt-1 border-t border-gray-100 dark:border-gray-700">
-                                                                        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-green-500 inline-block"></span>Mais apostado</span>
-                                                                        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-gray-400 inline-block"></span>Empate</span>
-                                                                        <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-yellow-400 inline-block"></span>Menos apostado</span>
-                                                                    </div>
                                                                 </div>
 
-                                                                {/* Coming soon placeholder */}
-                                                                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/50 rounded-xl p-3 flex items-center gap-2.5 text-blue-700 dark:text-blue-300">
-                                                                    <Clock size={14} className="shrink-0 opacity-70" />
-                                                                    <p className="text-[11px] font-medium">Em breve: últimos 5 jogos de cada seleção serão exibidos aqui.</p>
+                                                                {/* Team History */}
+                                                                <div className="grid grid-cols-1 gap-4 mt-2">
+                                                                    {/* Home Team History */}
+                                                                    <div className="flex flex-col gap-2">
+                                                                        <div className="text-xs font-bold uppercase text-gray-500 dark:text-gray-400 mb-2 mt-2 flex items-center justify-center gap-2">
+                                                                            <img src={getTeamFlag(sm.homeTeamId)} className="w-10 h-6 object-cover rounded-sm shadow-sm" /> Últimos jogos: {sm.homeTeamId}
+                                                                        </div>
+                                                                        {getHistoryForTeam(sm.homeTeamId, sm.id, matches, teamHistoryData).map(h => (
+                                                                            <div key={h.id} className={`p-3 rounded-lg border flex justify-between items-center ${h.result === 'Vitória' ? 'bg-green-50/50 dark:bg-green-900/10 border-green-200 dark:border-green-800 text-green-800 dark:text-green-300' :
+                                                                                h.result === 'Derrota' ? 'bg-red-50/50 dark:bg-red-900/10 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300' :
+                                                                                    h.result === 'Empate' ? 'bg-gray-50/50 dark:bg-gray-800/50 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-400' :
+                                                                                        'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'
+                                                                                }`}>
+                                                                                <div className="flex flex-col flex-1 items-center justify-center overflow-hidden">
+                                                                                    <span className="font-semibold text-[11px] md:text-xs opacity-75 text-center truncate w-full">{h.competition}{h.date ? ' - ' + h.date.split('T')[0].split('-').reverse().join('/') : ''}</span>
+                                                                                    <span className="font-bold text-sm md:text-base text-center truncate w-full">{h.match_str}</span>
+                                                                                </div>
+                                                                                {h.result && (
+                                                                                    <span className={`ml-2 px-2.5 py-1 rounded text-xs font-bold shrink-0 ${h.result === 'Vitória' ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300' :
+                                                                                        h.result === 'Derrota' ? 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300' :
+                                                                                            'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                                                                                        }`}>{h.result.charAt(0)}</span>
+                                                                                )}
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                    {/* Away Team History */}
+                                                                    <div className="flex flex-col gap-2">
+                                                                        <div className="text-xs font-bold uppercase text-gray-500 dark:text-gray-400 mb-2 mt-2 flex items-center justify-center gap-2">
+                                                                            <img src={getTeamFlag(sm.awayTeamId)} className="w-10 h-6 object-cover rounded-sm shadow-sm" /> Últimos jogos: {sm.awayTeamId}
+                                                                        </div>
+                                                                        {getHistoryForTeam(sm.awayTeamId, sm.id, matches, teamHistoryData).map(h => (
+                                                                            <div key={h.id} className={`p-3 rounded-lg border flex justify-between items-center ${h.result === 'Vitória' ? 'bg-green-50/50 dark:bg-green-900/10 border-green-200 dark:border-green-800 text-green-800 dark:text-green-300' :
+                                                                                h.result === 'Derrota' ? 'bg-red-50/50 dark:bg-red-900/10 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300' :
+                                                                                    h.result === 'Empate' ? 'bg-gray-50/50 dark:bg-gray-800/50 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-400' :
+                                                                                        'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400'
+                                                                                }`}>
+                                                                                <div className="flex flex-col flex-1 items-center justify-center overflow-hidden">
+                                                                                    <span className="font-semibold text-[11px] md:text-xs opacity-75 text-center truncate w-full">{h.competition}{h.date ? ' - ' + h.date.split('T')[0].split('-').reverse().join('/') : ''}</span>
+                                                                                    <span className="font-bold text-sm md:text-base text-center truncate w-full">{h.match_str}</span>
+                                                                                </div>
+                                                                                {h.result && (
+                                                                                    <span className={`ml-2 px-2.5 py-1 rounded text-xs font-bold shrink-0 ${h.result === 'Vitória' ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300' :
+                                                                                        h.result === 'Derrota' ? 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300' :
+                                                                                            'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                                                                                        }`}>{h.result.charAt(0)}</span>
+                                                                                )}
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         </>
@@ -1443,56 +1589,61 @@ export const LeagueDetails: React.FC = () => {
                     <table className="w-full text-sm md:text-base">
                         <thead className="bg-brasil-blue dark:bg-blue-900 text-white"><tr><th className="px-2 py-3 text-center w-12 md:w-16 text-xs md:text-sm">Pos.</th><th className="px-2 py-3 text-left">Participantes</th><th className="hidden md:table-cell px-2 py-3 text-center w-20"><span className="flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-2 py-1 rounded font-bold whitespace-nowrap">Pontos</span></th><th className="hidden md:table-cell px-2 py-3 text-center w-20"><span className="flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-2 py-1 rounded whitespace-nowrap"><Target size={14} /> Cravadas</span></th><th className="hidden md:table-cell px-2 py-3 text-center w-16"><span className="flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-1.5 py-1 rounded whitespace-nowrap">V+S</span></th><th className="hidden md:table-cell px-2 py-3 text-center w-16"><span className="flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-1.5 py-1 rounded whitespace-nowrap">V+G</span></th><th className="hidden md:table-cell px-2 py-3 text-center w-16"><span className="flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-1.5 py-1 rounded whitespace-nowrap">Emp</span></th><th className="md:hidden px-2 py-3 text-center w-20 whitespace-nowrap">Pontos</th>{isAdmin && <th className="px-0 py-3 w-8"></th>}</tr></thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                        {filteredLeaderboard.length === 0 ? <tr><td colSpan={7} className="text-center py-8 text-gray-400 italic">Nenhum participante encontrado.</td></tr> : filteredLeaderboard.map((entry, idx) => {
-                            const rank = idx + 1; return (<tr key={entry.user.id} className={entry.user.id === currentUser.id ? 'bg-yellow-50 dark:bg-yellow-900/20' : ''}><td className="px-2 py-3 font-bold text-center text-sm align-middle">{rank === 1 ? <div className="w-6 h-6 mx-auto bg-yellow-400 text-yellow-900 rounded-full flex items-center justify-center shadow-sm font-black text-xs">1</div> : rank === 2 ? <div className="w-6 h-6 mx-auto bg-gray-300 text-gray-800 rounded-full flex items-center justify-center shadow-sm font-black text-xs">2</div> : rank === 3 ? <div className="w-6 h-6 mx-auto bg-orange-400 text-orange-900 rounded-full flex items-center justify-center shadow-sm font-black text-xs">3</div> : <span className="text-gray-500 dark:text-gray-400">{rank}</span>}</td><td className="px-2 py-3 relative w-full max-w-[130px] sm:max-w-[200px] md:max-w-none"><div className="flex items-center gap-2 md:gap-3 cursor-pointer group" onClick={() => setSelectedUserId(entry.user.id)}>
-                                <div onClick={(e) => { e.stopPropagation(); setZoomedImage(entry.user.avatar); }}>
-                                    <OptimizedImage
-                                        src={entry.user.avatar}
-                                        containerClassName="w-10 h-10 md:w-12 md:h-12 rounded-full cursor-pointer hover:ring-2 hover:ring-brasil-blue transition-all"
-                                        className="w-full h-full object-cover"
-                                        alt=""
-                                    />
-                                </div>
-                                <div className="flex flex-col min-w-0 flex-1">
-                                    <span className="font-medium decoration-dotted decoration-gray-400 dark:decoration-gray-500 underline-offset-4 group-hover:text-brasil-blue dark:group-hover:text-blue-400 group-hover:underline text-base md:text-lg line-clamp-1 text-gray-900 dark:text-white flex items-center gap-1 truncate">
-                                        {entry.user.name} {entry.user.id === currentUser.id && <span className="text-[10px] font-normal text-gray-500 dark:text-gray-400 shrink-0">(Você)</span>}
-                                    </span>
-                                </div><Eye size={16} className="text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity ml-auto hidden md:block" /></div></td><td className="hidden md:table-cell px-2 py-3 text-center font-black text-gray-800 dark:text-gray-200 text-base md:text-lg whitespace-nowrap">
-                                    <div className="flex flex-col items-center justify-center">
-                                        <span>{entry.totalPoints}</span>
-                                        {entry.tfTotal > 0 && (
-                                            <span className="text-[9px] bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-1 rounded flex items-center gap-0.5 mt-0.5" title={`${entry.tfTotal} pts de Finalistas`}>
-                                                <Trophy size={8} className="text-yellow-600" /> +{entry.tfTotal}
-                                            </span>
-                                        )}
+                            {filteredLeaderboard.length === 0 ? <tr><td colSpan={7} className="text-center py-8 text-gray-400 italic">Nenhum participante encontrado.</td></tr> : filteredLeaderboard.map((entry, idx) => {
+                                const rank = idx + 1; return (<tr key={entry.user.id} className={entry.user.id === currentUser.id ? 'bg-yellow-50 dark:bg-yellow-900/20' : ''}><td className="px-2 py-3 font-bold text-center text-sm align-middle">{rank === 1 ? <div className="w-6 h-6 mx-auto bg-yellow-400 text-yellow-900 rounded-full flex items-center justify-center shadow-sm font-black text-xs">1</div> : rank === 2 ? <div className="w-6 h-6 mx-auto bg-gray-300 text-gray-800 rounded-full flex items-center justify-center shadow-sm font-black text-xs">2</div> : rank === 3 ? <div className="w-6 h-6 mx-auto bg-orange-400 text-orange-900 rounded-full flex items-center justify-center shadow-sm font-black text-xs">3</div> : <span className="text-gray-500 dark:text-gray-400">{rank}</span>}</td><td className="px-2 py-3 relative w-full max-w-[130px] sm:max-w-[200px] md:max-w-none"><div className="flex items-center gap-2 md:gap-3 cursor-pointer group" onClick={() => setSelectedUserId(entry.user.id)}>
+                                    <div onClick={(e) => { e.stopPropagation(); setZoomedImage(entry.user.avatar); }}>
+                                        <OptimizedImage
+                                            src={entry.user.avatar}
+                                            containerClassName="w-10 h-10 md:w-12 md:h-12 rounded-full cursor-pointer hover:ring-2 hover:ring-brasil-blue transition-all"
+                                            className="w-full h-full object-cover"
+                                            alt=""
+                                        />
                                     </div>
-                                </td><td className="hidden md:table-cell px-2 py-3 text-center"><span className="bg-blue-50 dark:bg-blue-900/30 text-brasil-blue dark:text-blue-300 font-bold px-2 py-1 rounded text-sm">{entry.exactScores}</span></td><td className="hidden md:table-cell px-2 py-3 text-center"><span className="bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-bold px-2 py-1 rounded text-sm">{entry.winnerAndDiffCount}</span></td><td className="hidden md:table-cell px-2 py-3 text-center"><span className="bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 font-bold px-2 py-1 rounded text-sm">{entry.winnerAndWinnerGoalsCount}</span></td><td className="hidden md:table-cell px-2 py-3 text-center"><span className="bg-gray-100 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 font-bold px-2 py-1 rounded text-sm">{entry.drawCount}</span></td><td className="md:hidden px-2 py-3 text-center font-bold text-brasil-green dark:text-green-400 text-base md:text-lg whitespace-nowrap">
-                                    <div className="flex flex-col items-center justify-center">
-                                        <span>{entry.totalPoints}</span>
-                                        {entry.tfTotal > 0 && (
-                                            <span className="text-[8px] bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-0.5 rounded flex items-center gap-0.5 mt-0.5">
-                                                <Trophy size={6} className="text-yellow-600" /> +{entry.tfTotal}
+                                    <div className="flex flex-col min-w-0 flex-1">
+                                        <div className="flex items-center gap-1.5 min-w-0">
+                                            <span className="font-medium decoration-dotted decoration-gray-400 dark:decoration-gray-500 underline-offset-4 group-hover:text-brasil-blue dark:group-hover:text-blue-400 group-hover:underline text-base md:text-lg text-gray-900 dark:text-white truncate">
+                                                {entry.user.name}
                                             </span>
-                                        )}
-                                    </div>
-                                </td>{isAdmin && <td className="px-0 py-3 text-center w-8">{entry.user.id !== currentUser.id && (<button type="button" onClick={(e) => initiateRemoveUser(e, entry.user.id, entry.user.name)} className="text-red-300 hover:text-red-500 dark:hover:text-red-400 p-1 rounded transition-colors z-10 relative"><Trash2 size={16} /></button>)}</td>}</tr>);
-                        })}
-                    </tbody>
-                </table>
-            </div>
+                                            {entry.user.isPro && <span className="inline-flex items-center text-[6px] md:text-[7px] font-black bg-gradient-to-r from-yellow-100 to-yellow-200 text-gray-900 border border-yellow-300 px-0.5 py-[1px] rounded uppercase tracking-tighter shadow-sm shrink-0 leading-none" title="PRO">⭐PRO</span>}
+                                            {entry.user.id === currentUser.id && <span className="text-[10px] font-normal text-gray-500 dark:text-gray-400 shrink-0">(Você)</span>}
+                                        </div>
+
+                                    </div><Eye size={16} className="text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity ml-auto hidden md:block" /></div></td><td className="hidden md:table-cell px-2 py-3 text-center font-black text-gray-800 dark:text-gray-200 text-base md:text-lg whitespace-nowrap">
+                                        <div className="flex flex-col items-center justify-center">
+                                            <span>{entry.totalPoints}</span>
+                                            {entry.tfTotal > 0 && (
+                                                <span className="text-[9px] bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-1 rounded flex items-center gap-0.5 mt-0.5" title={`${entry.tfTotal} pts de Finalistas`}>
+                                                    <Trophy size={8} className="text-yellow-600" /> +{entry.tfTotal}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </td><td className="hidden md:table-cell px-2 py-3 text-center"><span className="bg-blue-50 dark:bg-blue-900/30 text-brasil-blue dark:text-blue-300 font-bold px-2 py-1 rounded text-sm">{entry.exactScores}</span></td><td className="hidden md:table-cell px-2 py-3 text-center"><span className="bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-bold px-2 py-1 rounded text-sm">{entry.winnerAndDiffCount}</span></td><td className="hidden md:table-cell px-2 py-3 text-center"><span className="bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 font-bold px-2 py-1 rounded text-sm">{entry.winnerAndWinnerGoalsCount}</span></td><td className="hidden md:table-cell px-2 py-3 text-center"><span className="bg-gray-100 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 font-bold px-2 py-1 rounded text-sm">{entry.drawCount}</span></td><td className="md:hidden px-2 py-3 text-center font-bold text-brasil-green dark:text-green-400 text-base md:text-lg whitespace-nowrap">
+                                        <div className="flex flex-col items-center justify-center">
+                                            <span>{entry.totalPoints}</span>
+                                            {entry.tfTotal > 0 && (
+                                                <span className="text-[8px] bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-0.5 rounded flex items-center gap-0.5 mt-0.5">
+                                                    <Trophy size={6} className="text-yellow-600" /> +{entry.tfTotal}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </td>{isAdmin && <td className="px-0 py-3 text-center w-8">{entry.user.id !== currentUser.id && (<button type="button" onClick={(e) => initiateRemoveUser(e, entry.user.id, entry.user.name)} className="text-red-300 hover:text-red-500 dark:hover:text-red-400 p-1 rounded transition-colors z-10 relative"><Trash2 size={16} /></button>)}</td>}</tr>);
+                            })}
+                        </tbody>
+                    </table>
+                </div>
                 {selectedUserId && selectedUser && createPortal(
                     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setSelectedUserId(null)}>
                         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-300" onClick={(e) => e.stopPropagation()}>
-                            <div className="bg-brasil-blue dark:bg-blue-900 text-white p-4 flex justify-between items-center shrink-0"><div className="flex items-center gap-3"><div onClick={(e) => { e.stopPropagation(); setZoomedImage(selectedUser.avatar); }} className="cursor-pointer hover:ring-2 hover:ring-white/50 rounded-full transition-all"><OptimizedImage src={selectedUser.avatar} containerClassName="w-10 h-10 rounded-full border-2 border-white/30" className="w-full h-full object-cover" alt="" /></div><div><h3 className="font-bold text-lg leading-tight">{selectedUser.name}</h3><p className="text-xs text-blue-200">Histórico de Palpites</p></div></div><button onClick={() => setSelectedUserId(null)} className="p-2 hover:bg-white/20 rounded-full transition-colors"><X size={20} /></button></div>
+                            <div className="bg-brasil-blue dark:bg-blue-900 text-white p-4 flex justify-between items-center shrink-0"><div className="flex items-center gap-3"><div onClick={(e) => { e.stopPropagation(); setZoomedImage(selectedUser.avatar); }} className="cursor-pointer hover:ring-2 hover:ring-white/50 rounded-full transition-all"><OptimizedImage src={selectedUser.avatar} containerClassName="w-10 h-10 rounded-full border-2 border-white/30" className="w-full h-full object-cover" alt="" /></div><div><h3 className="font-bold text-lg leading-tight flex items-center gap-1.5">{selectedUser.name} {selectedUser.isPro && <span className="inline-flex items-center text-[10px] font-black bg-gradient-to-r from-yellow-200 to-amber-300 text-gray-900 border border-yellow-400 px-1.5 py-0.5 rounded uppercase tracking-wider shadow-sm shrink-0 leading-none">⭐ PRO</span>}</h3><p className="text-xs text-blue-200">Histórico de Palpites</p></div></div><button onClick={() => setSelectedUserId(null)} className="p-2 hover:bg-white/20 rounded-full transition-colors"><X size={20} /></button></div>
                             {(() => {
                                 const selEntry = leaderboard.find(e => e.user.id === selectedUserId);
                                 if (!selEntry) return null;
                                 return (
-                                    <div className="flex flex-nowrap items-center justify-between px-4 py-2 bg-blue-50 dark:bg-blue-900/40 border-b border-blue-100 dark:border-blue-800/50">
-                                        <span className="flex items-center gap-1 text-sm font-bold text-brasil-blue dark:text-blue-400" title="Cravadas"><Target size={14} /> {selEntry.exactScores} Cravadas</span>
-                                        <span className="flex items-center gap-1 text-sm font-bold text-green-700 dark:text-green-400" title="Vencedor + Saldo">{selEntry.winnerAndDiffCount} V+S</span>
-                                        <span className="flex items-center gap-1 text-sm font-bold text-yellow-700 dark:text-yellow-400" title="Vencedor + Gols">{selEntry.winnerAndWinnerGoalsCount} V+G</span>
-                                        <span className="flex items-center gap-1 text-sm font-bold text-gray-600 dark:text-gray-400" title="Empate">{selEntry.drawCount} Emp</span>
+                                    <div className="flex flex-nowrap items-center justify-between px-4 py-3 bg-blue-50 dark:bg-blue-900/40 border-b border-blue-100 dark:border-blue-800/50 overflow-x-auto gap-2">
+                                        <span className="flex items-center gap-1.5 text-base font-bold text-brasil-blue dark:text-blue-400 whitespace-nowrap" title="Cravadas"><Target size={16} /> {selEntry.exactScores} Cravadas</span>
+                                        <span className="flex items-center gap-1.5 text-base font-bold text-green-700 dark:text-green-400 whitespace-nowrap" title="Vencedor + Saldo">{selEntry.winnerAndDiffCount} V+S</span>
+                                        <span className="flex items-center gap-1.5 text-base font-bold text-yellow-700 dark:text-yellow-400 whitespace-nowrap" title="Vencedor + Gols">{selEntry.winnerAndWinnerGoalsCount} V+G</span>
+                                        <span className="flex items-center gap-1.5 text-base font-bold text-gray-600 dark:text-gray-400 whitespace-nowrap" title="Empate">{selEntry.drawCount} Emp</span>
                                     </div>
                                 );
                             })()}
@@ -1885,7 +2036,7 @@ export const LeagueDetails: React.FC = () => {
 
             <div className="mb-6 space-y-4">
                 <div className="flex items-center justify-between mb-4">
-                    <button onClick={() => navigate('/leagues')} className="flex items-center gap-2 text-sm font-bold text-brasil-blue hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors group"><div className="bg-blue-50 dark:bg-gray-800 p-1.5 rounded-full group-hover:bg-blue-100 dark:group-hover:bg-gray-700"><ArrowLeft size={18} /></div> Voltar para Ligas</button>
+                    <button onClick={() => confirmNavigation(() => navigate('/leagues'))} className="flex items-center gap-2 text-sm font-bold text-brasil-blue hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors group"><div className="bg-blue-50 dark:bg-gray-800 p-1.5 rounded-full group-hover:bg-blue-100 dark:group-hover:bg-gray-700"><ArrowLeft size={18} /></div> Voltar para Ligas</button>
                     {isAdmin && validPendingRequestsCount > 0 && (<button onClick={() => handleTabChange('admin')} className="flex items-center gap-1.5 bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-full font-bold text-xs shadow-md transition-all animate-pulse hover:animate-none"><Bell size={14} fill="currentColor" /> {validPendingRequestsCount} pendentes</button>)}
                 </div>
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -1952,6 +2103,73 @@ export const LeagueDetails: React.FC = () => {
                 <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-200" onClick={() => setZoomedImage(null)}>
                     <button onClick={() => setZoomedImage(null)} className="absolute top-4 right-4 text-white hover:text-gray-300 p-2"><X size={32} /></button>
                     <img src={zoomedImage} alt="Zoom" className="max-w-full max-h-full object-contain rounded-lg animate-in zoom-in duration-300 shadow-2xl" onClick={e => e.stopPropagation()} />
+                </div>, document.body
+            )}
+
+            {/* Custom Unsaved Changes Modal */}
+            {showUnsavedModal && createPortal(
+                <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in">
+                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden border border-gray-100 dark:border-gray-700 animate-in zoom-in-95 duration-200">
+                        <div className="p-6">
+                            <div className="w-12 h-12 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-500 rounded-full flex items-center justify-center mb-4 mx-auto">
+                                <AlertTriangle size={24} />
+                            </div>
+                            <h3 className="text-xl font-black text-center text-gray-900 dark:text-white mb-2">Atenção</h3>
+                            <p className="text-center text-gray-600 dark:text-gray-300 text-sm mb-6">
+                                Você tem palpites não salvos. Deseja salvar antes de sair?
+                            </p>
+                            <div className="flex flex-col gap-3">
+                                <button 
+                                    onClick={async () => {
+                                        let ok = true;
+                                        if (Object.keys(pendingEdits).length > 0) {
+                                            ok = await handleSaveAll();
+                                        }
+                                        const hasTopFinisherChanges = checkTopFinisherChanges();
+                                        if (ok && hasTopFinisherChanges) {
+                                            if (!tfChampion || !tfRunnerUp || !tfThird || !tfFourth) {
+                                                alert('Preencha todos os 4 colocados antes de salvar.');
+                                                ok = false;
+                                            } else {
+                                                setIsSavingTopFinishers(true);
+                                                const succ = await submitTopFinisherPrediction(league.id, tfChampion, tfRunnerUp, tfThird, tfFourth);
+                                                setIsSavingTopFinishers(false);
+                                                ok = succ;
+                                            }
+                                        }
+                                        if (ok) {
+                                            setShowUnsavedModal(null);
+                                            showUnsavedModal.action();
+                                        }
+                                    }}
+                                    className="w-full bg-brasil-blue hover:bg-blue-900 text-white font-bold py-3 rounded-xl transition-colors shadow-md"
+                                >
+                                    Salvar e Sair
+                                </button>
+                                <button 
+                                    onClick={() => {
+                                        setPendingEdits({});
+                                        const existingPred = topFinisherPredictions.find(p => p.userId === currentUser.id && p.leagueId === league.id);
+                                        setTfChampion(existingPred?.champion || '');
+                                        setTfRunnerUp(existingPred?.runnerUp || '');
+                                        setTfThird(existingPred?.third || '');
+                                        setTfFourth(existingPred?.fourth || '');
+                                        setShowUnsavedModal(null);
+                                        showUnsavedModal.action();
+                                    }}
+                                    className="w-full bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 font-bold py-3 rounded-xl transition-colors"
+                                >
+                                    Sair sem salvar
+                                </button>
+                                <button 
+                                    onClick={() => setShowUnsavedModal(null)}
+                                    className="w-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 font-bold py-3 transition-colors"
+                                >
+                                    Cancelar e Ficar na Tela
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>, document.body
             )}
         </div>
