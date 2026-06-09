@@ -135,48 +135,40 @@ export const LeagueDetails: React.FC = () => {
     };
 
     useEffect(() => {
-        let backListener: any = null;
-        
-        const setupCapacitor = async () => {
-            try {
-                const { App } = await import('@capacitor/app');
-                backListener = await App.addListener('backButton', () => {
-                    const state = appStateRef.current;
-                    
-                    if (state.zoomedImage) {
-                        setZoomedImage(null);
-                        return;
-                    }
-                    if (state.showUnsavedModal) {
-                        setShowUnsavedModal(null);
-                        return;
-                    }
-                    
-                    if (!league) return;
-                    
-                    const existingPred = state.topFinisherPredictions.find(p => p.userId === currentUser.id && p.leagueId === league.id);
-                    const anyFieldFilled = state.tfChampion || state.tfRunnerUp || state.tfThird || state.tfFourth;
-                    const differsFromSaved = !existingPred
-                        ? !!anyFieldFilled
-                        : (existingPred.champion !== state.tfChampion || existingPred.runnerUp !== state.tfRunnerUp || existingPred.third !== state.tfThird || existingPred.fourth !== state.tfFourth);
-                    
-                    const hasUnsaved = Object.keys(state.pendingEdits).length > 0 || (anyFieldFilled && differsFromSaved);
-                    
-                    if (hasUnsaved) {
-                        setShowUnsavedModal({ action: () => window.history.back() });
-                    } else {
-                        window.history.back();
-                    }
-                });
-            } catch (e) {
-                // Not in capacitor
+        const handleAppBack = (e: any) => {
+            const state = appStateRef.current;
+            
+            if (state.zoomedImage) {
+                setZoomedImage(null);
+                e.detail.handled = true;
+                return;
+            }
+            if (state.showUnsavedModal) {
+                setShowUnsavedModal(null);
+                e.detail.handled = true;
+                return;
+            }
+            
+            if (!league) return;
+            
+            const existingPred = state.topFinisherPredictions.find(p => p.userId === currentUser.id && p.leagueId === league.id);
+            const anyFieldFilled = state.tfChampion || state.tfRunnerUp || state.tfThird || state.tfFourth;
+            const differsFromSaved = !existingPred
+                ? !!anyFieldFilled
+                : (existingPred.champion !== state.tfChampion || existingPred.runnerUp !== state.tfRunnerUp || existingPred.third !== state.tfThird || existingPred.fourth !== state.tfFourth);
+            
+            const hasUnsaved = Object.keys(state.pendingEdits).length > 0 || (anyFieldFilled && differsFromSaved);
+            
+            if (hasUnsaved) {
+                setShowUnsavedModal({ action: () => window.history.back() });
+                e.detail.handled = true;
             }
         };
         
-        setupCapacitor();
+        window.addEventListener('appBackButton', handleAppBack);
         
         return () => {
-            if (backListener) backListener.remove();
+            window.removeEventListener('appBackButton', handleAppBack);
         };
     }, [league?.id]);
 

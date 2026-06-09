@@ -135,40 +135,32 @@ export const BrazilLeagueDetails: React.FC = () => {
     appStateRef.current = { pendingEdits, showUnsavedModal, zoomedImage };
 
     useEffect(() => {
-        let backListener: any = null;
-        
-        const setupCapacitor = async () => {
-            try {
-                const { App } = await import('@capacitor/app');
-                backListener = await App.addListener('backButton', () => {
-                    const state = appStateRef.current;
-                    
-                    if (state.zoomedImage) {
-                        setZoomedImage(null);
-                        return;
-                    }
-                    if (state.showUnsavedModal) {
-                        setShowUnsavedModal(null);
-                        return;
-                    }
-                    
-                    const hasUnsaved = Object.keys(state.pendingEdits).length > 0;
-                    
-                    if (hasUnsaved) {
-                        setShowUnsavedModal({ action: () => window.history.back() });
-                    } else {
-                        window.history.back();
-                    }
-                });
-            } catch (e) {
-                // Not in capacitor
+        const handleAppBack = (e: any) => {
+            const state = appStateRef.current;
+            
+            if (state.zoomedImage) {
+                setZoomedImage(null);
+                e.detail.handled = true;
+                return;
+            }
+            if (state.showUnsavedModal) {
+                setShowUnsavedModal(null);
+                e.detail.handled = true;
+                return;
+            }
+            
+            const hasUnsaved = Object.keys(state.pendingEdits).length > 0;
+            
+            if (hasUnsaved) {
+                setShowUnsavedModal({ action: () => window.history.back() });
+                e.detail.handled = true;
             }
         };
         
-        setupCapacitor();
+        window.addEventListener('appBackButton', handleAppBack);
         
         return () => {
-            if (backListener) backListener.remove();
+            window.removeEventListener('appBackButton', handleAppBack);
         };
     }, []);
 
