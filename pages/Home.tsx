@@ -343,7 +343,6 @@ export const Home: React.FC = () => {
             </div>
             <div className="flex items-center gap-2 mb-1">
               <h2 className="text-xl font-bold text-gray-800 dark:text-white">Seja PRO</h2>
-              <span className="text-[9px] font-black bg-gradient-to-r from-yellow-400 to-amber-500 text-white px-1.5 py-0.5 rounded-full uppercase tracking-wide">R$ 5,99</span>
             </div>
             <p className="text-amber-700 dark:text-amber-300 text-sm font-medium">Desbloqueie estatísticas exclusivas de cada jogo!</p>
           </div>
