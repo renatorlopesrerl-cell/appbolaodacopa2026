@@ -928,6 +928,35 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             third: topResRes.value.third || '', fourth: topResRes.value.fourth || ''
           });
         }
+
+        // Carregar perfis dos admins de todas as ligas para exibir nomes no gerenciamento
+        // (apenas admin_id únicos — muito mais leve que carregar todos os participantes)
+        try {
+          const leaguesData = leaguesRes.status === 'fulfilled' ? (leaguesRes.value || []) : [];
+          const brazilLeaguesData = brazilLeaguesRes.status === 'fulfilled' ? (brazilLeaguesRes.value || []) : [];
+          const allAdminIds = [...new Set([
+            ...leaguesData.map((l: any) => l.admin_id),
+            ...brazilLeaguesData.map((l: any) => l.admin_id)
+          ])].filter(Boolean);
+
+          if (allAdminIds.length > 0) {
+            const adminProfiles = await api.profiles.getByIds(allAdminIds);
+            if (adminProfiles && adminProfiles.length > 0) {
+              const mappedAdmins: User[] = adminProfiles.map((p: any) => ({
+                id: p.id, name: p.name, email: p.email, avatar: p.avatar,
+                isAdmin: p.is_admin, isMatchAdmin: p.is_match_admin,
+                whatsapp: p.whatsapp || '', notificationSettings: p.notification_settings,
+                theme: p.theme, isPro: p.is_pro
+              }));
+              setUsers(prev => {
+                const merged = [...prev];
+                mappedAdmins.forEach(u => { if (!merged.some(e => e.id === u.id)) merged.push(u); });
+                return merged;
+              });
+            }
+          }
+        } catch(e) { console.warn('Falha ao carregar perfis de admins de ligas:', e); }
+
       } else {
         // Usuário Comum: Baixa apenas topFinishersResult por segurança e metadados globais se precisar
         try {

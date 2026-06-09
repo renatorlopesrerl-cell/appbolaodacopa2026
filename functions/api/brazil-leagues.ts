@@ -17,29 +17,38 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                 return jsonResponse(cleanLeagues);
             }
 
-            const data = await withRetry(async () => {
-                // Check if user is admin via profiles table
-                const { data: profile } = await userClient
-                    .from('profiles')
-                    .select('is_admin')
-                    .eq('id', authUser.id)
-                    .single();
-                
-                const isAdmin = profile?.is_admin || false;
+            // Check if user is admin
+            const { data: profile } = await userClient
+                .from('profiles')
+                .select('is_admin')
+                .eq('id', authUser.id)
+                .single();
+            const isAdmin = profile?.is_admin || false;
 
-                let query = userClient.from('brazil_leagues').select('*');
-                
-                // If user is not admin, only fetch public leagues + their own participated/pending leagues
-                if (!isAdmin) {
-                    query = query.or(`admin_id.eq.${authUser.id},participants.cs.{${authUser.id}},pending_requests.cs.{${authUser.id}},is_private.eq.false`);
-                }
-                
-                return await query.limit(5000);
-            });
+            // Paginate with .range() — PostgREST caps at 1000 rows per request
+            const PAGE = 1000;
+            const allLeagues: any[] = [];
+            let offset = 0;
+
+            while (true) {
+                const pageData = await withRetry(async () => {
+                    let query = userClient.from('brazil_leagues').select('*').range(offset, offset + PAGE - 1);
+                    if (!isAdmin) {
+                        query = query.or(`admin_id.eq.${authUser.id},participants.cs.{${authUser.id}},pending_requests.cs.{${authUser.id}},is_private.eq.false`);
+                    }
+                    return query;
+                });
+
+                if (!pageData || (pageData as any[]).length === 0) break;
+                allLeagues.push(...(pageData as any[]));
+                if ((pageData as any[]).length < PAGE) break;
+                offset += PAGE;
+            }
 
             // Filter out leagues with '[EXCLUÍDA]' in name
-            const cleanLeagues = (data as any[])?.filter(l => !l.name.includes('[EXCLUÍDA]')) || [];
+            const cleanLeagues = allLeagues.filter((l: any) => !l.name.includes('[EXCLUÍDA]'));
             return jsonResponse(cleanLeagues);
+
         }
 
         if (request.method === 'DELETE') {
