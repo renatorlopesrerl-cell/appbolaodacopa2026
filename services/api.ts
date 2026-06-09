@@ -1,8 +1,9 @@
 import { supabase } from './supabase'; // Only for Auth Session
+import { Capacitor } from '@capacitor/core';
 
 // Detect if we are running in a Capacitor (Native) environment
-// We check for both window.Capacitor and that it's actually a native platform
-const isCapacitor = (window as any).Capacitor?.isNativePlatform?.() || false;
+// Use the core library instead of window.Capacitor which might not be injected yet
+const isCapacitor = Capacitor.isNativePlatform();
 
 // Use the production URL when in APK/Capacitor, otherwise use relative /api
 const PRODUCAO_URL = 'https://bolaodacopa2026.app';
