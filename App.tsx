@@ -116,6 +116,7 @@ interface AppState {
   addNotification: (title: string, message: string, type: 'success' | 'info' | 'warning', duration?: number) => void;
   refreshPredictions: () => Promise<void>;
   refreshAllData: () => Promise<void>;
+  refreshCurrentUser: () => Promise<void>;
   deleteAccount: () => Promise<boolean>;
   isRecoveryMode: boolean;
   lastSyncTime: Date | null;
@@ -899,30 +900,18 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         }
       }
 
-      // ─── FASE 2: Tudo em paralelo, filtrado por liga (Batch) ────────────────
-      if (currentUserRef.current?.isAdmin) {
-        const allLeagueIds = [...userLeagueIds, ...userBrazilLeagueIds];
-        
-        const leaguesData = leaguesRes.status === 'fulfilled' ? (leaguesRes.value || []) : [];
-        const brazilLeaguesData = brazilLeaguesRes.status === 'fulfilled' ? (brazilLeaguesRes.value || []) : [];
-        const allParticipantIds = [...new Set([
-          ...leaguesData.flatMap((l: any) => [...(l.participants || []), ...(l.pending_requests || []), l.admin_id]),
-          ...brazilLeaguesData.flatMap((l: any) => [...(l.participants || []), ...(l.pending_requests || []), l.admin_id])
-        ])].filter(Boolean);
-
-        const allResults = await Promise.allSettled([
+      // ─── FASE 2: Admin — carrega apenas metadados globais necessários ─────────
+      // O Admin Geral só gerencia planos de ligas e jogos.
+      // Não há necessidade de baixar todos os palpites e perfis de todos os usuários.
+      if (currentUserRef.current?.isAdmin || currentUserRef.current?.isMatchAdmin) {
+        const globalResults = await Promise.allSettled([
           api.brazilMatchGoals.list(),
           api.brazilPlayers.list(),
           api.topFinishersResult.get(),
-          userLeagueIds.length > 0 ? api.predictions.list(userLeagueIds) : Promise.resolve([]),
-          userBrazilLeagueIds.length > 0 ? api.brazilPredictions.list(userBrazilLeagueIds) : Promise.resolve([]),
-          allLeagueIds.length > 0 ? api.topFinisherPredictions.list(allLeagueIds) : Promise.resolve([]),
-          allParticipantIds.length > 0 ? api.profiles.getByIds(allParticipantIds) : Promise.resolve([])
         ]);
 
-        const [goalsRes, playersRes, topResRes, stdPredsRes, brPredsRes, tfPredsRes, profRes] = allResults;
+        const [goalsRes, playersRes, topResRes] = globalResults;
 
-        // Metadados globais
         if (goalsRes.status === 'fulfilled' && goalsRes.value) {
           const mapped: BrazilMatchGoal[] = goalsRes.value.map((g: any) => ({ matchId: g.match_id, playerName: g.player_name, goals: g.goals }));
           setBrazilMatchGoals(mapped);
@@ -938,58 +927,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             champion: topResRes.value.champion || '', runnerUp: topResRes.value.runner_up || '',
             third: topResRes.value.third || '', fourth: topResRes.value.fourth || ''
           });
-        }
-
-        // Palpites padrão
-        if (stdPredsRes.status === 'fulfilled' && stdPredsRes.value) {
-          const allPreds: Prediction[] = stdPredsRes.value.map((p: any) => ({
-            userId: p.user_id, matchId: p.match_id, leagueId: p.league_id,
-            homeScore: Number(p.home_score), awayScore: Number(p.away_score),
-            points: p.points ? Number(p.points) : 0
-          }));
-          if (allPreds.length > 0) {
-            setPredictions(allPreds);
-            try { localStorage.setItem('cache_predictions', JSON.stringify(allPreds)); } catch {}
-          }
-        }
-
-        // Palpites Brasil
-        if (brPredsRes.status === 'fulfilled' && brPredsRes.value) {
-          const allBrazilPreds: BrazilPrediction[] = brPredsRes.value.map((p: any) => ({
-            userId: p.user_id, matchId: p.match_id, leagueId: p.league_id,
-            homeScore: Number(p.home_score), awayScore: Number(p.away_score),
-            playerPick: p.player_pick,
-            points: p.points ? Number(p.points) : 0,
-            goalscorerPoints: p.goalscorer_points ? Number(p.goalscorer_points) : 0
-          }));
-          if (allBrazilPreds.length > 0) {
-            setBrazilPredictions(allBrazilPreds);
-            try { localStorage.setItem('cache_brazil_predictions', JSON.stringify(allBrazilPreds)); } catch {}
-          }
-        }
-
-        // Top Finisher Predictions
-        if (tfPredsRes.status === 'fulfilled' && tfPredsRes.value) {
-          const allTopPreds: TopFinisherPrediction[] = tfPredsRes.value.map((p: any) => ({
-            userId: p.user_id, leagueId: p.league_id,
-            champion: p.champion || '', runnerUp: p.runner_up || '',
-            third: p.third || '', fourth: p.fourth || ''
-          }));
-          if (allTopPreds.length > 0) {
-            setTopFinisherPredictions(allTopPreds);
-            try { localStorage.setItem('cache_top_finisher_preds', JSON.stringify(allTopPreds)); } catch {}
-          }
-        }
-
-        // Perfis
-        if (profRes.status === 'fulfilled' && profRes.value) {
-          const mappedUsers: User[] = profRes.value.map((p: any) => ({
-            id: p.id, name: p.name, email: p.email, avatar: p.avatar, isAdmin: p.is_admin, isMatchAdmin: p.is_match_admin,
-            whatsapp: p.whatsapp || '', notificationSettings: p.notification_settings, theme: p.theme, isPro: p.is_pro
-          }));
-          if (mappedUsers.length > 0) {
-            setUsers(mappedUsers);
-          }
         }
       } else {
         // Usuário Comum: Baixa apenas topFinishersResult por segurança e metadados globais se precisar
@@ -1968,13 +1905,45 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return fetchPromise;
 };
 
+  // Refreshes the current user's profile from DB (including isPro).
+  // Called after a purchase or restore so the UI immediately reflects the new Pro status.
+  const refreshCurrentUser = async (): Promise<void> => {
+    const user = currentUserRef.current;
+    if (!user) return;
+    try {
+      const data = await api.profiles.get(user.id).catch(() => null);
+      if (data) {
+        const updatedUser: User = {
+          ...user,
+          name: data.name || user.name,
+          email: data.email || user.email,
+          avatar: (data.avatar && data.avatar.trim() !== '') ? data.avatar : user.avatar,
+          isAdmin: data.is_admin === true,
+          isMatchAdmin: data.is_match_admin === true,
+          whatsapp: data.whatsapp || '',
+          notificationSettings: data.notification_settings || user.notificationSettings,
+          theme: data.theme || user.theme,
+          isPro: data.is_pro === true,
+        };
+        setCurrentUser(updatedUser);
+        currentUserRef.current = updatedUser;
+        try { localStorage.setItem('cache_is_pro', String(!!data.is_pro)); } catch {}
+      }
+    } catch (e) {
+      console.warn('refreshCurrentUser failed:', e);
+    }
+  };
+
   return (
     <AppContext.Provider value={{
       currentUser, users, matches, leagues, predictions, currentTime, notifications, loading, isSyncing, invitations,
       brazilLeagues, brazilPredictions, brazilMatchGoals, brazilPlayers,
       setCurrentTime, loginGoogle, signInWithEmail, signUpWithEmail, logout, createLeague, updateLeague, joinLeague, deleteLeague, approveUser, rejectUser, deleteAccount,
       removeUserFromLeague, submitPrediction, submitPredictions, simulateMatchResult, updateMatch, removeNotification, updateUserProfile, syncInitialMatches,
-      sendLeagueInvite, respondToInvite, theme, toggleTheme, connectionError, retryConnection, addNotification, refreshPredictions, refreshAllData: () => fetchAllData(false), isRecoveryMode, lastSyncTime,
+      sendLeagueInvite, respondToInvite, theme, toggleTheme, connectionError, retryConnection, addNotification, refreshPredictions,
+      refreshAllData: async () => { await fetchAllData(false); await refreshCurrentUser(); },
+      refreshCurrentUser,
+      isRecoveryMode, lastSyncTime,
       createBrazilLeague, updateBrazilLeague, joinBrazilLeague, deleteBrazilLeague, approveBrazilUser, rejectBrazilUser, removeUserFromBrazilLeague, submitBrazilPredictions, addBrazilMatchGoal, sendBrazilLeagueInvite,
       topFinisherPredictions, topFinishersResult, submitTopFinisherPrediction, setTopFinishersResult, loadLeagueData
     }}>

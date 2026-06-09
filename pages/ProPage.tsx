@@ -60,7 +60,7 @@ const FEATURES = [
 
 export const ProPage: React.FC = () => {
     const navigate = useNavigate();
-    const { currentUser, refreshAllData } = useStore();
+    const { currentUser, refreshCurrentUser, refreshAllData } = useStore();
 
     const [isPurchasing, setIsPurchasing] = useState(false);
     const [cpfInput, setCpfInput] = useState('');
@@ -88,8 +88,9 @@ export const ProPage: React.FC = () => {
                         console.error("Erro ao atualizar Supabase:", error);
                         alert('Compra encontrada, mas erro ao sincronizar com o banco. Avise o suporte.');
                     } else {
+                        try { localStorage.setItem('cache_is_pro', 'true'); } catch {}
                         alert('🎉 Compras restauradas com sucesso! Você agora é PRO!');
-                        if (refreshAllData) await refreshAllData();
+                        await refreshCurrentUser();
                         navigate('/', { replace: true });
                     }
                 } else {
@@ -181,13 +182,15 @@ export const ProPage: React.FC = () => {
                             console.error("Erro ao atualizar Supabase:", error);
                             alert('Compra aprovada, mas houve um atraso ao liberar seu acesso. Entre em contato com o suporte.');
                         } else {
+                            try { localStorage.setItem('cache_is_pro', 'true'); } catch {}
                             alert('🎉 Parabéns! Compra aprovada. Você agora é PRO!');
-                            if (refreshAllData) await refreshAllData();
+                            await refreshCurrentUser();
                             navigate('/', { replace: true });
                         }
                     } else {
+                        try { localStorage.setItem('cache_is_pro', 'true'); } catch {}
                         alert('🎉 Parabéns! Compra aprovada. Você agora é PRO!');
-                        if (refreshAllData) await refreshAllData();
+                        await refreshCurrentUser();
                         navigate('/', { replace: true });
                     }
                 }
