@@ -1,17 +1,13 @@
 import { supabase } from './supabase'; // Only for Auth Session
 import { Capacitor } from '@capacitor/core';
 
-// Detect if we are running in a Capacitor (Native) environment
-// Use the core library instead of window.Capacitor which might not be injected yet
-const isCapacitor = Capacitor.isNativePlatform();
-
-// Use the production URL when in APK/Capacitor, otherwise use relative /api
-const PRODUCAO_URL = 'https://bolaodacopa2026.app';
-const API_BASE = isCapacitor
-    ? `${PRODUCAO_URL}/api`
-    : (import.meta.env.VITE_API_URL || '/api');
-
-console.log(`API initialized with BASE: ${API_BASE} (Capacitor: ${isCapacitor})`);
+// Evaluate platform dynamically to avoid race conditions during app startup
+const getApiBase = () => {
+    // Check both the core library and window object to be absolutely sure
+    const isCapacitor = Capacitor.isNativePlatform() || !!(window as any).Capacitor?.isNativePlatform?.();
+    const PRODUCAO_URL = 'https://bolaodacopa2026.app';
+    return isCapacitor ? `${PRODUCAO_URL}/api` : (import.meta.env.VITE_API_URL || '/api');
+};
 
 /**
  * Retry com backoff exponencial para chamadas diretas ao Supabase.
@@ -92,7 +88,7 @@ async function apiFetch<T>(endpoint: string, options: RequestInit = {}, retries 
         const timeoutId = setTimeout(() => controller.abort(), 45000); // 45s timeout
 
         try {
-            const res = await fetch(`${API_BASE}${endpoint}`, {
+            const res = await fetch(`${getApiBase()}${endpoint}`, {
                 cache: 'no-store',
                 ...options,
                 headers,
