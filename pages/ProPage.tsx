@@ -74,8 +74,10 @@ export const ProPage: React.FC = () => {
         setIsPurchasing(true);
         try {
             const { customerInfo } = await Purchases.restorePurchases();
+            const activeEntitlements = Object.keys(customerInfo.entitlements.active || {});
+            const purchasedProducts = customerInfo.allPurchasedProductIdentifiers || [];
             
-            if (typeof customerInfo.entitlements.active['pro'] !== "undefined") {
+            if (activeEntitlements.length > 0 || purchasedProducts.length > 0 || typeof customerInfo.entitlements.active['pro'] !== "undefined") {
                 if (currentUser && !currentUser.isPro) {
                     const { error } = await supabase
                         .from('profiles')
@@ -94,7 +96,7 @@ export const ProPage: React.FC = () => {
                     alert('Sua conta já está com o acesso PRO ativo!');
                 }
             } else {
-                alert('Nenhuma compra anterior foi encontrada para a conta Google logada neste celular.');
+                alert('Nenhuma compra anterior foi encontrada para a conta Google logada neste celular.\n\nVocê tem certeza que está usando o mesmo e-mail na Google Play Store?');
             }
         } catch (e: any) {
             console.error("Erro ao restaurar compras:", e);
@@ -165,8 +167,10 @@ export const ProPage: React.FC = () => {
             if (offerings.current !== null && offerings.current.availablePackages.length > 0) {
                 const pacote = offerings.current.availablePackages[0];
                 const { customerInfo } = await Purchases.purchasePackage({ aPackage: pacote });
+                const activeEntitlements = Object.keys(customerInfo.entitlements.active || {});
+                const purchasedProducts = customerInfo.allPurchasedProductIdentifiers || [];
 
-                if (typeof customerInfo.entitlements.active['pro'] !== "undefined") {
+                if (activeEntitlements.length > 0 || purchasedProducts.length > 0 || typeof customerInfo.entitlements.active['pro'] !== "undefined") {
                     if (currentUser) {
                         const { error } = await supabase
                             .from('profiles')

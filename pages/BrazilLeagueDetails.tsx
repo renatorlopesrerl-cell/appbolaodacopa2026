@@ -43,7 +43,16 @@ export const BrazilLeagueDetails: React.FC = () => {
 
         confirmNavigation(() => {
             window.scrollTo(0, 0);
-            navigate(newTab === 'palpites' ? '' : `?tab=${newTab}`, { replace: true });
+
+            if (newTab === 'palpites') {
+                navigate('', { replace: true });
+            } else {
+                if (activeTab === 'palpites') {
+                    navigate(`?tab=${newTab}`); // Empurra no histórico para o botão voltar do celular funcionar
+                } else {
+                    navigate(`?tab=${newTab}`, { replace: true });
+                }
+            }
         });
     };
     // --- GLOBAL STATE (HOISTED) ---
