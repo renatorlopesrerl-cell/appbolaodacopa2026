@@ -1556,7 +1556,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const deleteLeague = async (leagueId: string): Promise<boolean> => {
     if (!currentUser) return false;
     const league = leagues.find(l => l.id === leagueId);
-    if (league && league.adminId !== currentUser.id) return false;
+    if (league && league.adminId !== currentUser.id && !currentUser.isAdmin) return false;
     try {
       setLeagues(prev => prev.filter(l => l.id !== leagueId));
       await api.leagues.delete(leagueId);

@@ -156,11 +156,11 @@ export const api = {
             if (error) throw error;
             return { error: null };
         },
-        update: async (id: string, data: any) => {
-            const { error } = await supabase.from('leagues').update(data).eq('id', id);
-            if (error) throw error;
-            return { error: null };
-        },
+        update: (id: string, updates: any) =>
+            apiFetch('/leagues', {
+                method: 'PUT',
+                body: JSON.stringify({ id, ...updates })
+            }),
         delete: async (id: string) => {
             return apiFetch(`/leagues?id=${id}`, { method: 'DELETE' });
         },
