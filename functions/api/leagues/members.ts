@@ -1,5 +1,5 @@
 
-import { getUserClient, jsonResponse, errorResponse, sendPushNotificationToUser } from '../_shared';
+import { getUserClient, jsonResponse, errorResponse, sendPushNotificationToUser, getSupabaseClient } from '../_shared';
 
 const getLeagueLimit = (settings: any) => {
     if (settings?.isUnlimited) return Infinity;
@@ -20,6 +20,7 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
     try {
         const authUser = data.user;
         const userClient = getUserClient(env, request);
+        const adminClient = getSupabaseClient(env);
 
         const { leagueId, userId, action, leagueType = 'standard' } = await request.json() as any;
         if (!leagueId || !userId || !action) return errorResponse(new Error("Missing arguments"), 400);
@@ -27,7 +28,7 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
         const table = leagueType === 'brazil' ? 'brazil_leagues' : 'leagues';
 
         // Fetch League
-        const { data: league, error: fetchError } = await userClient.from(table).select('*').eq('id', leagueId).single();
+        const { data: league, error: fetchError } = await adminClient.from(table).select('*').eq('id', leagueId).single();
         if (fetchError || !league) return errorResponse(new Error("League not found"), 404);
 
         const isAdmin = league.admin_id === authUser.id;
@@ -42,10 +43,12 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
             const updatedPending = league.pending_requests.filter((id: string) => id !== userId);
             const updatedParticipants = Array.from(new Set([...league.participants, userId]));
 
-            await userClient.from(table).update({
+            const { error: updateError } = await adminClient.from(table).update({
                 participants: updatedParticipants,
                 pending_requests: updatedPending
             }).eq('id', leagueId);
+
+            if (updateError) throw updateError;
 
             // Notify User of Approval
             const url = leagueType === 'brazil' ? `/brazil-league/${leagueId}` : `/league/${leagueId}`;
@@ -64,7 +67,8 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
             if (!isAdmin) return errorResponse(new Error("Forbidden"), 403);
 
             const updatedPending = league.pending_requests.filter((id: string) => id !== userId);
-            await userClient.from(table).update({ pending_requests: updatedPending }).eq('id', leagueId);
+            const { error: updateError } = await adminClient.from(table).update({ pending_requests: updatedPending }).eq('id', leagueId);
+            if (updateError) throw updateError;
 
             return jsonResponse({ success: true, message: "User rejected" });
         }
@@ -73,7 +77,8 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
             if (!isAdmin && !isSelf) return errorResponse(new Error("Forbidden"), 403);
 
             const updatedParticipants = league.participants.filter((id: string) => id !== userId);
-            await userClient.from(table).update({ participants: updatedParticipants }).eq('id', leagueId);
+            const { error: updateError } = await adminClient.from(table).update({ participants: updatedParticipants }).eq('id', leagueId);
+            if (updateError) throw updateError;
 
             return jsonResponse({ success: true, message: "User removed" });
         }
