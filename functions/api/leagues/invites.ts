@@ -121,14 +121,17 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                     return errorResponse(new Error("Invite email does not match logged in user"), 403);
                 }
 
+                const adminClient = getSupabaseClient(env);
+
                 if (accept) {
                     const table = invite.league_type === 'brazil' ? 'brazil_leagues' : 'leagues';
-                    const { data: league, error: fetchLeagueError } = await userClient.from(table).select('*').eq('id', invite.league_id).single();
+                    const { data: league, error: fetchLeagueError } = await adminClient.from(table).select('*').eq('id', invite.league_id).single();
                     if (fetchLeagueError || !league) return errorResponse(new Error("League not found"), 404);
 
                     // Check if already in league
                     if (league.participants.includes(authUser.id)) {
-                        await userClient.from('league_invites').update({ status: 'accepted' }).eq('id', inviteId);
+                        const { error: updateInviteError } = await adminClient.from('league_invites').update({ status: 'accepted' }).eq('id', inviteId);
+                        if (updateInviteError) throw updateInviteError;
                         return jsonResponse({ success: true, message: "Joined league" });
                     }
 
@@ -138,10 +141,11 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                     const updatedParticipants = Array.from(new Set([...league.participants, authUser.id]));
                     const updatedPending = (league.pending_requests || []).filter((id: string) => id !== authUser.id);
 
-                    await userClient.from(table).update({
+                    const { error: updateLeagueError } = await adminClient.from(table).update({
                         participants: updatedParticipants,
                         pending_requests: updatedPending
                     }).eq('id', league.id);
+                    if (updateLeagueError) throw updateLeagueError;
 
                     // Fetch the user's name from profiles to ensure it's displayed correctly
                     const { data: profile } = await userClient.from('profiles').select('name').eq('id', authUser.id).maybeSingle();
@@ -156,7 +160,8 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                     );
                 }
 
-                await userClient.from('league_invites').update({ status: accept ? 'accepted' : 'rejected' }).eq('id', inviteId);
+                const { error: updateInviteStatusError } = await adminClient.from('league_invites').update({ status: accept ? 'accepted' : 'rejected' }).eq('id', inviteId);
+                if (updateInviteStatusError) throw updateInviteStatusError;
 
                 return jsonResponse({ success: true, message: accept ? "Joined league" : "Invite rejected" });
             }

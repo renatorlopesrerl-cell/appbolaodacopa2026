@@ -1684,17 +1684,20 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     if (!currentUser) return;
     const invite = invitations.find(i => i.id === inviteId);
     if (!invite) return;
+    let optimisticNotificationShown = false;
     if (accept) {
       if (invite.leagueType === 'brazil') {
         const league = brazilLeagues.find(l => l.id === invite.leagueId);
         if (league) {
           if (league.participants.includes(currentUser.id)) {
             addNotification('Aviso', 'Você já participa desta liga.', 'info');
+            optimisticNotificationShown = true;
           } else {
             const updatedParticipants = [...league.participants, currentUser.id];
             const updatedPending = (league.pendingRequests || []).filter(uid => uid !== currentUser.id);
             setBrazilLeagues(prev => prev.map(l => l.id === league.id ? { ...l, participants: updatedParticipants, pendingRequests: updatedPending } : l));
             addNotification('Sucesso', `Bem-vindo à liga ${league.name}!`, 'success');
+            optimisticNotificationShown = true;
           }
         }
       } else {
@@ -1702,11 +1705,13 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         if (league) {
           if (league.participants.includes(currentUser.id)) {
             addNotification('Aviso', 'Você já participa desta liga.', 'info');
+            optimisticNotificationShown = true;
           } else {
             const updatedParticipants = [...league.participants, currentUser.id];
             const updatedPending = (league.pendingRequests || []).filter(uid => uid !== currentUser.id);
             setLeagues(prev => prev.map(l => l.id === league.id ? { ...l, participants: updatedParticipants, pendingRequests: updatedPending } : l));
             addNotification('Sucesso', `Bem-vindo à liga ${league.name}!`, 'success');
+            optimisticNotificationShown = true;
           }
         }
       }
@@ -1714,6 +1719,12 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     setInvitations(prev => prev.filter(i => i.id !== inviteId));
     try {
       await api.leagues.respondInvite(inviteId, accept);
+      if (accept) {
+        await fetchAllData(false);
+        if (!optimisticNotificationShown) {
+          addNotification('Sucesso', `Bem-vindo à liga ${invite.league_name || ''}!`, 'success');
+        }
+      }
     } catch (e) {
       addNotification('Erro', 'Falha ao responder convite.', 'warning');
       if (currentUser?.email) fetchInvitations(currentUser.email);
