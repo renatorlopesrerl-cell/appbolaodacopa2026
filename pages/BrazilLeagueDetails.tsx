@@ -10,7 +10,8 @@ import {
     Trophy, Users, ArrowLeft, Search, Lock, Globe, Goal,
     UserPlus, LogOut, Trash2, Check, X, MousePointerClick,
     Save, Loader2, Medal, AlertCircle, Share2, Info, Filter, Plus, Clock, MapPin, CheckCircle2, Unlock, Calendar, ChevronDown, Crown, Eye,
-    Target, Mail, AlertTriangle, Camera, Upload, MessageCircle, Copy, Bell, Star, StarHalf, Infinity as InfinityIcon, Zap, ShieldCheck, BarChart2
+    Target, Mail, AlertTriangle, Camera, Upload, MessageCircle, Copy, Bell, Star, StarHalf, Infinity as InfinityIcon, Zap, ShieldCheck, BarChart2,
+    ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { OptimizedImage } from '../components/OptimizedImage';
 import { LiveCountdown } from '../components/LiveCountdown';
@@ -83,6 +84,7 @@ export const BrazilLeagueDetails: React.FC = () => {
     const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
     const [leaderboardSearch, setLeaderboardSearch] = useState('');
     const [leaderboardView, setLeaderboardView] = useState<string>('total');
+    const [leaderboardPage, setLeaderboardPage] = useState(1);
     const [histPhase, setHistPhase] = useState<string>('all');
     const [histGroup, setHistGroup] = useState<string>('all');
     const [histRound, setHistRound] = useState<string>('all');
@@ -131,8 +133,8 @@ export const BrazilLeagueDetails: React.FC = () => {
     }, [league?.id]);
 
     // --- APP STATE REF FOR CAPACITOR BACK BUTTON ---
-    const appStateRef = useRef({ pendingEdits, showUnsavedModal, zoomedImage, currentUser, league, activeTab });
-    appStateRef.current = { pendingEdits, showUnsavedModal, zoomedImage, currentUser, league, activeTab };
+    const appStateRef = useRef({ pendingEdits, showUnsavedModal, zoomedImage, currentUser, league, activeTab, selectedUserId });
+    appStateRef.current = { pendingEdits, showUnsavedModal, zoomedImage, currentUser, league, activeTab, selectedUserId };
 
     useEffect(() => {
         const handleAppBack = (e: any) => {
@@ -140,6 +142,11 @@ export const BrazilLeagueDetails: React.FC = () => {
             
             if (state.zoomedImage) {
                 setZoomedImage(null);
+                e.preventDefault();
+                return;
+            }
+            if (state.selectedUserId) {
+                setSelectedUserId(null);
                 e.preventDefault();
                 return;
             }
@@ -153,18 +160,14 @@ export const BrazilLeagueDetails: React.FC = () => {
             
             if (hasUnsaved) {
                 setShowUnsavedModal({ action: () => {
-                    if (state.activeTab !== 'palpites') {
-                        navigate('', { replace: true });
-                    } else {
-                        window.history.back();
-                    }
+                    window.history.back();
                 } });
                 e.preventDefault();
                 return;
             }
 
             if (state.activeTab !== 'palpites') {
-                navigate('', { replace: true });
+                window.history.back();
                 e.preventDefault();
             }
         };
@@ -1319,11 +1322,36 @@ export const BrazilLeagueDetails: React.FC = () => {
     };
 
     const renderClassificacaoTab = () => {
+        const LEADERBOARD_PAGE_SIZE = 200;
         const groupsList = Object.keys(GROUPS_CONFIG);
         const hasHistoryFilters = histPhase !== 'all' || histGroup !== 'all' || histRound !== 'all';
         const clearHistoryFilters = () => { setHistPhase('all'); setHistGroup('all'); setHistRound('all'); };
 
         const filteredLeaderboard = leaderboard.filter(entry => entry.user.name.toLowerCase().includes(leaderboardSearch.toLowerCase()));
+        const totalLbPages = Math.max(1, Math.ceil(filteredLeaderboard.length / LEADERBOARD_PAGE_SIZE));
+        const safeLbPage = Math.min(leaderboardPage, totalLbPages);
+        const pagedLeaderboard = filteredLeaderboard.slice((safeLbPage - 1) * LEADERBOARD_PAGE_SIZE, safeLbPage * LEADERBOARD_PAGE_SIZE);
+        const goLbPage = (p: number) => setLeaderboardPage(Math.max(1, Math.min(p, totalLbPages)));
+
+        const LeaderboardPagination = () => totalLbPages <= 1 ? null : (
+            <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-200 dark:border-gray-600">
+                <div className="text-sm md:text-base text-gray-600 dark:text-gray-300 font-medium">
+                    <span className="font-bold text-gray-800 dark:text-white">{filteredLeaderboard.length}</span> participantes · pág. <span className="font-bold text-gray-800 dark:text-white">{safeLbPage}</span> de <span className="font-bold text-gray-800 dark:text-white">{totalLbPages}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                    <button onClick={() => goLbPage(safeLbPage - 1)} disabled={safeLbPage <= 1} className="p-1.5 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"><ChevronLeft size={16} /></button>
+                    {Array.from({ length: Math.min(5, totalLbPages) }, (_, i) => {
+                        let pg: number;
+                        if (totalLbPages <= 5) pg = i + 1;
+                        else if (safeLbPage <= 3) pg = i + 1;
+                        else if (safeLbPage >= totalLbPages - 2) pg = totalLbPages - 4 + i;
+                        else pg = safeLbPage - 2 + i;
+                        return <button key={pg} onClick={() => goLbPage(pg)} className={`w-8 h-8 rounded-lg text-xs font-bold transition-colors border ${pg === safeLbPage ? 'bg-brasil-blue text-white border-brasil-blue' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700'}`}>{pg}</button>;
+                    })}
+                    <button onClick={() => goLbPage(safeLbPage + 1)} disabled={safeLbPage >= totalLbPages} className="p-1.5 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"><ChevronRight size={16} /></button>
+                </div>
+            </div>
+        );
 
         const getHistory = (userId: string) => {
             const lockedMatches = matches.filter(m => isPredictionLocked(m.date, currentTime)).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -1370,8 +1398,8 @@ export const BrazilLeagueDetails: React.FC = () => {
                     <table className="w-full text-sm md:text-base">
                         <thead className="bg-brasil-blue dark:bg-blue-900 text-white"><tr><th className="px-2 py-3 text-center w-12 md:w-16 text-xs md:text-sm">Pos.</th><th className="px-2 py-3 text-left">Participantes</th><th className="hidden md:table-cell px-2 py-3 text-center w-20"><span className="flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-2 py-1 rounded font-bold whitespace-nowrap">Pontos</span></th><th className="hidden md:table-cell px-2 py-3 text-center w-20"><span className="flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-2 py-1 rounded whitespace-nowrap"><Target size={14} /> Cravadas</span></th><th className="hidden md:table-cell px-2 py-3 text-center w-16"><span className="flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-1.5 py-1 rounded whitespace-nowrap">V+S</span></th><th className="hidden md:table-cell px-2 py-3 text-center w-16"><span className="flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-1.5 py-1 rounded whitespace-nowrap">V+G</span></th><th className="hidden md:table-cell px-2 py-3 text-center w-16"><span className="flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-1.5 py-1 rounded whitespace-nowrap">Emp</span></th><th className="md:hidden px-2 py-3 text-center w-20 whitespace-nowrap">Pontos</th>{isAdmin && <th className="px-0 py-3 w-8"></th>}</tr></thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                            {filteredLeaderboard.length === 0 ? <tr><td colSpan={7} className="text-center py-8 text-gray-400 italic">Nenhum participante encontrado.</td></tr> : filteredLeaderboard.map((entry, idx) => {
-                                const rank = idx + 1; return (<tr key={entry.user.id} className={entry.user.id === currentUser.id ? 'bg-yellow-50 dark:bg-yellow-900/20' : ''}><td className="px-2 py-3 font-bold text-center text-sm align-middle">{rank === 1 ? <div className="w-6 h-6 mx-auto bg-yellow-400 text-yellow-900 rounded-full flex items-center justify-center shadow-sm font-black text-xs">1</div> : rank === 2 ? <div className="w-6 h-6 mx-auto bg-gray-300 text-gray-800 rounded-full flex items-center justify-center shadow-sm font-black text-xs">2</div> : rank === 3 ? <div className="w-6 h-6 mx-auto bg-orange-400 text-orange-900 rounded-full flex items-center justify-center shadow-sm font-black text-xs">3</div> : <span className="text-gray-500 dark:text-gray-400">{rank}</span>}</td><td className="px-2 py-3 relative w-full max-w-[130px] sm:max-w-[200px] md:max-w-none"><div className="flex items-center gap-2 md:gap-3 cursor-pointer group" onClick={() => setSelectedUserId(entry.user.id)}>
+                            {filteredLeaderboard.length === 0 ? <tr><td colSpan={7} className="text-center py-8 text-gray-400 italic">Nenhum participante encontrado.</td></tr> : pagedLeaderboard.map((entry, idx) => {
+                                const rank = leaderboard.findIndex(item => item.user.id === entry.user.id) + 1; return (<tr key={entry.user.id} className={entry.user.id === currentUser.id ? 'bg-yellow-50 dark:bg-yellow-900/20' : ''}><td className="px-2 py-3 font-bold text-center text-sm align-middle">{rank === 1 ? <div className="w-6 h-6 mx-auto bg-yellow-400 text-yellow-900 rounded-full flex items-center justify-center shadow-sm font-black text-xs">1</div> : rank === 2 ? <div className="w-6 h-6 mx-auto bg-gray-300 text-gray-800 rounded-full flex items-center justify-center shadow-sm font-black text-xs">2</div> : rank === 3 ? <div className="w-6 h-6 mx-auto bg-orange-400 text-orange-900 rounded-full flex items-center justify-center shadow-sm font-black text-xs">3</div> : <span className="text-gray-500 dark:text-gray-400">{rank}</span>}</td><td className="px-2 py-3 relative w-full max-w-[130px] sm:max-w-[200px] md:max-w-none"><div className="flex items-center gap-2 md:gap-3 cursor-pointer group" onClick={() => setSelectedUserId(entry.user.id)}>
                                     <div onClick={(e) => { e.stopPropagation(); setZoomedImage(entry.user.avatar); }}>
                                         <OptimizedImage
                                             src={entry.user.avatar}
@@ -1405,6 +1433,7 @@ export const BrazilLeagueDetails: React.FC = () => {
                         </tbody>
                     </table>
                 </div>
+                <LeaderboardPagination />
                 {selectedUserId && selectedUser && createPortal(
                     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setSelectedUserId(null)}>
                         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-300" onClick={(e) => e.stopPropagation()}>

@@ -596,13 +596,9 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     // Run once on load
     runMaintenance();
 
-    // Run every minute while app is open
-    const maintenanceInterval = setInterval(runMaintenance, 60 * 1000);
-
     return () => {
       mountedRef.current = false;
       subscription.unsubscribe();
-      clearInterval(maintenanceInterval);
     };
   }, []);
 

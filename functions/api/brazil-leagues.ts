@@ -55,10 +55,20 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
             const id = url.searchParams.get('id');
             if (!id) return errorResponse(new Error("League ID required"), 400);
 
-            // Verify Ownership
+            // Verify Ownership (General Admin can bypass this check)
             const { data: league, error: fetchError } = await userClient.from('brazil_leagues').select('admin_id, name').eq('id', id).single();
             if (fetchError || !league) return errorResponse(new Error("League not found"), 404);
-            if (league.admin_id !== authUser.id) return errorResponse(new Error("Forbidden"), 403);
+            
+            const { data: profile } = await userClient
+                .from('profiles')
+                .select('is_admin')
+                .eq('id', authUser.id)
+                .single();
+            const isAdmin = profile?.is_admin || false;
+
+            if (league.admin_id !== authUser.id && !isAdmin) {
+                return errorResponse(new Error("Forbidden"), 403);
+            }
 
             // Soft Delete: Rename and clear lists
             const { error } = await userClient.from('brazil_leagues').update({
@@ -121,10 +131,20 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
             const { id, ...updates } = body;
             if (!id) return errorResponse(new Error("League ID required"), 400);
 
-            // SECURITY: Verify ownership before updating
+            // SECURITY: Verify ownership before updating (General Admin can bypass this check)
             const { data: league, error: fetchError } = await userClient.from('brazil_leagues').select('admin_id').eq('id', id).single();
             if (fetchError || !league) return errorResponse(new Error("League not found"), 404);
-            if (league.admin_id !== authUser.id) return errorResponse(new Error("Forbidden"), 403);
+            
+            const { data: profile } = await userClient
+                .from('profiles')
+                .select('is_admin')
+                .eq('id', authUser.id)
+                .single();
+            const isAdmin = profile?.is_admin || false;
+
+            if (league.admin_id !== authUser.id && !isAdmin) {
+                return errorResponse(new Error("Forbidden"), 403);
+            }
 
             // SECURITY: Prevent ownership hijacking
             delete updates.admin_id;
