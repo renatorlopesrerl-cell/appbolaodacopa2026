@@ -207,34 +207,7 @@ export const ProPage: React.FC = () => {
         }
     };
 
-    // Temporarily hide PRO features on Web
-    if (!isNative) {
-        return (
-            <div className="max-w-2xl mx-auto pb-16">
-                <div className="mb-4">
-                    <button
-                        onClick={() => navigate(-1)}
-                        className="flex items-center gap-2 text-sm font-bold text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors group"
-                    >
-                        <div className="bg-gray-100 dark:bg-gray-800 p-1.5 rounded-full group-hover:bg-gray-200 dark:group-hover:bg-gray-700">
-                            <ArrowLeft size={16} />
-                        </div>
-                        Voltar
-                    </button>
-                </div>
-                
-                <div className="flex flex-col items-center justify-center py-24 text-center px-4 bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700">
-                    <Crown size={64} className="text-yellow-500 mb-6 drop-shadow-md" />
-                    <h1 className="text-3xl md:text-4xl font-black text-gray-900 dark:text-white mb-4">
-                        Plano <span className="bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent">Pro</span> em Breve!
-                    </h1>
-                    <p className="text-gray-500 dark:text-gray-400 max-w-sm mx-auto text-lg leading-relaxed">
-                        As estatísticas avançadas e os recursos exclusivos estão sendo preparados para a versão Web. Aguarde as novidades!
-                    </p>
-                </div>
-            </div>
-        );
-    }
+
 
     return (
         <div className="max-w-2xl mx-auto pb-16">
