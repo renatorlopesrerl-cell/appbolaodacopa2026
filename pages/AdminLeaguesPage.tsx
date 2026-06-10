@@ -57,8 +57,12 @@ export const AdminLeaguesPage: React.FC = () => {
 
         const newSettings = { ...league.settings, plan: nextPlan, isUnlimited };
 
-        await updateLeague(leagueId, { settings: newSettings });
-        showToast(`Plano alterado para: ${nextPlan.replace('_', ' ')}`);
+        try {
+            await updateLeague(leagueId, { settings: newSettings });
+            showToast(`Plano alterado para: ${nextPlan.replace('_', ' ')}`);
+        } catch (e) {
+            console.error("Error updating league plan:", e);
+        }
     };
 
     const handleDeleteLeague = async (leagueId: string) => {

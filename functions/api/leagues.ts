@@ -1,5 +1,5 @@
 
-import { getUserClient, withRetry, jsonResponse, errorResponse } from './_shared';
+import { getUserClient, getSupabaseClient, withRetry, jsonResponse, errorResponse } from './_shared';
 
 export const onRequest = async ({ request, env, data }: { request: Request, env: any, data: any }) => {
     try {
@@ -100,11 +100,13 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
             const { id, ...updates } = body;
             if (!id) return errorResponse(new Error("League ID required"), 400);
 
+            const adminClient = getSupabaseClient(env);
+
             // Verify Ownership (General Admin can bypass this check)
-            const { data: league, error: fetchError } = await userClient.from('leagues').select('admin_id').eq('id', id).single();
+            const { data: league, error: fetchError } = await adminClient.from('leagues').select('admin_id').eq('id', id).single();
             if (fetchError || !league) return errorResponse(new Error("League not found"), 404);
 
-            const { data: profile } = await userClient
+            const { data: profile } = await adminClient
                 .from('profiles')
                 .select('is_admin')
                 .eq('id', authUser.id)
@@ -117,7 +119,7 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
             delete updates.admin_id;
             delete updates.id;
 
-            const { error } = await userClient.from('leagues').update(updates).eq('id', id);
+            const { error } = await adminClient.from('leagues').update(updates).eq('id', id);
             if (error) throw error;
 
             return jsonResponse({ success: true });
@@ -127,11 +129,13 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
             const id = url.searchParams.get('id');
             if (!id) return errorResponse(new Error("League ID required"), 400);
 
+            const adminClient = getSupabaseClient(env);
+
             // Verify Ownership (General Admin can bypass this check)
-            const { data: league, error: fetchError } = await userClient.from('leagues').select('admin_id, name').eq('id', id).single();
+            const { data: league, error: fetchError } = await adminClient.from('leagues').select('admin_id, name').eq('id', id).single();
             if (fetchError || !league) return errorResponse(new Error("League not found"), 404);
 
-            const { data: profile } = await userClient
+            const { data: profile } = await adminClient
                 .from('profiles')
                 .select('is_admin')
                 .eq('id', authUser.id)
@@ -140,7 +144,7 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
 
             if (league.admin_id !== authUser.id && !isAdmin) return errorResponse(new Error("Forbidden"), 403);
 
-            const { error } = await userClient.from('leagues').update({
+            const { error } = await adminClient.from('leagues').update({
                 name: `${league.name} [EXCLUÍDA]`,
                 participants: [],
                 pending_requests: []

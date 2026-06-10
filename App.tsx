@@ -1258,7 +1258,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   const updateLeague = useCallback(async (leagueId: string, updates: Partial<League>) => {
     if (!currentUser) return;
-    setLeagues(prev => prev.map(l => l.id === leagueId ? { ...l, ...updates } : l));
     const dbUpdates: any = {};
     if (updates.name !== undefined) dbUpdates.name = updates.name;
     if (updates.image !== undefined) dbUpdates.image = updates.image;
@@ -1271,9 +1270,12 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     if (Object.keys(dbUpdates).length > 0) {
       try {
         await api.leagues.update(leagueId, dbUpdates);
+        setLeagues(prev => prev.map(l => l.id === leagueId ? { ...l, ...updates } : l));
         addNotification('Sucesso', 'Liga atualizada.', 'success');
       } catch (e) {
+        console.error("Failed to update league:", e);
         addNotification('Erro', 'Falha ao atualizar liga.', 'warning');
+        throw e;
       }
     }
   }, [currentUser]);
@@ -1321,7 +1323,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   const updateBrazilLeague = async (id: string, updates: Partial<BrazilLeague>) => {
     if (!currentUser) return;
-    setBrazilLeagues(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
     const dbUpdates: any = {};
     if (updates.name !== undefined) dbUpdates.name = updates.name;
     if (updates.image !== undefined) dbUpdates.image = updates.image;
@@ -1334,9 +1335,12 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     if (Object.keys(dbUpdates).length > 0) {
       try {
         await api.brazilLeagues.update(id, dbUpdates);
+        setBrazilLeagues(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l));
         addNotification('Sucesso', 'Liga atualizada.', 'success');
       } catch (e) {
+        console.error("Failed to update Brazil league:", e);
         addNotification('Erro', 'Falha ao atualizar liga.', 'warning');
+        throw e;
       }
     }
   };
