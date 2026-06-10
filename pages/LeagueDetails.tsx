@@ -630,9 +630,18 @@ export const LeagueDetails: React.FC = () => {
         if (!selectedMatchForDetails) return null;
         const match = matches.find(m => m.id === selectedMatchForDetails);
         if (!match) return null;
+
+        // Create Maps for O(1) lookup
+        const usersMap = new Map(mergedUsers.map(u => [u.id, u]));
+        const matchPredictionsMap = new Map(
+            predictions
+                .filter(p => p.matchId === match.id && p.leagueId === league.id)
+                .map(p => [p.userId, p])
+        );
+
         const participantPredictions = league.participants.map(userId => {
-            const user = mergedUsers.find(u => u.id === userId) || { name: 'Unknown', id: userId, avatar: '' } as User;
-            const pred = predictions.find(p => p.matchId === match.id && p.userId === userId && p.leagueId === league.id);
+            const user = usersMap.get(userId) || { name: 'Unknown', id: userId, avatar: '' } as User;
+            const pred = matchPredictionsMap.get(userId);
             let points = 0;
             if (match.homeScore !== null && match.awayScore !== null && pred) {
                 points = calculatePoints(Number(pred.homeScore), Number(pred.awayScore), Number(match.homeScore), Number(match.awayScore), league.settings);
