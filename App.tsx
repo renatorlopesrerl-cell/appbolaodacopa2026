@@ -1800,10 +1800,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     }
   };
 
-  // REMOVIDO: O início automático das partidas agora é tratado de forma centralizada 
-  // e confiável pelo robô no servidor (functions/api/push_reminder.ts disparado pelo pg_cron).
-  // Remover este useEffect evita loops infinitos de tentativas de atualização no cliente em caso de erro da API.
-  /*
   useEffect(() => {
     if (!currentUser?.isAdmin || loading) return;
     const matchesToStart = matches.filter(m => m.status === MatchStatus.SCHEDULED && new Date(m.date) <= currentTime);
@@ -1814,7 +1810,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       });
     }
   }, [currentTime, currentUser, loading, matches]);
-  */
 
   const loadLeagueData = async (leagueId: string, leagueType: 'standard' | 'brazil' = 'standard', forceRefresh: boolean = false) => {
     const cacheKey = `${leagueType}_${leagueId}`;
