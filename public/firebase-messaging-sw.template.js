@@ -24,8 +24,9 @@ try {
 }
 
 // Lógica de cache para o PWA funcionar offline
-const CACHE_NAME = 'palpiteiro-v9';
-const ASSETS_TO_CACHE = ['/', '/index.html', '/manifest.json', '/favicon.png'];
+// ATUALIZAÇÃO v10: Removemos o cache do index.html para evitar o bug da tela branca (MIME type)
+const CACHE_NAME = 'palpiteiro-v10';
+const ASSETS_TO_CACHE = ['/manifest.json', '/favicon.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE)));
@@ -35,16 +36,40 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))))
+    .then(() => {
+      // RESGATE DA TELA BRANCA: Força todas as abas abertas a recarregar imediatamente
+      // assim que o novo Service Worker for ativado.
+      return self.clients.matchAll({ type: 'window' }).then(windowClients => {
+        windowClients.forEach(client => {
+          if (client.navigate && client.url) {
+            client.navigate(client.url);
+          }
+        });
+      });
+    })
   );
   self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
-  // 1. Ignorar esquemas que não sejam HTTP/HTTPS (essencial para Chrome Extensions e Android)
+  // 1. Ignorar esquemas que não sejam HTTP/HTTPS
   if (!event.request.url.startsWith('http')) return;
 
-  // 2. REGRA DE OURO AMPLIADA: Se for asset, script, estilo ou banco, NÃO INTERCEPTAR.
-  // Ao não chamar event.respondWith(), o navegador assume o controle total da rede.
+  // 2. REGRA DE OURO PARA NAVEGAÇÃO SPA (Evita Tela Branca)
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      // Força a busca no servidor ignorando qualquer cache local para o HTML
+      fetch(event.request.url, { cache: 'no-store' }).catch(() => {
+        return new Response(
+          "<h3>Você está offline.</h3><p>Conecte-se à internet para usar o Bolão da Copa.</p>", 
+          { status: 503, statusText: 'Service Unavailable', headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+        );
+      })
+    );
+    return;
+  }
+
+  // 3. REGRA DE OURO AMPLIADA: Se for asset, script, estilo ou banco, NÃO INTERCEPTAR.
   if (
     event.request.url.includes('/assets/') ||
     event.request.url.includes('/cdn-cgi/') ||
@@ -55,15 +80,10 @@ self.addEventListener('fetch', (event) => {
     return; // O navegador cuida disso sozinho.
   }
 
-  // 3. Estratégia "Network-First" com fallback seguro apenas para o restante
+  // 4. Estratégia simples para as imagens do manifesto e ícones
   event.respondWith(
-    fetch(event.request).catch(() => {
-      // Se a rede falhar e for uma navegação de página, tenta o cache
-      if (event.request.mode === 'navigate') {
-        return caches.match('/index.html');
-      }
-      // Se não for navegação, retorna uma resposta nula que o navegador sabe tratar
-      return new Response(null, { status: 404, statusText: 'Not Found' });
+    caches.match(event.request).then((response) => {
+      return response || fetch(event.request);
     })
   );
 });
