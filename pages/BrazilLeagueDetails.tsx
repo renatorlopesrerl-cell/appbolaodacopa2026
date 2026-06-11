@@ -28,6 +28,16 @@ export const BrazilLeagueDetails: React.FC = () => {
 
     const [showUnsavedModal, setShowUnsavedModal] = useState<{ action: () => void } | null>(null);
     const [activeTab, setActiveTab] = useState<'palpites' | 'classificacao' | 'regras' | 'admin'>('palpites');
+    const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+
+    useEffect(() => {
+        if (!window.visualViewport) return;
+        const handleResize = () => {
+            setIsKeyboardOpen(window.visualViewport!.height < window.innerHeight * 0.8);
+        };
+        window.visualViewport.addEventListener('resize', handleResize);
+        return () => window.visualViewport?.removeEventListener('resize', handleResize);
+    }, []);
 
     // Handle Deep Linking Tabs
     useEffect(() => {
@@ -854,7 +864,7 @@ export const BrazilLeagueDetails: React.FC = () => {
                     </div>
                 </div>
 
-                {hasUnsavedChanges && createPortal(
+                {hasUnsavedChanges && !isKeyboardOpen && createPortal(
                     <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[9900] pointer-events-auto animate-in slide-in-from-bottom-6 fade-in duration-300">
                         <button onClick={handleSaveAll} disabled={isSavingPalpites} className="bg-brasil-green hover:bg-green-700 text-white px-8 py-4 rounded-full shadow-2xl shadow-green-900/40 font-bold text-xl md:text-2xl flex items-center gap-3 transition-all transform hover:-translate-y-1 active:scale-95 border border-green-400 ring-4 ring-white/20 backdrop-blur-sm whitespace-nowrap">
                             {isSavingPalpites ? <Loader2 size={28} className="animate-spin" /> : <Save size={28} className="stroke-[3]" />}
