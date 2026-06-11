@@ -77,8 +77,7 @@ export const onRequest = async ({ request, env, next, data }) => {
     try {
         const isPublic = url.pathname.includes('/health') || 
                         url.pathname.includes('/push_webhook') || 
-                        url.pathname.includes('/push/webhook') || 
-                        url.pathname.includes('/push_reminder');
+                        url.pathname.includes('/push/webhook');
 
         if (isPublic) {
             console.log(`[Middleware] Allowing public access to: ${url.pathname}`);
