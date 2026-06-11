@@ -3,16 +3,39 @@ CREATE OR REPLACE FUNCTION check_match_lock_time()
 RETURNS TRIGGER AS $$
 DECLARE
     match_start_time TIMESTAMPTZ;
+    is_guess_changing BOOLEAN := FALSE;
 BEGIN
-    -- Busca a data da partida na tabela matches
-    SELECT "date" INTO match_start_time 
-    FROM matches 
-    WHERE id = NEW.match_id;
+    -- Se for UPDATE, verifica se o palpite em si está sendo alterado.
+    -- Se for apenas atualização de pontuação (points), não bloqueia.
+    IF TG_OP = 'UPDATE' THEN
+        -- Para a tabela `predictions` (que tem home_score, away_score)
+        IF TG_TABLE_NAME = 'predictions' THEN
+            IF (OLD.home_score IS DISTINCT FROM NEW.home_score) OR (OLD.away_score IS DISTINCT FROM NEW.away_score) THEN
+                is_guess_changing := TRUE;
+            END IF;
+        -- Para a tabela `brazil_predictions` (que tem home_score, away_score, player_pick)
+        ELSIF TG_TABLE_NAME = 'brazil_predictions' THEN
+            IF (OLD.home_score IS DISTINCT FROM NEW.home_score) OR (OLD.away_score IS DISTINCT FROM NEW.away_score) OR (OLD.player_pick IS DISTINCT FROM NEW.player_pick) THEN
+                is_guess_changing := TRUE;
+            END IF;
+        END IF;
+    ELSE
+        -- Se for INSERT, sempre conta como alteração/criação do palpite
+        is_guess_changing := TRUE;
+    END IF;
 
-    -- Compara a data da partida com o horário atual do servidor UTC
-    -- Se faltar menos de 5 minutos (ou se o jogo já passou), bloqueia a inserção/atualização
-    IF match_start_time - INTERVAL '5 minutes' < NOW() THEN
-        RAISE EXCEPTION 'Tempo esgotado. Os palpites são bloqueados 5 minutos antes do início do jogo.';
+    -- Se o palpite em si estiver mudando, verifica o tempo de bloqueio
+    IF is_guess_changing THEN
+        -- Busca a data da partida na tabela matches
+        SELECT "date" INTO match_start_time 
+        FROM matches 
+        WHERE id = NEW.match_id;
+
+        -- Compara a data da partida com o horário atual do servidor UTC
+        -- Se faltar menos de 5 minutos (ou se o jogo já passou), bloqueia a inserção/atualização
+        IF match_start_time IS NOT NULL AND match_start_time - INTERVAL '5 minutes' < NOW() THEN
+            RAISE EXCEPTION 'Tempo esgotado. Os palpites são bloqueados 5 minutos antes do início do jogo.';
+        END IF;
     END IF;
 
     RETURN NEW;
