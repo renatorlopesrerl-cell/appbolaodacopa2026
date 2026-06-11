@@ -13,7 +13,7 @@ CREATE EXTENSION IF NOT EXISTS http WITH SCHEMA extensions;
 CREATE OR REPLACE FUNCTION public.call_prediction_reminder()
 RETURNS void AS $$
 DECLARE
-  webhook_url text := 'https://bolaodacopa2026.app/api/push/reminder';
+  webhook_url text := 'https://bolaodacopa2026.app/api/push_reminder';
   webhook_secret text := 'bolao2026_secure_webhook_key';
 BEGIN
   PERFORM

@@ -29,7 +29,7 @@ CREATE OR REPLACE FUNCTION public.call_system_maintenance()
 RETURNS void AS $$
 DECLARE
   started_games integer;
-  webhook_url text := 'https://bolaodacopa2026.app/api/push/reminder';
+  webhook_url text := 'https://bolaodacopa2026.app/api/push_reminder';
   webhook_secret text := 'bolao2026_secure_webhook_key';
 BEGIN
   -- Passo 1: Inicia os jogos no Banco de Dados (Garante que o status mude e placar vire 0x0)
