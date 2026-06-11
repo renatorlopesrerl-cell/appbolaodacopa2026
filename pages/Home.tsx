@@ -192,7 +192,7 @@ export const Home: React.FC = () => {
               <span className="ml-2 inline-block animate-bounce">⚽</span>
             </h1>
             <p className="text-blue-100 text-lg max-w-xl">
-              A Copa do Mundo de 2026 está chegando. Prepare seus palpites e mostre que você entende de futebol!
+              A emoção da Copa começou. Não esqueça de conferir os jogos de hoje e deixar os seus palpites!
             </p>
           </div>
           {/* Small Logo for Dashboard */}

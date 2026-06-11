@@ -14,7 +14,8 @@ import {
     TrendingUp,
     Shield,
     Crown,
-    RefreshCw
+    RefreshCw,
+    Eye
 } from 'lucide-react';
 import { useStore } from '../App';
 import { supabase } from '../services/supabase';
@@ -56,6 +57,15 @@ const FEATURES = [
         border: 'border-purple-200 dark:border-purple-800',
         iconColor: 'text-purple-600 dark:text-purple-400',
     },
+    {
+        icon: Eye,
+        title: 'Palpites em Tempo Real',
+        description: 'Em ligas do plano FREE, visualize os palpites de todos os participantes nos jogos em andamento. Ligas com qualquer Plano Vip já tem essa opção disponível sem precisar do Plano Pro.',
+        color: 'from-rose-400 to-pink-500',
+        bg: 'bg-rose-50 dark:bg-rose-900/20',
+        border: 'border-rose-200 dark:border-rose-800',
+        iconColor: 'text-rose-600 dark:text-rose-400',
+    },
 ];
 
 export const ProPage: React.FC = () => {
@@ -76,7 +86,7 @@ export const ProPage: React.FC = () => {
             const { customerInfo } = await Purchases.restorePurchases();
             const activeEntitlements = Object.keys(customerInfo.entitlements.active || {});
             const purchasedProducts = customerInfo.allPurchasedProductIdentifiers || [];
-            
+
             if (activeEntitlements.length > 0 || purchasedProducts.length > 0 || typeof customerInfo.entitlements.active['pro'] !== "undefined") {
                 if (currentUser && !currentUser.isPro) {
                     const { error } = await supabase
@@ -88,7 +98,7 @@ export const ProPage: React.FC = () => {
                         console.error("Erro ao atualizar Supabase:", error);
                         alert('Compra encontrada, mas erro ao sincronizar com o banco. Avise o suporte.');
                     } else {
-                        try { localStorage.setItem('cache_is_pro', 'true'); } catch {}
+                        try { localStorage.setItem('cache_is_pro', 'true'); } catch { }
                         alert('🎉 Compras restauradas com sucesso! Você agora é PRO!');
                         await refreshCurrentUser();
                         navigate('/', { replace: true });
@@ -182,13 +192,13 @@ export const ProPage: React.FC = () => {
                             console.error("Erro ao atualizar Supabase:", error);
                             alert('Compra aprovada, mas houve um atraso ao liberar seu acesso. Entre em contato com o suporte.');
                         } else {
-                            try { localStorage.setItem('cache_is_pro', 'true'); } catch {}
+                            try { localStorage.setItem('cache_is_pro', 'true'); } catch { }
                             alert('🎉 Parabéns! Compra aprovada. Você agora é PRO!');
                             await refreshCurrentUser();
                             navigate('/', { replace: true });
                         }
                     } else {
-                        try { localStorage.setItem('cache_is_pro', 'true'); } catch {}
+                        try { localStorage.setItem('cache_is_pro', 'true'); } catch { }
                         alert('🎉 Parabéns! Compra aprovada. Você agora é PRO!');
                         await refreshCurrentUser();
                         navigate('/', { replace: true });

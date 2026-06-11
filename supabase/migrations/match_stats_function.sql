@@ -18,6 +18,7 @@ SET search_path = public
 AS $$
 DECLARE
     v_participants text[];
+    v_predicted_user_ids text[];
     v_total        integer := 0;
     v_home_wins    integer := 0;
     v_draws        integer := 0;
@@ -67,6 +68,13 @@ BEGIN
         ORDER BY COUNT(*) DESC, (home_score + away_score) ASC, home_score DESC
         LIMIT 1;
 
+        -- Coletar IDs dos participantes que palpitaram
+        SELECT COALESCE(ARRAY_AGG(user_id::text), ARRAY[]::text[]) INTO v_predicted_user_ids
+        FROM brazil_predictions
+        WHERE match_id   = p_match_id
+          AND league_id  = p_league_id
+          AND user_id::text = ANY(v_participants);
+
     ELSE
         SELECT
             COUNT(*) FILTER (WHERE home_score > away_score),
@@ -87,6 +95,13 @@ BEGIN
         GROUP BY home_score, away_score
         ORDER BY COUNT(*) DESC, (home_score + away_score) ASC, home_score DESC
         LIMIT 1;
+
+        -- Coletar IDs dos participantes que palpitaram
+        SELECT COALESCE(ARRAY_AGG(user_id::text), ARRAY[]::text[]) INTO v_predicted_user_ids
+        FROM predictions
+        WHERE match_id  = p_match_id
+          AND league_id = p_league_id
+          AND user_id::text = ANY(v_participants);
     END IF;
 
     -- 3. Retornar zeros se não houver palpites
@@ -96,7 +111,8 @@ BEGIN
             'mostPredictedScore', null,
             'homeWinPct',        0,
             'drawPct',           0,
-            'awayWinPct',        0
+            'awayWinPct',        0,
+            'predictedUserIds',  ARRAY[]::text[]
         );
     END IF;
 
@@ -110,7 +126,8 @@ BEGIN
         'mostPredictedScore', v_most_score,
         'homeWinPct',        v_home_pct,
         'drawPct',           v_draw_pct,
-        'awayWinPct',        v_away_pct
+        'awayWinPct',        v_away_pct,
+        'predictedUserIds',  COALESCE(v_predicted_user_ids, ARRAY[]::text[])
     );
 END;
 $$;

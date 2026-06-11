@@ -74,6 +74,9 @@ export const BrazilLeagueDetails: React.FC = () => {
     const [loadingStats, setLoadingStats] = useState<boolean>(false);
     const [teamHistoryData, setTeamHistoryData] = useState<any[]>([]);
     const [matchDetailsSearch, setMatchDetailsSearch] = useState('');
+    const [statsSearch, setStatsSearch] = useState('');
+    const [statsPageSaved, setStatsPageSaved] = useState(1);
+    const [statsPagePending, setStatsPagePending] = useState(1);
     const [isSavingPalpites, setIsSavingPalpites] = useState(false);
     const [filterPhase, setFilterPhase] = useState<string>('all');
     const [filterGroup, setFilterGroup] = useState<string>('all');
@@ -386,6 +389,10 @@ export const BrazilLeagueDetails: React.FC = () => {
     }, [matches, league?.id]);
 
     useEffect(() => {
+        setStatsSearch('');
+        setStatsPageSaved(1);
+        setStatsPagePending(1);
+
         if (!selectedMatchForStats || !league) {
             setApiMatchStats(null);
             return;
@@ -1055,39 +1062,174 @@ export const BrazilLeagueDetails: React.FC = () => {
                             </div>
                         </div>
 
-                        {selectedMatchForDetails && detailsData && createPortal(
-                            <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setSelectedMatchForDetails(null)}>
-                                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-300" onClick={(e) => e.stopPropagation()}>
-                                    <div className="bg-gradient-to-r from-brasil-blue to-blue-500 dark:from-blue-900 dark:to-blue-700 text-white p-4 shrink-0">
-                                        <div className="flex justify-between items-start mb-2"><h3 className="font-bold text-sm uppercase tracking-wide opacity-80">Palpites da Liga</h3><button onClick={() => setSelectedMatchForDetails(null)} className="p-1 hover:bg-white/20 rounded-full transition-colors"><X size={20} /></button></div>
-                                        <div className="flex items-center justify-between gap-4"><div className="flex flex-col items-center w-1/3"><img src={getTeamFlag(detailsData.match.homeTeamId)} className="w-10 h-7 object-cover rounded shadow-sm mb-1" /><span className="text-xs font-bold text-center leading-tight">{detailsData.match.homeTeamId}</span></div><div className="flex flex-col items-center"><div className="text-2xl font-black bg-white/10 px-3 py-1 rounded-lg backdrop-blur-sm border border-white/20 whitespace-nowrap">{detailsData.match.homeScore ?? '-'} <span className="text-sm mx-1">x</span> {detailsData.match.awayScore ?? '-'}</div><span className={`text-[10px] mt-1 font-bold px-2 py-0.5 rounded-full ${detailsData.match.status === MatchStatus.IN_PROGRESS ? 'bg-red-500 text-white animate-pulse' : detailsData.match.status === MatchStatus.FINISHED ? 'bg-black/30 text-white' : 'bg-blue-800 text-blue-200'}`}>{detailsData.match.status === MatchStatus.IN_PROGRESS ? 'AO VIVO' : detailsData.match.status === MatchStatus.FINISHED ? 'ENCERRADO' : 'AGUARDANDO'}</span></div><div className="flex flex-col items-center w-1/3"><img src={getTeamFlag(detailsData.match.awayTeamId)} className="w-10 h-7 object-cover rounded shadow-sm mb-1" /><span className="text-xs font-bold text-center leading-tight">{detailsData.match.awayTeamId}</span></div></div>
+                        {selectedMatchForDetails && detailsData && (() => {
+                            const isMatchLockedOrLive = isPredictionLocked(detailsData.match.date, currentTime) || detailsData.match.status === MatchStatus.IN_PROGRESS;
+                            const isFinished = detailsData.match.status === MatchStatus.FINISHED;
+                            const shouldBlockPredictions = currentPlan === 'FREE' && !currentUser?.isPro && isMatchLockedOrLive && !isFinished;
 
-                                        {/* Modal Gols do Brasil */}
-                                        {brazilMatchGoals.some(g => g.matchId === detailsData.match.id) && (
-                                            <div className="mt-3 flex flex-wrap justify-center gap-x-3 gap-y-1 bg-white/10 py-1.5 px-3 rounded-lg border border-white/5 mx-auto">
-                                                {brazilMatchGoals
-                                                    .filter(g => g.matchId === detailsData.match.id)
-                                                    .map(g => (
-                                                        <span key={g.playerName} className="text-[10px] font-black uppercase flex items-center gap-1">
-                                                            <Goal size={10} className="text-brasil-yellow" />
-                                                            {g.playerName} {g.goals > 1 && <span className="text-brasil-yellow">({g.goals})</span>}
-                                                        </span>
+                            if (shouldBlockPredictions) {
+                                return createPortal(
+                                    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setSelectedMatchForDetails(null)}>
+                                        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm animate-in zoom-in-95 duration-300 overflow-hidden" onClick={e => e.stopPropagation()}>
+                                            <div className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 text-center relative overflow-hidden">
+                                                <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/10 to-amber-500/5" />
+                                                <div className="relative z-10">
+                                                    <div className="flex justify-end mb-1">
+                                                        <button onClick={() => setSelectedMatchForDetails(null)} className="p-1.5 hover:bg-white/20 rounded-full transition-colors text-white"><X size={16} /></button>
+                                                    </div>
+                                                    <div className="flex justify-center mb-3">
+                                                        <div className="bg-gradient-to-br from-yellow-400 to-amber-600 p-3.5 rounded-full shadow-lg">
+                                                            <Lock size={24} className="text-white" />
+                                                        </div>
+                                                    </div>
+                                                    <div className="inline-flex items-center gap-1 bg-gradient-to-r from-yellow-400 to-amber-500 text-gray-900 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-widest mb-2">
+                                                        <Star size={8} fill="currentColor" /> Recurso PRO
+                                                    </div>
+                                                    <h3 className="text-white font-black text-lg leading-tight">Palpites da Galera</h3>
+                                                    <p className="text-gray-400 text-xs mt-1">Disponível somente para usuários PRO</p>
+                                                </div>
+                                            </div>
+                                            <div className="p-5 space-y-4">
+                                                <p className="text-sm text-gray-700 dark:text-gray-300 text-center leading-relaxed">
+                                                    Para ver os palpites dos participantes nas partidas em andamento, assine o plano PRO ou aguarde até que o jogo seja finalizado.
+                                                </p>
+                                                <div className="space-y-2 border-t border-gray-150 dark:border-gray-700 pt-4">
+                                                    {[
+                                                        { icon: Eye, text: 'Acompanhe os palpites de todos em tempo real', color: 'text-amber-500' },
+                                                        { icon: Target, text: 'Seca ou torce sabendo exatamente o placar do adversário', color: 'text-emerald-500' },
+                                                        { icon: BarChart2, text: 'Estatísticas exclusivas e placares mais apostados', color: 'text-blue-500' },
+                                                    ].map(({ icon: Icon, text, color }, i) => (
+                                                        <div key={i} className="flex items-center gap-3 text-xs text-gray-700 dark:text-gray-300">
+                                                            <div className={`${color} shrink-0`}><Icon size={14} /></div>
+                                                            <span>{text}</span>
+                                                        </div>
                                                     ))}
+                                                </div>
                                             </div>
-                                        )}
+                                            <div className="px-5 pb-5">
+                                                <button
+                                                    onClick={() => { setSelectedMatchForDetails(null); navigate('/seja-pro'); }}
+                                                    className="w-full bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-300 hover:to-amber-400 text-gray-900 font-black py-3.5 px-6 rounded-xl text-sm uppercase tracking-widest shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
+                                                >
+                                                    <Crown size={16} fill="currentColor" />
+                                                    SEJA PRO
+                                                </button>
+                                                <button onClick={() => setSelectedMatchForDetails(null)} className="w-full text-center text-xs text-gray-400 hover:text-gray-600 mt-3 transition-colors">Fechar</button>
+                                            </div>
+                                        </div>
+                                    </div>, document.body
+                                );
+                            }
+
+                            // Calculate local stats from predictions array in store
+                            const matchPreds = predictions.filter(p => p.matchId === detailsData.match.id && p.leagueId === league.id);
+                            const totalPreds = matchPreds.length;
+
+                            let mostPredictedScore = '-';
+                            if (totalPreds > 0) {
+                                const scoreCounts: Record<string, number> = {};
+                                let maxCount = 0;
+                                matchPreds.forEach(p => {
+                                    const scoreKey = `${p.homeScore} x ${p.awayScore}`;
+                                    scoreCounts[scoreKey] = (scoreCounts[scoreKey] || 0) + 1;
+                                    if (scoreCounts[scoreKey] > maxCount) {
+                                        maxCount = scoreCounts[scoreKey];
+                                        mostPredictedScore = scoreKey;
+                                    }
+                                });
+                            }
+
+                            let homeWins = 0;
+                            let draws = 0;
+                            let awayWins = 0;
+                            matchPreds.forEach(p => {
+                                if (p.homeScore > p.awayScore) homeWins++;
+                                else if (p.homeScore < p.awayScore) awayWins++;
+                                else draws++;
+                            });
+                            const homeWinPct = totalPreds > 0 ? Math.round((homeWins / totalPreds) * 100) : 0;
+                            const drawPct = totalPreds > 0 ? Math.round((draws / totalPreds) * 100) : 0;
+                            const awayWinPct = totalPreds > 0 ? Math.round((awayWins / totalPreds) * 100) : 0;
+
+                            return createPortal(
+                                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setSelectedMatchForDetails(null)}>
+                                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-300" onClick={(e) => e.stopPropagation()}>
+                                        <div className="bg-gradient-to-r from-brasil-blue to-blue-500 dark:from-blue-900 dark:to-blue-700 text-white p-4 shrink-0">
+                                            <div className="flex justify-between items-start mb-1">
+                                                <div>
+                                                    <h3 className="font-bold text-sm uppercase tracking-wide opacity-80">Palpites da Liga</h3>
+                                                    <p className="text-blue-100 text-[10px] font-bold">
+                                                        {totalPreds} palpite{totalPreds !== 1 ? 's' : ''} registrado{totalPreds !== 1 ? 's' : ''}
+                                                    </p>
+                                                </div>
+                                                <button onClick={() => setSelectedMatchForDetails(null)} className="p-1 hover:bg-white/20 rounded-full transition-colors"><X size={20} /></button>
+                                            </div>
+                                            <div className="flex items-center justify-between gap-4"><div className="flex flex-col items-center w-1/3"><img src={getTeamFlag(detailsData.match.homeTeamId)} className="w-10 h-7 object-cover rounded shadow-sm mb-1" /><span className="text-xs font-bold text-center leading-tight">{detailsData.match.homeTeamId}</span></div><div className="flex flex-col items-center"><div className="text-2xl font-black bg-white/10 px-3 py-1 rounded-lg backdrop-blur-sm border border-white/20 whitespace-nowrap">{detailsData.match.homeScore ?? '-'} <span className="text-sm mx-1">x</span> {detailsData.match.awayScore ?? '-'}</div><span className={`text-[10px] mt-1 font-bold px-2 py-0.5 rounded-full ${detailsData.match.status === MatchStatus.IN_PROGRESS ? 'bg-red-500 text-white animate-pulse' : detailsData.match.status === MatchStatus.FINISHED ? 'bg-black/30 text-white' : 'bg-blue-800 text-blue-200'}`}>{detailsData.match.status === MatchStatus.IN_PROGRESS ? 'AO VIVO' : detailsData.match.status === MatchStatus.FINISHED ? 'ENCERRADO' : 'AGUARDANDO'}</span></div><div className="flex flex-col items-center w-1/3"><img src={getTeamFlag(detailsData.match.awayTeamId)} className="w-10 h-7 object-cover rounded shadow-sm mb-1" /><span className="text-xs font-bold text-center leading-tight">{detailsData.match.awayTeamId}</span></div></div>
+
+                                            {/* Modal Gols do Brasil */}
+                                            {brazilMatchGoals.some(g => g.matchId === detailsData.match.id) && (
+                                                <div className="mt-3 flex flex-wrap justify-center gap-x-3 gap-y-1 bg-white/10 py-1.5 px-3 rounded-lg border border-white/5 mx-auto">
+                                                    {brazilMatchGoals
+                                                        .filter(g => g.matchId === detailsData.match.id)
+                                                        .map(g => (
+                                                            <span key={g.playerName} className="text-[10px] font-black uppercase flex items-center gap-1">
+                                                                <Goal size={10} className="text-brasil-yellow" />
+                                                                {g.playerName} {g.goals > 1 && <span className="text-brasil-yellow">({g.goals})</span>}
+                                                            </span>
+                                                        ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                        {totalPreds > 0 && (() => {
+                                            const getPctColor = (pct: number, otherPct: number) => {
+                                                if (pct > otherPct) {
+                                                    return "text-emerald-600 dark:text-emerald-400"; // verde
+                                                }
+                                                if (pct < otherPct) {
+                                                    return "text-amber-700 dark:text-amber-500"; // amarelo escuro
+                                                }
+                                                return "text-gray-900 dark:text-gray-100"; // neutro
+                                            };
+
+                                            return (
+                                                <div className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-4 py-2 flex items-center justify-between gap-4 text-xs shrink-0 shadow-sm">
+                                                    <div className="flex flex-col items-center justify-center flex-1 min-w-[120px]">
+                                                        <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider text-center">Placar mais apostado</span>
+                                                        <span className="text-base font-black text-gray-800 dark:text-gray-200 mt-1 text-center">{mostPredictedScore}</span>
+                                                    </div>
+                                                    <div className="flex flex-col items-center flex-[2] max-w-[280px]">
+                                                        <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1 text-center">Distribuição</span>
+                                                        <div className="w-full flex items-center gap-1.5 text-[10px] font-bold text-gray-600 dark:text-gray-300">
+                                                            <div className="flex-1 flex flex-col items-center bg-gray-50 dark:bg-gray-750 py-0.5 px-1 rounded border border-gray-100 dark:border-gray-700 min-w-0" title={detailsData.match.homeTeamId}>
+                                                                <span className="text-[9px] text-gray-400 dark:text-gray-500 uppercase leading-none truncate w-full text-center">{detailsData.match.homeTeamId}</span>
+                                                                <span className={`text-xs font-black mt-0.5 ${getPctColor(homeWinPct, awayWinPct)}`}>{homeWinPct}%</span>
+                                                            </div>
+                                                            <div className="flex-1 flex flex-col items-center bg-gray-50 dark:bg-gray-750 py-0.5 px-1 rounded border border-gray-100 dark:border-gray-700 min-w-0">
+                                                                <span className="text-[9px] text-gray-400 dark:text-gray-500 uppercase leading-none truncate w-full text-center">Empate</span>
+                                                                <span className="text-xs font-black mt-0.5 text-gray-900 dark:text-gray-100">{drawPct}%</span>
+                                                            </div>
+                                                            <div className="flex-1 flex flex-col items-center bg-gray-50 dark:bg-gray-750 py-0.5 px-1 rounded border border-gray-100 dark:border-gray-700 min-w-0" title={detailsData.match.awayTeamId}>
+                                                                <span className="text-[9px] text-gray-400 dark:text-gray-500 uppercase leading-none truncate w-full text-center">{detailsData.match.awayTeamId}</span>
+                                                                <span className={`text-xs font-black mt-0.5 ${getPctColor(awayWinPct, homeWinPct)}`}>{awayWinPct}%</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })()}
+                                        <div className="px-4 py-2 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600"><div className="relative"><Search className="absolute left-3 top-2.5 text-gray-400" size={16} /><input type="text" placeholder="Buscar participante..." value={matchDetailsSearch} onChange={(e) => setMatchDetailsSearch(e.target.value)} className="w-full bg-gray-700 border border-gray-600 text-white placeholder-gray-400 rounded-lg pl-9 pr-8 py-2 text-sm focus:ring-1 focus:ring-brasil-blue focus:border-brasil-blue outline-none" />{matchDetailsSearch && (<button onClick={() => setMatchDetailsSearch('')} className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white cursor-pointer"><X size={14} /></button>)}</div></div>
+                                        <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-800 p-0"><div className="divide-y divide-gray-100 dark:divide-gray-700">{filteredDetailsParticipants.length === 0 ? (<div className="text-center py-8 text-gray-400 text-sm">Nenhum participante encontrado.</div>) : (filteredDetailsParticipants.map(({ user, pred, points }, idx) => (<div key={user.id} className={`p-3 flex items-center justify-between ${user.id === currentUser.id ? 'bg-yellow-50 dark:bg-yellow-900/20' : 'bg-white dark:bg-gray-800'}`}><div className="flex items-center gap-3"><div className="relative"><OptimizedImage src={user.avatar} containerClassName="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-600" className="w-full h-full object-cover" alt="" /><div className="absolute -top-1 -left-1 w-5 h-5 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center text-[10px] font-bold text-gray-600 dark:text-gray-300 border border-white dark:border-gray-700 shadow-sm">{idx + 1}</div></div><div><div className="font-bold text-sm text-gray-800 dark:text-gray-200 flex items-center gap-1">{user.name} {user.id === currentUser.id && <span className="text-[10px] font-normal text-gray-500 dark:text-gray-400">(Você)</span>}</div><div className="text-xs text-gray-500 dark:text-gray-400">
+                                            {pred ? (
+                                                <div className="flex flex-col">
+                                                    <span>Palpite enviado</span>
+                                                    {pred.playerPick && <span className="text-yellow-800 dark:text-yellow-500 font-bold flex items-center gap-1 mt-0.5"><Goal size={10} /> {pred.playerPick}</span>}
+                                                </div>
+                                            ) : 'Não palpitou'}
+                                        </div></div></div><div className="flex items-center gap-3"><div className="text-lg font-black text-gray-700 dark:text-gray-300 tracking-wider">{pred ? <>{pred.homeScore} <span className="text-gray-300 dark:text-gray-600 text-sm">x</span> {pred.awayScore}</> : <span className="text-gray-300 dark:text-gray-600 text-sm">-</span>}</div><div className={`w-12 text-center rounded py-1 text-xs font-bold ${points > 0 ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300' : points === 0 && pred ? 'bg-red-50 dark:bg-red-900/30 text-red-400 dark:text-red-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'}`}>{points > 0 ? `+${points}` : '0'} pts</div></div></div>)))}</div></div>
                                     </div>
-                                    <div className="px-4 py-2 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600"><div className="relative"><Search className="absolute left-3 top-2.5 text-gray-400" size={16} /><input type="text" placeholder="Buscar participante..." value={matchDetailsSearch} onChange={(e) => setMatchDetailsSearch(e.target.value)} className="w-full bg-gray-700 border border-gray-600 text-white placeholder-gray-400 rounded-lg pl-9 pr-8 py-2 text-sm focus:ring-1 focus:ring-brasil-blue focus:border-brasil-blue outline-none" />{matchDetailsSearch && (<button onClick={() => setMatchDetailsSearch('')} className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white cursor-pointer"><X size={14} /></button>)}</div></div>
-                                    <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-800 p-0"><div className="divide-y divide-gray-100 dark:divide-gray-700">{filteredDetailsParticipants.length === 0 ? (<div className="text-center py-8 text-gray-400 text-sm">Nenhum participante encontrado.</div>) : (filteredDetailsParticipants.map(({ user, pred, points }, idx) => (<div key={user.id} className={`p-3 flex items-center justify-between ${user.id === currentUser.id ? 'bg-yellow-50 dark:bg-yellow-900/20' : 'bg-white dark:bg-gray-800'}`}><div className="flex items-center gap-3"><div className="relative"><OptimizedImage src={user.avatar} containerClassName="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-600" className="w-full h-full object-cover" alt="" /><div className="absolute -top-1 -left-1 w-5 h-5 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center text-[10px] font-bold text-gray-600 dark:text-gray-300 border border-white dark:border-gray-700 shadow-sm">{idx + 1}</div></div><div><div className="font-bold text-sm text-gray-800 dark:text-gray-200 flex items-center gap-1">{user.name} {user.id === currentUser.id && <span className="text-[10px] font-normal text-gray-500 dark:text-gray-400">(Você)</span>}</div><div className="text-xs text-gray-500 dark:text-gray-400">
-                                        {pred ? (
-                                            <div className="flex flex-col">
-                                                <span>Palpite enviado</span>
-                                                {pred.playerPick && <span className="text-yellow-800 dark:text-yellow-500 font-bold flex items-center gap-1 mt-0.5"><Goal size={10} /> {pred.playerPick}</span>}
-                                            </div>
-                                        ) : 'Não palpitou'}
-                                    </div></div></div><div className="flex items-center gap-3"><div className="text-lg font-black text-gray-700 dark:text-gray-300 tracking-wider">{pred ? <>{pred.homeScore} <span className="text-gray-300 dark:text-gray-600 text-sm">x</span> {pred.awayScore}</> : <span className="text-gray-300 dark:text-gray-600 text-sm">-</span>}</div><div className={`w-12 text-center rounded py-1 text-xs font-bold ${points > 0 ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300' : points === 0 && pred ? 'bg-red-50 dark:bg-red-900/30 text-red-400 dark:text-red-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'}`}>{points > 0 ? `+${points}` : '0'} pts</div></div></div>)))}</div></div>
-                                </div>
-                            </div>, document.body
-                        )}
+                                </div>, document.body
+                            );
+                        })()}
 
                         {/* STATS MODAL: shown before prediction lock */}
                         {selectedMatchForStats && (() => {
@@ -1149,6 +1291,34 @@ export const BrazilLeagueDetails: React.FC = () => {
                             const homeWinPct = apiMatchStats?.homeWinPct ?? 0;
                             const drawPct = apiMatchStats?.drawPct ?? 0;
                             const awayWinPct = apiMatchStats?.awayWinPct ?? 0;
+                            const predictedUserIds: string[] = apiMatchStats?.predictedUserIds ?? [];
+
+                            const predictedParticipants = league.participants
+                                .filter(uid => predictedUserIds.includes(uid))
+                                .map(uid => users.find(u => u.id === uid) || { id: uid, name: 'Participante', avatar: '' } as User)
+                                .sort((a, b) => a.name.localeCompare(b.name));
+
+                            const missingParticipants = league.participants
+                                .filter(uid => !predictedUserIds.includes(uid))
+                                .map(uid => users.find(u => u.id === uid) || { id: uid, name: 'Participante', avatar: '' } as User)
+                                .sort((a, b) => a.name.localeCompare(b.name));
+
+                            const filteredPredicted = predictedParticipants.filter(u =>
+                                u.name.toLowerCase().includes(statsSearch.toLowerCase())
+                            );
+
+                            const filteredMissing = missingParticipants.filter(u =>
+                                u.name.toLowerCase().includes(statsSearch.toLowerCase())
+                            );
+
+                            const PAGE_SIZE = 50;
+                            const totalSavedPages = Math.max(1, Math.ceil(filteredPredicted.length / PAGE_SIZE));
+                            const safeSavedPage = Math.min(statsPageSaved, totalSavedPages);
+                            const pagedPredicted = filteredPredicted.slice((safeSavedPage - 1) * PAGE_SIZE, safeSavedPage * PAGE_SIZE);
+
+                            const totalPendingPages = Math.max(1, Math.ceil(filteredMissing.length / PAGE_SIZE));
+                            const safePendingPage = Math.min(statsPagePending, totalPendingPages);
+                            const pagedMissing = filteredMissing.slice((safePendingPage - 1) * PAGE_SIZE, safePendingPage * PAGE_SIZE);
 
                             const [mHome, mAway] = mostPredictedScore ? mostPredictedScore.split('-').map(Number) : [null, null];
                             const homeLeads = homeWinPct >= awayWinPct;
@@ -1220,8 +1390,8 @@ export const BrazilLeagueDetails: React.FC = () => {
                                                             {/* Most Predicted Score */}
                                                             <div className="bg-white dark:bg-gray-700/60 rounded-xl p-4 border border-gray-100 dark:border-gray-600 shadow-sm flex flex-col items-center justify-center text-center gap-3">
                                                                 <div className="flex flex-col items-center">
-                                                                    <span className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500 mb-0.5 flex items-center gap-1.5">
-                                                                        <Trophy size={10} className="text-yellow-500" /> Placar mais apostado
+                                                                    <span className="text-[10px] font-bold uppercase text-yellow-500 dark:text-yellow-400 mb-0.5 flex items-center gap-1.5 justify-center">
+                                                                        <Trophy size={10} /> Placar mais apostado
                                                                     </span>
                                                                     <span className="text-[10px] text-gray-500 dark:text-gray-400 leading-tight">Entre os palpites já registrados na liga</span>
                                                                 </div>
@@ -1264,7 +1434,9 @@ export const BrazilLeagueDetails: React.FC = () => {
                                                                         <span className="text-2xl font-black tabular-nums">{awayWinPct}%</span>
                                                                     </div>
                                                                 </div>
-                                                            </div>                                                                {/* Team History */}
+                                                            </div>
+
+                                                            {/* Team History */}
                                                             <div className="grid grid-cols-1 gap-4 mt-2">
                                                                 {/* Home Team History */}
                                                                 <div className="flex flex-col gap-2">
@@ -1313,6 +1485,133 @@ export const BrazilLeagueDetails: React.FC = () => {
                                                                             )}
                                                                         </div>
                                                                     ))}
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Status dos Palpites dos Participantes */}
+                                                            <div className="bg-white dark:bg-gray-700/60 rounded-xl p-3.5 border border-gray-100 dark:border-gray-600 shadow-sm space-y-3 mt-4">
+                                                                <div className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500 flex items-center gap-1.5 border-b border-gray-100 dark:border-gray-650 pb-2">
+                                                                    <Users size={12} /> Status dos Palpites ({league.participants.length})
+                                                                </div>
+                                                                
+                                                                {/* Search Input */}
+                                                                <div className="relative mt-2">
+                                                                    <Search className="absolute left-3 top-2.5 text-gray-400" size={14} />
+                                                                    <input
+                                                                        type="text"
+                                                                        placeholder="Buscar participante..."
+                                                                        value={statsSearch}
+                                                                        onChange={(e) => {
+                                                                            setStatsSearch(e.target.value);
+                                                                            setStatsPageSaved(1);
+                                                                            setStatsPagePending(1);
+                                                                        }}
+                                                                        className="w-full pl-9 pr-8 py-1.5 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-955 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 rounded-lg text-xs focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 outline-none"
+                                                                    />
+                                                                    {statsSearch && (
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                setStatsSearch('');
+                                                                                setStatsPageSaved(1);
+                                                                                setStatsPagePending(1);
+                                                                            }}
+                                                                            className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-gray-400 hover:text-gray-600 dark:text-gray-400 dark:hover:text-white cursor-pointer"
+                                                                        >
+                                                                            <X size={14} />
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+
+                                                                <div className="space-y-4">
+                                                                    {/* Palpitados */}
+                                                                    {filteredPredicted.length > 0 && (
+                                                                        <div className="space-y-1.5">
+                                                                            <div className="flex justify-between items-center text-[9px] font-black uppercase text-emerald-600 dark:text-emerald-400 tracking-wider">
+                                                                                <span className="flex items-center gap-1">
+                                                                                    <CheckCircle2 size={10} /> Palpite Salvo ({filteredPredicted.length})
+                                                                                </span>
+                                                                                {totalSavedPages > 1 && (
+                                                                                    <span className="text-[9px] text-gray-400 dark:text-gray-500 font-bold normal-case">
+                                                                                        Pág. {safeSavedPage} de {totalSavedPages}
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
+                                                                            <div className="grid grid-cols-2 gap-2">
+                                                                                {pagedPredicted.map(u => (
+                                                                                    <div key={u.id} className="flex items-center gap-2 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/50 p-1.5 rounded-lg">
+                                                                                        <OptimizedImage src={u.avatar} containerClassName="w-6 h-6 rounded-full border border-emerald-200 dark:border-emerald-800" className="w-full h-full object-cover" alt="" />
+                                                                                        <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300 truncate w-full">{u.name}</span>
+                                                                                    </div>
+                                                                                ))}
+                                                                            </div>
+                                                                            {totalSavedPages > 1 && (
+                                                                                <div className="flex items-center justify-end gap-2 pt-1">
+                                                                                    <button
+                                                                                        onClick={() => setStatsPageSaved(prev => Math.max(1, prev - 1))}
+                                                                                        disabled={safeSavedPage <= 1}
+                                                                                        className="p-1 rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-gray-600 dark:text-gray-300"
+                                                                                    >
+                                                                                        <ChevronLeft size={12} />
+                                                                                    </button>
+                                                                                    <button
+                                                                                        onClick={() => setStatsPageSaved(prev => Math.min(totalSavedPages, prev + 1))}
+                                                                                        disabled={safeSavedPage >= totalSavedPages}
+                                                                                        className="p-1 rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-gray-600 dark:text-gray-300"
+                                                                                    >
+                                                                                        <ChevronRight size={12} />
+                                                                                    </button>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    )}
+
+                                                                    {/* Pendentes */}
+                                                                    {filteredMissing.length > 0 && (
+                                                                        <div className="space-y-1.5 mt-2">
+                                                                            <div className="flex justify-between items-center text-[9px] font-black uppercase text-amber-600 dark:text-amber-400 tracking-wider">
+                                                                                <span className="flex items-center gap-1">
+                                                                                    <Clock size={10} /> Pendente ({filteredMissing.length})
+                                                                                </span>
+                                                                                {totalPendingPages > 1 && (
+                                                                                    <span className="text-[9px] text-gray-400 dark:text-gray-500 font-bold normal-case">
+                                                                                        Pág. {safePendingPage} de {totalPendingPages}
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
+                                                                            <div className="grid grid-cols-2 gap-2">
+                                                                                {pagedMissing.map(u => (
+                                                                                    <div key={u.id} className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 p-1.5 rounded-lg">
+                                                                                        <OptimizedImage src={u.avatar} containerClassName="w-6 h-6 rounded-full border border-gray-300 dark:border-gray-600" className="w-full h-full object-cover" alt="" />
+                                                                                        <span className="text-xs font-medium text-gray-600 dark:text-gray-400 truncate w-full">{u.name}</span>
+                                                                                    </div>
+                                                                                ))}
+                                                                            </div>
+                                                                            {totalPendingPages > 1 && (
+                                                                                <div className="flex items-center justify-end gap-2 pt-1">
+                                                                                    <button
+                                                                                        onClick={() => setStatsPagePending(prev => Math.max(1, prev - 1))}
+                                                                                        disabled={safePendingPage <= 1}
+                                                                                        className="p-1 rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-gray-600 dark:text-gray-300"
+                                                                                    >
+                                                                                        <ChevronLeft size={12} />
+                                                                                    </button>
+                                                                                    <button
+                                                                                        onClick={() => setStatsPagePending(prev => Math.min(totalPendingPages, prev + 1))}
+                                                                                        disabled={safePendingPage >= totalPendingPages}
+                                                                                        className="p-1 rounded bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-gray-600 dark:text-gray-300"
+                                                                                    >
+                                                                                        <ChevronRight size={12} />
+                                                                                    </button>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    )}
+
+                                                                    {filteredPredicted.length === 0 && filteredMissing.length === 0 && (
+                                                                        <div className="text-center py-4 text-gray-500 dark:text-gray-400 text-xs italic">
+                                                                            Nenhum participante encontrado.
+                                                                        </div>
+                                                                    )}
                                                                 </div>
                                                             </div>
                                                         </>
