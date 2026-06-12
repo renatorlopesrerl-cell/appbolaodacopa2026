@@ -85,6 +85,7 @@ export const BrazilLeagueDetails: React.FC = () => {
     const [loadingStats, setLoadingStats] = useState<boolean>(false);
     const [teamHistoryData, setTeamHistoryData] = useState<any[]>([]);
     const [matchDetailsSearch, setMatchDetailsSearch] = useState('');
+    const [matchDetailsPage, setMatchDetailsPage] = useState(1);
     const [statsSearch, setStatsSearch] = useState('');
     const [statsPageSaved, setStatsPageSaved] = useState(1);
     const [statsPagePending, setStatsPagePending] = useState(1);
@@ -1136,7 +1137,7 @@ export const BrazilLeagueDetails: React.FC = () => {
                                                 <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/10 to-amber-500/5" />
                                                 <div className="relative z-10">
                                                     <div className="flex justify-end mb-1">
-                                                        <button onClick={() => setSelectedMatchForDetails(null)} className="p-1.5 hover:bg-white/20 rounded-full transition-colors text-white"><X size={16} /></button>
+                                                        <button onClick={() => { setSelectedMatchForDetails(null); setMatchDetailsSearch(''); setMatchDetailsPage(1); }} className="p-1.5 hover:bg-white/20 rounded-full transition-colors text-white"><X size={16} /></button>
                                                     </div>
                                                     <div className="flex justify-center mb-3">
                                                         <div className="bg-gradient-to-br from-yellow-400 to-amber-600 p-3.5 rounded-full shadow-lg">
@@ -1267,7 +1268,7 @@ export const BrazilLeagueDetails: React.FC = () => {
                                                             </div>
                                                             <div className="flex-1 flex flex-col items-center bg-gray-50 dark:bg-gray-750 py-0.5 px-1 rounded border border-gray-100 dark:border-gray-700 min-w-0">
                                                                 <span className="text-[9px] text-gray-400 dark:text-gray-500 uppercase leading-none truncate w-full text-center">Empate</span>
-                                                                <span className="text-xs font-black mt-0.5 text-gray-900 dark:text-gray-100">{drawPct}%</span>
+                                                                <span className="text-xs font-black mt-0.5 text-gray-900 dark:text-gray-400">{drawPct}%</span>
                                                             </div>
                                                             <div className="flex-1 flex flex-col items-center bg-gray-50 dark:bg-gray-750 py-0.5 px-1 rounded border border-gray-100 dark:border-gray-700 min-w-0" title={detailsData.match.awayTeamId}>
                                                                 <span className="text-[9px] text-gray-400 dark:text-gray-500 uppercase leading-none truncate w-full text-center">{detailsData.match.awayTeamId}</span>
@@ -1278,36 +1279,69 @@ export const BrazilLeagueDetails: React.FC = () => {
                                                 </div>
                                             );
                                         })()}
-                                        <div className="px-4 py-2 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600"><div className="relative"><Search className="absolute left-3 top-2.5 text-gray-400" size={16} /><input type="text" placeholder="Buscar participante..." value={matchDetailsSearch} onChange={(e) => setMatchDetailsSearch(e.target.value)} className="w-full bg-gray-700 border border-gray-600 text-white placeholder-gray-400 rounded-lg pl-9 pr-8 py-2 text-sm focus:ring-1 focus:ring-brasil-blue focus:border-brasil-blue outline-none" />{matchDetailsSearch && (<button onClick={() => setMatchDetailsSearch('')} className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white cursor-pointer"><X size={14} /></button>)}</div></div>
+                                        <div className="px-4 py-2 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600"><div className="relative"><Search className="absolute left-3 top-2.5 text-gray-400" size={16} /><input type="text" placeholder="Buscar participante..." value={matchDetailsSearch} onChange={(e) => { setMatchDetailsSearch(e.target.value); setMatchDetailsPage(1); }} className="w-full bg-gray-700 border border-gray-600 text-white placeholder-gray-400 rounded-lg pl-9 pr-8 py-2 text-sm focus:ring-1 focus:ring-brasil-blue focus:border-brasil-blue outline-none" />{matchDetailsSearch && (<button onClick={() => { setMatchDetailsSearch(''); setMatchDetailsPage(1); }} className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white cursor-pointer"><X size={14} /></button>)}</div></div>
                                         <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-800 p-0">
                                             <div className="divide-y divide-gray-100 dark:divide-gray-700">
-                                                {filteredDetailsParticipants.length === 0 ? (
-                                                    <div className="text-center py-8 text-gray-400 text-sm">Nenhum participante encontrado.</div>
-                                                ) : (
-                                                    filteredDetailsParticipants.map(({ user, pred, points }, idx) => (
-                                                        <div key={user.id} className={`p-3 flex items-center justify-between ${user.id === currentUser.id ? 'bg-yellow-50 dark:bg-yellow-900/20' : 'bg-white dark:bg-gray-800'}`}>
-                                                            <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                                <div className="relative shrink-0">
-                                                                    <OptimizedImage src={user.avatar} containerClassName="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-600" className="w-full h-full object-cover" alt="" />
-                                                                    <div className="absolute -top-1 -left-1 w-5 h-5 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center text-[10px] font-bold text-gray-600 dark:text-gray-300 border border-white dark:border-gray-700 shadow-sm">{idx + 1}</div>
-                                                                </div>
-                                                                <div className="min-w-0 flex-1">
-                                                                    <div className="font-bold text-sm text-gray-800 dark:text-gray-200 flex items-center gap-1">
-                                                                        <span className="truncate">{user.name}</span>
-                                                                        {user.id === currentUser.id && <span className="text-[10px] font-normal text-gray-500 dark:text-gray-400 shrink-0">(Você)</span>}
+                                                {(() => {
+                                                    const pagedDetailsParticipants = filteredDetailsParticipants.slice((matchDetailsPage - 1) * 100, matchDetailsPage * 100);
+                                                    const totalDetailsPages = Math.ceil(filteredDetailsParticipants.length / 100);
+                                                    
+                                                    if (pagedDetailsParticipants.length === 0) {
+                                                        return <div className="text-center py-8 text-gray-400 text-sm">Nenhum participante encontrado.</div>;
+                                                    }
+                                                    
+                                                    return (
+                                                        <>
+                                                            {pagedDetailsParticipants.map(({ user, pred, points }, idx) => {
+                                                                const globalIdx = (matchDetailsPage - 1) * 100 + idx + 1;
+                                                                return (
+                                                                    <div key={user.id} className={`p-3 flex items-center justify-between ${user.id === currentUser.id ? 'bg-yellow-50 dark:bg-yellow-900/20' : 'bg-white dark:bg-gray-800'}`}>
+                                                                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                                            <div className="relative shrink-0">
+                                                                                <OptimizedImage src={user.avatar} containerClassName="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-600" className="w-full h-full object-cover" alt="" />
+                                                                                <div className="absolute -top-1 -left-1 w-5 h-5 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center text-[10px] font-bold text-gray-600 dark:text-gray-300 border border-white dark:border-gray-700 shadow-sm">{globalIdx}</div>
+                                                                            </div>
+                                                                            <div className="min-w-0 flex-1">
+                                                                                <div className="font-bold text-sm text-gray-800 dark:text-gray-200 flex items-center gap-1">
+                                                                                    <span className="truncate">{user.name}</span>
+                                                                                    {user.id === currentUser.id && <span className="text-[10px] font-normal text-gray-500 dark:text-gray-400 shrink-0">(Você)</span>}
+                                                                                </div>
+                                                                                <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{pred ? 'Palpite enviado' : 'Não palpitou'}</div>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-3 shrink-0 ml-2">
+                                                                            <div className="text-lg font-black text-gray-700 dark:text-gray-300 tracking-wider whitespace-nowrap">
+                                                                                {pred ? <>{pred.homeScore} <span className="text-gray-300 dark:text-gray-600 text-sm">x</span> {pred.awayScore}</> : <span className="text-gray-300 dark:text-gray-600 text-sm">-</span>}
+                                                                            </div>
+                                                                            <div className={`w-12 text-center rounded py-1 text-xs font-bold shrink-0 ${points > 0 ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300' : points === 0 && pred ? 'bg-red-50 dark:bg-red-900/30 text-red-400 dark:text-red-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'}`}>{points > 0 ? `+${points}` : '0'} pts</div>
+                                                                        </div>
                                                                     </div>
-                                                                    <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{pred ? 'Palpite enviado' : 'Não palpitou'}</div>
+                                                                );
+                                                            })}
+                                                            {totalDetailsPages > 1 && (
+                                                                <div className="p-4 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 flex items-center justify-between sticky bottom-0">
+                                                                    <button
+                                                                        onClick={() => setMatchDetailsPage(p => Math.max(1, p - 1))}
+                                                                        disabled={matchDetailsPage === 1}
+                                                                        className="p-2 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 disabled:opacity-50"
+                                                                    >
+                                                                        <ChevronLeft size={20} />
+                                                                    </button>
+                                                                    <span className="text-sm font-bold text-gray-600 dark:text-gray-400">
+                                                                        Página {matchDetailsPage} de {totalDetailsPages}
+                                                                    </span>
+                                                                    <button
+                                                                        onClick={() => setMatchDetailsPage(p => Math.min(totalDetailsPages, p + 1))}
+                                                                        disabled={matchDetailsPage === totalDetailsPages}
+                                                                        className="p-2 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 disabled:opacity-50"
+                                                                    >
+                                                                        <ChevronRight size={20} />
+                                                                    </button>
                                                                 </div>
-                                                            </div>
-                                                            <div className="flex items-center gap-3 shrink-0 ml-2">
-                                                                <div className="text-lg font-black text-gray-700 dark:text-gray-300 tracking-wider whitespace-nowrap">
-                                                                    {pred ? <>{pred.homeScore} <span className="text-gray-300 dark:text-gray-600 text-sm">x</span> {pred.awayScore}</> : <span className="text-gray-300 dark:text-gray-600 text-sm">-</span>}
-                                                                </div>
-                                                                <div className={`w-12 text-center rounded py-1 text-xs font-bold shrink-0 ${points > 0 ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300' : points === 0 && pred ? 'bg-red-50 dark:bg-red-900/30 text-red-400 dark:text-red-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'}`}>{points > 0 ? `+${points}` : '0'} pts</div>
-                                                            </div>
-                                                        </div>
-                                                    ))
-                                                )}
+                                                            )}
+                                                        </>
+                                                    );
+                                                })()}
                                             </div>
                                         </div>
                                     </div>
