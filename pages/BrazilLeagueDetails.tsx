@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { toBlob } from 'html-to-image';
+import { toJpeg } from 'html-to-image';
 import { useParams, useNavigate, Link, Navigate, useSearchParams } from 'react-router-dom';
 import { useStore, getLeagueLimit } from '../App';
 import { api } from '../services/api';
@@ -112,16 +112,20 @@ export const BrazilLeagueDetails: React.FC = () => {
         setIsSharingImage(true);
         setToast({ title: 'Aguarde', message: 'Gerando imagem do Top 10...', type: 'info' });
         try {
-            const blob = await toBlob(shareRef.current, {
+            const dataUrl = await toJpeg(shareRef.current, {
                 cacheBust: true,
-                pixelRatio: 1,
+                pixelRatio: 0.5,
+                quality: 0.8,
                 width: 1080,
                 height: 1920,
                 style: { transform: 'none' },
                 imagePlaceholder: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='
             });
+            const res = await fetch(dataUrl);
+            const blob = await res.blob();
+            
             if (blob) {
-                const file = new File([blob], 'top10.png', { type: 'image/png' });
+                const file = new File([blob], 'top10.jpg', { type: 'image/jpeg' });
                 if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
                     await navigator.share({
                         title: `Top 10 - ${league.name}`,
@@ -132,7 +136,7 @@ export const BrazilLeagueDetails: React.FC = () => {
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `Top10_${league.name}.png`;
+                    a.download = `Top10_${league.name}.jpg`;
                     a.click();
                     URL.revokeObjectURL(url);
                     setToast({ title: 'Sucesso', message: 'Imagem baixada com sucesso!', type: 'success' });
