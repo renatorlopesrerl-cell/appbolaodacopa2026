@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { toBlob } from 'html-to-image';
 import { useParams, useNavigate, Link, Navigate, useSearchParams } from 'react-router-dom';
 import { useStore, getLeagueLimit } from '../App';
 import { api } from '../services/api';
@@ -86,7 +87,49 @@ export const LeagueDetails: React.FC = () => {
     const [histPhase, setHistPhase] = useState<string>('all');
     const [histGroup, setHistGroup] = useState<string>('all');
     const [histRound, setHistRound] = useState<string>('all');
+    
+    // --- SHARE STATE ---
+    const [isSharingImage, setIsSharingImage] = useState(false);
+    const shareRef = useRef<HTMLDivElement>(null);
 
+    const handleShareLeaderboard = async () => {
+        if (!shareRef.current || !league) return;
+        setIsSharingImage(true);
+        setToast({ title: 'Aguarde', message: 'Gerando imagem do Top 10...', type: 'info' });
+        try {
+            const blob = await toBlob(shareRef.current, {
+                cacheBust: true,
+                pixelRatio: 1,
+                width: 1080,
+                height: 1920,
+                style: { transform: 'none' },
+                imagePlaceholder: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='
+            });
+            if (blob) {
+                const file = new File([blob], 'top10.png', { type: 'image/png' });
+                if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                    await navigator.share({
+                        title: `Top 10 - ${league.name}`,
+                        files: [file]
+                    });
+                    setToast(null);
+                } else {
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `Top10_${league.name}.png`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    setToast({ title: 'Sucesso', message: 'Imagem baixada com sucesso!', type: 'success' });
+                }
+            }
+        } catch (error) {
+            console.error('Error sharing image:', error);
+            setToast({ title: 'Erro', message: 'Não foi possível gerar a imagem', type: 'warning' });
+        } finally {
+            setIsSharingImage(false);
+        }
+    };
     // --- ADMIN TAB STATE (HOISTED) ---
     const [editImage, setEditImage] = useState('');
     const [editDescription, setEditDescription] = useState('');
@@ -2015,7 +2058,13 @@ export const LeagueDetails: React.FC = () => {
                 </div>
                 <div className="p-4 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 space-y-3">
                     <div className="flex items-center gap-2"><span className="text-sm font-bold text-brasil-blue dark:text-blue-400 whitespace-nowrap">Visualizar Pontos:</span><div className="relative w-full md:w-auto flex-1"><select value={leaderboardView} onChange={(e) => setLeaderboardView(e.target.value)} className="w-full appearance-none bg-brasil-blue dark:bg-blue-900 text-white border border-blue-900 dark:border-blue-800 text-sm font-bold rounded-lg focus:ring-2 focus:ring-brasil-yellow focus:border-brasil-yellow block p-2.5 pr-8 shadow-md transition-colors hover:bg-blue-900 cursor-pointer"><option value="total" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Pontuação Total</option><option value="1" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">1ª Rodada (Grupos)</option><option value="2" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">2ª Rodada (Grupos)</option><option value="3" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">3ª Rodada (Grupos)</option><option value="group_phase" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Fase de Grupos (Completa)</option><option value="16_avos" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Fase 16-avos</option><option value="final_phase" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Fase Final (Oitavas, Quartas, Semi e Final)</option><option value="knockout" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Mata-Mata (Completo)</option></select><ChevronDown size={14} className="absolute right-3 top-3.5 text-blue-200 pointer-events-none" /></div></div>
-                    <div className="relative"><Search className="absolute left-3 top-2.5 text-gray-400" size={18} /><input type="text" placeholder="Buscar participante..." value={leaderboardSearch} onChange={(e) => setLeaderboardSearch(e.target.value)} className="w-full pl-10 pr-8 py-2 border border-gray-600 bg-gray-700 text-white placeholder-gray-400 rounded-lg text-sm focus:ring-1 focus:ring-brasil-blue focus:border-brasil-blue outline-none" />{leaderboardSearch && (<button onClick={() => setLeaderboardSearch('')} className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white cursor-pointer"><X size={14} /></button>)}</div>
+                    <div className="flex flex-col-reverse sm:flex-row gap-3 w-full">
+                        <div className="relative flex-1 w-full"><Search className="absolute left-3 top-2.5 text-gray-400" size={18} /><input type="text" placeholder="Buscar participante..." value={leaderboardSearch} onChange={(e) => setLeaderboardSearch(e.target.value)} className="w-full pl-10 pr-8 py-2 border border-gray-600 bg-gray-700 text-white placeholder-gray-400 rounded-lg text-sm focus:ring-1 focus:ring-brasil-blue focus:border-brasil-blue outline-none" />{leaderboardSearch && (<button onClick={() => setLeaderboardSearch('')} className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white cursor-pointer"><X size={14} /></button>)}</div>
+                        <button onClick={handleShareLeaderboard} disabled={isSharingImage} className="flex w-full sm:w-auto items-center justify-center gap-2 bg-gradient-to-r from-brasil-blue to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-4 py-3 sm:py-2 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 whitespace-nowrap">
+                            {isSharingImage ? <Loader2 size={20} className="animate-spin" /> : <Share2 size={20} />}
+                            <span className="text-sm">Compartilhar Classificação</span>
+                        </button>
+                    </div>
                 </div>
                 <div className="w-full overflow-x-auto">
                     <table className="w-full text-sm md:text-base">
@@ -2125,6 +2174,56 @@ export const LeagueDetails: React.FC = () => {
                         </div>
                     </div>, document.body
                 )}
+                
+                {/* Hidden Share Container */}
+                <div style={{ position: 'absolute', top: 0, left: 0, opacity: 0, pointerEvents: 'none', zIndex: -50 }}>
+                    <div ref={shareRef} className="w-[1080px] h-[1920px] bg-gradient-to-br from-brasil-blue to-blue-900 text-white p-12 flex flex-col relative overflow-hidden">
+                        <div className="absolute top-[-150px] right-[-150px] w-[600px] h-[600px] bg-brasil-yellow/20 rounded-full blur-3xl"></div>
+                        <div className="absolute bottom-[-150px] left-[-150px] w-[600px] h-[600px] bg-green-500/20 rounded-full blur-3xl"></div>
+                        
+                        <div className="text-center mb-10 relative z-10 flex flex-col items-center">
+                            <div className="bg-white/20 p-4 rounded-3xl border border-white/30 shadow-2xl mb-6">
+                                <Trophy size={80} className="text-brasil-yellow drop-shadow-lg" />
+                            </div>
+                            <h1 className="text-6xl font-black text-brasil-yellow mb-2 uppercase tracking-widest drop-shadow-md">Top 10</h1>
+                            <h2 className="text-4xl font-bold opacity-95 truncate max-w-[900px] drop-shadow-sm">{league.name}</h2>
+                            <div className="mt-6 inline-block bg-white/15 px-8 py-3 rounded-full border border-white/20 text-2xl font-black uppercase tracking-widest shadow-inner">
+                                Bolão da Copa 2026
+                            </div>
+                        </div>
+
+                        <div className="flex-1 flex flex-col gap-5 relative z-10 w-full max-w-[900px] mx-auto">
+                            {leaderboard.slice(0, 10).map((entry, index) => {
+                                const rank = index + 1;
+                                return (
+                                    <div key={entry.user.id} className="flex items-center gap-6 bg-white/10 p-5 rounded-2xl border border-white/10 shadow-lg">
+                                        <div className={`w-16 h-16 shrink-0 rounded-full flex items-center justify-center text-3xl font-black shadow-md ${rank === 1 ? 'bg-yellow-400 text-yellow-900 ring-4 ring-yellow-400/50' : rank === 2 ? 'bg-gray-300 text-gray-800 ring-4 ring-gray-300/50' : rank === 3 ? 'bg-orange-400 text-orange-900 ring-4 ring-orange-400/50' : 'bg-white/20 text-white border border-white/30'}`}>
+                                            {rank}
+                                        </div>
+                                        <div className="w-20 h-20 rounded-full border-4 border-white/30 overflow-hidden shrink-0 shadow-inner bg-gray-800">
+                                            {entry.user.avatar ? <img src={entry.user.avatar} className="w-full h-full object-cover" crossOrigin="anonymous" /> : <div className="w-full h-full flex items-center justify-center bg-gray-700 text-white"><Users size={32} /></div>}
+                                        </div>
+                                        <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                            <h3 className="text-3xl font-bold truncate text-white drop-shadow-sm">{entry.user.name}</h3>
+                                            {entry.user.isPro && <span className="inline-flex items-center text-xs font-black bg-gradient-to-r from-yellow-200 to-amber-300 text-gray-900 px-2 py-0.5 rounded uppercase mt-1 w-max">⭐ PRO</span>}
+                                        </div>
+                                        <div className="flex flex-col items-end justify-center shrink-0 pl-4 border-l border-white/10">
+                                            <span className="text-5xl font-black text-brasil-yellow tabular-nums drop-shadow-md">{entry.totalPoints}</span>
+                                            <span className="text-sm opacity-80 uppercase font-bold tracking-widest mt-1">Pontos</span>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        
+                        <div className="mt-8 text-center relative z-10 pb-4">
+                            <div className="inline-flex items-center justify-center gap-3 bg-black/30 px-8 py-4 rounded-full border border-white/10">
+                                <Globe size={24} className="text-brasil-yellow" />
+                                <span className="text-2xl font-black tracking-widest text-white/90">BOLAODACOPA2026.APP</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         );
     };
