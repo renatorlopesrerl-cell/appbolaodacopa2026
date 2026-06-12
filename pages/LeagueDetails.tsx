@@ -1502,14 +1502,14 @@ export const LeagueDetails: React.FC = () => {
                                             };
 
                                             return (
-                                                <div className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-4 py-2 flex items-center justify-between gap-4 text-xs shrink-0 shadow-sm">
-                                                    <div className="flex flex-col items-center justify-center flex-1 min-w-[120px]">
-                                                        <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider text-center">Placar mais apostado</span>
+                                                <div className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-2 sm:px-4 py-2 flex items-center justify-between gap-2 text-xs shrink-0 shadow-sm overflow-hidden">
+                                                    <div className="flex flex-col items-center justify-center shrink-0 w-24">
+                                                        <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider text-center">Mais apostado</span>
                                                         <span className="text-base font-black text-gray-800 dark:text-gray-200 mt-1 text-center">{mostPredictedScore}</span>
                                                     </div>
-                                                    <div className="flex flex-col items-center flex-[2] max-w-[280px]">
-                                                        <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1 text-center">Distribuição</span>
-                                                        <div className="w-full flex items-center gap-1.5 text-[10px] font-bold text-gray-600 dark:text-gray-300">
+                                                    <div className="flex flex-col items-center flex-1 min-w-0">
+                                                        <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1 text-center">Distribuição</span>
+                                                        <div className="w-full flex items-center gap-1 text-[10px] font-bold text-gray-600 dark:text-gray-300">
                                                             <div className="flex-1 flex flex-col items-center bg-gray-50 dark:bg-gray-750 py-0.5 px-1 rounded border border-gray-100 dark:border-gray-700 min-w-0" title={detailsData.match.homeTeamId}>
                                                                 <span className="text-[9px] text-gray-400 dark:text-gray-500 uppercase leading-none truncate w-full text-center">{detailsData.match.homeTeamId}</span>
                                                                 <span className={`text-xs font-black mt-0.5 ${getPctColor(homeWinPct, awayWinPct)}`}>{homeWinPct}%</span>
@@ -1528,7 +1528,37 @@ export const LeagueDetails: React.FC = () => {
                                             );
                                         })()}
                                         <div className="px-4 py-2 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600"><div className="relative"><Search className="absolute left-3 top-2.5 text-gray-400" size={16} /><input type="text" placeholder="Buscar participante..." value={matchDetailsSearch} onChange={(e) => setMatchDetailsSearch(e.target.value)} className="w-full bg-gray-700 border border-gray-600 text-white placeholder-gray-400 rounded-lg pl-9 pr-8 py-2 text-sm focus:ring-1 focus:ring-brasil-blue focus:border-brasil-blue outline-none" />{matchDetailsSearch && (<button onClick={() => setMatchDetailsSearch('')} className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white cursor-pointer"><X size={14} /></button>)}</div></div>
-                                        <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-800 p-0"><div className="divide-y divide-gray-100 dark:divide-gray-700">{filteredDetailsParticipants.length === 0 ? (<div className="text-center py-8 text-gray-400 text-sm">Nenhum participante encontrado.</div>) : (filteredDetailsParticipants.map(({ user, pred, points }, idx) => (<div key={user.id} className={`p-3 flex items-center justify-between ${user.id === currentUser.id ? 'bg-yellow-50 dark:bg-yellow-900/20' : 'bg-white dark:bg-gray-800'}`}><div className="flex items-center gap-3"><div className="relative"><OptimizedImage src={user.avatar} containerClassName="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-600" className="w-full h-full object-cover" alt="" /><div className="absolute -top-1 -left-1 w-5 h-5 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center text-[10px] font-bold text-gray-600 dark:text-gray-300 border border-white dark:border-gray-700 shadow-sm">{idx + 1}</div></div><div><div className="font-bold text-sm text-gray-800 dark:text-gray-200 flex items-center gap-1">{user.name} {user.id === currentUser.id && <span className="text-[10px] font-normal text-gray-500 dark:text-gray-400">(Você)</span>}</div><div className="text-xs text-gray-500 dark:text-gray-400">{pred ? 'Palpite enviado' : 'Não palpitou'}</div></div></div><div className="flex items-center gap-3"><div className="text-lg font-black text-gray-700 dark:text-gray-300 tracking-wider">{pred ? <>{pred.homeScore} <span className="text-gray-300 dark:text-gray-600 text-sm">x</span> {pred.awayScore}</> : <span className="text-gray-300 dark:text-gray-600 text-sm">-</span>}</div><div className={`w-12 text-center rounded py-1 text-xs font-bold ${points > 0 ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300' : points === 0 && pred ? 'bg-red-50 dark:bg-red-900/30 text-red-400 dark:text-red-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'}`}>{points > 0 ? `+${points}` : '0'} pts</div></div></div>)))}</div></div>
+                                        <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-800 p-0">
+                                            <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                                                {filteredDetailsParticipants.length === 0 ? (
+                                                    <div className="text-center py-8 text-gray-400 text-sm">Nenhum participante encontrado.</div>
+                                                ) : (
+                                                    filteredDetailsParticipants.map(({ user, pred, points }, idx) => (
+                                                        <div key={user.id} className={`p-3 flex items-center justify-between ${user.id === currentUser.id ? 'bg-yellow-50 dark:bg-yellow-900/20' : 'bg-white dark:bg-gray-800'}`}>
+                                                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                                                                <div className="relative shrink-0">
+                                                                    <OptimizedImage src={user.avatar} containerClassName="w-10 h-10 rounded-full border border-gray-200 dark:border-gray-600" className="w-full h-full object-cover" alt="" />
+                                                                    <div className="absolute -top-1 -left-1 w-5 h-5 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center text-[10px] font-bold text-gray-600 dark:text-gray-300 border border-white dark:border-gray-700 shadow-sm">{idx + 1}</div>
+                                                                </div>
+                                                                <div className="min-w-0 flex-1">
+                                                                    <div className="font-bold text-sm text-gray-800 dark:text-gray-200 flex items-center gap-1">
+                                                                        <span className="truncate">{user.name}</span>
+                                                                        {user.id === currentUser.id && <span className="text-[10px] font-normal text-gray-500 dark:text-gray-400 shrink-0">(Você)</span>}
+                                                                    </div>
+                                                                    <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{pred ? 'Palpite enviado' : 'Não palpitou'}</div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex items-center gap-3 shrink-0 ml-2">
+                                                                <div className="text-lg font-black text-gray-700 dark:text-gray-300 tracking-wider whitespace-nowrap">
+                                                                    {pred ? <>{pred.homeScore} <span className="text-gray-300 dark:text-gray-600 text-sm">x</span> {pred.awayScore}</> : <span className="text-gray-300 dark:text-gray-600 text-sm">-</span>}
+                                                                </div>
+                                                                <div className={`w-12 text-center rounded py-1 text-xs font-bold shrink-0 ${points > 0 ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300' : points === 0 && pred ? 'bg-red-50 dark:bg-red-900/30 text-red-400 dark:text-red-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'}`}>{points > 0 ? `+${points}` : '0'} pts</div>
+                                                            </div>
+                                                        </div>
+                                                    ))
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>, document.body
                             );
