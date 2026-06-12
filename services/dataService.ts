@@ -237,6 +237,33 @@ export const calculatePoints = (
   return 0;
 };
 
+export const getPredictionHitType = (
+  predHome: number,
+  predAway: number,
+  actualHome: number,
+  actualAway: number,
+  settings: any
+): 'EXACT' | 'WINNER_DIFF' | 'WINNER_GOALS' | 'DRAW' | 'WINNER' | 'NONE' => {
+  if (predHome === actualHome && predAway === actualAway) return 'EXACT';
+  
+  const predDiff = predHome - predAway;
+  const actualDiff = actualHome - actualAway;
+  const predWinner = predDiff > 0 ? 'HOME' : (predDiff < 0 ? 'AWAY' : 'DRAW');
+  const actualWinner = actualDiff > 0 ? 'HOME' : (actualDiff < 0 ? 'AWAY' : 'DRAW');
+  
+  if (predWinner === actualWinner) {
+    if (predWinner !== 'DRAW' && predDiff === actualDiff) return 'WINNER_DIFF';
+    if (predWinner !== 'DRAW' && settings.winnerAndWinnerGoals) {
+      const predWinnerScore = predWinner === 'HOME' ? predHome : predAway;
+      const actualWinnerScore = actualWinner === 'HOME' ? actualHome : actualAway;
+      if (predWinnerScore === actualWinnerScore) return 'WINNER_GOALS';
+    }
+    if (predWinner === 'DRAW') return 'DRAW';
+    return 'WINNER';
+  }
+  return 'NONE';
+};
+
 export const calculateStandings = (matches: Match[]): Record<string, GroupStanding[]> => {
   const standings: Record<string, Record<string, GroupStanding>> = {};
 

@@ -4,7 +4,7 @@ import { useParams, useNavigate, Link, Navigate, useSearchParams } from 'react-r
 import { useStore, getLeagueLimit } from '../App';
 import { api } from '../services/api';
 import { MatchStatus, Phase, Match, User, LeaguePlan, BRAZIL_MATCH_IDS, BrazilLeagueSettings, BrazilPrediction } from '../types';
-import { getTeamFlag, isPredictionLocked, calculatePoints, GROUPS_CONFIG, processImageForUpload } from '../services/dataService';
+import { getTeamFlag, isPredictionLocked, calculatePoints, getPredictionHitType, GROUPS_CONFIG, processImageForUpload } from '../services/dataService';
 import { uploadBase64Image } from '../services/storageService';
 import {
     Trophy, Users, ArrowLeft, Search, Lock, Globe, Goal,
@@ -340,11 +340,13 @@ export const BrazilLeagueDetails: React.FC = () => {
 
                         // Stats for tie-breaking (Always calculate regardless of view filter)
                         if (match.phase !== Phase.GROUP) knockoutPoints += points;
-                        if (points === league.settings?.exactScore) exactScores++;
-                        else if (points === league.settings?.winnerAndDiff) winnerAndDiffCount++;
-                        else if (points === (league.settings as any)?.winnerAndWinnerGoals) winnerAndWinnerGoalsCount++;
-                        else if (points === league.settings?.draw) drawCount++;
-                        else if (points === league.settings?.winner) onlyWinnerCount++;
+                        
+                        const hitType = getPredictionHitType(Number(p.homeScore), Number(p.awayScore), Number(match.homeScore), Number(match.awayScore), league.settings);
+                        if (hitType === 'EXACT') exactScores++;
+                        else if (hitType === 'WINNER_DIFF') winnerAndDiffCount++;
+                        else if (hitType === 'WINNER_GOALS') winnerAndWinnerGoalsCount++;
+                        else if (hitType === 'DRAW') drawCount++;
+                        else if (hitType === 'WINNER') onlyWinnerCount++;
 
                         if (includeInSum) {
                             totalPoints += points + goalscorerBonus;

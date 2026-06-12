@@ -4,7 +4,7 @@ import { useParams, useNavigate, Link, Navigate, useSearchParams } from 'react-r
 import { useStore, getLeagueLimit } from '../App';
 import { api } from '../services/api';
 import { MatchStatus, Phase, Match, User, LeaguePlan, Prediction } from '../types';
-import { getTeamFlag, isPredictionLocked, calculatePoints, GROUPS_CONFIG, processImageForUpload } from '../services/dataService';
+import { getTeamFlag, isPredictionLocked, calculatePoints, getPredictionHitType, GROUPS_CONFIG, processImageForUpload } from '../services/dataService';
 import { uploadBase64Image } from '../services/storageService';
 import {
     Trophy, Users, ArrowLeft, Search, Lock, Globe,
@@ -115,6 +115,8 @@ export const LeagueDetails: React.FC = () => {
     const [editTopFinishersEnabled, setEditTopFinishersEnabled] = useState(false);
     const [editTopFinishersPoints, setEditTopFinishersPoints] = useState({ champion: 20, runnerUp: 15, third: 10, fourth: 5 });
     const [showTopFinishersModal, setShowTopFinishersModal] = useState(false);
+    const [tfModalSearch, setTfModalSearch] = useState('');
+    const [tfModalPage, setTfModalPage] = useState(1);
 
     // Find League
     const league = leagues.find(l => l.id === id);
@@ -265,7 +267,7 @@ export const LeagueDetails: React.FC = () => {
         return league.participants.map(userId => {
             const user = mergedUsers.find(u => u.id === userId) || { name: 'Unknown', id: userId, email: '', avatar: '' } as User;
             const userPreds = predictions.filter(p => p.userId === userId && p.leagueId === league.id);
-            let totalPoints = 0, exactScores = 0, winnerAndDiffCount = 0, winnerAndWinnerGoalsCount = 0, drawCount = 0, knockoutPoints = 0;
+            let totalPoints = 0, exactScores = 0, winnerAndDiffCount = 0, winnerAndWinnerGoalsCount = 0, drawCount = 0, onlyWinnerCount = 0, knockoutPoints = 0;
             userPreds.forEach(p => {
                 const match = matches.find(m => m.id === p.matchId);
                 let includeInSum = false;
@@ -285,10 +287,13 @@ export const LeagueDetails: React.FC = () => {
 
                     // Stats for tie-breaking (Always calculate regardless of view filter)
                     if (match.phase !== Phase.GROUP) knockoutPoints += points;
-                    if (points === league.settings?.exactScore) exactScores++;
-                    else if (points === league.settings?.winnerAndDiff) winnerAndDiffCount++;
-                    else if (points === league.settings?.winnerAndWinnerGoals) winnerAndWinnerGoalsCount++;
-                    else if (points === league.settings?.draw) drawCount++;
+                    
+                    const hitType = getPredictionHitType(Number(p.homeScore), Number(p.awayScore), Number(match.homeScore), Number(match.awayScore), league.settings);
+                    if (hitType === 'EXACT') exactScores++;
+                    else if (hitType === 'WINNER_DIFF') winnerAndDiffCount++;
+                    else if (hitType === 'WINNER_GOALS') winnerAndWinnerGoalsCount++;
+                    else if (hitType === 'DRAW') drawCount++;
+                    else if (hitType === 'WINNER') onlyWinnerCount++;
 
                     if (includeInSum) {
                         totalPoints += points;
@@ -315,13 +320,14 @@ export const LeagueDetails: React.FC = () => {
                 }
             }
 
-            return { user, totalPoints, exactScores, winnerAndDiffCount, winnerAndWinnerGoalsCount, drawCount, knockoutPoints, tfTotal };
+            return { user, totalPoints, exactScores, winnerAndDiffCount, winnerAndWinnerGoalsCount, drawCount, onlyWinnerCount, knockoutPoints, tfTotal };
         }).sort((a, b) => {
             if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
             if (b.exactScores !== a.exactScores) return b.exactScores - a.exactScores;
             if (b.winnerAndDiffCount !== a.winnerAndDiffCount) return b.winnerAndDiffCount - a.winnerAndDiffCount;
             if (b.winnerAndWinnerGoalsCount !== a.winnerAndWinnerGoalsCount) return b.winnerAndWinnerGoalsCount - a.winnerAndWinnerGoalsCount;
             if (b.drawCount !== a.drawCount) return b.drawCount - a.drawCount;
+            if (b.onlyWinnerCount !== a.onlyWinnerCount) return b.onlyWinnerCount - a.onlyWinnerCount;
             return 0;
         });
     }, [league, mergedUsers, predictions, matches, leaderboardView, topFinishersResult, topFinisherPredictions]);
@@ -1052,6 +1058,19 @@ export const LeagueDetails: React.FC = () => {
                                 </div>
                                 <button onClick={() => setShowTopFinishersModal(false)} className="p-2 hover:bg-white/20 rounded-full transition-colors"><X size={20} className="text-white" /></button>
                             </div>
+                            {/* Search */}
+                            <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-700 flex items-center gap-2 shrink-0">
+                                <div className="relative flex-1">
+                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                                    <input 
+                                        type="text" 
+                                        placeholder="Buscar participante..." 
+                                        value={tfModalSearch}
+                                        onChange={(e) => { setTfModalSearch(e.target.value); setTfModalPage(1); }}
+                                        className="w-full pl-9 pr-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-brasil-blue dark:focus:ring-blue-500 outline-none transition-shadow"
+                                    />
+                                </div>
+                            </div>
                             {/* List */}
                             <div className="flex-1 overflow-y-auto">
                                 {(() => {
@@ -1067,7 +1086,14 @@ export const LeagueDetails: React.FC = () => {
                                             if (topFinishersResult.fourth && pred.fourth === topFinishersResult.fourth) pts += tfPts.fourth;
                                         }
                                         return { user, pred, pts };
-                                    }).sort((a, b) => b.pts - a.pts || a.user.name.localeCompare(b.user.name));
+                                    })
+                                    .filter(p => p.user.name.toLowerCase().includes(tfModalSearch.toLowerCase()))
+                                    .sort((a, b) => b.pts - a.pts || a.user.name.localeCompare(b.user.name));
+                                    
+                                    const itemsPerPage = 100;
+                                    const totalPages = Math.ceil(allPreds.length / itemsPerPage) || 1;
+                                    const paginatedPreds = allPreds.slice((tfModalPage - 1) * itemsPerPage, tfModalPage * itemsPerPage);
+
                                     const fields = [
                                         { key: 'champion' as const, label: 'Campeão', emoji: '🥇' },
                                         { key: 'runnerUp' as const, label: 'Vice', emoji: '🥈' },
@@ -1075,47 +1101,73 @@ export const LeagueDetails: React.FC = () => {
                                         { key: 'fourth' as const, label: '4º Lugar', emoji: '🏅' },
                                     ];
                                     return (
-                                        <div className="divide-y divide-gray-100 dark:divide-gray-700">
-                                            {allPreds.map(({ user, pred, pts }, idx) => (
-                                                <div key={user.id} className={`p-4 ${user.id === currentUser.id ? 'bg-yellow-50 dark:bg-yellow-900/20' : 'bg-white dark:bg-gray-800'}`}>
-                                                    <div className="flex items-center justify-between mb-3">
-                                                        <div className="flex items-center gap-2">
-                                                            <div className="relative">
-                                                                <OptimizedImage src={user.avatar} containerClassName="w-9 h-9 rounded-full border border-gray-200 dark:border-gray-600" className="w-full h-full object-cover" alt="" />
-                                                                <div className="absolute -top-1 -left-1 w-4 h-4 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center text-[9px] font-bold text-gray-600 dark:text-gray-300 border border-white dark:border-gray-700">{idx + 1}</div>
+                                        <div className="flex flex-col h-full">
+                                            <div className="divide-y divide-gray-100 dark:divide-gray-700 flex-1">
+                                                {paginatedPreds.map(({ user, pred, pts }, idx) => (
+                                                    <div key={user.id} className={`p-4 ${user.id === currentUser.id ? 'bg-yellow-50 dark:bg-yellow-900/20' : 'bg-white dark:bg-gray-800'}`}>
+                                                        <div className="flex items-center justify-between mb-3">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="relative">
+                                                                    <OptimizedImage src={user.avatar} containerClassName="w-9 h-9 rounded-full border border-gray-200 dark:border-gray-600" className="w-full h-full object-cover" alt="" />
+                                                                    <div className="absolute -top-1 -left-1 w-4 h-4 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center text-[9px] font-bold text-gray-600 dark:text-gray-300 border border-white dark:border-gray-700">{(tfModalPage - 1) * itemsPerPage + idx + 1}</div>
+                                                                </div>
+                                                                <div>
+                                                                    <div className="font-bold text-sm text-gray-800 dark:text-gray-200">{user.name}{user.id === currentUser.id && <span className="text-[10px] font-normal text-gray-500 ml-1">(Você)</span>}</div>
+                                                                    {!pred && <div className="text-[10px] text-gray-400 italic">Não palpitou</div>}
+                                                                </div>
                                                             </div>
-                                                            <div>
-                                                                <div className="font-bold text-sm text-gray-800 dark:text-gray-200">{user.name}{user.id === currentUser.id && <span className="text-[10px] font-normal text-gray-500 ml-1">(Você)</span>}</div>
-                                                                {!pred && <div className="text-[10px] text-gray-400 italic">Não palpitou</div>}
+                                                            <div className={`text-sm font-black px-3 py-1 rounded-lg ${pts > 0 ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-400'}`}>
+                                                                {pts > 0 ? `+${pts}` : '—'} pts
                                                             </div>
                                                         </div>
-                                                        <div className={`text-sm font-black px-3 py-1 rounded-lg ${pts > 0 ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-400'}`}>
-                                                            {pts > 0 ? `+${pts}` : '—'} pts
-                                                        </div>
+                                                        {pred && (
+                                                            <div className="grid grid-cols-2 gap-1.5">
+                                                                {fields.map(f => {
+                                                                    const val = pred[f.key];
+                                                                    const official = topFinishersResult?.[f.key];
+                                                                    const correct = official && val === official;
+                                                                    const wrong = official && val && val !== official;
+                                                                    return (
+                                                                        <div key={f.key} className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] font-bold border ${correct ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300' :
+                                                                            wrong ? 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800/50 text-red-600 dark:text-red-400' :
+                                                                                'bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300'
+                                                                            }`}>
+                                                                            <span>{f.emoji}</span>
+                                                                            <span className="truncate">{val || <span className="font-normal italic text-gray-400">—</span>}</span>
+                                                                            {correct && <span className="ml-auto">✅</span>}
+                                                                            {wrong && <span className="ml-auto">❌</span>}
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                    {pred && (
-                                                        <div className="grid grid-cols-2 gap-1.5">
-                                                            {fields.map(f => {
-                                                                const val = pred[f.key];
-                                                                const official = topFinishersResult?.[f.key];
-                                                                const correct = official && val === official;
-                                                                const wrong = official && val && val !== official;
-                                                                return (
-                                                                    <div key={f.key} className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] font-bold border ${correct ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300' :
-                                                                        wrong ? 'bg-red-50 dark:bg-red-900/10 border-red-200 dark:border-red-800/50 text-red-600 dark:text-red-400' :
-                                                                            'bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300'
-                                                                        }`}>
-                                                                        <span>{f.emoji}</span>
-                                                                        <span className="truncate">{val || <span className="font-normal italic text-gray-400">—</span>}</span>
-                                                                        {correct && <span className="ml-auto">✅</span>}
-                                                                        {wrong && <span className="ml-auto">❌</span>}
-                                                                    </div>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    )}
+                                                ))}
+                                                {paginatedPreds.length === 0 && (
+                                                    <div className="p-8 text-center text-gray-500 dark:text-gray-400">Nenhum participante encontrado.</div>
+                                                )}
+                                            </div>
+                                            {totalPages > 1 && (
+                                                <div className="p-3 bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between shrink-0 sticky bottom-0">
+                                                    <button 
+                                                        onClick={() => setTfModalPage(p => Math.max(1, p - 1))}
+                                                        disabled={tfModalPage === 1}
+                                                        className="p-1.5 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800 disabled:opacity-50 transition-colors"
+                                                    >
+                                                        <ChevronLeft size={20} />
+                                                    </button>
+                                                    <span className="text-xs font-bold text-gray-600 dark:text-gray-400">
+                                                        Página {tfModalPage} de {totalPages}
+                                                    </span>
+                                                    <button 
+                                                        onClick={() => setTfModalPage(p => Math.min(totalPages, p + 1))}
+                                                        disabled={tfModalPage === totalPages}
+                                                        className="p-1.5 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800 disabled:opacity-50 transition-colors"
+                                                    >
+                                                        <ChevronRight size={20} />
+                                                    </button>
                                                 </div>
-                                            ))}
+                                            )}
                                         </div>
                                     );
                                 })()}
