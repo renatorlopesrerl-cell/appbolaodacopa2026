@@ -569,7 +569,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           // Background sync
           fetchUserProfile(user.id, user.email || '', basicUser.avatar, basicUser.name, basicUser.whatsapp || '', provider);
           fetchAllData();
-
           setupPushNotifications(user.id).catch(e => console.error("Push Setup Error:", e));
 
           try {
@@ -577,24 +576,11 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               await Purchases.logIn({ appUserID: user.id });
             }
           } catch(e) { console.warn("RevenueCat LogIn Error", e); }
-
-          // Lazy Trigger: When a user logs in or opens the app, 
-          // we ping the maintenance endpoint to ensure matches are started 
-          // and notifications are sent. This bypasses Cloudflare WAF 403 for Supabase.
-          api.system.triggerPushReminder();
         }
         // Sempre liberar o loading quando o usuário for processador ou já existir
         setLoading(false);
       }
     });
-
-    // Unified Maintenance Trigger (Auto Start Matches + Push)
-    const runMaintenance = () => {
-      api.system.triggerPushReminder();
-    };
-
-    // Run once on load
-    runMaintenance();
 
     return () => {
       mountedRef.current = false;
