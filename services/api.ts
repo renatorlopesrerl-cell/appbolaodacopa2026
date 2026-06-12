@@ -379,7 +379,7 @@ export const api = {
             let keepFetching = true;
 
             while (keepFetching) {
-                let query = supabase.from('top_finisher_predictions').select('*').range(offset, offset + step - 1);
+                let query = supabase.from('top_finisher_predictions').select('*').order('user_id').order('league_id').range(offset, offset + step - 1);
                 if (leagueId) {
                     if (Array.isArray(leagueId)) query = query.in('league_id', leagueId);
                     else query = query.eq('league_id', leagueId);
