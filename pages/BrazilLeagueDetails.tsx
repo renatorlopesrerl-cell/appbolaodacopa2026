@@ -91,7 +91,7 @@ export const BrazilLeagueDetails: React.FC = () => {
     const [filterPhase, setFilterPhase] = useState<string>('all');
     const [filterGroup, setFilterGroup] = useState<string>('all');
     const [filterRound, setFilterRound] = useState<string>('all');
-    const [filterStatus, setFilterStatus] = useState<'all' | 'predicted' | 'missing' | 'live' | 'finished'>('all');
+    const [filterStatus, setFilterStatus] = useState<'all' | 'predicted' | 'missing' | 'upcoming' | 'live' | 'finished'>('all');
 
     // --- CLASSIFICACAO TAB STATE (HOISTED) ---
     const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
@@ -833,6 +833,7 @@ export const BrazilLeagueDetails: React.FC = () => {
             if (filterStatus !== 'all') {
                 if (filterStatus === 'live') return m.status === MatchStatus.IN_PROGRESS;
                 if (filterStatus === 'finished') return m.status === MatchStatus.FINISHED;
+                if (filterStatus === 'upcoming') return m.status === MatchStatus.SCHEDULED;
 
                 const userPred = predictions.find(p => p.matchId === m.id && p.userId === currentUser.id && p.leagueId === league.id);
                 const homeVal = pendingEdits[m.id]?.home ?? (userPred?.homeScore?.toString() ?? '');
@@ -889,6 +890,7 @@ export const BrazilLeagueDetails: React.FC = () => {
                             <button onClick={() => setFilterStatus('all')} className={`px-1.5 md:px-4 py-2 rounded-full text-[9px] md:text-xs font-bold transition-all border whitespace-nowrap ${filterStatus === 'all' ? 'bg-gray-800 text-white border-gray-800 shadow-md' : 'bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'}`}>Todos</button>
                             <button onClick={() => setFilterStatus('missing')} className={`px-1.5 md:px-4 py-2 rounded-full text-[9px] md:text-xs font-bold transition-all border whitespace-nowrap flex items-center gap-1 ${filterStatus === 'missing' ? 'bg-red-500 text-white border-red-500 shadow-md' : 'bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'}`}><AlertCircle size={12} /> Pendentes</button>
                             <button onClick={() => setFilterStatus('predicted')} className={`px-1.5 md:px-4 py-2 rounded-full text-[9px] md:text-xs font-bold transition-all border whitespace-nowrap flex items-center gap-1 ${filterStatus === 'predicted' ? 'bg-blue-800 text-white border-blue-800 shadow-md' : 'bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'}`}><CheckCircle2 size={12} /> Salvos</button>
+                            <button onClick={() => setFilterStatus('upcoming')} className={`px-1.5 md:px-4 py-2 rounded-full text-[9px] md:text-xs font-bold transition-all border whitespace-nowrap flex items-center gap-1 ${filterStatus === 'upcoming' ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'}`}><Calendar size={12} /> Abertos</button>
                             <button onClick={() => setFilterStatus('live')} className={`px-1.5 md:px-4 py-2 rounded-full text-[9px] md:text-xs font-bold transition-all border whitespace-nowrap flex items-center gap-1 ${filterStatus === 'live' ? 'bg-yellow-400 text-yellow-950 border-yellow-400 shadow-md animate-pulse' : 'bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'}`}><Zap size={12} fill="currentColor" /> Ao Vivo</button>
                             <button onClick={() => setFilterStatus('finished')} className={`px-1.5 md:px-4 py-2 rounded-full text-[9px] md:text-xs font-bold transition-all border whitespace-nowrap flex items-center gap-1 ${filterStatus === 'finished' ? 'bg-green-600 text-white border-green-600 shadow-md' : 'bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'}`}><CheckCircle2 size={12} /> Finalizados</button>
                         </div>
