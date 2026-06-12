@@ -97,6 +97,7 @@ export interface LeagueSettings {
   manualScoringLock?: boolean;
   topFinishersEnabled?: boolean;
   topFinishersPoints?: TopFinisherPoints;
+  topFinishersUnlocked?: boolean;
 }
 
 export interface League {

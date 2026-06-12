@@ -294,6 +294,7 @@ export const AdminLeaguesPage: React.FC = () => {
                                 <th className="px-4 py-3 text-center">Part.</th>
                                 <th className="px-4 py-3 text-center">Plano</th>
                                 <th className="px-4 py-3 text-center">Trava Pontos</th>
+                                <th className="px-4 py-3 text-center">Top 4</th>
                                 <th className="px-4 py-3 text-right">Ações</th>
                             </tr>
                         </thead>
@@ -328,6 +329,23 @@ export const AdminLeaguesPage: React.FC = () => {
                                                 title={l.settings?.manualScoringLock ? "Desbloquear pontuações" : "Bloquear pontuações manualmente"}
                                             >
                                                 {l.settings?.manualScoringLock ? <Lock size={16} /> : <Unlock size={16} />}
+                                            </button>
+                                        </td>
+                                        <td className="px-4 py-3 text-center">
+                                            <button
+                                                onClick={async () => {
+                                                    const isUnlocked = l.settings?.topFinishersUnlocked || false;
+                                                    await updateLeague(l.id, {
+                                                        settings: {
+                                                            ...(l.settings || {}),
+                                                            topFinishersUnlocked: !isUnlocked
+                                                        } as LeagueSettings
+                                                    });
+                                                }}
+                                                className={`p-1.5 rounded-lg transition-colors ${!l.settings?.topFinishersUnlocked ? 'bg-red-100 text-red-600 hover:bg-red-200' : 'bg-green-100 text-green-600 hover:bg-green-200'}`}
+                                                title={!l.settings?.topFinishersUnlocked ? "Desbloquear palpites Top 4 para esta liga" : "Bloquear palpites Top 4"}
+                                            >
+                                                {!l.settings?.topFinishersUnlocked ? <Lock size={16} /> : <Unlock size={16} />}
                                             </button>
                                         </td>
 
@@ -412,20 +430,37 @@ export const AdminLeaguesPage: React.FC = () => {
                                     Plano
                                 </button>
                                 <button
-                                    onClick={async () => {
-                                        const currentLock = l.settings?.manualScoringLock || false;
-                                        await updateLeague(l.id, {
-                                            settings: {
-                                                ...(l.settings || {}),
-                                                manualScoringLock: !currentLock
-                                            } as LeagueSettings
-                                        });
-                                    }}
-                                    className={`py-2.5 px-3 rounded-lg font-bold text-xs transition-colors border flex items-center justify-center gap-1 uppercase tracking-wide ${l.settings?.manualScoringLock ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800' : 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800'}`}
-                                >
-                                    {l.settings?.manualScoringLock ? <Lock size={14} /> : <Unlock size={14} />}
-                                    {l.settings?.manualScoringLock ? "Travado" : "Aberto"}
-                                </button>
+                                            onClick={async () => {
+                                                const currentLock = l.settings?.manualScoringLock || false;
+                                                await updateLeague(l.id, {
+                                                    settings: {
+                                                        ...(l.settings || {}),
+                                                        manualScoringLock: !currentLock
+                                                    } as LeagueSettings
+                                                });
+                                            }}
+                                            className={`py-2.5 px-3 rounded-lg font-bold text-xs transition-colors border flex items-center justify-center gap-1 uppercase tracking-wide flex-1 ${l.settings?.manualScoringLock ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800' : 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800'}`}
+                                            title="Trava de Pontos"
+                                        >
+                                            {l.settings?.manualScoringLock ? <Lock size={14} /> : <Unlock size={14} />}
+                                            Pts
+                                        </button>
+                                        <button
+                                            onClick={async () => {
+                                                const isUnlocked = l.settings?.topFinishersUnlocked || false;
+                                                await updateLeague(l.id, {
+                                                    settings: {
+                                                        ...(l.settings || {}),
+                                                        topFinishersUnlocked: !isUnlocked
+                                                    } as LeagueSettings
+                                                });
+                                            }}
+                                            className={`py-2.5 px-3 rounded-lg font-bold text-xs transition-colors border flex items-center justify-center gap-1 uppercase tracking-wide flex-1 ${!l.settings?.topFinishersUnlocked ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800' : 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800'}`}
+                                            title="Top 4"
+                                        >
+                                            {!l.settings?.topFinishersUnlocked ? <Lock size={14} /> : <Unlock size={14} />}
+                                            Top 4
+                                        </button>
                                 <button
                                     onClick={() => setDeletingLeagueId(l.id)}
                                     className="py-2.5 px-3 rounded-lg font-bold text-xs transition-colors bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 border border-red-200 dark:border-red-800 uppercase tracking-wide flex items-center justify-center"

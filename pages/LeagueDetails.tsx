@@ -477,9 +477,9 @@ export const LeagueDetails: React.FC = () => {
     const topFinishersLockDate = firstMatchDate
         ? new Date(firstMatchDate.getTime())
         : null;
-    const isTopFinishersLocked = topFinishersLockDate
-        ? currentTime > topFinishersLockDate
-        : false;
+    const isTopFinishersLocked = league.settings?.topFinishersUnlocked
+        ? false
+        : (topFinishersLockDate ? currentTime > topFinishersLockDate : false);
 
     // --- ACTIONS ---
 
