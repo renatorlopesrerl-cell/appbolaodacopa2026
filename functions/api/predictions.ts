@@ -21,6 +21,8 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                 let query = userClient
                     .from('predictions')
                     .select('user_id, match_id, league_id, home_score, away_score')
+                    .order('user_id')
+                    .order('match_id')
                     .range(offset, offset + step - 1);
                 
                 if (leagueId) {

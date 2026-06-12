@@ -46,6 +46,7 @@ export const onRequest = async (context: any) => {
                     const { data, error } = await supabase
                         .from(table)
                         .select(column)
+                        .order(column)
                         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
                     if (error) throw error;
                     if (data && data.length > 0) {

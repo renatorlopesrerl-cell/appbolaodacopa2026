@@ -32,7 +32,7 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
 
             while (true) {
                 const pageData = await withRetry(async () => {
-                    let query = userClient.from('leagues').select('*').range(offset, offset + PAGE - 1);
+                    let query = userClient.from('leagues').select('*').order('id').range(offset, offset + PAGE - 1);
                     if (!isAdmin) {
                         query = query.or(`admin_id.eq.${authUser.id},participants.cs.{${authUser.id}},pending_requests.cs.{${authUser.id}},is_private.eq.false`);
                     }

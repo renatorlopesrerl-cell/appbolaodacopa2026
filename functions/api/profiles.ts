@@ -67,6 +67,7 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                 const { data: page, error: pageError } = await adminClient
                     .from('profiles')
                     .select('id, email, name, avatar, is_admin, is_match_admin, whatsapp, theme, is_pro')
+                    .order('id')
                     .range(offset, offset + step - 1);
 
                 if (pageError) {
