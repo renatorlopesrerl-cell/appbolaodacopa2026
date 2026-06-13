@@ -79,7 +79,7 @@ export const onRequest = async (context: any) => {
             
             return jsonResponse({ 
                 success: true, 
-                message: \`Lote encaminhado para Edge Function\`,
+                message: 'Lote encaminhado para Edge Function',
                 result
             });
         }
