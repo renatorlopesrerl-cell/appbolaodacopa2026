@@ -7,7 +7,15 @@ import admin from "npm:firebase-admin@11.11.1";
 const initFirebase = () => {
     if (admin.apps.length === 0) {
         const clientEmail = Deno.env.get("FCM_CLIENT_EMAIL");
-        const privateKey = Deno.env.get("FCM_PRIVATE_KEY")?.replace(/\\n/g, "\n");
+        let privateKey = Deno.env.get("FCM_PRIVATE_KEY");
+        if (privateKey) {
+            privateKey = privateKey.trim();
+            if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+                privateKey = privateKey.slice(1, -1);
+            }
+            privateKey = privateKey.replace(/\\n/g, "\n");
+            privateKey = privateKey.replace(/\\/g, "\n");
+        }
         const projectId = Deno.env.get("FCM_PROJECT_ID") || "batepapobase";
 
         if (!clientEmail || !privateKey) {
