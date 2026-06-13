@@ -7,6 +7,7 @@ import { processImageForUpload } from '../services/dataService';
 import { LeaguePlan, League } from '../types';
 import { OptimizedImage } from '../components/OptimizedImage';
 import { api } from '../services/api';
+import { AdSenseBanner } from '../components/AdSenseBanner';
 
 export const LeaguesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -239,14 +240,21 @@ export const LeaguesPage: React.FC = () => {
         </h1>
 
         <button
-            id="create-league-btn"
-            onClick={() => setShowCreateModal(true)}
-            className="bg-brasil-yellow text-brasil-blue px-4 py-2 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-yellow-300 transition-colors shadow-sm whitespace-nowrap"
-          >
-            <Plus size={20} />
-            Criar Liga
-          </button>
+          id="create-league-btn"
+          onClick={() => setShowCreateModal(true)}
+          className="bg-brasil-yellow text-brasil-blue px-4 py-2 rounded-lg font-bold flex items-center justify-center gap-2 hover:bg-yellow-300 transition-colors shadow-sm whitespace-nowrap"
+        >
+          <Plus size={20} />
+          Criar Liga
+        </button>
       </div>
+
+      {/* Banner AdSense (Oculto temporariamente) */}
+      {/* 
+      <div className="w-full h-auto mt-4">
+        <AdSenseBanner className="w-full h-auto min-h-[50px]" />
+      </div> 
+      */}
 
       {/* My Leagues */}
       <section>

@@ -58,6 +58,7 @@ import { setupPushNotifications, scheduleMatchReminder, cancelMatchReminder } fr
 import { onForegroundMessage } from './services/firebaseWeb';
 import { Capacitor } from '@capacitor/core';
 import { Purchases, LOG_LEVEL } from '@revenuecat/purchases-capacitor';
+import { AdMob } from '@capacitor-community/admob';
 
 // Types
 import { User, Match, League, Prediction, Invitation, MatchStatus, BrazilLeague, BrazilPrediction, BrazilMatchGoal, BrazilPlayer, TopFinisherPrediction, TopFinishersResult } from './types';
@@ -395,6 +396,13 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           console.log("RevenueCat configured successfully.");
         } catch (e) {
           console.error("Error configuring RevenueCat:", e);
+        }
+
+        try {
+          await AdMob.initialize({});
+          console.log("AdMob initialized successfully.");
+        } catch (e) {
+          console.error("Error initializing AdMob:", e);
         }
       }
     };

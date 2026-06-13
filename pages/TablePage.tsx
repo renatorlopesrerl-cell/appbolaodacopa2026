@@ -4,6 +4,7 @@ import { useStore } from '../App';
 import { GROUPS_CONFIG, calculateStandings, getTeamFlag } from '../services/dataService';
 import { MatchStatus, Phase } from '../types';
 import { Clock, Trophy, Medal, ArrowLeft, Filter, ChevronDown, Loader2, X } from 'lucide-react';
+import { AdSenseBanner } from '../components/AdSenseBanner';
 
 export const TablePage: React.FC = () => {
   const navigate = useNavigate();
@@ -306,6 +307,11 @@ export const TablePage: React.FC = () => {
           </div>
         </section>
       )}
+
+      {/* Banner AdSense (Web) */}
+      <div className="w-full mt-8 mb-4">
+        <AdSenseBanner className="w-full h-auto min-h-[100px]" />
+      </div>
     </div>
   );
 };

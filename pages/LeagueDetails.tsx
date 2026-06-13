@@ -4,6 +4,7 @@ import { toJpeg } from 'html-to-image';
 import { Capacitor } from '@capacitor/core';
 import { Share } from '@capacitor/share';
 import { Filesystem, Directory } from '@capacitor/filesystem';
+import { AdMob, BannerAdOptions, BannerAdSize, BannerAdPosition } from '@capacitor-community/admob';
 import { useParams, useNavigate, Link, Navigate, useSearchParams } from 'react-router-dom';
 import { useStore, getLeagueLimit } from '../App';
 import { api } from '../services/api';
@@ -44,6 +45,25 @@ export const LeagueDetails: React.FC = () => {
         };
         window.visualViewport.addEventListener('resize', handleResize);
         return () => window.visualViewport?.removeEventListener('resize', handleResize);
+    }, []);
+
+    // AdMob Banner
+    useEffect(() => {
+        if (Capacitor.isNativePlatform()) {
+            const options: BannerAdOptions = {
+                adId: 'ca-app-pub-7684468298593275/3831206432',
+                adSize: BannerAdSize.BANNER,
+                position: BannerAdPosition.BOTTOM_CENTER,
+                margin: 0,
+                isTesting: false
+            };
+            AdMob.showBanner(options).catch(e => console.error('AdMob show error:', e));
+
+            return () => {
+                AdMob.hideBanner().catch(e => console.error('AdMob hide error:', e));
+                AdMob.removeBanner().catch(e => console.error('AdMob remove error:', e));
+            };
+        }
     }, []);
 
     // Handle Deep Linking Tabs

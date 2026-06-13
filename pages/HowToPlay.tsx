@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { Trophy, Users, PlayCircle, Calendar, ShieldCheck, ArrowLeft, BookOpen, X, ZoomIn, Bell, Globe, ExternalLink, Smartphone, Copy, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Capacitor } from '@capacitor/core';
+import { AdSenseBanner } from '../components/AdSenseBanner';
 
 export const HowToPlay: React.FC = () => {
     const navigate = useNavigate();
@@ -342,6 +343,11 @@ export const HowToPlay: React.FC = () => {
                         </section>
                     </>
                 )}
+
+                {/* Banner AdSense (Web) */}
+                <div className="w-full mt-6 mb-6">
+                    <AdSenseBanner className="w-full h-auto min-h-[100px]" />
+                </div>
 
                 <hr className="border-gray-100 dark:border-gray-700" />
 
