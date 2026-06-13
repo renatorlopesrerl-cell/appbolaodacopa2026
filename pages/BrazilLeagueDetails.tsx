@@ -1,6 +1,9 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { toJpeg } from 'html-to-image';
+import { Capacitor } from '@capacitor/core';
+import { Share } from '@capacitor/share';
+import { Filesystem, Directory } from '@capacitor/filesystem';
 import { useParams, useNavigate, Link, Navigate, useSearchParams } from 'react-router-dom';
 import { useStore, getLeagueLimit } from '../App';
 import { api } from '../services/api';
@@ -114,38 +117,60 @@ export const BrazilLeagueDetails: React.FC = () => {
         setToast({ title: 'Aguarde', message: 'Gerando imagem do Top 10...', type: 'info' });
         try {
             const dataUrl = await toJpeg(shareRef.current, {
-                cacheBust: true,
                 pixelRatio: 0.5,
                 quality: 0.8,
                 width: 1080,
                 height: 1920,
                 style: { transform: 'none' },
+                skipFonts: true,
                 imagePlaceholder: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='
             });
-            const res = await fetch(dataUrl);
-            const blob = await res.blob();
             
-            if (blob) {
-                const file = new File([blob], 'top10.jpg', { type: 'image/jpeg' });
-                if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-                    await navigator.share({
-                        title: `Top 10 - ${league.name}`,
-                        files: [file]
-                    });
-                    setToast(null);
-                } else {
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `Top10_${league.name}.jpg`;
-                    a.click();
-                    URL.revokeObjectURL(url);
-                    setToast({ title: 'Sucesso', message: 'Imagem baixada com sucesso!', type: 'success' });
+            if (Capacitor.isNativePlatform()) {
+                const fileName = `Top10_${league.id}_${new Date().getTime()}.jpg`;
+                const base64Data = dataUrl.split(',')[1];
+                
+                const savedFile = await Filesystem.writeFile({
+                    path: fileName,
+                    data: base64Data,
+                    directory: Directory.Cache
+                });
+                
+                await Share.share({
+                    title: `Top 10 - ${league.name}`,
+                    url: savedFile.uri,
+                });
+                setToast(null);
+            } else {
+                const res = await fetch(dataUrl);
+                const blob = await res.blob();
+                
+                if (blob) {
+                    const file = new File([blob], 'top10.jpg', { type: 'image/jpeg' });
+                    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                        await navigator.share({
+                            title: `Top 10 - ${league.name}`,
+                            files: [file]
+                        });
+                        setToast(null);
+                    } else {
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `Top10_${league.name}.jpg`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        setToast({ title: 'Sucesso', message: 'Imagem baixada com sucesso!', type: 'success' });
+                    }
                 }
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error sharing image:', error);
-            setToast({ title: 'Erro', message: 'Não foi possível gerar a imagem', type: 'warning' });
+            if (error?.name === 'AbortError') {
+                setToast(null);
+            } else {
+                setToast({ title: 'Erro', message: `Erro: ${error?.message || 'Desconhecido. Verifique CORS.'}`, type: 'warning' });
+            }
         } finally {
             setIsSharingImage(false);
         }
@@ -1780,7 +1805,7 @@ export const BrazilLeagueDetails: React.FC = () => {
         );
 
         const getHistory = (userId: string) => {
-            const lockedMatches = matches.filter(m => isPredictionLocked(m.date, currentTime)).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            const lockedMatches = matches.filter(m => (m.homeTeamId === 'Brasil' || m.awayTeamId === 'Brasil') && isPredictionLocked(m.date, currentTime)).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
             return lockedMatches.map(m => {
                 const pred = predictions.find(p => p.matchId === m.id && p.userId === userId && p.leagueId === league.id);
                 return { match: m, pred };
@@ -1802,6 +1827,10 @@ export const BrazilLeagueDetails: React.FC = () => {
                     <MousePointerClick size={16} /><span>Clique no participante para ver o histórico detalhado.</span>
                 </div>
                 <div className="p-4 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 flex flex-col gap-4">
+                    <button onClick={handleShareLeaderboard} disabled={isSharingImage} className="flex w-full items-center justify-center gap-2 bg-gradient-to-r from-brasil-blue to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-4 py-3 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 whitespace-nowrap">
+                        {isSharingImage ? <Loader2 size={20} className="animate-spin" /> : <Share2 size={20} />}
+                        <span className="text-sm">Compartilhar Classificação</span>
+                    </button>
                     <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                         <label className="text-sm font-bold text-brasil-blue dark:text-blue-400 whitespace-nowrap">Visualizar Pontos:</label>
                         <select
@@ -1820,10 +1849,6 @@ export const BrazilLeagueDetails: React.FC = () => {
                             <input type="text" placeholder="Buscar participante..." value={leaderboardSearch} onChange={(e) => setLeaderboardSearch(e.target.value)} className="w-full pl-10 pr-8 py-2 border border-gray-600 bg-gray-700 text-white placeholder-gray-400 rounded-lg text-sm focus:ring-1 focus:ring-brasil-blue focus:border-brasil-blue outline-none" />
                             {leaderboardSearch && (<button onClick={() => setLeaderboardSearch('')} className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white cursor-pointer"><X size={14} /></button>)}
                         </div>
-                        <button onClick={handleShareLeaderboard} disabled={isSharingImage} className="flex w-full sm:w-auto items-center justify-center gap-2 bg-gradient-to-r from-brasil-blue to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-4 py-3 sm:py-2 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 whitespace-nowrap">
-                            {isSharingImage ? <Loader2 size={20} className="animate-spin" /> : <Share2 size={20} />}
-                            <span className="text-sm">Compartilhar Classificação</span>
-                        </button>
                     </div>
                 </div>
                 <div className="w-full overflow-x-auto">

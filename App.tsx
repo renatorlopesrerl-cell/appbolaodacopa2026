@@ -1786,16 +1786,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     }
   };
 
-  useEffect(() => {
-    if (!currentUser?.isAdmin || loading) return;
-    const matchesToStart = matches.filter(m => m.status === MatchStatus.SCHEDULED && new Date(m.date) <= currentTime);
-    if (matchesToStart.length > 0) {
-      matchesToStart.forEach(match => {
-        updateMatch({ ...match, status: MatchStatus.IN_PROGRESS, homeScore: 0, awayScore: 0 });
-        addNotification('Aviso Admin', `O jogo ${match.homeTeamId} x ${match.awayTeamId} está sendo atualizado para Em Andamento.`, 'info');
-      });
-    }
-  }, [currentTime, currentUser, loading, matches]);
+
 
   const loadLeagueData = async (leagueId: string, leagueType: 'standard' | 'brazil' = 'standard', forceRefresh: boolean = false) => {
     const cacheKey = `${leagueType}_${leagueId}`;

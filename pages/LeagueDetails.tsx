@@ -1,6 +1,9 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { toJpeg } from 'html-to-image';
+import { Capacitor } from '@capacitor/core';
+import { Share } from '@capacitor/share';
+import { Filesystem, Directory } from '@capacitor/filesystem';
 import { useParams, useNavigate, Link, Navigate, useSearchParams } from 'react-router-dom';
 import { useStore, getLeagueLimit } from '../App';
 import { api } from '../services/api';
@@ -99,38 +102,60 @@ export const LeagueDetails: React.FC = () => {
         setToast({ title: 'Aguarde', message: 'Gerando imagem do Top 10...', type: 'info' });
         try {
             const dataUrl = await toJpeg(shareRef.current, {
-                cacheBust: true,
                 pixelRatio: 0.5,
                 quality: 0.8,
                 width: 1080,
                 height: 1920,
                 style: { transform: 'none' },
+                skipFonts: true,
                 imagePlaceholder: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='
             });
-            const res = await fetch(dataUrl);
-            const blob = await res.blob();
             
-            if (blob) {
-                const file = new File([blob], 'top10.jpg', { type: 'image/jpeg' });
-                if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-                    await navigator.share({
-                        title: `Top 10 - ${league.name}`,
-                        files: [file]
-                    });
-                    setToast(null);
-                } else {
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `Top10_${league.name}.jpg`;
-                    a.click();
-                    URL.revokeObjectURL(url);
-                    setToast({ title: 'Sucesso', message: 'Imagem baixada com sucesso!', type: 'success' });
+            if (Capacitor.isNativePlatform()) {
+                const fileName = `Top10_${league.id}_${new Date().getTime()}.jpg`;
+                const base64Data = dataUrl.split(',')[1];
+                
+                const savedFile = await Filesystem.writeFile({
+                    path: fileName,
+                    data: base64Data,
+                    directory: Directory.Cache
+                });
+                
+                await Share.share({
+                    title: `Top 10 - ${league.name}`,
+                    url: savedFile.uri,
+                });
+                setToast(null);
+            } else {
+                const res = await fetch(dataUrl);
+                const blob = await res.blob();
+                
+                if (blob) {
+                    const file = new File([blob], 'top10.jpg', { type: 'image/jpeg' });
+                    if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                        await navigator.share({
+                            title: `Top 10 - ${league.name}`,
+                            files: [file]
+                        });
+                        setToast(null);
+                    } else {
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `Top10_${league.name}.jpg`;
+                        a.click();
+                        URL.revokeObjectURL(url);
+                        setToast({ title: 'Sucesso', message: 'Imagem baixada com sucesso!', type: 'success' });
+                    }
                 }
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error sharing image:', error);
-            setToast({ title: 'Erro', message: 'Não foi possível gerar a imagem', type: 'warning' });
+            if (error?.name === 'AbortError') {
+                setToast(null);
+            } else {
+                setToast({ title: 'Erro', message: `Erro: ${error?.message || 'Desconhecido. Verifique CORS.'}`, type: 'warning' });
+            }
         } finally {
             setIsSharingImage(false);
         }
@@ -2095,13 +2120,13 @@ export const LeagueDetails: React.FC = () => {
                     <MousePointerClick size={16} /><span>Clique no participante para ver o histórico detalhado.</span>
                 </div>
                 <div className="p-4 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 space-y-3">
+                    <button onClick={handleShareLeaderboard} disabled={isSharingImage} className="flex w-full items-center justify-center gap-2 bg-gradient-to-r from-brasil-blue to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-4 py-3 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 whitespace-nowrap">
+                        {isSharingImage ? <Loader2 size={20} className="animate-spin" /> : <Share2 size={20} />}
+                        <span className="text-sm">Compartilhar Classificação</span>
+                    </button>
                     <div className="flex items-center gap-2"><span className="text-sm font-bold text-brasil-blue dark:text-blue-400 whitespace-nowrap">Visualizar Pontos:</span><div className="relative w-full md:w-auto flex-1"><select value={leaderboardView} onChange={(e) => setLeaderboardView(e.target.value)} className="w-full appearance-none bg-brasil-blue dark:bg-blue-900 text-white border border-blue-900 dark:border-blue-800 text-sm font-bold rounded-lg focus:ring-2 focus:ring-brasil-yellow focus:border-brasil-yellow block p-2.5 pr-8 shadow-md transition-colors hover:bg-blue-900 cursor-pointer"><option value="total" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Pontuação Total</option><option value="1" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">1ª Rodada (Grupos)</option><option value="2" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">2ª Rodada (Grupos)</option><option value="3" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">3ª Rodada (Grupos)</option><option value="group_phase" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Fase de Grupos (Completa)</option><option value="16_avos" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Fase 16-avos</option><option value="final_phase" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Fase Final (Oitavas, Quartas, Semi e Final)</option><option value="knockout" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Mata-Mata (Completo)</option></select><ChevronDown size={14} className="absolute right-3 top-3.5 text-blue-200 pointer-events-none" /></div></div>
                     <div className="flex flex-col-reverse sm:flex-row gap-3 w-full">
                         <div className="relative flex-1 w-full"><Search className="absolute left-3 top-2.5 text-gray-400" size={18} /><input type="text" placeholder="Buscar participante..." value={leaderboardSearch} onChange={(e) => setLeaderboardSearch(e.target.value)} className="w-full pl-10 pr-8 py-2 border border-gray-600 bg-gray-700 text-white placeholder-gray-400 rounded-lg text-sm focus:ring-1 focus:ring-brasil-blue focus:border-brasil-blue outline-none" />{leaderboardSearch && (<button onClick={() => setLeaderboardSearch('')} className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white cursor-pointer"><X size={14} /></button>)}</div>
-                        <button onClick={handleShareLeaderboard} disabled={isSharingImage} className="flex w-full sm:w-auto items-center justify-center gap-2 bg-gradient-to-r from-brasil-blue to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-4 py-3 sm:py-2 rounded-lg font-bold shadow-sm transition-all disabled:opacity-50 whitespace-nowrap">
-                            {isSharingImage ? <Loader2 size={20} className="animate-spin" /> : <Share2 size={20} />}
-                            <span className="text-sm">Compartilhar Classificação</span>
-                        </button>
                     </div>
                 </div>
                 <div className="w-full overflow-x-auto">
