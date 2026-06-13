@@ -597,9 +597,17 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   }, []);
 
   // --- WEB PWA FOREGROUND PUSH LISTENER ---
-  // Removido: O Service Worker (firebase-messaging-sw.js) já exibe a notificação nativa
-  // com o link para a página em todos os casos (foreground e background).
-  // Manter este listener causava notificações duplicadas na versão web.
+  // O Service Worker lida com o background, mas se o usuário estiver com o app aberto (foreground)
+  // precisamos capturar e mostrar um balãozinho, pois o navegador engole a notificação nativa.
+  useEffect(() => {
+    return onForegroundMessage((payload) => {
+      const title = payload.notification?.title || payload.data?.title || 'Bolão Copa 2026';
+      const body = payload.notification?.body || payload.data?.body || '';
+      if (title || body) {
+        addNotification(title, body, 'info', 8000);
+      }
+    });
+  }, []);
 
   // --- NATIVE DEEP LINK LISTENER (OAuth) ---
   useEffect(() => {
