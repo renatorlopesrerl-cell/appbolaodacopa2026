@@ -52,6 +52,18 @@ serve(async (req) => {
             } else if (tokenRows) {
                 targetTokens = tokenRows.map((r: any) => r.token).filter(Boolean);
             }
+
+            const { data: profileRows, error: profileError } = await supabase
+                .from("profiles")
+                .select("fcm_token")
+                .in("id", userIds);
+
+            if (profileError) {
+                console.error("Supabase error fetching profile tokens:", profileError);
+            } else if (profileRows) {
+                const legacyTokens = profileRows.map((r: any) => r.fcm_token).filter(Boolean);
+                targetTokens = [...targetTokens, ...legacyTokens];
+            }
         }
 
         if (targetTokens.length === 0) {
