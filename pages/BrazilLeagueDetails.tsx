@@ -45,34 +45,23 @@ export const BrazilLeagueDetails: React.FC = () => {
     }, []);
 
     // AdMob Banner
-    // Regras: Somente no APK nativo (Android).
-    // - Usuário PRO: banner NÃO aparece.
-    // - Liga com plano VIP (qualquer): banner NÃO aparece para ninguém.
-    // - Usuário comum + liga FREE: banner aparece.
     useEffect(() => {
-        if (!Capacitor.isNativePlatform()) return;
+        if (Capacitor.isNativePlatform()) {
+            const options: BannerAdOptions = {
+                adId: 'ca-app-pub-7684468298593275/3831206432',
+                adSize: BannerAdSize.BANNER,
+                position: BannerAdPosition.BOTTOM_CENTER,
+                margin: 0,
+                isTesting: false
+            };
+            AdMob.showBanner(options).catch(e => console.error('AdMob show error:', e));
 
-        const currentLeague = leagues.find(l => l.id === id);
-        const isPro = !!currentUser?.isPro;
-        const leaguePlan: string = (currentLeague?.settings as any)?.plan || (currentLeague?.settings?.isUnlimited ? 'VIP_UNLIMITED' : 'FREE');
-        const isLeagueFree = leaguePlan === 'FREE';
-
-        if (isPro || !isLeagueFree) return;
-
-        const options: BannerAdOptions = {
-            adId: 'ca-app-pub-7684468298593275/3831206432',
-            adSize: BannerAdSize.BANNER,
-            position: BannerAdPosition.BOTTOM_CENTER,
-            margin: 0,
-            isTesting: false
-        };
-        AdMob.showBanner(options).catch(e => console.error('AdMob show error:', e));
-
-        return () => {
-            AdMob.hideBanner().catch(e => console.error('AdMob hide error:', e));
-            AdMob.removeBanner().catch(e => console.error('AdMob remove error:', e));
-        };
-    }, [id, currentUser?.isPro, leagues]);
+            return () => {
+                AdMob.hideBanner().catch(e => console.error('AdMob hide error:', e));
+                AdMob.removeBanner().catch(e => console.error('AdMob remove error:', e));
+            };
+        }
+    }, []);
 
     // Handle Deep Linking Tabs
     useEffect(() => {
