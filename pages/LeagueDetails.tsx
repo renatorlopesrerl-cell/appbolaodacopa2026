@@ -35,6 +35,9 @@ export const LeagueDetails: React.FC = () => {
         topFinisherPredictions, topFinishersResult, submitTopFinisherPrediction, loadLeagueData
     } = useStore();
 
+    // Find League
+    const league = leagues.find(l => l.id === id);
+
     const [activeTab, setActiveTab] = useState<'palpites' | 'classificacao' | 'regras' | 'admin'>('palpites');
     const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
 
@@ -47,9 +50,12 @@ export const LeagueDetails: React.FC = () => {
         return () => window.visualViewport?.removeEventListener('resize', handleResize);
     }, []);
 
-    // AdMob Banner
+    // AdMob Banner (Only for non-Pro users and FREE leagues)
     useEffect(() => {
-        if (Capacitor.isNativePlatform()) {
+        const currentPlan = league?.settings?.plan || (league?.settings?.isUnlimited ? 'VIP_UNLIMITED' : 'FREE');
+        const isFree = currentPlan === 'FREE';
+
+        if (Capacitor.isNativePlatform() && !currentUser?.isPro && isFree) {
             const options: BannerAdOptions = {
                 adId: 'ca-app-pub-7684468298593275/3831206432',
                 adSize: BannerAdSize.BANNER,
@@ -63,8 +69,11 @@ export const LeagueDetails: React.FC = () => {
                 AdMob.hideBanner().catch(e => console.error('AdMob hide error:', e));
                 AdMob.removeBanner().catch(e => console.error('AdMob remove error:', e));
             };
+        } else if (Capacitor.isNativePlatform()) {
+            AdMob.hideBanner().catch(e => console.error('AdMob hide error:', e));
+            AdMob.removeBanner().catch(e => console.error('AdMob remove error:', e));
         }
-    }, []);
+    }, [currentUser?.isPro, league?.settings?.plan, league?.settings?.isUnlimited]);
 
     // Handle Deep Linking Tabs
     useEffect(() => {
@@ -211,8 +220,7 @@ export const LeagueDetails: React.FC = () => {
     const [tfModalSearch, setTfModalSearch] = useState('');
     const [tfModalPage, setTfModalPage] = useState(1);
 
-    // Find League
-    const league = leagues.find(l => l.id === id);
+
 
     const [isLeagueLoading, setIsLeagueLoading] = useState(true);
     const [zoomedImage, setZoomedImage] = useState<string | null>(null);
