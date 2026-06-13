@@ -44,6 +44,25 @@ export const BrazilLeagueDetails: React.FC = () => {
         return () => window.visualViewport?.removeEventListener('resize', handleResize);
     }, []);
 
+    // AdMob Banner
+    useEffect(() => {
+        if (Capacitor.isNativePlatform()) {
+            const options: BannerAdOptions = {
+                adId: 'ca-app-pub-7684468298593275/3831206432',
+                adSize: BannerAdSize.BANNER,
+                position: BannerAdPosition.BOTTOM_CENTER,
+                margin: 0,
+                isTesting: false
+            };
+            AdMob.showBanner(options).catch(e => console.error('AdMob show error:', e));
+
+            return () => {
+                AdMob.hideBanner().catch(e => console.error('AdMob hide error:', e));
+                AdMob.removeBanner().catch(e => console.error('AdMob remove error:', e));
+            };
+        }
+    }, []);
+
     // Handle Deep Linking Tabs
     useEffect(() => {
         const tabParam = searchParams.get('tab');
@@ -201,39 +220,6 @@ export const BrazilLeagueDetails: React.FC = () => {
 
     const [isLeagueLoading, setIsLeagueLoading] = useState(true);
     const [zoomedImage, setZoomedImage] = useState<string | null>(null);
-
-    // AdMob Banner (Regras novas)
-    useEffect(() => {
-        if (!league) return;
-
-        const currentPlan = (league.settings as any)?.plan || (league.settings?.isUnlimited ? 'VIP_UNLIMITED' : 'FREE');
-        const isFree = currentPlan === 'FREE';
-        
-        // Regras:
-        // - Se for PRO: NÃO exibe o banner dentro da liga (mesmo que seja FREE).
-        // - Se a liga for VIP (qualquer plano VIP): NÃO exibe o banner para ninguém.
-        // - Se o usuário for comum (não PRO) E a liga for GRATUITA (FREE): exibe o banner.
-        const showAd = !currentUser?.isPro && isFree;
-
-        if (Capacitor.isNativePlatform() && showAd) {
-            const options: BannerAdOptions = {
-                adId: 'ca-app-pub-7684468298593275/3831206432',
-                adSize: BannerAdSize.BANNER,
-                position: BannerAdPosition.BOTTOM_CENTER,
-                margin: 0,
-                isTesting: false
-            };
-            AdMob.showBanner(options).catch(e => console.error('AdMob show error:', e));
-
-            return () => {
-                AdMob.hideBanner().catch(e => console.error('AdMob hide error:', e));
-                AdMob.removeBanner().catch(e => console.error('AdMob remove error:', e));
-            };
-        } else if (Capacitor.isNativePlatform()) {
-            AdMob.hideBanner().catch(e => console.error('AdMob hide error:', e));
-            AdMob.removeBanner().catch(e => console.error('AdMob remove error:', e));
-        }
-    }, [currentUser?.isPro, league, league?.settings]);
 
     useEffect(() => {
         if (zoomedImage) {
