@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import admin from "npm:firebase-admin@11.11.1";
@@ -73,11 +74,21 @@ serve(async (req) => {
             
             const message = {
                 notification: { title, body },
-                data: {
-                    click_action: "FLUTTER_NOTIFICATION_CLICK",
-                    ...data
+                data: data || {},
+                android: { 
+                    priority: "high" as const,
+                    notification: {
+                        channelId: "meu_canal"
+                    }
                 },
-                android: { priority: "high" as const },
+                apns: {
+                    payload: {
+                        aps: {
+                            sound: "default",
+                            badge: 1
+                        }
+                    }
+                },
                 webpush: {
                     headers: { Urgency: "high" },
                     notification: {
