@@ -23,15 +23,18 @@ export const AdSenseBanner: React.FC<AdSenseBannerProps> = ({ slotId, className,
   if (Capacitor.isNativePlatform()) return null;
 
   return (
-    <div className={`relative ${className || ''}`} style={style}>
+    <div 
+      className={`relative ${className || ''}`} 
+      style={{ ...style, width: '100%', maxHeight: '90px', overflow: 'hidden', display: 'flex', justifyContent: 'center' }}
+    >
       <ins className="adsbygoogle"
-           style={{ display: 'block', minHeight: '50px' }}
+           style={{ display: 'inline-block', width: '100%', height: '90px' }}
            data-ad-client="ca-pub-7684468298593275"
            data-ad-slot={slotId || ""}
            data-ad-format="horizontal"
-           data-full-width-responsive="true"></ins>
+           data-full-width-responsive="false"></ins>
       {!slotId && (
-         <div className="absolute inset-0 flex items-center justify-center text-[10px] text-gray-400 bg-gray-100 dark:bg-gray-800 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg whitespace-nowrap overflow-hidden">
+         <div className="absolute inset-0 flex items-center justify-center text-[10px] text-gray-400 bg-gray-100 dark:bg-gray-800 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg whitespace-nowrap overflow-hidden" style={{ height: '90px' }}>
              [Anúncio Web PENDENTE]
          </div>
       )}

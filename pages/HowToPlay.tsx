@@ -345,8 +345,8 @@ export const HowToPlay: React.FC = () => {
                 )}
 
                 {/* Banner AdSense (Web) */}
-                <div className="w-full mt-6 mb-6">
-                    <AdSenseBanner className="w-full h-auto min-h-[100px]" />
+                <div className="w-full mt-6 mb-6 flex justify-center">
+                    <AdSenseBanner className="w-full max-w-[728px] h-[90px]" />
                 </div>
 
                 <hr className="border-gray-100 dark:border-gray-700" />
