@@ -1,5 +1,5 @@
 
-import { jsonResponse, errorResponse, sendPushNotificationToUser, getSupabaseClient } from '../_shared';
+import { jsonResponse, errorResponse, sendPushNotificationToUser, getSupabaseClient, processBulkNotifications, extractTokens } from '../_shared';
 
 /**
  * Webhook for Supabase (Native UI Webhook compatible)
@@ -56,7 +56,7 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
         // 2. MATCH EVENTS (Native Table Updates)
         if (body.table === 'matches' || type === 'match_update') {
             const status = record.status;
-            const oldStatus = old_record?.status;
+            const oldStatus = old_record?.status || record.old_status;
             const home = record.home_team_id;
             const away = record.away_team_id;
             const homeScore = record.home_score;
@@ -86,13 +86,14 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
                         return false;
                     });
 
-                    const tasks = filtered.map(profile =>
-                        sendPushNotificationToUser(env, profile.id, title, bodyText, { url: '/table' })
-                    );
-
-                    const results = await Promise.allSettled(tasks);
-                    const successful = results.filter(r => r.status === 'fulfilled' && (r.value as any).success).length;
-                    console.log(`[Webhook] BROADCAST FINISHED. Success: ${successful}/${filtered.length}`);
+                    if (filtered.length > 0) {
+                        const { data: tokenRows } = await supabase.from('user_fcm_tokens').select('user_id, token');
+                        const userIds = filtered.map(p => p.id);
+                        const tokens = extractTokens(userIds, profiles, tokenRows);
+                        
+                        await processBulkNotifications(env, tokens, title, bodyText, { url: '/table' });
+                        console.log(`[Webhook] BROADCAST FINISHED. Forwarded ${tokens.length} tokens to Edge Function for ${filtered.length} users.`);
+                    }
                 }
             }
         }

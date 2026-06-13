@@ -84,9 +84,7 @@ export const onRequest = async (context: any) => {
                 return jsonResponse({ error: 'Title, message e array de tokens são obrigatórios para send_chunk' }, 400);
             }
 
-            if (tokens.length > 40) {
-                return jsonResponse({ error: 'Limite de 40 tokens por requisição excedido.' }, 400);
-            }
+            // Removemos o limite de 40 tokens pois a Edge Function gerencia os blocos maiores
 
             await processBroadcastSync(env, tokens, title, message);
             

@@ -68,8 +68,8 @@ export const AdminPage: React.FC = () => {
 
       setBroadcastProgress({ current: 0, total: tokens.length });
       
-      // 2. Disparar em lotes de 40 (Limite seguro do Cloudflare)
-      const CHUNK_SIZE = 40;
+      // 2. Disparar em lotes de 500 (Agora enviado para a Edge Function que aguenta milhares)
+      const CHUNK_SIZE = 500;
       let sentCount = 0;
       
       for (let i = 0; i < tokens.length; i += CHUNK_SIZE) {

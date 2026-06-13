@@ -143,106 +143,34 @@ function b64url_buffer(buf: ArrayBuffer) {
 
 // ---- Push Notifications ----
 
-export async function sendPushNotificationToUser(env: any, userId: string, title: string, body: string, data?: any) {
-    // Determine the best client to use: Prefer Service Role if available to bypass RLS for automated tasks
-    const supabase = (env.SUPABASE_SERVICE_ROLE_KEY && env.SUPABASE_URL) 
-        ? createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY)
-        : getSupabaseClient(env);
-
-    console.log(`[Push Service] Finding tokens for user: ${userId} (ServiceRole active: ${!!env.SUPABASE_SERVICE_ROLE_KEY})`);
-
-    // 1. Get user's FCM tokens (supporting multiple devices)
-    const { data: tokenRows, error: tokenError } = await supabase
-        .from('user_fcm_tokens')
-        .select('token')
-        .eq('user_id', userId);
-
-    let tokens: string[] = [];
-    
-    if (!tokenError && tokenRows && tokenRows.length > 0) {
-        tokens = tokenRows.map(r => r.token);
-        console.log(`[Push Service] Found ${tokens.length} tokens in user_fcm_tokens table.`);
-    } 
-    
-    // Fallback to legacy profiles column
-    if (tokens.length === 0) {
-        const { data: profile, error: profError } = await supabase
-            .from('profiles')
-            .select('fcm_token')
-            .eq('id', userId)
-            .single();
-            
-        if (profile?.fcm_token) {
-            tokens = [profile.fcm_token];
-            console.log(`[Push Service] Using legacy token from profiles table.`);
-        }
-    }
-
-    if (tokens.length === 0) {
-        console.warn(`[Push Service] ALERTA: Nenhum token encontrado para o usuário ${userId}. Causa provável: RLS bloqueando leitura ou usuário não sincronizou o dispositivo.`);
-        return {
-            success: false,
-            message: "Nenhum token FCM encontrado.",
-            details: "Certifique-se de que o usuário clicou em 'Sincronizar este dispositivo' e que a SERVICE_ROLE_KEY está configurada na Cloudflare."
-        };
-    }
-
-    // 2. Send via FCM v1 to ALL registered tokens
-    const results = [];
+export async function sendPushNotificationToUsers(env: any, userIds: string[], title: string, body: string, data?: any) {
+    console.log(`[Push Service] Forwarding ${userIds.length} users to Supabase Edge Function`);
     try {
-        const accessToken = await getAccessToken(env);
-        const projectId = (env.FCM_PROJECT_ID || "batepapobase").trim();
+        const url = `${env.SUPABASE_URL}/functions/v1/push-notification`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_ANON_KEY}`
+            },
+            body: JSON.stringify({
+                title,
+                body,
+                data,
+                userIds
+            })
+        });
 
-        for (const token of tokens) {
-            const response = await fetch(`https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${accessToken}`
-                },
-                body: JSON.stringify({
-                    message: {
-                        token: token.trim(),
-                        notification: { title, body },
-                        data: {
-                            ...(data || {}),
-                            click_action: "FLUTTER_NOTIFICATION_CLICK"
-                        },
-                        android: {
-                            priority: "high"
-                        },
-                        webpush: {
-                            headers: {
-                                Urgency: "high"
-                            },
-                            notification: {
-                                title: title,
-                                body: body,
-                                icon: "https://bolaodacopa2026.app/favicon.png"
-                            }
-                        }
-                    }
-                })
-            });
-
-            const result = await response.json() as any;
-            if (response.ok) {
-                results.push({ token, success: true, details: result });
-            } else {
-                const fcmError = result.error?.message || result.error || "Erro desconhecido";
-                // Only log, do not delete for now to prevent losing tokens during tests
-                results.push({ token, success: false, message: `Falha FCM: ${fcmError}`, status: response.status });
-            }
-        }
-
-    return {
-        success: results.some(r => r.success)
-    };
-
+        const result = await response.json() as any;
+        return { success: response.ok, ...result };
     } catch (e: any) {
-        console.error("Critical Push v1 error:", e);
+        console.error("Critical Push Edge Function error:", e);
         return { success: false, message: "Erro no serviço de notificações" };
     }
+}
+
+export async function sendPushNotificationToUser(env: any, userId: string, title: string, body: string, data?: any) {
+    return sendPushNotificationToUsers(env, [userId], title, body, data);
 }
 
 // ---- Bulk Push Helpers (Scalability) ----
@@ -287,60 +215,27 @@ export function extractTokens(userIds: string[], allUsers: any[], tokenRows: any
 
 export async function processBulkNotifications(env: any, tokens: string[], title: string, body: string, dataObj?: any) {
     try {
-        console.log(`[Bulk Push] Iniciando envio para ${tokens.length} tokens.`);
-        const accessToken = await getAccessToken(env);
-        const projectId = (env.FCM_PROJECT_ID || "batepapobase").trim();
-        
-        const CHUNK_SIZE = 40;
-        let successCount = 0;
-        let failCount = 0;
+        console.log(`[Bulk Push] Forwarding ${tokens.length} tokens to Supabase Edge Function.`);
+        const url = `${env.SUPABASE_URL}/functions/v1/push-notification`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_ANON_KEY}`
+            },
+            body: JSON.stringify({
+                title,
+                body,
+                data: dataObj,
+                tokens
+            })
+        });
 
-        for (let i = 0; i < tokens.length; i += CHUNK_SIZE) {
-            const chunk = tokens.slice(i, i + CHUNK_SIZE);
-            
-            const promises = chunk.map(token => {
-                return fetch(`https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${accessToken}`
-                    },
-                    body: JSON.stringify({
-                        message: {
-                            token: token.trim(),
-                            notification: { title, body },
-                            data: { 
-                                ...(dataObj || {}),
-                                click_action: "FLUTTER_NOTIFICATION_CLICK" 
-                            },
-                            android: { priority: "high" },
-                            webpush: {
-                                headers: { Urgency: "high" },
-                                notification: {
-                                    title: title,
-                                    body: body,
-                                    icon: "https://bolaodacopa2026.app/favicon.png"
-                                }
-                            }
-                        }
-                    })
-                }).then(res => res.json().then(data => ({ status: res.status, ok: res.ok, data })))
-                  .catch(err => ({ status: 500, ok: false, error: err }));
-            });
-
-            const results = await Promise.all(promises);
-            results.forEach(r => {
-                if (r.ok) successCount++;
-                else failCount++;
-            });
-
-            if (i + CHUNK_SIZE < tokens.length) {
-                await new Promise(res => setTimeout(res, 200));
-            }
-        }
-
-        console.log(`[Bulk Push] Finalizado. Sucessos: ${successCount}, Falhas: ${failCount}`);
+        const result = await response.json() as any;
+        console.log(`[Bulk Push] Finalizado Edge Function result:`, result);
+        return { success: response.ok, ...result };
     } catch (error) {
-        console.error(`[Bulk Push] Erro crítico no background process:`, error);
+        console.error(`[Bulk Push] Erro crítico no forward process:`, error);
+        return { success: false, error };
     }
 }
