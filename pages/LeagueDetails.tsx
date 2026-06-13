@@ -35,9 +35,6 @@ export const LeagueDetails: React.FC = () => {
         topFinisherPredictions, topFinishersResult, submitTopFinisherPrediction, loadLeagueData
     } = useStore();
 
-    // Find League (Hoisted to avoid TDZ in useEffect)
-    const league = leagues.find(l => l.id === id);
-
     const [activeTab, setActiveTab] = useState<'palpites' | 'classificacao' | 'regras' | 'admin'>('palpites');
     const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
 
@@ -50,18 +47,9 @@ export const LeagueDetails: React.FC = () => {
         return () => window.visualViewport?.removeEventListener('resize', handleResize);
     }, []);
 
-    // AdMob Banner rules:
-    // - If user is PRO: NO banner.
-    // - If league is VIP (currentPlan !== 'FREE'): NO banner for anyone.
-    // - If user is common (not PRO) and league is FREE: SHOW banner.
+    // AdMob Banner
     useEffect(() => {
-        if (!league) return;
-
-        const currentPlan: LeaguePlan = league.settings?.plan || (league.settings?.isUnlimited ? 'VIP_UNLIMITED' : 'FREE');
-        const isFree = currentPlan === 'FREE';
-        const shouldShowBanner = !currentUser?.isPro && isFree;
-
-        if (Capacitor.isNativePlatform() && shouldShowBanner) {
+        if (Capacitor.isNativePlatform()) {
             const options: BannerAdOptions = {
                 adId: 'ca-app-pub-7684468298593275/3831206432',
                 adSize: BannerAdSize.BANNER,
@@ -75,11 +63,8 @@ export const LeagueDetails: React.FC = () => {
                 AdMob.hideBanner().catch(e => console.error('AdMob hide error:', e));
                 AdMob.removeBanner().catch(e => console.error('AdMob remove error:', e));
             };
-        } else if (Capacitor.isNativePlatform()) {
-            AdMob.hideBanner().catch(e => console.error('AdMob hide error:', e));
-            AdMob.removeBanner().catch(e => console.error('AdMob remove error:', e));
         }
-    }, [currentUser?.isPro, league?.settings?.plan, league?.settings?.isUnlimited]);
+    }, []);
 
     // Handle Deep Linking Tabs
     useEffect(() => {
@@ -226,7 +211,8 @@ export const LeagueDetails: React.FC = () => {
     const [tfModalSearch, setTfModalSearch] = useState('');
     const [tfModalPage, setTfModalPage] = useState(1);
 
-
+    // Find League
+    const league = leagues.find(l => l.id === id);
 
     const [isLeagueLoading, setIsLeagueLoading] = useState(true);
     const [zoomedImage, setZoomedImage] = useState<string | null>(null);

@@ -31,9 +31,6 @@ export const BrazilLeagueDetails: React.FC = () => {
     const { currentUser, brazilLeagues: leagues, matches, brazilPredictions: predictions, users, currentTime, loading, invitations, submitBrazilPredictions, updateBrazilLeague: updateLeague, deleteBrazilLeague: deleteLeague, approveBrazilUser: approveUser, rejectBrazilUser: rejectUser, removeUserFromBrazilLeague: removeUserFromLeague, brazilMatchGoals, addBrazilMatchGoal, addNotification, refreshPredictions, joinBrazilLeague: joinLeague, sendBrazilLeagueInvite: sendLeagueInvite, brazilPlayers, loadLeagueData } = useStore();
     const submitPredictions = async (preds: any, leagueId: string) => submitBrazilPredictions(preds as any, leagueId);
 
-    // Find League (Hoisted to avoid TDZ in useEffect)
-    const league = leagues.find(l => l.id === id);
-
     const [showUnsavedModal, setShowUnsavedModal] = useState<{ action: () => void } | null>(null);
     const [activeTab, setActiveTab] = useState<'palpites' | 'classificacao' | 'regras' | 'admin'>('palpites');
     const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
@@ -47,18 +44,9 @@ export const BrazilLeagueDetails: React.FC = () => {
         return () => window.visualViewport?.removeEventListener('resize', handleResize);
     }, []);
 
-    // AdMob Banner rules:
-    // - If user is PRO: NO banner.
-    // - If league is VIP (currentPlan !== 'FREE'): NO banner for anyone.
-    // - If user is common (not PRO) and league is FREE: SHOW banner.
+    // AdMob Banner
     useEffect(() => {
-        if (!league) return;
-
-        const currentPlan: LeaguePlan = (league.settings as any)?.plan || (league.settings?.isUnlimited ? 'VIP_UNLIMITED' : 'FREE');
-        const isFree = currentPlan === 'FREE';
-        const shouldShowBanner = !currentUser?.isPro && isFree;
-
-        if (Capacitor.isNativePlatform() && shouldShowBanner) {
+        if (Capacitor.isNativePlatform()) {
             const options: BannerAdOptions = {
                 adId: 'ca-app-pub-7684468298593275/3831206432',
                 adSize: BannerAdSize.BANNER,
@@ -72,11 +60,8 @@ export const BrazilLeagueDetails: React.FC = () => {
                 AdMob.hideBanner().catch(e => console.error('AdMob hide error:', e));
                 AdMob.removeBanner().catch(e => console.error('AdMob remove error:', e));
             };
-        } else if (Capacitor.isNativePlatform()) {
-            AdMob.hideBanner().catch(e => console.error('AdMob hide error:', e));
-            AdMob.removeBanner().catch(e => console.error('AdMob remove error:', e));
         }
-    }, [currentUser?.isPro, league?.settings?.plan, league?.settings?.isUnlimited]);
+    }, []);
 
     // Handle Deep Linking Tabs
     useEffect(() => {
@@ -230,7 +215,8 @@ export const BrazilLeagueDetails: React.FC = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const isPrivateInitialized = useRef(false);
 
-
+    // Find League
+    const league = leagues.find(l => l.id === id);
 
     const [isLeagueLoading, setIsLeagueLoading] = useState(true);
     const [zoomedImage, setZoomedImage] = useState<string | null>(null);
