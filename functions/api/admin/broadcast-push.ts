@@ -1,4 +1,4 @@
-import { jsonResponse, errorResponse, getSupabaseClient, getAccessToken } from '../_shared';
+import { jsonResponse, errorResponse, getSupabaseClient, processBulkNotifications } from '../_shared';
 
 export const onRequest = async (context: any) => {
     const { request, env, data } = context;
@@ -25,15 +25,6 @@ export const onRequest = async (context: any) => {
 
         const body = await request.json();
         const { action, title, message, tokens } = body;
-
-        // Env check (FCM v1)
-        const hasV1Keys = env.FCM_CLIENT_EMAIL && env.FCM_PRIVATE_KEY;
-        if (!hasV1Keys) {
-            return jsonResponse({
-                success: false,
-                message: "ERRO: Credenciais FCM v1 não configuradas no Cloudflare."
-            }, 500);
-        }
 
         // Action: Obter todos os tokens para o frontend orquestrar os lotes
         if (action === 'get_tokens') {
@@ -78,19 +69,80 @@ export const onRequest = async (context: any) => {
             });
         }
 
-        // Action: Enviar um lote específico de tokens (limitado a 40 para não estourar o limite de 50 subrequests do Cloudflare Pages)
+        // Action: Enviar um lote específico de tokens
         if (action === 'send_chunk') {
             if (!title || !message || !tokens || !Array.isArray(tokens)) {
                 return jsonResponse({ error: 'Title, message e array de tokens são obrigatórios para send_chunk' }, 400);
             }
 
-            // Removemos o limite de 40 tokens pois a Edge Function gerencia os blocos maiores
-
-            await processBroadcastSync(env, tokens, title, message);
+            const result = await processBulkNotifications(env, tokens, title, message);
             
             return jsonResponse({ 
                 success: true, 
-                message: `Lote de ${tokens.length} enviado com sucesso.` 
+                message: \`Lote encaminhado para Edge Function\`,
+                result
+            });
+        }
+
+        // Action: Obter todos os tokens de lembrete de palpite
+        if (action === 'get_reminder_tokens') {
+            // First get all profiles where notification_settings->predictionReminder is not false
+            // Since it's jsonb, we have to fetch and filter, or use raw PostgREST jsonb filter
+            // PostgREST syntax for jsonb: notification_settings->predictionReminder
+            // Let's just fetch all profiles and filter in memory to be safe, or use Supabase filter
+            
+            const { data: profiles, error: profError } = await supabase
+                .from('profiles')
+                .select('id, notification_settings');
+                
+            if (profError) throw profError;
+            
+            // Filter profiles that have predictionReminder enabled (true or undefined/null)
+            const userIds = profiles
+                .filter(p => {
+                    const settings = p.notification_settings || {};
+                    return settings.predictionReminder !== false;
+                })
+                .map(p => p.id);
+                
+            if (userIds.length === 0) {
+                 return jsonResponse({ success: true, tokens: [] });
+            }
+
+            // Get tokens for these users
+            // Process in chunks of 500 to avoid URL length limit in .in()
+            let allTokens: string[] = [];
+            const CHUNK_SIZE = 500;
+            
+            for(let i=0; i < userIds.length; i+=CHUNK_SIZE) {
+                 const chunkIds = userIds.slice(i, i+CHUNK_SIZE);
+                 const { data: tokenRows } = await supabase
+                    .from('user_fcm_tokens')
+                    .select('token')
+                    .in('user_id', chunkIds);
+                    
+                 if (tokenRows) {
+                     allTokens.push(...tokenRows.map(r => r.token));
+                 }
+                 
+                 // Fallback legacy
+                 const { data: legacyRows } = await supabase
+                    .from('profiles')
+                    .select('fcm_token')
+                    .in('id', chunkIds)
+                    .not('fcm_token', 'is', null)
+                    .neq('fcm_token', '');
+                 
+                 if (legacyRows) {
+                     allTokens.push(...legacyRows.map(r => r.fcm_token));
+                 }
+            }
+            
+            const uniqueTokens = [...new Set(allTokens.filter(t => t && t.trim() !== ''))];
+            
+            return jsonResponse({ 
+                success: true, 
+                tokens: uniqueTokens 
             });
         }
 
@@ -98,44 +150,5 @@ export const onRequest = async (context: any) => {
 
     } catch (e: any) {
         return errorResponse(e);
-    }
-}
-
-async function processBroadcastSync(env: any, tokens: string[], title: string, body: string) {
-    try {
-        const accessToken = await getAccessToken(env);
-        const projectId = (env.FCM_PROJECT_ID || "batepapobase").trim();
-        
-        const promises = tokens.map(token => {
-            return fetch(`https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${accessToken}`
-                },
-                body: JSON.stringify({
-                    message: {
-                        token: token.trim(),
-                        notification: { title, body },
-                        data: { click_action: "FLUTTER_NOTIFICATION_CLICK" },
-                        android: { priority: "high" },
-                        webpush: {
-                            headers: { Urgency: "high" },
-                            notification: {
-                                title: title,
-                                body: body,
-                                icon: "https://bolaodacopa2026.app/favicon.png"
-                            }
-                        }
-                    }
-                })
-            }).then(res => res.json().then(data => ({ status: res.status, ok: res.ok, data })))
-              .catch(err => ({ status: 500, ok: false, error: err }));
-        });
-
-        await Promise.all(promises);
-    } catch (error) {
-        console.error(`[Broadcast Push] Erro crítico no envio do lote:`, error);
-        throw error;
     }
 }

@@ -13,6 +13,9 @@ export const AdminPage: React.FC = () => {
   const [broadcastProgress, setBroadcastProgress] = useState<{ current: number, total: number } | null>(null);
   const [broadcastTitle, setBroadcastTitle] = useState('');
   const [broadcastMessage, setBroadcastMessage] = useState('');
+  
+  const [reminderLoading, setReminderLoading] = useState(false);
+  const [reminderProgress, setReminderProgress] = useState<{ current: number, total: number } | null>(null);
 
   const handleTestPush = async () => {
     setTestPushLoading(true);
@@ -100,6 +103,62 @@ export const AdminPage: React.FC = () => {
     } finally {
       setBroadcastLoading(false);
       setTimeout(() => setBroadcastProgress(null), 3000);
+    }
+  };
+
+  const handleReminderPush = async () => {
+    if (!window.confirm(`🚨 Enviar Lembrete de Palpite para todos os usuários que não desativaram essa notificação?\n\nIsto será enviado agora.`)) {
+      return;
+    }
+
+    setReminderLoading(true);
+    setReminderProgress({ current: 0, total: 0 });
+    
+    try {
+      const tokenData = await api.admin.broadcastPush({ action: 'get_reminder_tokens' });
+      
+      if (!tokenData.success || !tokenData.tokens) {
+        addNotification('Erro', tokenData.message || tokenData.error || 'Erro ao buscar dispositivos.', 'warning');
+        setReminderLoading(false);
+        setReminderProgress(null);
+        return;
+      }
+      
+      const tokens: string[] = tokenData.tokens;
+      if (tokens.length === 0) {
+        addNotification('Aviso', 'Nenhum dispositivo encontrado para envio de lembrete.', 'info');
+        setReminderLoading(false);
+        setReminderProgress(null);
+        return;
+      }
+
+      setReminderProgress({ current: 0, total: tokens.length });
+      
+      const CHUNK_SIZE = 500;
+      let sentCount = 0;
+      
+      for (let i = 0; i < tokens.length; i += CHUNK_SIZE) {
+        const chunk = tokens.slice(i, i + CHUNK_SIZE);
+        
+        await api.admin.broadcastPush({ 
+          action: 'send_chunk', 
+          title: "Lembrete de Palpite! ⏰", 
+          message: "Ainda dá tempo! Preencha seus palpites para os próximos jogos antes que eles comecem.", 
+          tokens: chunk 
+        });
+        
+        sentCount += chunk.length;
+        setReminderProgress({ current: sentCount, total: tokens.length });
+      }
+
+      addNotification('Lembretes Enviados', `Disparado para ${tokens.length} dispositivos.`, 'success');
+      
+    } catch (e: any) {
+      console.error("Reminder Push Error:", e);
+      addNotification('Erro de Conexão', e.message || 'Não foi possível contatar o servidor.', 'warning');
+    } finally {
+      setReminderLoading(false);
+      setTimeout(() => setReminderProgress(null), 3000);
     }
   };
 
@@ -249,6 +308,28 @@ export const AdminPage: React.FC = () => {
               <p className="text-red-600 dark:text-red-400 text-sm font-medium">Envia uma notificação Push para TODOS os usuários ativos.</p>
             </div>
           </div>
+          
+          <div className="p-6 bg-yellow-50 dark:bg-yellow-900/10 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-gray-800 dark:text-white mb-1">Lembrete de Palpites</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400">Envia o alerta apenas para usuários com a opção "Lembrete de Palpite" ativada.</p>
+              </div>
+              <button
+                onClick={handleReminderPush}
+                disabled={reminderLoading}
+                className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg flex flex-col items-center justify-center transition-all active:scale-95 disabled:opacity-50 shadow-sm"
+              >
+                {reminderLoading ? 'Enviando...' : 'Enviar Lembrete'}
+                {reminderProgress && (
+                  <span className="text-[10px] font-semibold mt-1">
+                    {Math.min(reminderProgress.current, reminderProgress.total)} / {reminderProgress.total}
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+
           <div className="p-6 space-y-4">
             <div>
               <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Título da Notificação</label>
