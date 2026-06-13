@@ -5,7 +5,7 @@ import { useStore } from '../App';
 import { api } from '../services/api';
 import { Match, MatchStatus, Phase, BRAZIL_MATCH_IDS } from '../types';
 import { GROUPS_CONFIG, getMatchRound } from '../services/dataService';
-import { Edit2, Save, X, Filter, ChevronDown, ArrowLeft, Database, Trophy, Calendar, Clock, Loader2, Goal, Medal, Trash2 } from 'lucide-react';
+import { Edit2, Save, X, Filter, ChevronDown, ArrowLeft, Database, Trophy, Calendar, Clock, Loader2, Goal, Medal, Trash2, Bell } from 'lucide-react';
 
 export const AdminMatchesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -44,6 +44,7 @@ export const AdminMatchesPage: React.FC = () => {
 
   // Loading State for Saving
   const [isSaving, setIsSaving] = useState(false);
+  const [sendingReminder, setSendingReminder] = useState<Record<string, boolean>>({});
 
   // Ref to keep editingMatch stable for async operations (prevents stale closures)
   const editingMatchRef = useRef<Match | null>(null);
@@ -91,6 +92,42 @@ export const AdminMatchesPage: React.FC = () => {
       if (addNotification) addNotification('Erro Crítico', 'Ocorreu um erro inesperado ao tentar salvar.', 'warning');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleSendMatchReminder = async (match: Match) => {
+    if (!window.confirm(`🚨 Deseja enviar o lembrete de palpite para ${match.homeTeamId} x ${match.awayTeamId}?\n\nA mensagem dirá que faltam menos de 30 minutos para o encerramento do palpite deste jogo.`)) {
+      return;
+    }
+
+    setSendingReminder(prev => ({ ...prev, [match.id]: true }));
+    try {
+      const tokenData = await api.admin.broadcastPush({ action: 'get_reminder_tokens' });
+      
+      if (!tokenData.success || !tokenData.tokens || tokenData.tokens.length === 0) {
+        addNotification('Aviso', 'Nenhum dispositivo com lembretes ativados foi encontrado.', 'info');
+        setSendingReminder(prev => ({ ...prev, [match.id]: false }));
+        return;
+      }
+
+      const tokens: string[] = tokenData.tokens;
+      const CHUNK_SIZE = 500;
+      
+      for (let i = 0; i < tokens.length; i += CHUNK_SIZE) {
+        const chunk = tokens.slice(i, i + CHUNK_SIZE);
+        await api.admin.broadcastPush({ 
+          action: 'send_chunk', 
+          title: `Lembrete de Palpite! ⏰`, 
+          message: `Faltam menos de 30 minutos para o encerramento dos palpites de ${match.homeTeamId} x ${match.awayTeamId}! Preencha agora!`, 
+          tokens: chunk 
+        });
+      }
+
+      addNotification('Sucesso', `Lembrete de ${match.homeTeamId} x ${match.awayTeamId} enviado para ${tokens.length} usuários.`, 'success');
+    } catch (e: any) {
+      addNotification('Erro', e.message || 'Erro ao enviar lembrete.', 'warning');
+    } finally {
+      setSendingReminder(prev => ({ ...prev, [match.id]: false }));
     }
   };
 
@@ -374,13 +411,27 @@ export const AdminMatchesPage: React.FC = () => {
                         </span>
                       </td>
                       <td className="px-1 py-2 md:px-4 md:py-3 text-center">
-                        <button
-                          onClick={() => handleEditClick(match)}
-                          className="p-1.5 md:p-2 bg-brasil-blue text-white rounded shadow-sm hover:bg-blue-900 transition-colors"
-                          title="Editar"
-                        >
-                          <Edit2 size={14} className="md:w-4 md:h-4" />
-                        </button>
+                        <div className="flex items-center justify-center gap-1 md:gap-2">
+                          <button
+                            onClick={() => handleSendMatchReminder(match)}
+                            disabled={sendingReminder[match.id] || match.status !== MatchStatus.SCHEDULED}
+                            className={`p-1.5 md:p-2 rounded shadow-sm transition-colors ${
+                              match.status !== MatchStatus.SCHEDULED 
+                                ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                                : 'bg-yellow-500 text-white hover:bg-yellow-600'
+                            }`}
+                            title="Enviar Lembrete (30 min)"
+                          >
+                            {sendingReminder[match.id] ? <Loader2 size={14} className="animate-spin md:w-4 md:h-4" /> : <Bell size={14} className="md:w-4 md:h-4" />}
+                          </button>
+                          <button
+                            onClick={() => handleEditClick(match)}
+                            className="p-1.5 md:p-2 bg-brasil-blue text-white rounded shadow-sm hover:bg-blue-900 transition-colors"
+                            title="Editar"
+                          >
+                            <Edit2 size={14} className="md:w-4 md:h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
