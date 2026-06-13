@@ -8,6 +8,8 @@ import { LeaguePlan, League } from '../types';
 import { OptimizedImage } from '../components/OptimizedImage';
 import { api } from '../services/api';
 import { AdSenseBanner } from '../components/AdSenseBanner';
+import { Capacitor } from '@capacitor/core';
+import { AdMob, BannerAdOptions, BannerAdSize, BannerAdPosition } from '@capacitor-community/admob';
 
 export const LeaguesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -37,6 +39,23 @@ export const LeaguesPage: React.FC = () => {
   const [topFinishersPoints, setTopFinishersPoints] = useState<{
     champion: number | ''; runnerUp: number | ''; third: number | ''; fourth: number | '';
   }>({ champion: 20, runnerUp: 15, third: 10, fourth: 5 });
+
+  // AdMob Banner — exibe para TODOS os usuários nativos na página de listagem
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    const options: BannerAdOptions = {
+      adId: 'ca-app-pub-7684468298593275/3831206432',
+      adSize: BannerAdSize.BANNER,
+      position: BannerAdPosition.BOTTOM_CENTER,
+      margin: 0,
+      isTesting: false
+    };
+    AdMob.showBanner(options).catch(e => console.error('AdMob show error:', e));
+    return () => {
+      AdMob.hideBanner().catch(e => console.error('AdMob hide error:', e));
+      AdMob.removeBanner().catch(e => console.error('AdMob remove error:', e));
+    };
+  }, []);
 
   if (loading) {
     return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin text-brasil-green" size={48} /></div>;
