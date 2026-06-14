@@ -9,7 +9,6 @@ import { OptimizedImage } from '../components/OptimizedImage';
 import { api } from '../services/api';
 import { AdSenseBanner } from '../components/AdSenseBanner';
 import { Capacitor } from '@capacitor/core';
-import { AdMob, BannerAdOptions, BannerAdSize, BannerAdPosition } from '@capacitor-community/admob';
 
 export const LeaguesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -40,20 +39,29 @@ export const LeaguesPage: React.FC = () => {
     champion: number | ''; runnerUp: number | ''; third: number | ''; fourth: number | '';
   }>({ champion: 20, runnerUp: 15, third: 10, fourth: 5 });
 
-  // AdMob Banner — exibido para TODOS os usuários na página de listagem
+  // AdMob Banner — exibido para TODOS os usuários na página de listagem (apenas Android/iOS)
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
-    const options: BannerAdOptions = {
-      adId: 'ca-app-pub-7684468298593275/3831206432',
-      adSize: BannerAdSize.BANNER,
-      position: BannerAdPosition.BOTTOM_CENTER,
-      margin: 0,
-      isTesting: false
-    };
-    AdMob.showBanner(options).catch(e => console.error('AdMob show error:', e));
+    let cancelled = false;
+    (async () => {
+      try {
+        const { AdMob, BannerAdSize, BannerAdPosition } = await import('@capacitor-community/admob');
+        if (cancelled) return;
+        await AdMob.showBanner({
+          adId: 'ca-app-pub-7684468298593275/3831206432',
+          adSize: BannerAdSize.BANNER,
+          position: BannerAdPosition.BOTTOM_CENTER,
+          margin: 0,
+          isTesting: false
+        });
+      } catch (e) { console.error('AdMob show error:', e); }
+    })();
     return () => {
-      AdMob.hideBanner().catch(e => console.error('AdMob hide error:', e));
-      AdMob.removeBanner().catch(e => console.error('AdMob remove error:', e));
+      cancelled = true;
+      import('@capacitor-community/admob').then(({ AdMob }) => {
+        AdMob.hideBanner().catch(() => {});
+        AdMob.removeBanner().catch(() => {});
+      }).catch(() => {});
     };
   }, []);
 

@@ -4,7 +4,6 @@ import { toJpeg } from 'html-to-image';
 import { Capacitor } from '@capacitor/core';
 import { Share } from '@capacitor/share';
 import { Filesystem, Directory } from '@capacitor/filesystem';
-import { AdMob, BannerAdOptions, BannerAdSize, BannerAdPosition } from '@capacitor-community/admob';
 import { useParams, useNavigate, Link, Navigate, useSearchParams } from 'react-router-dom';
 import { useStore, getLeagueLimit } from '../App';
 import { api } from '../services/api';
@@ -53,25 +52,37 @@ export const BrazilLeagueDetails: React.FC = () => {
         const isVipLeague = leaguePlan !== 'FREE';
         const isProUser = !!currentUser?.isPro;
 
+        let cancelled = false;
+
         if (isProUser || isVipLeague) {
             // Garante que o banner não apareça
-            AdMob.hideBanner().catch(() => {});
-            AdMob.removeBanner().catch(() => {});
+            import('@capacitor-community/admob').then(({ AdMob }) => {
+                AdMob.hideBanner().catch(() => {});
+                AdMob.removeBanner().catch(() => {});
+            }).catch(() => {});
             return;
         }
 
-        const options: BannerAdOptions = {
-            adId: 'ca-app-pub-7684468298593275/3831206432',
-            adSize: BannerAdSize.BANNER,
-            position: BannerAdPosition.BOTTOM_CENTER,
-            margin: 0,
-            isTesting: false
-        };
-        AdMob.showBanner(options).catch(e => console.error('AdMob show error:', e));
+        (async () => {
+            try {
+                const { AdMob, BannerAdSize, BannerAdPosition } = await import('@capacitor-community/admob');
+                if (cancelled) return;
+                await AdMob.showBanner({
+                    adId: 'ca-app-pub-7684468298593275/3831206432',
+                    adSize: BannerAdSize.BANNER,
+                    position: BannerAdPosition.BOTTOM_CENTER,
+                    margin: 0,
+                    isTesting: false
+                });
+            } catch (e) { console.error('AdMob show error:', e); }
+        })();
 
         return () => {
-            AdMob.hideBanner().catch(e => console.error('AdMob hide error:', e));
-            AdMob.removeBanner().catch(e => console.error('AdMob remove error:', e));
+            cancelled = true;
+            import('@capacitor-community/admob').then(({ AdMob }) => {
+                AdMob.hideBanner().catch(() => {});
+                AdMob.removeBanner().catch(() => {});
+            }).catch(() => {});
         };
     }, [id, leagues, currentUser?.isPro]);
 
