@@ -44,6 +44,9 @@ export const BrazilLeagueDetails: React.FC = () => {
     }, []);
 
     // AdMob Banner — só aparece se: plataforma nativa AND usuário NÃO é PRO AND liga é FREE
+    const adMobModuleRef = useRef<any>(null);
+    const bannerActiveRef = useRef(false);
+
     useEffect(() => {
         if (!Capacitor.isNativePlatform()) return;
 
@@ -52,21 +55,29 @@ export const BrazilLeagueDetails: React.FC = () => {
         const isVipLeague = leaguePlan !== 'FREE';
         const isProUser = !!currentUser?.isPro;
 
-        let cancelled = false;
-
+        // Se PRO ou liga VIP, remove o banner (se houver) e sai
         if (isProUser || isVipLeague) {
-            // Garante que o banner não apareça
-            import('@capacitor-community/admob').then(({ AdMob }) => {
-                AdMob.hideBanner().catch(() => {});
-                AdMob.removeBanner().catch(() => {});
-            }).catch(() => {});
+            if (bannerActiveRef.current && adMobModuleRef.current) {
+                bannerActiveRef.current = false;
+                adMobModuleRef.current.AdMob.hideBanner().catch(() => {});
+                adMobModuleRef.current.AdMob.removeBanner().catch(() => {});
+            }
             return;
         }
 
+        // Se o banner já está ativo, não chama showBanner novamente
+        if (bannerActiveRef.current) return;
+
+        let isMounted = true;
+
         (async () => {
             try {
-                const { AdMob, BannerAdSize, BannerAdPosition } = await import('@capacitor-community/admob');
-                if (cancelled) return;
+                // Reutiliza o módulo já carregado para evitar import duplo
+                if (!adMobModuleRef.current) {
+                    adMobModuleRef.current = await import('@capacitor-community/admob');
+                }
+                if (!isMounted) return;
+                const { AdMob, BannerAdSize, BannerAdPosition } = adMobModuleRef.current;
                 await AdMob.showBanner({
                     adId: 'ca-app-pub-7684468298593275/3831206432',
                     adSize: BannerAdSize.BANNER,
@@ -74,17 +85,20 @@ export const BrazilLeagueDetails: React.FC = () => {
                     margin: 0,
                     isTesting: false
                 });
+                if (isMounted) bannerActiveRef.current = true;
             } catch (e) { console.error('AdMob show error:', e); }
         })();
 
         return () => {
-            cancelled = true;
-            import('@capacitor-community/admob').then(({ AdMob }) => {
-                AdMob.hideBanner().catch(() => {});
-                AdMob.removeBanner().catch(() => {});
-            }).catch(() => {});
+            isMounted = false;
+            // Usa a ref síncrona — sem novo import assíncrono
+            if (bannerActiveRef.current && adMobModuleRef.current) {
+                bannerActiveRef.current = false;
+                adMobModuleRef.current.AdMob.hideBanner().catch(() => {});
+                adMobModuleRef.current.AdMob.removeBanner().catch(() => {});
+            }
         };
-    }, [id, leagues, currentUser?.isPro]);
+    }, [id, currentUser?.isPro]);
 
     // Handle Deep Linking Tabs
     useEffect(() => {
