@@ -1001,7 +1001,7 @@ export const LeagueDetails: React.FC = () => {
             if (filterStatus !== 'all') {
                 if (filterStatus === 'live') return m.status === MatchStatus.IN_PROGRESS;
                 if (filterStatus === 'finished') return m.status === MatchStatus.FINISHED;
-                if (filterStatus === 'upcoming') return m.status === MatchStatus.SCHEDULED;
+                if (filterStatus === 'upcoming') return m.status === MatchStatus.SCHEDULED || m.status === MatchStatus.IN_PROGRESS;
 
                 const userPred = predictions.find(p => p.matchId === m.id && p.userId === currentUser.id && p.leagueId === league.id);
                 const homeVal = pendingEdits[m.id]?.home ?? (userPred?.homeScore?.toString() ?? '');
