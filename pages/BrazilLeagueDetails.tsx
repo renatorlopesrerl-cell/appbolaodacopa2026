@@ -1377,17 +1377,20 @@ export const BrazilLeagueDetails: React.FC = () => {
                                                                                 <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{pred ? 'Palpite enviado' : 'Não palpitou'}</div>
                                                                             </div>
                                                                         </div>
-                                                                        <div className="flex items-center gap-3 shrink-0 ml-2">
-                                                                            <div className="flex flex-col items-center gap-0.5">
+                                                                        <div className="flex items-center gap-2 shrink-0 ml-2">
+                                                                            {/* Coluna de placar + jogador — largura fixa para manter alinhamento vertical */}
+                                                                            <div className="w-16 flex flex-col items-center gap-0.5">
                                                                                 <div className="text-lg font-black text-gray-700 dark:text-gray-300 tracking-wider whitespace-nowrap">
-                                                                                    {pred ? <>{pred.homeScore} <span className="text-gray-300 dark:text-gray-600 text-sm">x</span> {pred.awayScore}</> : <span className="text-gray-300 dark:text-gray-600 text-sm">-</span>}
+                                                                                    {pred ? <>{pred.homeScore} <span className="text-gray-300 dark:text-gray-600 text-sm">x</span> {pred.awayScore}</> : <span className="text-gray-300 dark:text-gray-600 text-sm font-normal">-</span>}
                                                                                 </div>
-                                                                                {pred?.playerPick && (
-                                                                                    <div className="flex items-center gap-0.5 text-[10px] font-bold text-yellow-700 dark:text-yellow-400 whitespace-nowrap max-w-[80px] truncate">
-                                                                                        <Goal size={10} className="shrink-0" />
-                                                                                        <span className="truncate">{pred.playerPick}</span>
-                                                                                    </div>
-                                                                                )}
+                                                                                <div className="w-16 flex items-center justify-center gap-0.5 min-h-[14px]">
+                                                                                    {pred?.playerPick ? (
+                                                                                        <>
+                                                                                            <Goal size={9} className="shrink-0 text-yellow-600 dark:text-yellow-400" />
+                                                                                            <span className="text-[9px] font-bold text-yellow-700 dark:text-yellow-400 truncate max-w-[54px]">{pred.playerPick}</span>
+                                                                                        </>
+                                                                                    ) : null}
+                                                                                </div>
                                                                             </div>
                                                                             <div className={`w-12 text-center rounded py-1 text-xs font-bold shrink-0 ${points > 0 ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300' : points === 0 && pred ? 'bg-red-50 dark:bg-red-900/30 text-red-400 dark:text-red-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'}`}>{points > 0 ? `+${points}` : '0'} pts</div>
                                                                         </div>
