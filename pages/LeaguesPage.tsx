@@ -40,28 +40,34 @@ export const LeaguesPage: React.FC = () => {
   }>({ champion: 20, runnerUp: 15, third: 10, fourth: 5 });
 
   // AdMob Banner — exibido para TODOS os usuários na página de listagem (apenas Android/iOS)
+  const adMobRef = useRef<any>(null);
+  const bannerShownRef = useRef(false);
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
     let cancelled = false;
     (async () => {
       try {
-        const { AdMob, BannerAdSize, BannerAdPosition } = await import('@capacitor-community/admob');
-        if (cancelled) return;
-        await AdMob.showBanner({
+        const mod = await import('@capacitor-community/admob');
+        if (cancelled) return; // componente já desmontado, não exibe
+        adMobRef.current = mod.AdMob;
+        await mod.AdMob.showBanner({
           adId: 'ca-app-pub-7684468298593275/3831206432',
-          adSize: BannerAdSize.BANNER,
-          position: BannerAdPosition.BOTTOM_CENTER,
+          adSize: mod.BannerAdSize.BANNER,
+          position: mod.BannerAdPosition.BOTTOM_CENTER,
           margin: 0,
           isTesting: false
         });
+        if (!cancelled) bannerShownRef.current = true;
       } catch (e) { console.error('AdMob show error:', e); }
     })();
     return () => {
       cancelled = true;
-      import('@capacitor-community/admob').then(({ AdMob }) => {
-        AdMob.hideBanner().catch(() => {});
-        AdMob.removeBanner().catch(() => {});
-      }).catch(() => {});
+      // Usa o módulo já carregado (sem novo import assíncrono) para evitar crash na navegação
+      if (bannerShownRef.current && adMobRef.current) {
+        bannerShownRef.current = false;
+        adMobRef.current.hideBanner().catch(() => {});
+        adMobRef.current.removeBanner().catch(() => {});
+      }
     };
   }, []);
 
