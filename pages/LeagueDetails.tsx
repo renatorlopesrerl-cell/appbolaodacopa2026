@@ -47,24 +47,36 @@ export const LeagueDetails: React.FC = () => {
         return () => window.visualViewport?.removeEventListener('resize', handleResize);
     }, []);
 
-    // AdMob Banner
+    // AdMob Banner — só aparece se: plataforma nativa AND usuário NÃO é PRO AND liga é FREE
     useEffect(() => {
-        if (Capacitor.isNativePlatform()) {
-            const options: BannerAdOptions = {
-                adId: 'ca-app-pub-7684468298593275/3831206432',
-                adSize: BannerAdSize.BANNER,
-                position: BannerAdPosition.BOTTOM_CENTER,
-                margin: 0,
-                isTesting: false
-            };
-            AdMob.showBanner(options).catch(e => console.error('AdMob show error:', e));
+        if (!Capacitor.isNativePlatform()) return;
 
-            return () => {
-                AdMob.hideBanner().catch(e => console.error('AdMob hide error:', e));
-                AdMob.removeBanner().catch(e => console.error('AdMob remove error:', e));
-            };
+        const foundLeague = leagues.find(l => l.id === id);
+        const leaguePlan = foundLeague?.settings?.plan || (foundLeague?.settings?.isUnlimited ? 'VIP_UNLIMITED' : 'FREE');
+        const isVipLeague = leaguePlan !== 'FREE';
+        const isProUser = !!currentUser?.isPro;
+
+        if (isProUser || isVipLeague) {
+            // Garante que o banner não apareça
+            AdMob.hideBanner().catch(() => {});
+            AdMob.removeBanner().catch(() => {});
+            return;
         }
-    }, []);
+
+        const options: BannerAdOptions = {
+            adId: 'ca-app-pub-7684468298593275/3831206432',
+            adSize: BannerAdSize.BANNER,
+            position: BannerAdPosition.BOTTOM_CENTER,
+            margin: 0,
+            isTesting: false
+        };
+        AdMob.showBanner(options).catch(e => console.error('AdMob show error:', e));
+
+        return () => {
+            AdMob.hideBanner().catch(e => console.error('AdMob hide error:', e));
+            AdMob.removeBanner().catch(e => console.error('AdMob remove error:', e));
+        };
+    }, [id, leagues, currentUser?.isPro]);
 
     // Handle Deep Linking Tabs
     useEffect(() => {
