@@ -25,14 +25,12 @@ export const AdSenseBanner: React.FC<AdSenseBannerProps> = ({ slotId, className,
   return (
     <div 
       className={`relative w-full ${className || ''}`} 
-      style={{ ...style, height: '90px', maxHeight: '90px', overflow: 'hidden', display: 'flex', justifyContent: 'center' }}
+      style={{ ...style, height: '60px', maxHeight: '60px', overflow: 'hidden', display: 'flex', justifyContent: 'center' }}
     >
       <ins className="adsbygoogle"
-           style={{ display: 'inline-block', width: '100%', height: '90px' }}
+           style={{ display: 'inline-block', width: '100%', height: '60px' }}
            data-ad-client="ca-pub-7684468298593275"
-           data-ad-slot={slotId || ""}
-           data-ad-format="horizontal"
-           data-full-width-responsive="true"></ins>
+           data-ad-slot={slotId || ""}></ins>
       {!slotId && (
          <div className="absolute inset-0 flex items-center justify-center text-[10px] text-gray-400 bg-gray-100 dark:bg-gray-800 border border-dashed border-gray-300 dark:border-gray-700 rounded-lg whitespace-nowrap overflow-hidden">
              [Anúncio Web PENDENTE]
