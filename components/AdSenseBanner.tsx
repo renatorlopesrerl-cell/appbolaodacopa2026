@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { Capacitor } from '@capacitor/core';
+import { useStore } from '../App';
 
 interface AdSenseBannerProps {
   slotId?: string;
@@ -8,9 +9,14 @@ interface AdSenseBannerProps {
 }
 
 export const AdSenseBanner: React.FC<AdSenseBannerProps> = ({ slotId, className, style }) => {
+  const { currentUser } = useStore();
+
   useEffect(() => {
     // Somente roda se for Web e não nativo
     if (Capacitor.isNativePlatform()) return;
+    
+    // Não roda o AdSense se o usuário for PRO
+    if (currentUser?.isPro) return;
 
     try {
       // @ts-ignore
@@ -18,9 +24,10 @@ export const AdSenseBanner: React.FC<AdSenseBannerProps> = ({ slotId, className,
     } catch (e) {
       console.error('AdSense error:', e);
     }
-  }, []);
+  }, [currentUser?.isPro]);
 
   if (Capacitor.isNativePlatform()) return null;
+  if (currentUser?.isPro) return null;
 
   return (
     <div 
