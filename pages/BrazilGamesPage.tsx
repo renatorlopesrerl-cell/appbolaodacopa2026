@@ -8,6 +8,7 @@ import { OptimizedImage } from '../components/OptimizedImage';
 import { api } from '../services/api';
 import { BrazilLeague } from '../types';
 import { Capacitor } from '@capacitor/core';
+import { AdSenseBanner } from '../components/AdSenseBanner';
 
 export const BrazilGamesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -319,6 +320,11 @@ export const BrazilGamesPage: React.FC = () => {
           </div>
         )}
       </section>
+
+      {/* AdSense Banner (Below my leagues) */}
+      <div className="w-full h-auto mt-6 mb-2">
+        <AdSenseBanner slotId="3157322976" className="w-full min-h-[90px]" />
+      </div>
 
       {/* Available Leagues */}
       <section className="pt-6 border-t border-gray-200 dark:border-gray-700">
