@@ -216,13 +216,14 @@ export const api = {
         }
     },
     predictions: {
-        list: (leagueId?: string | string[], userId?: string) => {
+        list: (leagueId?: string | string[], userId?: string, matchIds?: string[]) => {
             const params = new URLSearchParams();
             if (leagueId) {
                 if (Array.isArray(leagueId)) params.append('leagueId', leagueId.join(','));
                 else params.append('leagueId', leagueId);
             }
             if (userId) params.append('userId', userId);
+            if (matchIds && matchIds.length > 0) params.append('matchIds', matchIds.join(','));
             const query = params.toString();
             return apiFetch<any[]>('/predictions' + (query ? `?${query}` : ''));
         },
@@ -296,7 +297,7 @@ export const api = {
         }
     },
     brazilPredictions: {
-        list: async (leagueId?: string | string[], userId?: string) => {
+        list: async (leagueId?: string | string[], userId?: string, matchIds?: string[]) => {
             const step = 1000;
             const allPredictions: any[] = [];
             let offset = 0;
@@ -309,6 +310,7 @@ export const api = {
                     else query = query.eq('league_id', leagueId);
                 }
                 if (userId) query = query.eq('user_id', userId);
+                if (matchIds && matchIds.length > 0) query = query.in('match_id', matchIds);
 
                 const data = await supabaseWithRetry(async () => await query);
                 const page = data as any[] || [];

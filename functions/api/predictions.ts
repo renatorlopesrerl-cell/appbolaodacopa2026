@@ -33,6 +33,11 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                     }
                 }
                 if (userId) query = query.eq('user_id', userId);
+                
+                const matchIds = url.searchParams.get('matchIds');
+                if (matchIds) {
+                    query = query.in('match_id', matchIds.split(','));
+                }
 
                 const { data: page, error: pageError } = await query;
 

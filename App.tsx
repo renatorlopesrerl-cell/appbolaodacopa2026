@@ -1785,18 +1785,43 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   const refreshPredictions = async () => {
     try {
-      const userLeagueIds = leagues.filter(l => l.participants.includes(currentUser?.id || '')).map(l => l.id);
-      if (userLeagueIds.length === 0) return;
-      const predsData = await api.predictions.list(userLeagueIds);
-      if (predsData) {
-        const mappedPreds: Prediction[] = predsData.map((p: any) => ({
-          userId: p.user_id, matchId: p.match_id, leagueId: p.league_id,
-          homeScore: Number(p.home_score), awayScore: Number(p.away_score),
-          points: p.points ? Number(p.points) : 0
-        }));
-        setPredictions(mappedPreds);
-        addNotification('Atualizado', 'Palpites sincronizados com sucesso.', 'success');
+      // Clear all local prediction caches to force a full re-sync
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('preds_cache_') || key.startsWith('synced_matches_'))) {
+          localStorage.removeItem(key);
+        }
       }
+
+      const userLeagueIds = leagues.filter(l => l.participants.includes(currentUser?.id || '')).map(l => l.id);
+      if (userLeagueIds.length > 0) {
+        const predsData = await api.predictions.list(userLeagueIds);
+        if (predsData) {
+          const mappedPreds: Prediction[] = predsData.map((p: any) => ({
+            userId: p.user_id, matchId: p.match_id, leagueId: p.league_id,
+            homeScore: Number(p.home_score), awayScore: Number(p.away_score),
+            points: p.points ? Number(p.points) : 0
+          }));
+          setPredictions(mappedPreds);
+        }
+      }
+      
+      const userBrLeagueIds = brazilLeagues.filter(l => l.participants.includes(currentUser?.id || '')).map(l => l.id);
+      if (userBrLeagueIds.length > 0) {
+         const brPredsData = await api.brazilPredictions.list(userBrLeagueIds);
+         if (brPredsData) {
+            const mappedBrPreds: BrazilPrediction[] = brPredsData.map((p: any) => ({
+              userId: p.user_id, matchId: p.match_id, leagueId: p.league_id,
+              homeScore: Number(p.home_score), awayScore: Number(p.away_score),
+              playerPick: p.player_pick,
+              points: p.points ? Number(p.points) : 0,
+              goalscorerPoints: p.goalscorer_points ? Number(p.goalscorer_points) : 0
+            }));
+            setBrazilPredictions(mappedBrPreds);
+         }
+      }
+
+      addNotification('Atualizado', 'Palpites sincronizados com sucesso.', 'success');
     } catch (e) {
       console.error("Refresh Preds Error", e);
     }
@@ -1849,14 +1874,56 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         ...(league.pendingRequests || league.pending_requests || [])
       ] : [];
 
+      // INCREMENTAL PREDICTIONS CACHE
+      const cacheKeyLocal = `preds_cache_${leagueType}_${leagueId}`;
+      const syncedMatchesKey = `synced_matches_${leagueType}_${leagueId}`;
+      let cachedPreds: any[] = [];
+      let syncedMatches: string[] = [];
+      try {
+        const pStr = localStorage.getItem(cacheKeyLocal);
+        if (pStr) cachedPreds = JSON.parse(pStr);
+        const sStr = localStorage.getItem(syncedMatchesKey);
+        if (sStr) syncedMatches = JSON.parse(sStr);
+      } catch (e) {
+        console.warn('Failed to parse predictions cache', e);
+      }
+
+      let matchIdsNeeded: string[] | undefined = undefined;
+      // Use matches from useStore (accessible via state) or rely on a fallback
+      // Since `matches` state from App.tsx scope is available:
+      if (matches && matches.length > 0 && !forceRefresh) {
+        matchIdsNeeded = matches.filter(m => !syncedMatches.includes(m.id)).map(m => m.id);
+      }
+
+      const predsPromise = (matchIdsNeeded && matchIdsNeeded.length === 0)
+        ? Promise.resolve([])
+        : (isBrazil ? api.brazilPredictions.list(leagueId, undefined, matchIdsNeeded) : api.predictions.list(leagueId, undefined, matchIdsNeeded));
+
       const [predsRes, profilesRes, topRes, playersRes, goalsRes, matchesRes] = await Promise.all([
-        isBrazil ? api.brazilPredictions.list(leagueId) : api.predictions.list(leagueId),
+        predsPromise,
         participantIds.length > 0 ? api.profiles.getByIds(participantIds) : Promise.resolve([]),
         api.topFinisherPredictions.list(leagueId),
         isBrazil ? api.brazilPlayers.list() : Promise.resolve([]),
         isBrazil ? api.brazilMatchGoals.list() : Promise.resolve([]),
         api.matches.list()
       ]);
+
+      // MERGE CACHE AND UPDATE SYNC
+      let updatedSync = false;
+      const newSyncedMatches = [...syncedMatches];
+      if (matchesRes) {
+        matchesRes.forEach((m: any) => {
+          if (m.status === 'FINISHED' && !syncedMatches.includes(m.id)) {
+            if (!matchIdsNeeded || matchIdsNeeded.includes(m.id)) {
+              newSyncedMatches.push(m.id);
+              updatedSync = true;
+            }
+          }
+        });
+      }
+      if (updatedSync) {
+        localStorage.setItem(syncedMatchesKey, JSON.stringify(newSyncedMatches));
+      }
 
       if (isBrazil) {
         const mappedBrPreds: BrazilPrediction[] = (predsRes || []).map((p: any) => ({
@@ -1866,9 +1933,16 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           points: p.points ? Number(p.points) : 0,
           goalscorerPoints: p.goalscorer_points ? Number(p.goalscorer_points) : 0
         }));
+
+        const finalBrPreds = [
+          ...cachedPreds.filter((p: any) => matchIdsNeeded === undefined ? false : !matchIdsNeeded.includes(p.matchId)),
+          ...mappedBrPreds
+        ];
+        localStorage.setItem(cacheKeyLocal, JSON.stringify(finalBrPreds));
+
         setBrazilPredictions(prev => {
           const others = prev.filter(p => p.leagueId !== leagueId);
-          return [...others, ...mappedBrPreds];
+          return [...others, ...finalBrPreds];
         });
       } else {
         const mappedPreds: Prediction[] = (predsRes || []).map((p: any) => ({
@@ -1876,9 +1950,16 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           homeScore: Number(p.home_score), awayScore: Number(p.away_score),
           points: p.points ? Number(p.points) : 0
         }));
+
+        const finalPreds = [
+          ...cachedPreds.filter((p: any) => matchIdsNeeded === undefined ? false : !matchIdsNeeded.includes(p.matchId)),
+          ...mappedPreds
+        ];
+        localStorage.setItem(cacheKeyLocal, JSON.stringify(finalPreds));
+
         setPredictions(prev => {
           const others = prev.filter(p => p.leagueId !== leagueId);
-          return [...others, ...mappedPreds];
+          return [...others, ...finalPreds];
         });
       }
 
