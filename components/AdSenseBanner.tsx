@@ -15,6 +15,10 @@ export const AdSenseBanner: React.FC<AdSenseBannerProps> = ({ slotId, className,
     // Somente roda se for Web e não nativo
     if (Capacitor.isNativePlatform()) return;
     
+    // TEMPORÁRIO: Alterar para true quando o Google AdSense aprovar a conta
+    const isAdSenseApproved = false;
+    if (!isAdSenseApproved) return;
+
     // Não roda o AdSense se o usuário for PRO
     if (currentUser?.isPro) return;
 
@@ -28,6 +32,10 @@ export const AdSenseBanner: React.FC<AdSenseBannerProps> = ({ slotId, className,
 
   if (Capacitor.isNativePlatform()) return null;
   if (currentUser?.isPro) return null;
+
+  // TEMPORÁRIO: Alterar para true quando o Google AdSense aprovar a conta
+  const isAdSenseApproved = false;
+  if (!isAdSenseApproved) return null;
 
   return (
     <div 
