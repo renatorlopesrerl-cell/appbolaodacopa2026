@@ -47,7 +47,27 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
 
             // Filter out leagues with '[EXCLUÍDA]' in name
             const cleanLeagues = allLeagues.filter((l: any) => !l.name.includes('[EXCLUÍDA]'));
-            return jsonResponse(cleanLeagues);
+            
+            // Optimization: Remove participant UUIDs to save bandwidth, but keep length for UI
+            const optimizedLeagues = cleanLeagues.map((l: any) => {
+                const isMemberOrPending = 
+                    l.admin_id === authUser.id || 
+                    (l.participants && l.participants.includes(authUser.id)) || 
+                    (l.pending_requests && l.pending_requests.includes(authUser.id));
+                
+                if (!isMemberOrPending && !isAdmin) {
+                    // For public leagues where user is not a member, replace UUIDs with empty strings
+                    // The frontend APK only uses .length on this array for available leagues
+                    return {
+                        ...l,
+                        participants: l.participants ? new Array(l.participants.length).fill('') : [],
+                        pending_requests: []
+                    };
+                }
+                return l;
+            });
+
+            return jsonResponse(optimizedLeagues);
 
         }
 
