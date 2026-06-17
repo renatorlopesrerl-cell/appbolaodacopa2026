@@ -2002,10 +2002,33 @@ export const BrazilLeagueDetails: React.FC = () => {
             </div>
         );
 
+        const { data: userSpecificPredictions, isLoading: isHistoryLoading } = useQuery({
+            queryKey: ['userPredictions', id, selectedUserId, 'brazil'],
+            queryFn: async () => {
+                if (!selectedUserId) return [];
+                const { data } = await supabase
+                    .from('brazil_predictions')
+                    .select('*')
+                    .eq('league_id', id)
+                    .eq('user_id', selectedUserId);
+                    
+                return (data || []).map(p => ({
+                    userId: p.user_id,
+                    matchId: p.match_id,
+                    leagueId: p.league_id,
+                    homeScore: p.home_score,
+                    awayScore: p.away_score,
+                    playerPick: p.player_pick,
+                    points: p.points,
+                }));
+            },
+            enabled: !!selectedUserId
+        });
+
         const getHistory = (userId: string) => {
             const lockedMatches = matches.filter(m => (m.homeTeamId === 'Brasil' || m.awayTeamId === 'Brasil') && isPredictionLocked(m.date, currentTime)).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
             return lockedMatches.map(m => {
-                const pred = predictions.find(p => p.matchId === m.id && p.userId === userId && p.leagueId === league.id);
+                const pred = (userSpecificPredictions || []).find(p => p.matchId === m.id);
                 return { match: m, pred };
             });
         };
@@ -2105,7 +2128,7 @@ export const BrazilLeagueDetails: React.FC = () => {
                                     </div>
                                 );
                             })()}
-                            <div className="flex-1 overflow-y-auto p-0 bg-gray-50/50 dark:bg-gray-800/50">{filteredHistory.length === 0 ? <div className="flex flex-col items-center justify-center h-48 text-gray-400 dark:text-gray-500 gap-2"><Search size={32} className="opacity-20" /><p className="text-sm italic">Nenhum palpite encontrado.</p></div> : <div className="divide-y divide-gray-100 dark:divide-gray-700">{filteredHistory.map(({ match, pred }) => {
+                            <div className="flex-1 overflow-y-auto p-0 bg-gray-50/50 dark:bg-gray-800/50">{isHistoryLoading ? <div className="flex flex-col items-center justify-center h-48 text-brasil-blue dark:text-blue-400 gap-3"><Loader2 size={32} className="animate-spin" /><p className="text-sm font-bold">Buscando palpites...</p></div> : filteredHistory.length === 0 ? <div className="flex flex-col items-center justify-center h-48 text-gray-400 dark:text-gray-500 gap-2"><Search size={32} className="opacity-20" /><p className="text-sm italic">Nenhum palpite encontrado.</p></div> : <div className="divide-y divide-gray-100 dark:divide-gray-700">{filteredHistory.map(({ match, pred }) => {
                                 const isLive = match.status === MatchStatus.IN_PROGRESS; const isFinished = match.status === MatchStatus.FINISHED; const mRound = getMatchRound(match); const matchDate = new Date(match.date); const isDateValid = !isNaN(matchDate.getTime()); let histPoints = 0; if ((isLive || isFinished) && match.homeScore !== null && match.awayScore !== null && pred) { histPoints = calculatePoints(Number(pred.homeScore), Number(pred.awayScore), Number(match.homeScore), Number(match.awayScore), league.settings) + getGoalscorerBonus(match.id, pred.playerPick); } return (<div key={match.id} className="p-4 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"><div className="flex justify-between items-center mb-3"><div className="flex items-center gap-2 text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500"><Calendar size={12} /><span>{isDateValid ? matchDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : 'Data Inválida'}</span><span>•</span>{renderMatchBadge(match)}</div>{isLive && <span className="bg-red-500 text-white px-2 py-0.5 rounded text-[10px] font-bold animate-pulse">AO VIVO</span>}</div><div className="flex flex-col items-center mb-4"><div className="flex items-center gap-6 mb-2"><img src={getTeamFlag(match.homeTeamId)} className="w-10 h-7 object-cover rounded shadow-sm" alt={match.homeTeamId} /><span className="text-gray-300 dark:text-gray-600 text-xs font-bold">X</span><img src={getTeamFlag(match.awayTeamId)} className="w-10 h-7 object-cover rounded shadow-sm" alt={match.awayTeamId} /></div><div className="text-sm font-black text-gray-900 dark:text-white text-center uppercase tracking-tight">{match.homeTeamId} <span className="text-gray-400 dark:text-gray-500 font-normal mx-1">x</span> {match.awayTeamId}</div></div><div className="flex items-stretch rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden"><div className="flex-1 bg-gray-50 dark:bg-gray-700 p-2 flex flex-col items-center justify-center border-r border-gray-200 dark:border-gray-600"><span className="text-[9px] uppercase font-bold text-gray-400 dark:text-gray-500 mb-1">Placar Oficial</span><div className={`text-xl font-black ${isLive ? 'text-green-600 dark:text-green-400 animate-pulse' : 'text-gray-800 dark:text-white'}`}>{match.homeScore ?? '-'} <span className="text-gray-300 dark:text-gray-600 text-sm">x</span> {match.awayScore ?? '-'}</div>
                                     {/* Goleadores no Histórico */}
                                     {brazilMatchGoals.some(g => g.matchId === match.id) && (
