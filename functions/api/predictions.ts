@@ -20,7 +20,7 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
             while (keepFetching) {
                 let query = userClient
                     .from('predictions')
-                    .select('user_id, match_id, league_id, home_score, away_score')
+                    .select('user_id, match_id, league_id, home_score, away_score, points')
                     .order('user_id')
                     .order('match_id')
                     .range(offset, offset + step - 1);

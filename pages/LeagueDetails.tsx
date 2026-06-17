@@ -22,7 +22,7 @@ import { OptimizedImage } from '../components/OptimizedImage';
 import { LiveCountdown } from '../components/LiveCountdown';
 import { supabase } from '../services/supabase';
 import { getHistoryForTeam } from '../historyUtils';
-
+import { fetchLeagueRankings } from '../services/rankingService';
 
 export const LeagueDetails: React.FC = () => {
     const queryClient = useQueryClient();
@@ -39,6 +39,14 @@ export const LeagueDetails: React.FC = () => {
 
     const [activeTab, setActiveTab] = useState<'palpites' | 'classificacao' | 'regras' | 'admin'>('palpites');
     const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+
+    // Fetch Pre-calculated Rankings (Optimized)
+    const { data: cachedRankings } = useQuery({
+        queryKey: ['rankings', id],
+        queryFn: () => fetchLeagueRankings(id || '', 'standard'),
+        enabled: !!id,
+        refetchInterval: 15000, // Refresh every 15 seconds
+    });
 
     useEffect(() => {
         if (!window.visualViewport) return;
@@ -450,7 +458,7 @@ export const LeagueDetails: React.FC = () => {
 
     const leaderboard = useMemo(() => {
         if (!league) return [];
-        return league.participants.map(userId => {
+        let calculatedBoard = league.participants.map(userId => {
             const user = mergedUsers.find(u => u.id === userId) || { name: 'Unknown', id: userId, email: '', avatar: '' } as User;
             const userPreds = predictions.filter(p => p.userId === userId && p.leagueId === league.id);
             let totalPoints = 0, exactScores = 0, winnerAndDiffCount = 0, winnerAndWinnerGoalsCount = 0, drawCount = 0, onlyWinnerCount = 0, knockoutPoints = 0;
@@ -507,7 +515,35 @@ export const LeagueDetails: React.FC = () => {
             }
 
             return { user, totalPoints, exactScores, winnerAndDiffCount, winnerAndWinnerGoalsCount, drawCount, onlyWinnerCount, knockoutPoints, tfTotal };
-        }).sort((a, b) => {
+        });
+
+        // OPTIMIZATION: If we are viewing the 'total' leaderboard and we have cached data, use it!
+        if (leaderboardView === 'total' && cachedRankings && cachedRankings.length > 0) {
+            calculatedBoard = league.participants.map(userId => {
+                const cached = cachedRankings.find(r => r.user_id === userId);
+                const localBase = calculatedBoard.find(l => l.user.id === userId);
+                const user = localBase?.user || mergedUsers.find(u => u.id === userId) || { name: 'Unknown', id: userId, email: '', avatar: '' } as User;
+                const tfTotal = localBase?.tfTotal || 0; // Use local tfTotal which is already calculated correctly above
+                
+                if (cached) {
+                    return {
+                        user,
+                        totalPoints: cached.total_points + tfTotal, // DB points + local TF points
+                        exactScores: cached.exact_scores,
+                        winnerAndDiffCount: cached.winner_and_diff_count,
+                        winnerAndWinnerGoalsCount: cached.winner_and_winner_goals_count,
+                        drawCount: cached.draw_count,
+                        onlyWinnerCount: cached.only_winner_count,
+                        knockoutPoints: cached.knockout_points,
+                        tfTotal
+                    };
+                }
+                // Fallback for user not yet in cache
+                return localBase!;
+            });
+        }
+
+        return calculatedBoard.sort((a, b) => {
             if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
             if (b.exactScores !== a.exactScores) return b.exactScores - a.exactScores;
             if (b.winnerAndDiffCount !== a.winnerAndDiffCount) return b.winnerAndDiffCount - a.winnerAndDiffCount;
