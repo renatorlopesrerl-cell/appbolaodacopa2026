@@ -242,7 +242,18 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       const cached = localStorage.getItem('cache_matches');
       if (cached) {
         const parsed: Match[] = JSON.parse(cached);
-        if (parsed && parsed.length > 0) return parsed;
+        if (parsed && parsed.length > 0) {
+          // Validate cache: if any past match still shows SCHEDULED, cache is stale — discard it
+          const now = Date.now();
+          const hasStaleScheduled = parsed.some(m =>
+            m.status === 'SCHEDULED' &&
+            new Date(m.date).getTime() < now - 3 * 60 * 60 * 1000 // 3h ago
+          );
+          if (!hasStaleScheduled) return parsed;
+          // Cache is stale — clear it and fall through to INITIAL_MATCHES
+          console.warn('[cache] cache_matches is stale (past matches still SCHEDULED), clearing...');
+          localStorage.removeItem('cache_matches');
+        }
       }
     } catch (e) {
       console.warn('Failed to load matches from cache:', e);
@@ -2008,6 +2019,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           awayScore: m.away_score !== null ? Number(m.away_score) : null
         }));
         setMatches(mappedMatches);
+        // Also update localStorage cache so future renders don't use stale status
+        try { localStorage.setItem('cache_matches', JSON.stringify(mappedMatches)); } catch (e) { console.warn('cache_matches write failed:', e); }
       }
       
       lastFetchedLeaguesRef.current[cacheKey] = Date.now(); // Marca como carregado apenas após sucesso

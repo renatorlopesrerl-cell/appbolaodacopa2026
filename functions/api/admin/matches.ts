@@ -75,6 +75,7 @@ export const onRequest = async (context: any) => {
                 }
             }
 
+            const authHeader = request.headers.get('Authorization');
             return jsonResponse({ success: true });
         }
 

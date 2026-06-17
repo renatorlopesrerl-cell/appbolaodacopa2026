@@ -571,7 +571,7 @@ export const BrazilLeagueDetails: React.FC = () => {
 
                         if (includeInSum) {
                             totalPoints += points + goalscorerBonus;
-                            if (match.phase !== Phase.GROUP) knockoutPoints += points;
+                            if (match.phase !== Phase.GROUP) knockoutPoints += points + goalscorerBonus;
                             
                             const hitType = getPredictionHitType(Number(p.homeScore), Number(p.awayScore), Number(match.homeScore), Number(match.awayScore), league.settings);
                             if (hitType === 'EXACT') exactScores++;
@@ -682,6 +682,7 @@ export const BrazilLeagueDetails: React.FC = () => {
 
     const smForStats = useMemo(() => matches.find(m => m.id === selectedMatchForStats), [matches, selectedMatchForStats]);
     const isLockedStats = smForStats ? isPredictionLocked(smForStats.date, currentTime) : false;
+
 
     const { data: statsData, isLoading: isLoadingStatsQuery } = useQuery({
         queryKey: ['matchStats', league?.id, selectedMatchForStats],
