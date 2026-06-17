@@ -138,6 +138,7 @@ interface AppState {
   loadLeagueData: (leagueId: string, leagueType?: 'standard' | 'brazil', forceRefresh?: boolean) => Promise<void>;
   hasWatchedPredictionAd: boolean;
   setHasWatchedPredictionAd: (val: boolean) => void;
+  isRefreshingPredictions: boolean;
 }
 
 const AppContext = createContext<AppState | null>(null);
@@ -253,6 +254,16 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           // Cache is stale — clear it and fall through to INITIAL_MATCHES
           console.warn('[cache] cache_matches is stale (past matches still SCHEDULED), clearing...');
           localStorage.removeItem('cache_matches');
+          localStorage.removeItem('cache_predictions');
+          localStorage.removeItem('cache_brazil_predictions');
+          const keysToRemove = [];
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && (key.startsWith('preds_cache_') || key.startsWith('synced_matches_'))) {
+              keysToRemove.push(key);
+            }
+          }
+          keysToRemove.forEach(k => localStorage.removeItem(k));
         }
       }
     } catch (e) {
@@ -336,6 +347,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasWatchedPredictionAd, setHasWatchedPredictionAd] = useState(false);
+  const [isRefreshingPredictions, setIsRefreshingPredictions] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState(false); // Background sync indicator
   const [connectionError, setConnectionError] = useState(false);
   const [isRecoveryMode, setIsRecoveryMode] = useState(false);
@@ -1798,6 +1810,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const syncInitialMatches = async () => { };
 
   const refreshPredictions = async () => {
+    if (isRefreshingPredictions) return;
+    setIsRefreshingPredictions(true);
     try {
       // Clear all local prediction caches to force a full re-sync
       for (let i = 0; i < localStorage.length; i++) {
@@ -1838,6 +1852,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       addNotification('Atualizado', 'Palpites sincronizados com sucesso.', 'success');
     } catch (e) {
       console.error("Refresh Preds Error", e);
+    } finally {
+      setIsRefreshingPredictions(false);
     }
   };
 
@@ -2070,7 +2086,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       brazilLeagues, brazilPredictions, brazilMatchGoals, brazilPlayers,
       setCurrentTime, loginGoogle, signInWithEmail, signUpWithEmail, logout, createLeague, updateLeague, joinLeague, deleteLeague, approveUser, rejectUser, deleteAccount,
       removeUserFromLeague, submitPrediction, submitPredictions, simulateMatchResult, updateMatch, removeNotification, updateUserProfile, syncInitialMatches,
-      sendLeagueInvite, respondToInvite, theme, toggleTheme, connectionError, retryConnection, addNotification, refreshPredictions,
+      sendLeagueInvite, respondToInvite, theme, toggleTheme, connectionError, retryConnection, addNotification, refreshPredictions, isRefreshingPredictions,
       refreshAllData: async () => { await fetchAllData(false); await refreshCurrentUser(); },
       refreshCurrentUser,
       isRecoveryMode, lastSyncTime,

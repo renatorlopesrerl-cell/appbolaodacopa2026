@@ -29,7 +29,7 @@ export const BrazilLeagueDetails: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    const { currentUser, brazilLeagues: leagues, matches, brazilPredictions: predictions, users, currentTime, loading, invitations, submitBrazilPredictions, updateBrazilLeague: updateLeague, deleteBrazilLeague: deleteLeague, approveBrazilUser: approveUser, rejectBrazilUser: rejectUser, removeUserFromBrazilLeague: removeUserFromLeague, brazilMatchGoals, addBrazilMatchGoal, addNotification, refreshPredictions, joinBrazilLeague: joinLeague, sendBrazilLeagueInvite: sendLeagueInvite, brazilPlayers, loadLeagueData, hasWatchedPredictionAd, setHasWatchedPredictionAd } = useStore();
+    const { currentUser, brazilLeagues: leagues, matches, brazilPredictions: predictions, users, currentTime, loading, invitations, submitBrazilPredictions, updateBrazilLeague: updateLeague, deleteBrazilLeague: deleteLeague, approveBrazilUser: approveUser, rejectBrazilUser: rejectUser, removeUserFromBrazilLeague: removeUserFromLeague, brazilMatchGoals, addBrazilMatchGoal, addNotification, refreshPredictions, isRefreshingPredictions, joinBrazilLeague: joinLeague, sendBrazilLeagueInvite: sendLeagueInvite, brazilPlayers, loadLeagueData, hasWatchedPredictionAd, setHasWatchedPredictionAd } = useStore();
     const submitPredictions = async (preds: any, leagueId: string) => submitBrazilPredictions(preds as any, leagueId);
 
     const [showUnsavedModal, setShowUnsavedModal] = useState<{ action: () => void } | null>(null);
@@ -1182,7 +1182,7 @@ export const BrazilLeagueDetails: React.FC = () => {
                         <div className="flex items-center">
                             <div className="text-sm font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2"><Filter size={16} className="text-brasil-blue dark:text-blue-400" /> Filtros</div>
                             {hasFilters && (<button onClick={clearFilters} className="text-xs font-bold text-red-500 hover:text-red-700 transition-colors flex items-center gap-1 ml-3"><X size={12} /> Limpar</button>)}
-                            <button onClick={() => refreshPredictions()} className="text-xs font-bold text-brasil-green hover:text-green-700 transition-colors flex items-center gap-1 ml-3 bg-green-50 dark:bg-green-900/30 px-2 py-1 rounded border border-green-200 dark:border-green-800"><Loader2 size={12} /> Atualizar Palpites</button>
+                            <button onClick={() => refreshPredictions()} disabled={isRefreshingPredictions} className={`text-xs font-bold text-brasil-green hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors flex items-center gap-1 ml-3 bg-green-50 dark:bg-green-900/30 px-2 py-1 rounded border border-green-200 dark:border-green-800 ${isRefreshingPredictions ? 'opacity-70 cursor-not-allowed' : ''}`}><Loader2 size={12} className={isRefreshingPredictions ? 'animate-spin' : ''} /> {isRefreshingPredictions ? 'Atualizando...' : 'Atualizar Palpites'}</button>
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 bg-gray-50 dark:bg-gray-900 px-3 py-1 rounded-full shadow-sm border border-gray-200 dark:border-gray-700"><Clock size={12} /> Horários de Brasília (BRT)</div>
                     </div>
