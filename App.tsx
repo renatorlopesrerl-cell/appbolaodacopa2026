@@ -1900,7 +1900,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
       const predsPromise = (matchIdsNeeded && matchIdsNeeded.length === 0)
         ? Promise.resolve([])
-        : (isBrazil ? api.brazilPredictions.list(leagueId, undefined, matchIdsNeeded) : api.predictions.list(leagueId, undefined, matchIdsNeeded));
+        : (isBrazil ? api.brazilPredictions.list(leagueId, currentUserRef.current?.id, matchIdsNeeded) : api.predictions.list(leagueId, currentUserRef.current?.id, matchIdsNeeded));
 
       const [predsRes, profilesRes, topRes, playersRes, goalsRes, matchesRes] = await Promise.all([
         predsPromise,

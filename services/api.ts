@@ -151,6 +151,14 @@ export const api = {
             if (error) return null;
             return data;
         },
+        getRankings: async (leagueId: string) => {
+            const { data, error } = await supabase
+                .from('league_rankings')
+                .select('*')
+                .eq('league_id', leagueId);
+            if (error) return [];
+            return data;
+        },
         create: async (data: any) => {
             const { error } = await supabase.from('leagues').insert(data);
             if (error) throw error;
@@ -183,6 +191,18 @@ export const api = {
         update: (data: any) => apiFetch('/admin/matches', { method: 'POST', body: JSON.stringify(data) }), // Admin
         getStats: async (matchId: string, leagueId: string, leagueType: 'standard' | 'brazil') => {
             const data = await apiFetch<any>(`/match-stats?matchId=${matchId}&leagueId=${leagueId}&leagueType=${leagueType}`);
+            return data;
+        },
+        getDetailedMatchStats: async (matchId: string, leagueId: string, isBrazil: boolean) => {
+            const { data, error } = await supabase.rpc('get_match_detailed_stats', {
+                p_league_id: leagueId,
+                p_match_id: matchId,
+                p_is_brazil: isBrazil
+            });
+            if (error) {
+                console.error('Error fetching detailed match stats:', error);
+                return null;
+            }
             return data;
         }
     },
@@ -271,6 +291,14 @@ export const api = {
                 .eq('id', id)
                 .single();
             if (error) return null;
+            return data;
+        },
+        getRankings: async (leagueId: string) => {
+            const { data, error } = await supabase
+                .from('brazil_league_rankings')
+                .select('*')
+                .eq('league_id', leagueId);
+            if (error) return [];
             return data;
         },
         // SECURITY: create and update go through the Worker for server-side ownership validation.

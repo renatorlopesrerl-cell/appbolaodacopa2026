@@ -43,7 +43,7 @@ export const LeagueDetails: React.FC = () => {
     // Fetch Pre-calculated Rankings (Optimized)
     const { data: cachedRankings } = useQuery({
         queryKey: ['rankings', id],
-        queryFn: () => fetchLeagueRankings(id || '', 'standard'),
+        queryFn: () => api.leagues.getRankings(id || ''),
         enabled: !!id,
         refetchInterval: 15000, // Refresh every 15 seconds
     });
@@ -188,6 +188,8 @@ export const LeagueDetails: React.FC = () => {
     // --- PALPITES TAB STATE (HOISTED) ---
     const [pendingEdits, setPendingEdits] = useState<Record<string, { home: string, away: string }>>({});
     const [selectedMatchForDetails, setSelectedMatchForDetails] = useState<string | null>(null);
+    const [matchDetailedStats, setMatchDetailedStats] = useState<any>(null);
+    const [isLoadingDetailedStats, setIsLoadingDetailedStats] = useState(false);
     const [selectedMatchForStats, setSelectedMatchForStats] = useState<string | null>(null);
     const [apiMatchStats, setApiMatchStats] = useState<any>(null);
     const [loadingStats, setLoadingStats] = useState<boolean>(false);
@@ -206,6 +208,7 @@ export const LeagueDetails: React.FC = () => {
     // --- CLASSIFICACAO TAB STATE (HOISTED) ---
     const [showUnsavedModal, setShowUnsavedModal] = useState<{ action: () => void } | null>(null);
     const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+
     const [leaderboardSearch, setLeaderboardSearch] = useState('');
     const [leaderboardView, setLeaderboardView] = useState<string>('total');
     const [leaderboardPage, setLeaderboardPage] = useState(1);
@@ -314,6 +317,37 @@ export const LeagueDetails: React.FC = () => {
 
     // Find League
     const league = leagues.find(l => l.id === id);
+
+    const [userHistoryPredictions, setUserHistoryPredictions] = useState<Prediction[]>([]);
+    const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
+    useEffect(() => {
+        if (selectedUserId && league?.id) {
+            setIsLoadingHistory(true);
+            const fetchHistory = async () => {
+                const { data } = await supabase
+                    .from('predictions')
+                    .select('*')
+                    .eq('league_id', league.id)
+                    .eq('user_id', selectedUserId);
+                
+                if (data) {
+                    setUserHistoryPredictions(data.map(p => ({
+                        userId: p.user_id,
+                        matchId: p.match_id,
+                        leagueId: p.league_id,
+                        homeScore: p.home_score,
+                        awayScore: p.away_score,
+                        points: p.points
+                    })));
+                }
+                setIsLoadingHistory(false);
+            };
+            fetchHistory();
+        } else {
+            setUserHistoryPredictions([]);
+        }
+    }, [selectedUserId, league?.id]);
 
     const [isLeagueLoading, setIsLeagueLoading] = useState(true);
     const [zoomedImage, setZoomedImage] = useState<string | null>(null);
@@ -655,6 +689,25 @@ export const LeagueDetails: React.FC = () => {
         setStatsPagePending(1);
     }, [selectedMatchForStats]);
 
+    useEffect(() => {
+        if (selectedMatchForDetails && league) {
+            setIsLoadingDetailedStats(true);
+            api.matches.getDetailedMatchStats(selectedMatchForDetails, league.id, false)
+                .then(data => {
+                    setMatchDetailedStats(data);
+                })
+                .catch(e => {
+                    console.error("Failed to load match detailed stats", e);
+                    setMatchDetailedStats(null);
+                })
+                .finally(() => {
+                    setIsLoadingDetailedStats(false);
+                });
+        } else {
+            setMatchDetailedStats(null);
+        }
+    }, [selectedMatchForDetails, league?.id]);
+
     const smForStats = useMemo(() => matches.find(m => m.id === selectedMatchForStats), [matches, selectedMatchForStats]);
     const isLockedStats = smForStats ? isPredictionLocked(smForStats.date, currentTime) : false;
 
@@ -884,11 +937,16 @@ export const LeagueDetails: React.FC = () => {
         if (!match) return null;
 
         // Create Maps for O(1) lookup
-        const usersMap = new Map(mergedUsers.map(u => [u.id, u]));
-        const matchPredictionsMap = new Map(
-            predictions
-                .filter(p => p.matchId === match.id && p.leagueId === league.id)
-                .map(p => [p.userId, p])
+        const usersMap = new Map<string, User>(mergedUsers.map(u => [u.id, u]));
+        const matchPredictionsMap = new Map<string, any>(
+            (matchDetailedStats?.predictions || []).map((p: any) => [p.user_id, {
+                userId: p.user_id,
+                matchId: match.id,
+                leagueId: league.id,
+                homeScore: p.home_score,
+                awayScore: p.away_score,
+                points: p.points
+            }])
         );
 
         const participantPredictions = league.participants.map(userId => {
@@ -1719,31 +1777,12 @@ export const LeagueDetails: React.FC = () => {
                             }
 
                             // Calculate local stats from predictions array in store
-                            const matchPreds = predictions.filter(p => p.matchId === detailsData.match.id && p.leagueId === league.id);
-                            const totalPreds = matchPreds.length;
+                            const totalPreds = matchDetailedStats?.stats?.total || 0;
+                            const mostPredictedScore = matchDetailedStats?.stats?.most_guessed_score || '-';
+                            const homeWins = matchDetailedStats?.stats?.home_wins || 0;
+                            const draws = matchDetailedStats?.stats?.draws || 0;
+                            const awayWins = matchDetailedStats?.stats?.away_wins || 0;
 
-                            let mostPredictedScore = '-';
-                            if (totalPreds > 0) {
-                                const scoreCounts: Record<string, number> = {};
-                                let maxCount = 0;
-                                matchPreds.forEach(p => {
-                                    const scoreKey = `${p.homeScore} x ${p.awayScore}`;
-                                    scoreCounts[scoreKey] = (scoreCounts[scoreKey] || 0) + 1;
-                                    if (scoreCounts[scoreKey] > maxCount) {
-                                        maxCount = scoreCounts[scoreKey];
-                                        mostPredictedScore = scoreKey;
-                                    }
-                                });
-                            }
-
-                            let homeWins = 0;
-                            let draws = 0;
-                            let awayWins = 0;
-                            matchPreds.forEach(p => {
-                                if (p.homeScore > p.awayScore) homeWins++;
-                                else if (p.homeScore < p.awayScore) awayWins++;
-                                else draws++;
-                            });
                             const homeWinPct = totalPreds > 0 ? Math.round((homeWins / totalPreds) * 100) : 0;
                             const drawPct = totalPreds > 0 ? Math.round((draws / totalPreds) * 100) : 0;
                             const awayWinPct = totalPreds > 0 ? Math.round((awayWins / totalPreds) * 100) : 0;
@@ -1763,43 +1802,53 @@ export const LeagueDetails: React.FC = () => {
                                             </div>
                                             <div className="flex items-center justify-between gap-4"><div className="flex flex-col items-center w-1/3"><img src={getTeamFlag(detailsData.match.homeTeamId)} className="w-10 h-7 object-cover rounded shadow-sm mb-1" /><span className="text-xs font-bold text-center leading-tight">{detailsData.match.homeTeamId}</span></div><div className="flex flex-col items-center"><div className="text-2xl font-black bg-white/10 px-3 py-1 rounded-lg backdrop-blur-sm border border-white/20 whitespace-nowrap">{detailsData.match.homeScore ?? '-'} <span className="text-sm mx-1">x</span> {detailsData.match.awayScore ?? '-'}</div><span className={`text-[10px] mt-1 font-bold px-2 py-0.5 rounded-full ${detailsData.match.status === MatchStatus.IN_PROGRESS ? 'bg-red-500 text-white animate-pulse' : detailsData.match.status === MatchStatus.FINISHED ? 'bg-black/30 text-white' : 'bg-blue-800 text-blue-200'}`}>{detailsData.match.status === MatchStatus.IN_PROGRESS ? 'AO VIVO' : detailsData.match.status === MatchStatus.FINISHED ? 'ENCERRADO' : 'AGUARDANDO'}</span></div><div className="flex flex-col items-center w-1/3"><img src={getTeamFlag(detailsData.match.awayTeamId)} className="w-10 h-7 object-cover rounded shadow-sm mb-1" /><span className="text-xs font-bold text-center leading-tight">{detailsData.match.awayTeamId}</span></div></div>
                                         </div>
-                                        {totalPreds > 0 && (() => {
-                                            const getPctColor = (pct: number, otherPct: number) => {
-                                                if (pct > otherPct) {
-                                                    return "text-emerald-600 dark:text-emerald-400"; // verde
-                                                }
-                                                if (pct < otherPct) {
-                                                    return "text-amber-700 dark:text-amber-500"; // amarelo escuro
-                                                }
-                                                return "text-gray-900 dark:text-gray-100"; // neutro
-                                            };
+                                        
+                                        {isLoadingDetailedStats ? (
+                                            <div className="flex-1 flex flex-col items-center justify-center py-12 bg-gray-50 dark:bg-gray-800">
+                                                <Loader2 className="animate-spin text-brasil-green dark:text-green-400" size={32} />
+                                                <span className="text-sm font-bold text-gray-400 mt-4">Carregando estatísticas...</span>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                {totalPreds > 0 && (() => {
+                                                    const getPctColor = (pct: number, otherPct: number) => {
+                                                        if (pct > otherPct) {
+                                                            return "text-emerald-600 dark:text-emerald-400"; // verde
+                                                        }
+                                                        if (pct < otherPct) {
+                                                            return "text-amber-700 dark:text-amber-500"; // amarelo escuro
+                                                        }
+                                                        return "text-gray-900 dark:text-gray-100"; // neutro
+                                                    };
 
-                                            return (
-                                                <div className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-2 sm:px-4 py-2 flex items-center justify-between gap-2 text-xs shrink-0 shadow-sm overflow-hidden">
-                                                    <div className="flex flex-col items-center justify-center shrink-0 w-24">
-                                                        <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider text-center">Mais apostado</span>
-                                                        <span className="text-base font-black text-gray-800 dark:text-gray-200 mt-1 text-center">{mostPredictedScore}</span>
-                                                    </div>
-                                                    <div className="flex flex-col items-center flex-1 min-w-0">
-                                                        <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1 text-center">Distribuição</span>
-                                                        <div className="w-full flex items-center gap-1 text-[10px] font-bold text-gray-600 dark:text-gray-300">
-                                                            <div className="flex-1 flex flex-col items-center bg-gray-50 dark:bg-gray-750 py-0.5 px-1 rounded border border-gray-100 dark:border-gray-700 min-w-0" title={detailsData.match.homeTeamId}>
-                                                                <span className="text-[9px] text-gray-400 dark:text-gray-500 uppercase leading-none truncate w-full text-center">{detailsData.match.homeTeamId}</span>
-                                                                <span className={`text-xs font-black mt-0.5 ${getPctColor(homeWinPct, awayWinPct)}`}>{homeWinPct}%</span>
-                                                            </div>
-                                                            <div className="flex-1 flex flex-col items-center bg-gray-50 dark:bg-gray-750 py-0.5 px-1 rounded border border-gray-100 dark:border-gray-700 min-w-0">
-                                                                <span className="text-[9px] text-gray-400 dark:text-gray-500 uppercase leading-none truncate w-full text-center">Empate</span>
-                                                                <span className="text-xs font-black mt-0.5 text-gray-900 dark:text-gray-400">{drawPct}%</span>
-                                                            </div>
-                                                            <div className="flex-1 flex flex-col items-center bg-gray-50 dark:bg-gray-750 py-0.5 px-1 rounded border border-gray-100 dark:border-gray-700 min-w-0" title={detailsData.match.awayTeamId}>
-                                                                <span className="text-[9px] text-gray-400 dark:text-gray-500 uppercase leading-none truncate w-full text-center">{detailsData.match.awayTeamId}</span>
-                                                                <span className={`text-xs font-black mt-0.5 ${getPctColor(awayWinPct, homeWinPct)}`}>{awayWinPct}%</span>
+                                                    return (
+                                                        <div className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-2 sm:px-4 py-2 flex items-center justify-between gap-2 text-xs shrink-0 shadow-sm overflow-hidden">
+                                                            {mostPredictedScore && mostPredictedScore !== '-' && (
+                                                                <div className="flex flex-col items-center justify-center shrink-0 w-24">
+                                                                    <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider text-center">Mais apostado</span>
+                                                                    <span className="text-base font-black text-gray-800 dark:text-gray-200 mt-1 text-center">{mostPredictedScore}</span>
+                                                                </div>
+                                                            )}
+                                                            <div className="flex flex-col items-center flex-1 min-w-0">
+                                                                <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1 text-center">Distribuição</span>
+                                                                <div className="w-full flex items-center gap-1 text-[10px] font-bold text-gray-600 dark:text-gray-300">
+                                                                    <div className="flex-1 flex flex-col items-center bg-gray-50 dark:bg-gray-750 py-0.5 px-1 rounded border border-gray-100 dark:border-gray-700 min-w-0" title={detailsData.match.homeTeamId}>
+                                                                        <span className="text-[9px] text-gray-400 dark:text-gray-500 uppercase leading-none truncate w-full text-center">{detailsData.match.homeTeamId}</span>
+                                                                        <span className={`text-xs font-black mt-0.5 ${getPctColor(homeWinPct, awayWinPct)}`}>{homeWinPct}%</span>
+                                                                    </div>
+                                                                    <div className="flex-1 flex flex-col items-center bg-gray-50 dark:bg-gray-750 py-0.5 px-1 rounded border border-gray-100 dark:border-gray-700 min-w-0">
+                                                                        <span className="text-[9px] text-gray-400 dark:text-gray-500 uppercase leading-none truncate w-full text-center">Empate</span>
+                                                                        <span className="text-xs font-black mt-0.5 text-gray-900 dark:text-gray-400">{drawPct}%</span>
+                                                                    </div>
+                                                                    <div className="flex-1 flex flex-col items-center bg-gray-50 dark:bg-gray-750 py-0.5 px-1 rounded border border-gray-100 dark:border-gray-700 min-w-0" title={detailsData.match.awayTeamId}>
+                                                                        <span className="text-[9px] text-gray-400 dark:text-gray-500 uppercase leading-none truncate w-full text-center">{detailsData.match.awayTeamId}</span>
+                                                                        <span className={`text-xs font-black mt-0.5 ${getPctColor(awayWinPct, homeWinPct)}`}>{awayWinPct}%</span>
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })()}
+                                                    );
+                                                })()}
                                         <div className="px-4 py-2 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600"><div className="relative"><Search className="absolute left-3 top-2.5 text-gray-400" size={16} /><input type="text" placeholder="Buscar participante..." value={matchDetailsSearch} onChange={(e) => { setMatchDetailsSearch(e.target.value); setMatchDetailsPage(1); }} className="w-full bg-gray-700 border border-gray-600 text-white placeholder-gray-400 rounded-lg pl-9 pr-8 py-2 text-sm focus:ring-1 focus:ring-brasil-blue focus:border-brasil-blue outline-none" />{matchDetailsSearch && (<button onClick={() => { setMatchDetailsSearch(''); setMatchDetailsPage(1); }} className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white cursor-pointer"><X size={14} /></button>)}</div></div>
                                         <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-800 p-0">
                                             <div className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -1865,6 +1914,8 @@ export const LeagueDetails: React.FC = () => {
                                                 })()}
                                             </div>
                                         </div>
+                                        </>
+                                        )}
                                     </div>
                                 </div>, document.body
                             );
@@ -2299,7 +2350,7 @@ export const LeagueDetails: React.FC = () => {
         const getHistory = (userId: string) => {
             const lockedMatches = matches.filter(m => isPredictionLocked(m.date, currentTime)).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
             return lockedMatches.map(m => {
-                const pred = predictions.find(p => p.matchId === m.id && p.userId === userId && p.leagueId === league.id);
+                const pred = userHistoryPredictions.find(p => p.matchId === m.id);
                 return { match: m, pred };
             });
         };
@@ -2430,7 +2481,12 @@ export const LeagueDetails: React.FC = () => {
                                         </div>
                                     );
                                 })()}
-                                {filteredHistory.length === 0 ? <div className="flex flex-col items-center justify-center h-48 text-gray-400 dark:text-gray-500 gap-2"><Search size={32} className="opacity-20" /><p className="text-sm italic">Nenhum palpite encontrado.</p></div> : <div className="divide-y divide-gray-100 dark:divide-gray-700">{filteredHistory.map(({ match, pred }) => { const isLive = match.status === MatchStatus.IN_PROGRESS; const isFinished = match.status === MatchStatus.FINISHED; const matchDate = new Date(match.date); const isDateValid = !isNaN(matchDate.getTime()); let histPoints = 0; if ((isLive || isFinished) && match.homeScore !== null && match.awayScore !== null && pred) { histPoints = calculatePoints(Number(pred.homeScore), Number(pred.awayScore), Number(match.homeScore), Number(match.awayScore), league.settings); } return (<div key={match.id} className="p-4 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"><div className="flex justify-between items-center mb-3"><div className="flex items-center gap-2 text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500"><Calendar size={12} /><span>{isDateValid ? matchDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : 'Data Inválida'}</span><span>•</span>{renderMatchBadge(match)}</div>{isLive && <span className="bg-red-500 text-white px-2 py-0.5 rounded text-[10px] font-bold animate-pulse">AO VIVO</span>}</div><div className="flex flex-col items-center mb-4"><div className="flex items-center gap-6 mb-2"><img src={getTeamFlag(match.homeTeamId)} className="w-10 h-7 object-cover rounded shadow-sm" alt={match.homeTeamId} /><span className="text-gray-300 dark:text-gray-600 text-xs font-bold">X</span><img src={getTeamFlag(match.awayTeamId)} className="w-10 h-7 object-cover rounded shadow-sm" alt={match.awayTeamId} /></div><div className="text-sm font-black text-gray-900 dark:text-white text-center uppercase tracking-tight">{match.homeTeamId} <span className="text-gray-400 dark:text-gray-500 font-normal mx-1">x</span> {match.awayTeamId}</div></div><div className="flex items-stretch rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden"><div className="flex-1 bg-gray-50 dark:bg-gray-700 p-2 flex flex-col items-center justify-center border-r border-gray-200 dark:border-gray-600"><span className="text-[9px] uppercase font-bold text-gray-400 dark:text-gray-500 mb-1">Placar Oficial</span><div className={`text-xl font-black ${isLive ? 'text-green-600 dark:text-green-400 animate-pulse' : 'text-gray-800 dark:text-white'}`}>{match.homeScore ?? '-'} <span className="text-gray-300 dark:text-gray-600 text-sm">x</span> {match.awayScore ?? '-'}</div></div><div className="flex-1 bg-white dark:bg-gray-800 p-2 flex flex-col items-center justify-center relative"><span className="text-[9px] uppercase font-bold text-brasil-blue dark:text-blue-400 mb-1">Palpite</span><div className="text-xl font-black text-gray-800 dark:text-white">{pred ? <>{pred.homeScore} <span className="text-gray-300 dark:text-gray-600 text-sm">x</span> {pred.awayScore}</> : <span className="text-gray-300 dark:text-gray-600">-</span>}</div>{(isFinished || isLive) && pred && (<div className={`absolute top-1 right-1 text-[9px] font-bold px-1.5 py-0.5 rounded ${histPoints > 0 ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'}`}>{histPoints > 0 ? `+${histPoints}` : '0'} pts</div>)}</div></div></div>); })}</div>}
+                                {isLoadingHistory ? (
+                                    <div className="flex flex-col items-center justify-center py-20 text-brasil-blue dark:text-blue-400">
+                                        <Loader2 size={32} className="animate-spin mb-4" />
+                                        <p className="font-medium text-sm text-gray-500">Buscando palpites...</p>
+                                    </div>
+                                ) : filteredHistory.length === 0 ? <div className="flex flex-col items-center justify-center h-48 text-gray-400 dark:text-gray-500 gap-2"><Search size={32} className="opacity-20" /><p className="text-sm italic">Nenhum palpite encontrado.</p></div> : <div className="divide-y divide-gray-100 dark:divide-gray-700">{filteredHistory.map(({ match, pred }) => { const isLive = match.status === MatchStatus.IN_PROGRESS; const isFinished = match.status === MatchStatus.FINISHED; const matchDate = new Date(match.date); const isDateValid = !isNaN(matchDate.getTime()); let histPoints = 0; if ((isLive || isFinished) && match.homeScore !== null && match.awayScore !== null && pred) { histPoints = calculatePoints(Number(pred.homeScore), Number(pred.awayScore), Number(match.homeScore), Number(match.awayScore), league.settings); } return (<div key={match.id} className="p-4 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"><div className="flex justify-between items-center mb-3"><div className="flex items-center gap-2 text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500"><Calendar size={12} /><span>{isDateValid ? matchDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : 'Data Inválida'}</span><span> </span>{renderMatchBadge(match)}</div>{isLive && <span className="bg-red-500 text-white px-2 py-0.5 rounded text-[10px] font-bold animate-pulse">AO VIVO</span>}</div><div className="flex flex-col items-center mb-4"><div className="flex items-center gap-6 mb-2"><img src={getTeamFlag(match.homeTeamId)} className="w-10 h-7 object-cover rounded shadow-sm" alt={match.homeTeamId} /><span className="text-gray-300 dark:text-gray-600 text-xs font-bold">X</span><img src={getTeamFlag(match.awayTeamId)} className="w-10 h-7 object-cover rounded shadow-sm" alt={match.awayTeamId} /></div><div className="text-sm font-black text-gray-900 dark:text-white text-center uppercase tracking-tight">{match.homeTeamId} <span className="text-gray-400 dark:text-gray-500 font-normal mx-1">x</span> {match.awayTeamId}</div></div><div className="flex items-stretch rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden"><div className="flex-1 bg-gray-50 dark:bg-gray-700 p-2 flex flex-col items-center justify-center border-r border-gray-200 dark:border-gray-600"><span className="text-[9px] uppercase font-bold text-gray-400 dark:text-gray-500 mb-1">Placar Oficial</span><div className={`text-xl font-black ${isLive ? 'text-green-600 dark:text-green-400 animate-pulse' : 'text-gray-800 dark:text-white'}`}>{match.homeScore ?? '-'} <span className="text-gray-300 dark:text-gray-600 text-sm">x</span> {match.awayScore ?? '-'}</div></div><div className="flex-1 bg-white dark:bg-gray-800 p-2 flex flex-col items-center justify-center relative"><span className="text-[9px] uppercase font-bold text-brasil-blue dark:text-blue-400 mb-1">Palpite</span><div className="text-xl font-black text-gray-800 dark:text-white">{pred ? <>{pred.homeScore} <span className="text-gray-300 dark:text-gray-600 text-sm">x</span> {pred.awayScore}</> : <span className="text-gray-300 dark:text-gray-600">-</span>}</div>{(isFinished || isLive) && pred && (<div className={`absolute top-1 right-1 text-[9px] font-bold px-1.5 py-0.5 rounded ${histPoints > 0 ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'}`}>{histPoints > 0 ? `+${histPoints}` : '0'} pts</div>)}</div></div></div>); })}</div>}
                             </div>
                         </div>
                     </div>, document.body
