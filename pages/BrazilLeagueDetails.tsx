@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createPortal } from 'react-dom';
 import { toJpeg } from 'html-to-image';
 import { Capacitor } from '@capacitor/core';
@@ -24,10 +25,11 @@ import { getHistoryForTeam } from '../historyUtils';
 
 
 export const BrazilLeagueDetails: React.FC = () => {
+    const queryClient = useQueryClient();
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    const { currentUser, brazilLeagues: leagues, matches, brazilPredictions: predictions, users, currentTime, loading, invitations, submitBrazilPredictions, updateBrazilLeague: updateLeague, deleteBrazilLeague: deleteLeague, approveBrazilUser: approveUser, rejectBrazilUser: rejectUser, removeUserFromBrazilLeague: removeUserFromLeague, brazilMatchGoals, addBrazilMatchGoal, addNotification, refreshPredictions, joinBrazilLeague: joinLeague, sendBrazilLeagueInvite: sendLeagueInvite, brazilPlayers, loadLeagueData } = useStore();
+    const { currentUser, brazilLeagues: leagues, matches, brazilPredictions: predictions, users, currentTime, loading, invitations, submitBrazilPredictions, updateBrazilLeague: updateLeague, deleteBrazilLeague: deleteLeague, approveBrazilUser: approveUser, rejectBrazilUser: rejectUser, removeUserFromBrazilLeague: removeUserFromLeague, brazilMatchGoals, addBrazilMatchGoal, addNotification, refreshPredictions, joinBrazilLeague: joinLeague, sendBrazilLeagueInvite: sendLeagueInvite, brazilPlayers, loadLeagueData, hasWatchedPredictionAd, setHasWatchedPredictionAd } = useStore();
     const submitPredictions = async (preds: any, leagueId: string) => submitBrazilPredictions(preds as any, leagueId);
 
     const [showUnsavedModal, setShowUnsavedModal] = useState<{ action: () => void } | null>(null);
@@ -97,6 +99,59 @@ export const BrazilLeagueDetails: React.FC = () => {
                 adMobModuleRef.current.AdMob.hideBanner().catch(() => {});
                 adMobModuleRef.current.AdMob.removeBanner().catch(() => {});
             }
+        };
+    }, [id, currentUser?.isPro]);
+
+    // --- ADMOB REWARDED INTERSTITIAL ---
+    const [pendingMatchModal, setPendingMatchModal] = useState<string | null>(null);
+    const adStateRef = useRef({ hasWatched: hasWatchedPredictionAd, pendingMatch: pendingMatchModal });
+    adStateRef.current = { hasWatched: hasWatchedPredictionAd, pendingMatch: pendingMatchModal };
+
+    useEffect(() => {
+        if (!Capacitor.isNativePlatform()) return;
+
+        const foundLeague = leagues.find(l => l.id === id);
+        const leaguePlan = (foundLeague?.settings as any)?.plan || (foundLeague?.settings?.isUnlimited ? 'VIP_UNLIMITED' : 'FREE');
+        const isVipLeague = leaguePlan !== 'FREE';
+        const isProUser = !!currentUser?.isPro;
+
+        if (isProUser || isVipLeague) return;
+
+        let isMounted = true;
+        let listeners: any[] = [];
+
+        (async () => {
+            try {
+                if (!adMobModuleRef.current) {
+                    adMobModuleRef.current = await import('@capacitor-community/admob');
+                }
+                if (!isMounted) return;
+                const { AdMob, RewardAdPluginEvents } = adMobModuleRef.current;
+
+                const rewardListener = await AdMob.addListener(RewardAdPluginEvents.Rewarded, (rewardItem: any) => {
+                    setHasWatchedPredictionAd(true);
+                });
+                
+                const dismissListener = await AdMob.addListener(RewardAdPluginEvents.Dismissed, () => {
+                    const { hasWatched, pendingMatch } = adStateRef.current;
+                    if (hasWatched && pendingMatch) {
+                        setSelectedMatchForDetails(pendingMatch);
+                        setMatchDetailsSearch('');
+                    }
+                    setPendingMatchModal(null);
+                    // Prepare next ad
+                    AdMob.prepareRewardVideoAd({ adId: 'ca-app-pub-7684468298593275/3623119611', isTesting: false }).catch(() => {});
+                });
+
+                listeners.push(rewardListener, dismissListener);
+
+                await AdMob.prepareRewardVideoAd({ adId: 'ca-app-pub-7684468298593275/3623119611', isTesting: false });
+            } catch (e) { console.error('AdMob prepare error:', e); }
+        })();
+
+        return () => {
+            isMounted = false;
+            listeners.forEach(l => l.remove());
         };
     }, [id, currentUser?.isPro]);
 
@@ -534,36 +589,39 @@ export const BrazilLeagueDetails: React.FC = () => {
         setStatsSearch('');
         setStatsPageSaved(1);
         setStatsPagePending(1);
+    }, [selectedMatchForStats]);
 
-        if (!selectedMatchForStats || !league) {
-            setApiMatchStats(null);
-            return;
-        }
+    const smForStats = useMemo(() => matches.find(m => m.id === selectedMatchForStats), [matches, selectedMatchForStats]);
+    const isLockedStats = smForStats ? isPredictionLocked(smForStats.date, currentTime) : false;
 
-        const fetchStats = async () => {
-            setLoadingStats(true);
-            try {
-                const data = await api.matches.getStats(selectedMatchForStats, league.id, 'brazil');
-                setApiMatchStats(data);
-
-                const sm = matches.find(m => m.id === selectedMatchForStats);
-                if (sm && sm.homeTeamId !== 'TBD' && sm.awayTeamId !== 'TBD') {
-                    const dbHistory = await api.teamHistory.getForTeams([sm.homeTeamId, sm.awayTeamId]);
-                    setTeamHistoryData(dbHistory);
-                } else {
-                    setTeamHistoryData([]);
-                }
-            } catch (e) {
-                console.error('Failed to fetch match stats:', e);
-                setApiMatchStats(null);
-                setTeamHistoryData([]);
-            } finally {
-                setLoadingStats(false);
+    const { data: statsData, isLoading: isLoadingStatsQuery } = useQuery({
+        queryKey: ['matchStats', league?.id, selectedMatchForStats],
+        queryFn: async () => {
+            if (!selectedMatchForStats || !league) return null;
+            const stats = await api.matches.getStats(selectedMatchForStats, league.id, 'brazil');
+            let history: any[] = [];
+            if (smForStats && smForStats.homeTeamId !== 'TBD' && smForStats.awayTeamId !== 'TBD') {
+                history = await api.teamHistory.getForTeams([smForStats.homeTeamId, smForStats.awayTeamId]);
             }
-        };
+            return { stats, history };
+        },
+        enabled: !!selectedMatchForStats && !!league,
+        staleTime: isLockedStats ? 60 * 60 * 1000 : 30 * 1000,
+    });
 
-        fetchStats();
-    }, [selectedMatchForStats, league?.id]);
+    useEffect(() => {
+        if (statsData) {
+            setApiMatchStats(statsData.stats);
+            setTeamHistoryData(statsData.history);
+            setLoadingStats(false);
+        } else if (!isLoadingStatsQuery) {
+            setApiMatchStats(null);
+            setTeamHistoryData([]);
+            setLoadingStats(false);
+        } else {
+            setLoadingStats(true);
+        }
+    }, [statsData, isLoadingStatsQuery]);
 
     if (loading || isLeagueLoading) return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin text-brasil-green" size={48} /></div>;
     if (!currentUser) return <Navigate to="/" replace />;
@@ -725,6 +783,9 @@ export const BrazilLeagueDetails: React.FC = () => {
             if (success) {
                 setPendingEdits({});
                 showToast('Sucesso!', `${predsToSave.length} palpite(s) salvo(s).`, 'success');
+                predsToSave.forEach(pred => {
+                    queryClient.invalidateQueries({ queryKey: ['matchStats', league.id, pred.matchId] });
+                });
                 return true;
             } else {
                 showToast('Erro', 'Ocorreu um erro ao salvar os palpites.', 'warning');
@@ -1051,8 +1112,43 @@ export const BrazilLeagueDetails: React.FC = () => {
 
                             const canClick = match.phase === Phase.GROUP || isTeamsDefined(match);
 
+                            const handleMatchClick = async (m: Match, cClick: boolean, mLocked: boolean) => {
+                                if (!cClick) return;
+                                if (!mLocked) {
+                                    setSelectedMatchForStats(m.id);
+                                    return;
+                                }
+
+                                const leaguePlan = (league?.settings as any)?.plan || (league?.settings?.isUnlimited ? 'VIP_UNLIMITED' : 'FREE');
+                                const isVipLeague = leaguePlan !== 'FREE';
+                                const isProUser = !!currentUser?.isPro;
+                                
+                                if (m.status === MatchStatus.FINISHED) {
+                                    setSelectedMatchForDetails(m.id);
+                                    setMatchDetailsSearch('');
+                                    return;
+                                }
+
+                                if (!isProUser && !isVipLeague && !hasWatchedPredictionAd && Capacitor.isNativePlatform()) {
+                                    setPendingMatchModal(m.id);
+                                    try {
+                                        if (!adMobModuleRef.current) adMobModuleRef.current = await import('@capacitor-community/admob');
+                                        await adMobModuleRef.current.AdMob.showRewardVideoAd();
+                                    } catch (e) {
+                                        console.error('Failed to show ad, opening modal anyway', e);
+                                        setSelectedMatchForDetails(m.id);
+                                        setMatchDetailsSearch('');
+                                        setPendingMatchModal(null);
+                                    }
+                                    return;
+                                }
+
+                                setSelectedMatchForDetails(m.id);
+                                setMatchDetailsSearch('');
+                            };
+
                             return (
-                                <div key={match.id} onClick={() => { if (canClick) { if (locked) { setSelectedMatchForDetails(match.id); setMatchDetailsSearch(''); } else { setSelectedMatchForStats(match.id); } } }} className={`bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border transition-all relative overflow-hidden ${isEdited ? 'border-brasil-yellow ring-1 ring-brasil-yellow' : 'border-gray-200 dark:border-gray-700'} ${canClick ? (locked ? 'cursor-pointer hover:border-brasil-blue dark:hover:border-blue-500 hover:shadow-md' : 'cursor-pointer hover:border-green-400 dark:hover:border-green-500 hover:shadow-md') : ''}`}>
+                                <div key={match.id} onClick={() => handleMatchClick(match, canClick, locked)} className={`bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border transition-all relative overflow-hidden ${isEdited ? 'border-brasil-yellow ring-1 ring-brasil-yellow' : 'border-gray-200 dark:border-gray-700'} ${canClick ? (locked ? 'cursor-pointer hover:border-brasil-blue dark:hover:border-blue-500 hover:shadow-md' : 'cursor-pointer hover:border-green-400 dark:hover:border-green-500 hover:shadow-md') : ''}`}>
                                     <div className="absolute top-0 right-0">
                                         {locked ? (
                                             match.status === MatchStatus.IN_PROGRESS ? <div className="bg-red-100 text-red-600 px-3 py-1 rounded-bl-lg text-[10px] font-bold flex items-center gap-1 animate-pulse"><Lock size={10} /> Em Andamento</div> : match.status === MatchStatus.FINISHED ? <div className="bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-300 px-3 py-1 rounded-bl-lg text-[10px] font-bold flex items-center gap-1"><Lock size={10} /> Finalizado</div> : <div className="bg-yellow-100 dark:bg-yellow-900 text-orange-600 dark:text-orange-300 px-3 py-1 rounded-bl-lg text-[10px] font-bold flex items-center gap-1"><Lock size={10} /> Palpite Encerrado</div>
@@ -1209,7 +1305,7 @@ export const BrazilLeagueDetails: React.FC = () => {
                         {selectedMatchForDetails && detailsData && (() => {
                             const isMatchLockedOrLive = isPredictionLocked(detailsData.match.date, currentTime) || detailsData.match.status === MatchStatus.IN_PROGRESS;
                             const isFinished = detailsData.match.status === MatchStatus.FINISHED;
-                            const shouldBlockPredictions = currentPlan === 'FREE' && !currentUser?.isPro && isMatchLockedOrLive && !isFinished;
+                            const shouldBlockPredictions = currentPlan === 'FREE' && !currentUser?.isPro && isMatchLockedOrLive && !isFinished && !hasWatchedPredictionAd;
 
                             if (shouldBlockPredictions) {
                                 return createPortal(

@@ -3,6 +3,18 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
 
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+// Define the global QueryClient
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false, // Prevents aggressive refetching when switching tabs/apps
+      retry: 1, // Retry only once by default
+    },
+  },
+});
+
 // Bloqueia o prompt padrão de instalação "Adicionar à Tela Inicial" do Android (Chrome)
 // porque o apk Android será lançado futuramente via Play Store, e não queremos confundir os usuários no navegador.
 window.addEventListener('beforeinstallprompt', (e) => {
@@ -57,7 +69,9 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
 root.render(
   <React.StrictMode>
     <ErrorBoundary>
-      <App />
+      <QueryClientProvider client={queryClient}>
+        <App />
+      </QueryClientProvider>
     </ErrorBoundary>
   </React.StrictMode>
 );

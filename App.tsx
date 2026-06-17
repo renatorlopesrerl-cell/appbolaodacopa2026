@@ -136,6 +136,8 @@ interface AppState {
   submitTopFinisherPrediction: (leagueId: string, champion: string, runnerUp: string, third: string, fourth: string) => Promise<boolean>;
   setTopFinishersResult: (champion: string, runnerUp: string, third: string, fourth: string) => Promise<boolean>;
   loadLeagueData: (leagueId: string, leagueType?: 'standard' | 'brazil', forceRefresh?: boolean) => Promise<void>;
+  hasWatchedPredictionAd: boolean;
+  setHasWatchedPredictionAd: (val: boolean) => void;
 }
 
 const AppContext = createContext<AppState | null>(null);
@@ -322,6 +324,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hasWatchedPredictionAd, setHasWatchedPredictionAd] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false); // Background sync indicator
   const [connectionError, setConnectionError] = useState(false);
   const [isRecoveryMode, setIsRecoveryMode] = useState(false);
@@ -2059,7 +2062,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       refreshCurrentUser,
       isRecoveryMode, lastSyncTime,
       createBrazilLeague, updateBrazilLeague, joinBrazilLeague, deleteBrazilLeague, approveBrazilUser, rejectBrazilUser, removeUserFromBrazilLeague, submitBrazilPredictions, addBrazilMatchGoal, sendBrazilLeagueInvite,
-      topFinisherPredictions, topFinishersResult, submitTopFinisherPrediction, setTopFinishersResult, loadLeagueData
+      topFinisherPredictions, topFinishersResult, submitTopFinisherPrediction, setTopFinishersResult, loadLeagueData,
+      hasWatchedPredictionAd, setHasWatchedPredictionAd
     }}>
       {children}
     </AppContext.Provider>
