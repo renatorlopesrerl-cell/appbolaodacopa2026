@@ -208,6 +208,8 @@ export const BrazilLeagueDetails: React.FC = () => {
     const [selectedMatchForStats, setSelectedMatchForStats] = useState<string | null>(null);
     const [apiMatchStats, setApiMatchStats] = useState<any>(null);
     const [loadingStats, setLoadingStats] = useState<boolean>(false);
+
+
     const [teamHistoryData, setTeamHistoryData] = useState<any[]>([]);
     const [matchDetailsSearch, setMatchDetailsSearch] = useState('');
     const [matchDetailsPage, setMatchDetailsPage] = useState(1);
@@ -532,13 +534,13 @@ export const BrazilLeagueDetails: React.FC = () => {
 
     // --- HELPER: Match Logic ---
     const getMatchRound = (match: Match) => {
-        if (match.phase !== Phase.GROUP || !match.group) return null;
+        if (match.phase !== Phase.GROUP) return -1;
         const groupMatches = matches
-            .filter(m => m.group === match.group && m.phase === Phase.GROUP)
+            .filter(m => m.phase === Phase.GROUP)
             .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
         const index = groupMatches.findIndex(m => m.id === match.id);
         if (index === -1) return null;
-        return Math.floor(index / 2) + 1;
+        return index + 1; // 1 jogo por rodada para o Brasil
     };
 
     const leaderboard = useMemo(() => {
@@ -567,18 +569,16 @@ export const BrazilLeagueDetails: React.FC = () => {
                         const points = calculatePoints(Number(p.homeScore), Number(p.awayScore), Number(match.homeScore), Number(match.awayScore), league.settings);
                         const goalscorerBonus = getGoalscorerBonus(match.id, p.playerPick);
 
-                        // Stats for tie-breaking (Always calculate regardless of view filter)
-                        if (match.phase !== Phase.GROUP) knockoutPoints += points;
-                        
-                        const hitType = getPredictionHitType(Number(p.homeScore), Number(p.awayScore), Number(match.homeScore), Number(match.awayScore), league.settings);
-                        if (hitType === 'EXACT') exactScores++;
-                        else if (hitType === 'WINNER_DIFF') winnerAndDiffCount++;
-                        else if (hitType === 'WINNER_GOALS') winnerAndWinnerGoalsCount++;
-                        else if (hitType === 'DRAW') drawCount++;
-                        else if (hitType === 'WINNER') onlyWinnerCount++;
-
                         if (includeInSum) {
                             totalPoints += points + goalscorerBonus;
+                            if (match.phase !== Phase.GROUP) knockoutPoints += points;
+                            
+                            const hitType = getPredictionHitType(Number(p.homeScore), Number(p.awayScore), Number(match.homeScore), Number(match.awayScore), league.settings);
+                            if (hitType === 'EXACT') exactScores++;
+                            else if (hitType === 'WINNER_DIFF') winnerAndDiffCount++;
+                            else if (hitType === 'WINNER_GOALS') winnerAndWinnerGoalsCount++;
+                            else if (hitType === 'DRAW') drawCount++;
+                            else if (hitType === 'WINNER') onlyWinnerCount++;
                         }
                     }
                 });
@@ -1051,12 +1051,13 @@ export const BrazilLeagueDetails: React.FC = () => {
         return !isPlaceholder(match.homeTeamId) && !isPlaceholder(match.awayTeamId);
     };
 
-    const getMatchStatsData = (matchId: string) => {
+    const getMatchStatsData = (matchId: string, overridePreds?: BrazilPrediction[]) => {
         if (!league) return null;
         const match = matches.find(m => m.id === matchId);
         if (!match) return null;
 
-        const leaguePreds = predictions.filter(p => p.matchId === matchId && p.leagueId === league.id);
+        const sourcePreds = overridePreds || predictions;
+        const leaguePreds = sourcePreds.filter(p => p.matchId === matchId && p.leagueId === league.id);
         const participantPreds = league.participants
             .map(uid => leaguePreds.find(p => p.userId === uid))
             .filter((p): p is BrazilPrediction => p !== undefined);
@@ -1129,12 +1130,28 @@ export const BrazilLeagueDetails: React.FC = () => {
             return true;
         });
 
-        const hasFilters = filterPhase !== 'all' || filterGroup !== 'all' || filterRound !== 'all' || filterStatus !== 'all';
-        const clearFilters = () => { setFilterPhase('all'); setFilterGroup('all'); setFilterRound('all'); setFilterStatus('all'); };
-        const detailsData = getMatchDetailsData();
-        const filteredDetailsParticipants = detailsData?.participants.filter(p => p.user.name.toLowerCase().includes(matchDetailsSearch.toLowerCase())) || [];
-        const hasUnsavedChanges = Object.keys(pendingEdits).length > 0;
-        const groupsList = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
+      const getMatchDetailsData = () => {
+        if (!selectedMatchForDetails || !league) return null;
+        const match = matches.find(m => m.id === selectedMatchForDetails);
+        if (!match) return null;
+
+        const matchDetailsPreds = predictions.filter(p => p.matchId === selectedMatchForDetails && p.leagueId === league.id);
+        
+        return {
+            match,
+            participants: league.participants.map(uid => {
+                const u = mergedUsers.find(user => user.id === uid);
+                return { user: u, pred: matchDetailsPreds.find(pred => pred.userId === uid) };
+            })
+        };
+    };
+
+    const hasFilters = filterPhase !== 'all' || filterGroup !== 'all' || filterRound !== 'all' || filterStatus !== 'all';
+    const clearFilters = () => { setFilterPhase('all'); setFilterGroup('all'); setFilterRound('all'); setFilterStatus('all'); };
+    const detailsData = getMatchDetailsData();
+    const filteredDetailsParticipants = detailsData?.participants.filter(p => p.user.name.toLowerCase().includes(matchDetailsSearch.toLowerCase())) || [];
+    const hasUnsavedChanges = Object.keys(pendingEdits).length > 0;
+    const groupsList = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
 
         return (
             <div className="space-y-6 pb-24">
@@ -1541,8 +1558,14 @@ export const BrazilLeagueDetails: React.FC = () => {
                                                     
                                                     return (
                                                         <>
-                                                            {pagedDetailsParticipants.map(({ user, pred, points }, idx) => {
+                                                            {pagedDetailsParticipants.map(({ user, pred }, idx) => {
                                                                 const globalIdx = (matchDetailsPage - 1) * 100 + idx + 1;
+                                                                let points = pred?.points || 0;
+                                                                if (detailsData.match.status === MatchStatus.FINISHED || detailsData.match.status === MatchStatus.IN_PROGRESS) {
+                                                                    if (pred && detailsData.match.homeScore !== null && detailsData.match.awayScore !== null) {
+                                                                        points = calculatePoints(Number(pred.homeScore), Number(pred.awayScore), Number(detailsData.match.homeScore), Number(detailsData.match.awayScore), league.settings) + getGoalscorerBonus(detailsData.match.id, pred.playerPick);
+                                                                    }
+                                                                }
                                                                 return (
                                                                     <div key={user.id} className={`p-3 flex items-center justify-between ${user.id === currentUser.id ? 'bg-yellow-50 dark:bg-yellow-900/20' : 'bg-white dark:bg-gray-800'}`}>
                                                                         <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -1669,11 +1692,17 @@ export const BrazilLeagueDetails: React.FC = () => {
                             const homeWinPct = apiMatchStats?.homeWinPct ?? 0;
                             const drawPct = apiMatchStats?.drawPct ?? 0;
                             const awayWinPct = apiMatchStats?.awayWinPct ?? 0;
-                            const predictedUserIds: string[] = apiMatchStats?.predictedUserIds ?? [];
+                            
+                            const predictedUserIds = apiMatchStats?.predictedUserIds ?? [];
+                            const leaguePreds = predictions.filter(p => p.matchId === smForStats.id && p.leagueId === league.id);
 
                             const predictedParticipants = league.participants
                                 .filter(uid => predictedUserIds.includes(uid))
-                                .map(uid => users.find(u => u.id === uid) || { id: uid, name: 'Participante', avatar: '' } as User)
+                                .map(uid => {
+                                    const u = users.find(u => u.id === uid) || { id: uid, name: 'Participante', avatar: '' } as User;
+                                    const pred = leaguePreds.find(p => p.userId === uid);
+                                    return { ...u, pred };
+                                })
                                 .sort((a, b) => a.name.localeCompare(b.name));
 
                             const missingParticipants = league.participants
@@ -1713,7 +1742,7 @@ export const BrazilLeagueDetails: React.FC = () => {
                                                     <div>
                                                         <h3 className="font-black text-base uppercase tracking-widest">Estatísticas da Liga</h3>
                                                         <p className="text-emerald-100 text-sm mt-0.5 font-bold">
-                                                            {loadingStats ? 'Carregando palpites...' : !apiMatchStats ? 'Erro de conexão' : `${totalPreds} palpite${totalPreds !== 1 ? 's' : ''} registrado${totalPreds !== 1 ? 's' : ''}`}
+                                                            {loadingStats ? 'Carregando palpites...' : `${totalPreds} palpite${totalPreds !== 1 ? 's' : ''} registrado${totalPreds !== 1 ? 's' : ''}`}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -1743,19 +1772,6 @@ export const BrazilLeagueDetails: React.FC = () => {
                                                         <div className="flex flex-col items-center justify-center py-12 gap-3 text-gray-500 dark:text-gray-400">
                                                             <Loader2 className="animate-spin text-brasil-green" size={32} />
                                                             <span className="text-xs font-bold uppercase tracking-wider">Carregando estatísticas...</span>
-                                                        </div>
-                                                    ) : !apiMatchStats ? (
-                                                        <div className="text-center py-8 text-red-500">
-                                                            <AlertCircle size={36} className="mx-auto mb-3 opacity-80" />
-                                                            <p className="text-sm font-bold">Erro ao carregar estatísticas</p>
-                                                            <button onClick={() => {
-                                                                setApiMatchStats(null);
-                                                                setLoadingStats(true);
-                                                                api.matches.getStats(selectedMatchForStats, league.id, 'brazil')
-                                                                    .then(setApiMatchStats)
-                                                                    .catch(() => setApiMatchStats(null))
-                                                                    .finally(() => setLoadingStats(false));
-                                                            }} className="mt-3 text-xs font-bold underline text-brasil-green">Tentar Novamente</button>
                                                         </div>
                                                     ) : totalPreds === 0 ? (
                                                         <div className="text-center py-8 text-gray-400 dark:text-gray-500">
@@ -1916,9 +1932,18 @@ export const BrazilLeagueDetails: React.FC = () => {
                                                                             </div>
                                                                             <div className="grid grid-cols-2 gap-2">
                                                                                 {pagedPredicted.map(u => (
-                                                                                    <div key={u.id} className="flex items-center gap-2 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/50 p-1.5 rounded-lg">
-                                                                                        <OptimizedImage src={u.avatar} containerClassName="w-6 h-6 rounded-full border border-emerald-200 dark:border-emerald-800" className="w-full h-full object-cover" alt="" />
-                                                                                        <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300 truncate w-full">{u.name}</span>
+                                                                                    <div key={u.id} className="flex items-center gap-2 bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/50 p-1.5 rounded-lg overflow-hidden">
+                                                                                        <OptimizedImage src={u.avatar} containerClassName="w-6 h-6 shrink-0 rounded-full border border-emerald-200 dark:border-emerald-800" className="w-full h-full object-cover" alt="" />
+                                                                                        <div className="flex flex-col min-w-0 flex-1">
+                                                                                            <span className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300 truncate w-full leading-tight">{u.name}</span>
+                                                                                            {isLockedStats && u.pred ? (
+                                                                                                <span className="text-[10px] font-black text-gray-700 dark:text-gray-200 flex items-center gap-1.5 mt-0.5">
+                                                                                                    <span className="bg-white/60 dark:bg-black/30 px-1.5 rounded">{u.pred.homeScore}</span>
+                                                                                                    <span className="text-gray-400 text-[8px]">x</span>
+                                                                                                    <span className="bg-white/60 dark:bg-black/30 px-1.5 rounded">{u.pred.awayScore}</span>
+                                                                                                </span>
+                                                                                            ) : null}
+                                                                                        </div>
                                                                                     </div>
                                                                                 ))}
                                                                             </div>

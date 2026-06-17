@@ -184,13 +184,18 @@ export const getTeam = (id: string): Team | undefined => ALL_TEAMS.find(t => t.i
 // Calculate Match Round (1, 2, or 3) for Groups
 export const getMatchRound = (match: Match, allMatches: Match[]): number | null => {
   if (match.phase !== Phase.GROUP || !match.group) return null;
-  const groupMatches = allMatches
-    .filter(m => m.group === match.group && m.phase === Phase.GROUP)
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-  const index = groupMatches.findIndex(m => m.id === match.id);
-  if (index === -1) return null;
-  return Math.floor(index / 2) + 1;
+  
+  // Extract the number from the match ID (e.g. 'm-A1' -> 1, 'm-B3' -> 3)
+  const matchStr = match.id.split('-')[1]; // 'A1'
+  if (!matchStr) return null;
+  
+  const matchNumber = parseInt(matchStr.replace(/[^0-9]/g, ''));
+  if (isNaN(matchNumber)) return null;
+  
+  // Jogos 1 e 2 = Rodada 1
+  // Jogos 3 e 4 = Rodada 2
+  // Jogos 5 e 6 = Rodada 3
+  return Math.floor((matchNumber - 1) / 2) + 1;
 };
 
 export const calculatePoints = (
