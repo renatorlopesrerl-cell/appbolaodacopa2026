@@ -438,9 +438,10 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   }, []);
 
   useEffect(() => {
+    // Atualiza o tempo a cada 5 segundos para fechar visualmente os jogos travados rapidamente
     const interval = setInterval(() => {
       setCurrentTime(new Date());
-    }, 60000);
+    }, 5000);
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && currentUserRef.current) {
@@ -984,16 +985,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         } catch(e) { console.warn('Falha ao carregar perfis de admins de ligas:', e); }
 
       } else {
-        // Usuário Comum: Baixa apenas topFinishersResult por segurança e metadados globais se precisar
-        try {
-          const topRes = await api.topFinishersResult.get();
-          if (topRes) {
-            setTopFinishersResultState({
-              champion: topRes.champion || '', runnerUp: topRes.runner_up || '',
-              third: topRes.third || '', fourth: topRes.fourth || ''
-            });
-          }
-        } catch(e) {}
+        // Usuário Comum: Baixa apenas metadados globais se precisar no futuro
+        // (topFinishersResult foi movido para carregar apenas ao abrir uma liga)
       }
 
       if (currentUserRef.current?.email) {
@@ -1865,8 +1858,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     }
   };
 
-
-
   const loadLeagueData = async (leagueId: string, leagueType: 'standard' | 'brazil' = 'standard', forceRefresh: boolean = false) => {
     const cacheKey = `${leagueType}_${leagueId}`;
 
@@ -1876,6 +1867,18 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     
     const fetchPromise = (async () => {
       try {
+        // Carrega o Top 4 Resultado Oficial na primeira vez que abre qualquer liga
+        if (topFinishersResult === null) {
+          api.topFinishersResult.get().then(topRes => {
+            if (topRes) {
+              setTopFinishersResultState({
+                champion: topRes.champion || '', runnerUp: topRes.runner_up || '',
+                third: topRes.third || '', fourth: topRes.fourth || ''
+              });
+            }
+          }).catch(()=>{});
+        }
+
         const isBrazil = leagueType === 'brazil';
 
       // Always fetch fresh league data from the server to get latest pending_requests and participants
