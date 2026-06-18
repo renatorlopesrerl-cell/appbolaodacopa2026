@@ -81,6 +81,7 @@ export const onRequest = async (context: any) => {
 
         return new Response("Method not allowed", { status: 405 });
     } catch (e: any) {
+        console.error("Match Update Error:", e, "Message:", e.message, "Code:", e.code, "Details:", e.details);
         return errorResponse(e);
     }
 }

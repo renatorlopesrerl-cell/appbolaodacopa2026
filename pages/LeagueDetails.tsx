@@ -33,7 +33,8 @@ export const LeagueDetails: React.FC = () => {
         currentUser, leagues, matches, predictions, users, currentTime, invitations,
         joinLeague, deleteLeague, approveUser, rejectUser,
         removeUserFromLeague, submitPredictions, sendLeagueInvite, updateLeague, loading, refreshPredictions, isRefreshingPredictions,
-        topFinisherPredictions, topFinishersResult, submitTopFinisherPrediction, loadLeagueData,
+        topFinisherPredictions, topFinishersResult, submitTopFinisherPrediction, loadLeagueData, fetchLeagueTopFinisherPredictions,
+        fetchMatchPredictions,
         hasWatchedPredictionAd, setHasWatchedPredictionAd
     } = useStore();
     
@@ -316,6 +317,8 @@ export const LeagueDetails: React.FC = () => {
     const [editTopFinishersEnabled, setEditTopFinishersEnabled] = useState(false);
     const [editTopFinishersPoints, setEditTopFinishersPoints] = useState({ champion: 20, runnerUp: 15, third: 10, fourth: 5 });
     const [showTopFinishersModal, setShowTopFinishersModal] = useState(false);
+    const [isTop4FieldsExpanded, setIsTop4FieldsExpanded] = useState(false);
+    const [isFetchingTopFinishers, setIsFetchingTopFinishers] = useState(false);
     const [tfModalSearch, setTfModalSearch] = useState('');
     const [tfModalPage, setTfModalPage] = useState(1);
 
@@ -656,6 +659,13 @@ export const LeagueDetails: React.FC = () => {
         return () => window.removeEventListener('hashchange', handleHashChange);
     }, [selectedMatchForDetails, selectedMatchForStats, selectedUserId, showDeleteConfirm, showLeaveConfirm, showUpgradeModal, showTopFinishersModal, userToRemove]);
 
+    useEffect(() => {
+        if (showTopFinishersModal && league) {
+            setIsFetchingTopFinishers(true);
+            fetchLeagueTopFinisherPredictions(league.id).finally(() => setIsFetchingTopFinishers(false));
+        }
+    }, [showTopFinishersModal, league?.id]);
+
     // --- SMART POLLING LOGIC ---
     useEffect(() => {
         if (!league) return;
@@ -713,6 +723,18 @@ export const LeagueDetails: React.FC = () => {
                 });
         } else {
             setMatchDetailedStats(null);
+        }
+    }, [selectedMatchForDetails, league?.id]);
+
+    // LAZY LOADING: Quando o modal de um jogo bloqueado/em andamento/finalizado é aberto,
+    // busca os palpites de TODOS os participantes apenas daquele jogo específico.
+    useEffect(() => {
+        if (!selectedMatchForDetails || !league) return;
+        const match = matches.find(m => m.id === selectedMatchForDetails);
+        if (!match) return;
+        const isLocked = isPredictionLocked(match.date, currentTime);
+        if (isLocked || match.status === MatchStatus.IN_PROGRESS || match.status === MatchStatus.FINISHED) {
+            fetchMatchPredictions(selectedMatchForDetails, league.id, 'standard');
         }
     }, [selectedMatchForDetails, league?.id]);
 
@@ -1130,7 +1152,7 @@ export const LeagueDetails: React.FC = () => {
             if (h > a) homeWins++;
             else if (a > h) awayWins++;
             else draws++;
-            const key = `${h}-${a}`;
+            const key = `${h} x ${a}`;
             scoreCount[key] = (scoreCount[key] || 0) + 1;
         });
 
@@ -1142,8 +1164,8 @@ export const LeagueDetails: React.FC = () => {
                 maxCount = count;
                 mostPredictedScore = key;
             } else if (count === maxCount && mostPredictedScore) {
-                const [hA, aA] = mostPredictedScore.split('-').map(Number);
-                const [hB, aB] = key.split('-').map(Number);
+                const [hA, aA] = mostPredictedScore.split(' x ').map(Number);
+                const [hB, aB] = key.split(' x ').map(Number);
                 const totalA = hA + aA, totalB = hB + aB;
                 // Prefer fewer total goals; if equal, prefer higher home score
                 if (totalB < totalA || (totalB === totalA && hB > hA)) {
@@ -1204,8 +1226,20 @@ export const LeagueDetails: React.FC = () => {
         return {
             match,
             participants: league.participants.map(uid => {
-                const u = mergedUsers.find(user => user.id === uid);
-                return { user: u, pred: matchDetailsPreds.find(pred => pred.userId === uid) };
+                const u = mergedUsers.find(user => user.id === uid) || { name: 'Usuário', id: uid, email: '', avatar: '', isAdmin: false, whatsapp: '', theme: undefined, isPro: false } as User;
+                const pred = matchDetailsPreds.find(pred => pred.userId === uid);
+                let points = 0;
+                if (match.homeScore !== null && match.awayScore !== null && pred) {
+                    points = calculatePoints(Number(pred.homeScore), Number(pred.awayScore), Number(match.homeScore), Number(match.awayScore), league.settings);
+                }
+                return { user: u, pred, points };
+            }).sort((a, b) => {
+                const aHasPred = !!a.pred;
+                const bHasPred = !!b.pred;
+                if (aHasPred && !bHasPred) return -1;
+                if (!aHasPred && bHasPred) return 1;
+                if (b.points !== a.points) return b.points - a.points;
+                return a.user.name.localeCompare(b.user.name);
             })
         };
     };
@@ -1270,7 +1304,7 @@ export const LeagueDetails: React.FC = () => {
                                     </div>
                                     <div>
                                         <span className="font-black text-white text-sm uppercase tracking-widest">4 Primeiros Colocados</span>
-                                        <p className="text-gray-400 text-[10px] mt-0.5 font-medium">
+                                        <p className={`mt-0.5 font-medium ${isLocked ? 'text-xs text-emerald-400 animate-pulse' : 'text-[10px] text-gray-400'}`}>
                                             {isLocked ? 'Toque para ver os palpites da galera 👆' : 'Palpite de colocação final da competição'}
                                         </p>
                                     </div>
@@ -1294,13 +1328,19 @@ export const LeagueDetails: React.FC = () => {
 
                             {/* Result banner */}
                             {isLocked && (
-                                <div className="bg-emerald-50 dark:bg-emerald-900/20 px-5 py-2.5 border-b border-emerald-200 dark:border-emerald-800 flex items-center gap-2 text-emerald-800 dark:text-emerald-300 text-xs font-bold">
-                                    <CheckCircle2 size={14} /> {isOfficialResultDefined ? 'Resultado oficial definido — palpites encerrados' : 'A competição já começou — palpites encerrados'}
+                                <div className="bg-emerald-50 dark:bg-emerald-900/20 px-5 py-2.5 border-b border-emerald-200 dark:border-emerald-800 flex items-center justify-between gap-2 text-emerald-800 dark:text-emerald-300 text-xs font-bold">
+                                    <div className="flex items-center gap-2">
+                                        <CheckCircle2 size={14} /> {isOfficialResultDefined ? 'Resultado oficial definido — palpites encerrados' : 'A competição já começou — palpites encerrados'}
+                                    </div>
+                                    <button onClick={(e) => { e.stopPropagation(); setIsTop4FieldsExpanded(!isTop4FieldsExpanded); }} className="bg-yellow-400 hover:bg-yellow-500 text-yellow-900 px-3 py-1 rounded text-[10px] font-black uppercase transition-colors shrink-0 cursor-pointer relative z-10 shadow-sm">
+                                        {isTop4FieldsExpanded ? 'Ocultar palpites' : 'Mostrar palpites'}
+                                    </button>
                                 </div>
                             )}
 
                             {/* Fields grid */}
-                            <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {(!isLocked || isTop4FieldsExpanded) && (
+                                <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 {fields.map(f => {
                                     const officialValue = topFinishersResult?.[f.key as keyof typeof topFinishersResult];
                                     const userValue = existingPred?.[f.key as keyof typeof existingPred];
@@ -1359,6 +1399,7 @@ export const LeagueDetails: React.FC = () => {
                                     );
                                 })}
                             </div>
+                            )}
                         </div>
                     );
                 })()}
@@ -1391,8 +1432,16 @@ export const LeagueDetails: React.FC = () => {
                                     />
                                 </div>
                             </div>
+                            
+                            {isFetchingTopFinishers && (
+                                <div className="flex flex-col items-center justify-center py-6 text-gray-500 dark:text-gray-400">
+                                    <Loader2 className="animate-spin mb-2" size={24} />
+                                    <span className="text-xs font-bold uppercase tracking-wider">Carregando palpites...</span>
+                                </div>
+                            )}
+
                             {/* List */}
-                            <div className="flex-1 overflow-y-auto">
+                            <div className="flex-1 overflow-y-auto p-0 bg-gray-50 dark:bg-gray-800">
                                 {(() => {
                                     const tfPts = league.settings.topFinishersPoints ?? { champion: 20, runnerUp: 15, third: 10, fourth: 5 };
                                     const allPreds = league.participants.map(uid => {
@@ -1408,7 +1457,13 @@ export const LeagueDetails: React.FC = () => {
                                         return { user, pred, pts };
                                     })
                                     .filter(p => p.user.name.toLowerCase().includes(tfModalSearch.toLowerCase()))
-                                    .sort((a, b) => b.pts - a.pts || a.user.name.localeCompare(b.user.name));
+                                    .sort((a, b) => {
+                                        const aHasPred = !!a.pred;
+                                        const bHasPred = !!b.pred;
+                                        if (aHasPred && !bHasPred) return -1;
+                                        if (!aHasPred && bHasPred) return 1;
+                                        return a.user.name.localeCompare(b.user.name);
+                                    });
                                     
                                     const itemsPerPage = 100;
                                     const totalPages = Math.ceil(allPreds.length / itemsPerPage) || 1;
@@ -1784,7 +1839,7 @@ export const LeagueDetails: React.FC = () => {
                                                     {[
                                                         { icon: Eye, text: 'Acompanhe os palpites de todos em tempo real', color: 'text-amber-500' },
                                                         { icon: Target, text: 'Seca ou torce sabendo exatamente o placar do adversário', color: 'text-emerald-500' },
-                                                        { icon: BarChart2, text: 'Estatísticas exclusivas e placares mais apostados', color: 'text-blue-500' },
+                                                        { icon: BarChart2, text: 'Estatísticas exclusivas e placares mais palpitados', color: 'text-blue-500' },
                                                     ].map(({ icon: Icon, text, color }, i) => (
                                                         <div key={i} className="flex items-center gap-3 text-xs text-gray-700 dark:text-gray-300">
                                                             <div className={`${color} shrink-0`}><Icon size={14} /></div>
@@ -1809,15 +1864,12 @@ export const LeagueDetails: React.FC = () => {
                             }
 
                             // Calculate local stats from predictions array in store
-                            const totalPreds = matchDetailedStats?.stats?.total || 0;
-                            const mostPredictedScore = matchDetailedStats?.stats?.most_guessed_score || '-';
-                            const homeWins = matchDetailedStats?.stats?.home_wins || 0;
-                            const draws = matchDetailedStats?.stats?.draws || 0;
-                            const awayWins = matchDetailedStats?.stats?.away_wins || 0;
-
-                            const homeWinPct = totalPreds > 0 ? Math.round((homeWins / totalPreds) * 100) : 0;
-                            const drawPct = totalPreds > 0 ? Math.round((draws / totalPreds) * 100) : 0;
-                            const awayWinPct = totalPreds > 0 ? Math.round((awayWins / totalPreds) * 100) : 0;
+                            const localStats = getMatchStatsData(selectedMatchForDetails);
+                            const totalPreds = localStats?.totalPreds || 0;
+                            const mostPredictedScore = localStats?.mostPredictedScore || '-';
+                            const homeWinPct = localStats?.homeWinPct || 0;
+                            const drawPct = localStats?.drawPct || 0;
+                            const awayWinPct = localStats?.awayWinPct || 0;
 
                             return createPortal(
                                 <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setSelectedMatchForDetails(null)}>
@@ -1857,7 +1909,7 @@ export const LeagueDetails: React.FC = () => {
                                                         <div className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-2 sm:px-4 py-2 flex items-center justify-between gap-2 text-xs shrink-0 shadow-sm overflow-hidden">
                                                             {mostPredictedScore && mostPredictedScore !== '-' && (
                                                                 <div className="flex flex-col items-center justify-center shrink-0 w-24">
-                                                                    <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider text-center">Mais apostado</span>
+                                                                    <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider text-center">Mais palpitado</span>
                                                                     <span className="text-base font-black text-gray-800 dark:text-gray-200 mt-1 text-center">{mostPredictedScore}</span>
                                                                 </div>
                                                             )}
@@ -1989,7 +2041,7 @@ export const LeagueDetails: React.FC = () => {
                                             </div>
                                             <div className="p-5 space-y-3">
                                                 {[
-                                                    { icon: Trophy, text: 'Placar mais apostado pelos participantes', color: 'text-amber-500' },
+                                                    { icon: Trophy, text: 'Placar mais palpitado pelos participantes', color: 'text-amber-500' },
                                                     { icon: BarChart2, text: 'Distribuição: % Casa, Empate, Visitante', color: 'text-emerald-500' },
                                                     { icon: Calendar, text: 'Histórico recente dos times', color: 'text-blue-500' },
                                                 ].map(({ icon: Icon, text, color }, i) => (
@@ -2113,7 +2165,7 @@ export const LeagueDetails: React.FC = () => {
                                                                 <div className="bg-white dark:bg-gray-700/60 rounded-xl p-4 border border-gray-100 dark:border-gray-600 shadow-sm flex flex-col items-center justify-center text-center gap-3">
                                                                     <div className="flex flex-col items-center">
                                                                         <span className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500 mb-0.5 flex items-center gap-1.5">
-                                                                            <Trophy size={10} className="text-yellow-500" /> Placar mais apostado
+                                                                            <Trophy size={10} className="text-yellow-500" /> Placar mais palpitado
                                                                         </span>
                                                                         <span className="text-[10px] text-gray-500 dark:text-gray-400 leading-tight">Entre os palpites já registrados na liga</span>
                                                                     </div>
@@ -2312,9 +2364,9 @@ export const LeagueDetails: React.FC = () => {
                                                                                 </div>
                                                                                 <div className="grid grid-cols-2 gap-2">
                                                                                     {pagedMissing.map(u => (
-                                                                                        <div key={u.id} className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 p-1.5 rounded-lg">
-                                                                                            <OptimizedImage src={u.avatar} containerClassName="w-6 h-6 rounded-full border border-gray-300 dark:border-gray-600" className="w-full h-full object-cover" alt="" />
-                                                                                            <span className="text-xs font-medium text-gray-600 dark:text-gray-400 truncate w-full">{u.name}</span>
+                                                                                        <div key={u.id} className="flex items-center gap-2 bg-yellow-50/50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800/50 p-1.5 rounded-lg">
+                                                                                            <OptimizedImage src={u.avatar} containerClassName="w-6 h-6 rounded-full border border-yellow-300 dark:border-yellow-700" className="w-full h-full object-cover" alt="" />
+                                                                                            <span className="text-xs font-medium text-yellow-800 dark:text-yellow-300 truncate w-full">{u.name}</span>
                                                                                         </div>
                                                                                     ))}
                                                                                 </div>

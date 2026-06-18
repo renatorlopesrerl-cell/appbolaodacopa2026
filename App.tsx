@@ -136,6 +136,8 @@ interface AppState {
   submitTopFinisherPrediction: (leagueId: string, champion: string, runnerUp: string, third: string, fourth: string) => Promise<boolean>;
   setTopFinishersResult: (champion: string, runnerUp: string, third: string, fourth: string) => Promise<boolean>;
   loadLeagueData: (leagueId: string, leagueType?: 'standard' | 'brazil', forceRefresh?: boolean) => Promise<void>;
+  fetchMatchPredictions: (matchId: string, leagueId: string, leagueType: 'standard' | 'brazil') => Promise<any[]>;
+  fetchLeagueTopFinisherPredictions: (leagueId: string) => Promise<any[]>;
   hasWatchedPredictionAd: boolean;
   setHasWatchedPredictionAd: (val: boolean) => void;
   isRefreshingPredictions: boolean;
@@ -1813,40 +1815,46 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     if (isRefreshingPredictions) return;
     setIsRefreshingPredictions(true);
     try {
-      // Clear all local prediction caches to force a full re-sync
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && (key.startsWith('preds_cache_') || key.startsWith('synced_matches_'))) {
-          localStorage.removeItem(key);
-        }
-      }
+      const uid = currentUser?.id;
+      if (!uid) return;
 
-      const userLeagueIds = leagues.filter(l => l.participants.includes(currentUser?.id || '')).map(l => l.id);
+      // Limpa o cache em memória de palpites de jogos para forçar re-fetch nos modais
+      if (matchPredsCache?.current) matchPredsCache.current = {};
+
+      const userLeagueIds = leagues.filter(l => l.participants.includes(uid)).map(l => l.id);
       if (userLeagueIds.length > 0) {
-        const predsData = await api.predictions.list(userLeagueIds);
+        // Baixa APENAS os palpites do próprio usuário (muito mais leve)
+        const predsData = await api.predictions.list(userLeagueIds, uid);
         if (predsData) {
           const mappedPreds: Prediction[] = predsData.map((p: any) => ({
             userId: p.user_id, matchId: p.match_id, leagueId: p.league_id,
             homeScore: Number(p.home_score), awayScore: Number(p.away_score),
             points: p.points ? Number(p.points) : 0
           }));
-          setPredictions(mappedPreds);
+          // Mantém palpites de outros usuários carregados via modal, substitui apenas os do próprio usuário
+          setPredictions(prev => {
+            const others = prev.filter(p => p.userId !== uid);
+            return [...others, ...mappedPreds];
+          });
         }
       }
       
-      const userBrLeagueIds = brazilLeagues.filter(l => l.participants.includes(currentUser?.id || '')).map(l => l.id);
+      const userBrLeagueIds = brazilLeagues.filter(l => l.participants.includes(uid)).map(l => l.id);
       if (userBrLeagueIds.length > 0) {
-         const brPredsData = await api.brazilPredictions.list(userBrLeagueIds);
-         if (brPredsData) {
-            const mappedBrPreds: BrazilPrediction[] = brPredsData.map((p: any) => ({
-              userId: p.user_id, matchId: p.match_id, leagueId: p.league_id,
-              homeScore: Number(p.home_score), awayScore: Number(p.away_score),
-              playerPick: p.player_pick,
-              points: p.points ? Number(p.points) : 0,
-              goalscorerPoints: p.goalscorer_points ? Number(p.goalscorer_points) : 0
-            }));
-            setBrazilPredictions(mappedBrPreds);
-         }
+        const brPredsData = await api.brazilPredictions.list(userBrLeagueIds, uid);
+        if (brPredsData) {
+          const mappedBrPreds: BrazilPrediction[] = brPredsData.map((p: any) => ({
+            userId: p.user_id, matchId: p.match_id, leagueId: p.league_id,
+            homeScore: Number(p.home_score), awayScore: Number(p.away_score),
+            playerPick: p.player_pick,
+            points: p.points ? Number(p.points) : 0,
+            goalscorerPoints: p.goalscorer_points ? Number(p.goalscorer_points) : 0
+          }));
+          setBrazilPredictions(prev => {
+            const others = prev.filter(p => p.userId !== uid);
+            return [...others, ...mappedBrPreds];
+          });
+        }
       }
 
       addNotification('Atualizado', 'Palpites sincronizados com sucesso.', 'success');
@@ -1904,56 +1912,25 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         ...(league.pendingRequests || league.pending_requests || [])
       ] : [];
 
-      // INCREMENTAL PREDICTIONS CACHE
-      const cacheKeyLocal = `preds_cache_${leagueType}_${leagueId}`;
-      const syncedMatchesKey = `synced_matches_${leagueType}_${leagueId}`;
-      let cachedPreds: any[] = [];
-      let syncedMatches: string[] = [];
-      try {
-        const pStr = localStorage.getItem(cacheKeyLocal);
-        if (pStr) cachedPreds = JSON.parse(pStr);
-        const sStr = localStorage.getItem(syncedMatchesKey);
-        if (sStr) syncedMatches = JSON.parse(sStr);
-      } catch (e) {
-        console.warn('Failed to parse predictions cache', e);
-      }
-
-      let matchIdsNeeded: string[] | undefined = undefined;
-      // Use matches from useStore (accessible via state) or rely on a fallback
-      // Since `matches` state from App.tsx scope is available:
-      if (matches && matches.length > 0 && !forceRefresh) {
-        matchIdsNeeded = matches.filter(m => !syncedMatches.includes(m.id)).map(m => m.id);
-      }
-
-      const predsPromise = (matchIdsNeeded && matchIdsNeeded.length === 0)
-        ? Promise.resolve([])
-        : (isBrazil ? api.brazilPredictions.list(leagueId, undefined, matchIdsNeeded) : api.predictions.list(leagueId, undefined, matchIdsNeeded));
+      // LAZY LOADING: Só baixa palpites do PRÓPRIO usuário ao entrar na liga.
+      // Palpites de outros participantes são carregados sob demanda ao abrir o modal.
+      const currentUserId = currentUserRef.current?.id;
+      const predsPromise = currentUserId
+        ? (isBrazil
+            ? api.brazilPredictions.list(leagueId, currentUserId)
+            : api.predictions.list(leagueId, currentUserId))
+        : Promise.resolve([]);
 
       const [predsRes, profilesRes, topRes, playersRes, goalsRes, matchesRes] = await Promise.all([
         predsPromise,
         participantIds.length > 0 ? api.profiles.getByIds(participantIds) : Promise.resolve([]),
-        api.topFinisherPredictions.list(leagueId),
+        api.topFinisherPredictions.list(leagueId, currentUserId),
         isBrazil ? api.brazilPlayers.list() : Promise.resolve([]),
         isBrazil ? api.brazilMatchGoals.list() : Promise.resolve([]),
         api.matches.list()
       ]);
 
-      // MERGE CACHE AND UPDATE SYNC
-      let updatedSync = false;
-      const newSyncedMatches = [...syncedMatches];
-      if (matchesRes) {
-        matchesRes.forEach((m: any) => {
-          if (m.status === 'FINISHED' && !syncedMatches.includes(m.id)) {
-            if (!matchIdsNeeded || matchIdsNeeded.includes(m.id)) {
-              newSyncedMatches.push(m.id);
-              updatedSync = true;
-            }
-          }
-        });
-      }
-      if (updatedSync) {
-        localStorage.setItem(syncedMatchesKey, JSON.stringify(newSyncedMatches));
-      }
+      // (Sem cache incremental de matchIds — agora carregamos apenas os próprios palpites)
 
       if (isBrazil) {
         const mappedBrPreds: BrazilPrediction[] = (predsRes || []).map((p: any) => ({
@@ -1963,16 +1940,10 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           points: p.points ? Number(p.points) : 0,
           goalscorerPoints: p.goalscorer_points ? Number(p.goalscorer_points) : 0
         }));
-
-        const finalBrPreds = [
-          ...cachedPreds.filter((p: any) => matchIdsNeeded === undefined ? false : !matchIdsNeeded.includes(p.matchId)),
-          ...mappedBrPreds
-        ];
-        localStorage.setItem(cacheKeyLocal, JSON.stringify(finalBrPreds));
-
         setBrazilPredictions(prev => {
-          const others = prev.filter(p => p.leagueId !== leagueId);
-          return [...others, ...finalBrPreds];
+          // Mantém palpites de outras ligas e de outros usuários já carregados nessa liga
+          const others = prev.filter(p => !(p.leagueId === leagueId && p.userId === currentUserId));
+          return [...others, ...mappedBrPreds];
         });
       } else {
         const mappedPreds: Prediction[] = (predsRes || []).map((p: any) => ({
@@ -1980,16 +1951,10 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           homeScore: Number(p.home_score), awayScore: Number(p.away_score),
           points: p.points ? Number(p.points) : 0
         }));
-
-        const finalPreds = [
-          ...cachedPreds.filter((p: any) => matchIdsNeeded === undefined ? false : !matchIdsNeeded.includes(p.matchId)),
-          ...mappedPreds
-        ];
-        localStorage.setItem(cacheKeyLocal, JSON.stringify(finalPreds));
-
         setPredictions(prev => {
-          const others = prev.filter(p => p.leagueId !== leagueId);
-          return [...others, ...finalPreds];
+          // Mantém palpites de outras ligas e de outros usuários já carregados nessa liga
+          const others = prev.filter(p => !(p.leagueId === leagueId && p.userId === currentUserId));
+          return [...others, ...mappedPreds];
         });
       }
 
@@ -2051,6 +2016,74 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return fetchPromise;
 };
 
+  // === LAZY LOADING: Palpites de um jogo específico sob demanda ===
+  // Cache em memória por sessão para evitar re-fetches desnecessários.
+  const matchPredsCache = useRef<Record<string, any[]>>({});
+
+  const fetchMatchPredictions = async (matchId: string, leagueId: string, leagueType: 'standard' | 'brazil'): Promise<any[]> => {
+    const cacheKey = `${leagueType}_${leagueId}_${matchId}`;
+    if (matchPredsCache.current[cacheKey]) {
+      return matchPredsCache.current[cacheKey];
+    }
+
+    try {
+      let preds: any[];
+      if (leagueType === 'brazil') {
+        preds = await api.brazilPredictions.list(leagueId, undefined, [matchId]);
+        const mappedPreds: BrazilPrediction[] = preds.map((p: any) => ({
+          userId: p.user_id, matchId: p.match_id, leagueId: p.league_id,
+          homeScore: Number(p.home_score), awayScore: Number(p.away_score),
+          playerPick: p.player_pick,
+          points: p.points ? Number(p.points) : 0,
+          goalscorerPoints: p.goalscorer_points ? Number(p.goalscorer_points) : 0
+        }));
+        // Merges into global state without replacing own user's data
+        setBrazilPredictions(prev => {
+          const others = prev.filter(p => !(p.matchId === matchId && p.leagueId === leagueId));
+          return [...others, ...mappedPreds];
+        });
+        matchPredsCache.current[cacheKey] = mappedPreds;
+        return mappedPreds;
+      } else {
+        preds = await api.predictions.list(leagueId, undefined, [matchId]);
+        const mappedPreds: Prediction[] = preds.map((p: any) => ({
+          userId: p.user_id, matchId: p.match_id, leagueId: p.league_id,
+          homeScore: Number(p.home_score), awayScore: Number(p.away_score),
+          points: p.points ? Number(p.points) : 0
+        }));
+        // Merges into global state without replacing own user's data
+        setPredictions(prev => {
+          const others = prev.filter(p => !(p.matchId === matchId && p.leagueId === leagueId));
+          return [...others, ...mappedPreds];
+        });
+        matchPredsCache.current[cacheKey] = mappedPreds;
+        return mappedPreds;
+      }
+    } catch (e) {
+      console.error('[fetchMatchPredictions] Error:', e);
+      return [];
+    }
+  };
+
+  const fetchLeagueTopFinisherPredictions = async (leagueId: string): Promise<any[]> => {
+    try {
+      const preds = await api.topFinisherPredictions.list(leagueId);
+      const mappedTopPreds: TopFinisherPrediction[] = (preds || []).map((p: any) => ({
+        userId: p.user_id, leagueId: p.league_id,
+        champion: p.champion || '', runnerUp: p.runner_up || '',
+        third: p.third || '', fourth: p.fourth || ''
+      }));
+      setTopFinisherPredictions(prev => {
+        const others = prev.filter(p => p.leagueId !== leagueId);
+        return [...others, ...mappedTopPreds];
+      });
+      return mappedTopPreds;
+    } catch (e) {
+      console.error('[fetchLeagueTopFinisherPredictions] Error:', e);
+      return [];
+    }
+  };
+
   // Refreshes the current user's profile from DB (including isPro).
   // Called after a purchase or restore so the UI immediately reflects the new Pro status.
   const refreshCurrentUser = async (): Promise<void> => {
@@ -2092,6 +2125,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       isRecoveryMode, lastSyncTime,
       createBrazilLeague, updateBrazilLeague, joinBrazilLeague, deleteBrazilLeague, approveBrazilUser, rejectBrazilUser, removeUserFromBrazilLeague, submitBrazilPredictions, addBrazilMatchGoal, sendBrazilLeagueInvite,
       topFinisherPredictions, topFinishersResult, submitTopFinisherPrediction, setTopFinishersResult, loadLeagueData,
+      fetchMatchPredictions, fetchLeagueTopFinisherPredictions,
       hasWatchedPredictionAd, setHasWatchedPredictionAd
     }}>
       {children}
