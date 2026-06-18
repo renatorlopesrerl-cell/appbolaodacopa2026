@@ -8,6 +8,7 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
 
         const url = new URL(request.url);
         const leagueId = url.searchParams.get('leagueId');
+        const period = url.searchParams.get('period') || 'total';
 
         if (!leagueId) {
             return new Response("League ID required", { status: 400 });
@@ -20,6 +21,7 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
             .from('brazil_league_rankings')
             .select('*, profiles(name, avatar, is_pro)')
             .eq('league_id', leagueId)
+            .eq('period', period)
             .order('total_points', { ascending: false })
             .order('exact_scores', { ascending: false })
             .order('winner_and_diff_count', { ascending: false })

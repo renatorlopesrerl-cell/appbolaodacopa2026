@@ -42,14 +42,47 @@ export const LeagueDetails: React.FC = () => {
 
     const [activeTab, setActiveTab] = useState<'palpites' | 'classificacao' | 'regras' | 'admin'>('palpites');
     const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+    const [leaderboardView, setLeaderboardView] = useState<string>('total');
 
-    // Fetch Pre-calculated Rankings (Optimized)
-    const { data: cachedRankings } = useQuery({
-        queryKey: ['rankings', id],
-        queryFn: () => api.leagues.getRankings(id || ''),
-        enabled: !!id,
-        refetchInterval: 15000, // Refresh every 15 seconds
-    });
+    const [rankingsByPeriod, setRankingsByPeriod] = useState<Record<string, any[]>>({});
+    const [loadingPeriod, setLoadingPeriod] = useState<string | null>(null);
+
+    const loadRankingsForPeriod = async (period: string, forceRefresh = false) => {
+        if (!id) return;
+        if (!forceRefresh && rankingsByPeriod[period]) {
+            return;
+        }
+        setLoadingPeriod(period);
+        try {
+            const data = await fetchLeagueRankings(id, 'standard', period);
+            setRankingsByPeriod(prev => ({
+                ...prev,
+                [period]: data
+            }));
+        } catch (error) {
+            console.error(`Error loading rankings for period ${period}:`, error);
+        } finally {
+            setLoadingPeriod(null);
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab === 'classificacao' && id) {
+            loadRankingsForPeriod(leaderboardView);
+        }
+    }, [activeTab, id, leaderboardView]);
+
+    useEffect(() => {
+        if (id) {
+            loadRankingsForPeriod('total');
+        }
+    }, [id]);
+
+    useEffect(() => {
+        if (activeTab === 'classificacao' && id && isRefreshingPredictions === false) {
+            loadRankingsForPeriod(leaderboardView, true);
+        }
+    }, [isRefreshingPredictions]);
 
     useEffect(() => {
         if (!window.visualViewport) return;
@@ -215,7 +248,6 @@ export const LeagueDetails: React.FC = () => {
     const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
     const [leaderboardSearch, setLeaderboardSearch] = useState('');
-    const [leaderboardView, setLeaderboardView] = useState<string>('total');
     const [leaderboardPage, setLeaderboardPage] = useState(1);
     const [histPhase, setHistPhase] = useState<string>('all');
     const [histGroup, setHistGroup] = useState<string>('all');
@@ -504,6 +536,65 @@ export const LeagueDetails: React.FC = () => {
 
     const leaderboard = useMemo(() => {
         if (!league) return [];
+
+        const currentPeriodRankings = rankingsByPeriod[leaderboardView];
+
+        // If the database rankings are loaded, use them!
+        if (currentPeriodRankings && currentPeriodRankings.length > 0) {
+            return league.participants.map(userId => {
+                const dbRank = currentPeriodRankings.find(r => r.user_id === userId);
+                const user = mergedUsers.find(u => u.id === userId) || { name: 'Unknown', id: userId, email: '', avatar: '' } as User;
+                
+                let tfTotal = 0;
+                if (leaderboardView === 'total' && league.settings?.topFinishersEnabled && topFinishersResult) {
+                    const tfPred = topFinisherPredictions.find(p => p.userId === userId && p.leagueId === league.id);
+                    if (tfPred) {
+                        const tfPts = league.settings.topFinishersPoints ?? { champion: 20, runnerUp: 15, third: 10, fourth: 5 };
+                        if (topFinishersResult.champion && tfPred.champion === topFinishersResult.champion) tfTotal += tfPts.champion;
+                        if (topFinishersResult.runnerUp && tfPred.runnerUp === topFinishersResult.runnerUp) tfTotal += tfPts.runnerUp;
+                        if (topFinishersResult.third && tfPred.third === topFinishersResult.third) tfTotal += tfPts.third;
+                        if (topFinishersResult.fourth && tfPred.fourth === topFinishersResult.fourth) tfTotal += tfPts.fourth;
+                    }
+                }
+
+                if (dbRank) {
+                    return {
+                        user,
+                        totalPoints: Number(dbRank.total_points) + tfTotal,
+                        exactScores: Number(dbRank.exact_scores),
+                        winnerAndDiffCount: Number(dbRank.winner_and_diff_count),
+                        winnerAndWinnerGoalsCount: Number(dbRank.winner_and_winner_goals_count),
+                        drawCount: Number(dbRank.draw_count),
+                        onlyWinnerCount: Number(dbRank.only_winner_count),
+                        knockoutPoints: Number(dbRank.knockout_points),
+                        tfTotal
+                    };
+                }
+                
+                // Fallback if user not found in dbRank
+                return {
+                    user,
+                    totalPoints: tfTotal,
+                    exactScores: 0,
+                    winnerAndDiffCount: 0,
+                    winnerAndWinnerGoalsCount: 0,
+                    drawCount: 0,
+                    onlyWinnerCount: 0,
+                    knockoutPoints: 0,
+                    tfTotal
+                };
+            }).sort((a, b) => {
+                if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
+                if (b.exactScores !== a.exactScores) return b.exactScores - a.exactScores;
+                if (b.winnerAndDiffCount !== a.winnerAndDiffCount) return b.winnerAndDiffCount - a.winnerAndDiffCount;
+                if (b.winnerAndWinnerGoalsCount !== a.winnerAndWinnerGoalsCount) return b.winnerAndWinnerGoalsCount - a.winnerAndWinnerGoalsCount;
+                if (b.drawCount !== a.drawCount) return b.drawCount - a.drawCount;
+                if (b.onlyWinnerCount !== a.onlyWinnerCount) return b.onlyWinnerCount - a.onlyWinnerCount;
+                return 0;
+            });
+        }
+
+        // Fallback: client-side calculations (same as before) for speed before first load/fallback
         let calculatedBoard = league.participants.map(userId => {
             const user = mergedUsers.find(u => u.id === userId) || { name: 'Unknown', id: userId, email: '', avatar: '' } as User;
 
@@ -540,9 +631,9 @@ export const LeagueDetails: React.FC = () => {
                 }
             });
 
-            // TOP 4 FINISHERS POINTS
+            // TOP 4 FINISHERS POINTS (only for total)
             let tfTotal = 0;
-            if (league.settings?.topFinishersEnabled && topFinishersResult) {
+            if (leaderboardView === 'total' && league.settings?.topFinishersEnabled && topFinishersResult) {
                 const tfPred = topFinisherPredictions.find(p => p.userId === userId && p.leagueId === league.id);
                 if (tfPred) {
                     const tfPts = league.settings.topFinishersPoints ?? { champion: 20, runnerUp: 15, third: 10, fourth: 5 };
@@ -551,42 +642,12 @@ export const LeagueDetails: React.FC = () => {
                     if (topFinishersResult.third && tfPred.third === topFinishersResult.third) tfTotal += tfPts.third;
                     if (topFinishersResult.fourth && tfPred.fourth === topFinishersResult.fourth) tfTotal += tfPts.fourth;
 
-                    // Add to totalPoints if view is total or final phases
-                    const includeTfInSum = leaderboardView === 'total' || leaderboardView === 'knockout' || leaderboardView === 'final_phase';
-                    if (includeTfInSum) {
-                        totalPoints += tfTotal;
-                    }
+                    totalPoints += tfTotal;
                 }
             }
 
             return { user, totalPoints, exactScores, winnerAndDiffCount, winnerAndWinnerGoalsCount, drawCount, onlyWinnerCount, knockoutPoints, tfTotal };
         });
-
-        // OPTIMIZATION: If we are viewing the 'total' leaderboard and we have cached data, use it!
-        if (leaderboardView === 'total' && cachedRankings && cachedRankings.length > 0) {
-            calculatedBoard = league.participants.map(userId => {
-                const cached = cachedRankings.find(r => r.user_id === userId);
-                const localBase = calculatedBoard.find(l => l.user.id === userId);
-                const user = localBase?.user || mergedUsers.find(u => u.id === userId) || { name: 'Unknown', id: userId, email: '', avatar: '' } as User;
-                const tfTotal = localBase?.tfTotal || 0; // Use local tfTotal which is already calculated correctly above
-                
-                if (cached) {
-                    return {
-                        user,
-                        totalPoints: cached.total_points + tfTotal, // DB points + local TF points
-                        exactScores: cached.exact_scores,
-                        winnerAndDiffCount: cached.winner_and_diff_count,
-                        winnerAndWinnerGoalsCount: cached.winner_and_winner_goals_count,
-                        drawCount: cached.draw_count,
-                        onlyWinnerCount: cached.only_winner_count,
-                        knockoutPoints: cached.knockout_points,
-                        tfTotal
-                    };
-                }
-                // Fallback for user not yet in cache
-                return localBase!;
-            });
-        }
 
         return calculatedBoard.sort((a, b) => {
             if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
@@ -597,7 +658,7 @@ export const LeagueDetails: React.FC = () => {
             if (b.onlyWinnerCount !== a.onlyWinnerCount) return b.onlyWinnerCount - a.onlyWinnerCount;
             return 0;
         });
-    }, [league, mergedUsers, predictions, matches, leaderboardView, topFinishersResult, topFinisherPredictions]);
+    }, [league, mergedUsers, predictions, matches, leaderboardView, topFinishersResult, topFinisherPredictions, rankingsByPeriod]);
 
     // Cleanup is now handled securely by the database during account deletion.
 
@@ -2477,53 +2538,62 @@ export const LeagueDetails: React.FC = () => {
                         <div className="relative flex-1 w-full"><Search className="absolute left-3 top-2.5 text-gray-400" size={18} /><input type="text" placeholder="Buscar participante..." value={leaderboardSearch} onChange={(e) => setLeaderboardSearch(e.target.value)} className="w-full pl-10 pr-8 py-2 border border-gray-600 bg-gray-700 text-white placeholder-gray-400 rounded-lg text-sm focus:ring-1 focus:ring-brasil-blue focus:border-brasil-blue outline-none" />{leaderboardSearch && (<button onClick={() => setLeaderboardSearch('')} className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white cursor-pointer"><X size={14} /></button>)}</div>
                     </div>
                 </div>
-                <div className="w-full overflow-x-auto">
-                    <table className="w-full text-sm md:text-base">
-                        <thead className="bg-brasil-blue dark:bg-blue-900 text-white"><tr><th className="px-2 py-3 text-center w-12 md:w-16 text-xs md:text-sm">Pos.</th><th className="px-2 py-3 text-left">Participantes</th><th className="hidden md:table-cell px-2 py-3 text-center w-20"><span className="flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-2 py-1 rounded font-bold whitespace-nowrap">Pontos</span></th><th className="hidden md:table-cell px-2 py-3 text-center w-20"><span className="flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-2 py-1 rounded whitespace-nowrap"><Target size={14} /> Cravadas</span></th><th className="hidden md:table-cell px-2 py-3 text-center w-16"><span className="flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-1.5 py-1 rounded whitespace-nowrap">V+S</span></th><th className="hidden md:table-cell px-2 py-3 text-center w-16"><span className="flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-1.5 py-1 rounded whitespace-nowrap">V+G</span></th><th className="hidden md:table-cell px-2 py-3 text-center w-16"><span className="flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-1.5 py-1 rounded whitespace-nowrap">Emp</span></th><th className="md:hidden px-2 py-3 text-center w-20 whitespace-nowrap">Pontos</th>{isAdmin && <th className="px-0 py-3 w-8"></th>}</tr></thead>
-                        <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-            {filteredLeaderboard.length === 0 ? <tr><td colSpan={7} className="text-center py-8 text-gray-400 italic">Nenhum participante encontrado.</td></tr> : pagedLeaderboard.map((entry, idx) => {
-                                const rank = leaderboard.findIndex(item => item.user.id === entry.user.id) + 1; return (<tr key={entry.user.id} className={entry.user.id === currentUser.id ? 'bg-yellow-50 dark:bg-yellow-900/20' : ''}><td className="px-2 py-3 font-bold text-center text-sm align-middle">{rank === 1 ? <div className="w-6 h-6 mx-auto bg-yellow-400 text-yellow-900 rounded-full flex items-center justify-center shadow-sm font-black text-xs">1</div> : rank === 2 ? <div className="w-6 h-6 mx-auto bg-gray-300 text-gray-800 rounded-full flex items-center justify-center shadow-sm font-black text-xs">2</div> : rank === 3 ? <div className="w-6 h-6 mx-auto bg-orange-400 text-orange-900 rounded-full flex items-center justify-center shadow-sm font-black text-xs">3</div> : <span className="text-gray-500 dark:text-gray-400">{rank}</span>}</td><td className="px-2 py-3 relative w-full max-w-[130px] sm:max-w-[200px] md:max-w-none"><div className="flex items-center gap-2 md:gap-3 cursor-pointer group" onClick={() => setSelectedUserId(entry.user.id)}>
-                                    <div onClick={(e) => { e.stopPropagation(); setZoomedImage(entry.user.avatar); }}>
-                                        <OptimizedImage
-                                            src={entry.user.avatar}
-                                            containerClassName="w-10 h-10 md:w-12 md:h-12 rounded-full cursor-pointer hover:ring-2 hover:ring-brasil-blue transition-all"
-                                            className="w-full h-full object-cover"
-                                            alt=""
-                                        />
-                                    </div>
-                                    <div className="flex flex-col min-w-0 flex-1">
-                                        <div className="flex items-center gap-1.5 min-w-0">
-                                            <span className="font-medium decoration-dotted decoration-gray-400 dark:decoration-gray-500 underline-offset-4 group-hover:text-brasil-blue dark:group-hover:text-blue-400 group-hover:underline text-base md:text-lg text-gray-900 dark:text-white truncate">
-                                                {entry.user.name}
-                                            </span>
-                                            {entry.user.isPro && <span className="inline-flex items-center text-[6px] md:text-[7px] font-black bg-gradient-to-r from-yellow-100 to-yellow-200 text-gray-900 border border-yellow-300 px-0.5 py-[1px] rounded uppercase tracking-tighter shadow-sm shrink-0 leading-none" title="PRO">⭐PRO</span>}
-                                            {entry.user.id === currentUser.id && <span className="text-[10px] font-normal text-gray-500 dark:text-gray-400 shrink-0">(Você)</span>}
-                                        </div>
+                {loadingPeriod === leaderboardView ? (
+                    <div className="flex flex-col items-center justify-center py-20 text-brasil-blue dark:text-blue-400">
+                        <Loader2 size={32} className="animate-spin mb-4" />
+                        <p className="font-medium text-sm text-gray-500">Buscando classificação...</p>
+                    </div>
+                ) : (
+                    <>
+                        <div className="w-full overflow-x-auto">
+                            <table className="w-full text-sm md:text-base">
+                                <thead className="bg-brasil-blue dark:bg-blue-900 text-white"><tr><th className="px-2 py-3 text-center w-12 md:w-16 text-xs md:text-sm">Pos.</th><th className="px-2 py-3 text-left">Participantes</th><th className="hidden md:table-cell px-2 py-3 text-center w-20"><span className="flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-2 py-1 rounded font-bold whitespace-nowrap">Pontos</span></th><th className="hidden md:table-cell px-2 py-3 text-center w-20"><span className="flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-2 py-1 rounded whitespace-nowrap"><Target size={14} /> Cravadas</span></th><th className="hidden md:table-cell px-2 py-3 text-center w-16"><span className="flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-1.5 py-1 rounded whitespace-nowrap">V+S</span></th><th className="hidden md:table-cell px-2 py-3 text-center w-16"><span className="flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-1.5 py-1 rounded whitespace-nowrap">V+G</span></th><th className="hidden md:table-cell px-2 py-3 text-center w-16"><span className="flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-1.5 py-1 rounded whitespace-nowrap">Emp</span></th><th className="md:hidden px-2 py-3 text-center w-20 whitespace-nowrap">Pontos</th>{isAdmin && <th className="px-0 py-3 w-8"></th>}</tr></thead>
+                                <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                                    {filteredLeaderboard.length === 0 ? <tr><td colSpan={7} className="text-center py-8 text-gray-400 italic">Nenhum participante encontrado.</td></tr> : pagedLeaderboard.map((entry, idx) => {
+                                        const rank = leaderboard.findIndex(item => item.user.id === entry.user.id) + 1; return (<tr key={entry.user.id} className={entry.user.id === currentUser.id ? 'bg-yellow-50 dark:bg-yellow-900/20' : ''}><td className="px-2 py-3 font-bold text-center text-sm align-middle">{rank === 1 ? <div className="w-6 h-6 mx-auto bg-yellow-400 text-yellow-900 rounded-full flex items-center justify-center shadow-sm font-black text-xs">1</div> : rank === 2 ? <div className="w-6 h-6 mx-auto bg-gray-300 text-gray-800 rounded-full flex items-center justify-center shadow-sm font-black text-xs">2</div> : rank === 3 ? <div className="w-6 h-6 mx-auto bg-orange-400 text-orange-900 rounded-full flex items-center justify-center shadow-sm font-black text-xs">3</div> : <span className="text-gray-500 dark:text-gray-400">{rank}</span>}</td><td className="px-2 py-3 relative w-full max-w-[130px] sm:max-w-[200px] md:max-w-none"><div className="flex items-center gap-2 md:gap-3 cursor-pointer group" onClick={() => setSelectedUserId(entry.user.id)}>
+                                            <div onClick={(e) => { e.stopPropagation(); setZoomedImage(entry.user.avatar); }}>
+                                                <OptimizedImage
+                                                    src={entry.user.avatar}
+                                                    containerClassName="w-10 h-10 md:w-12 md:h-12 rounded-full cursor-pointer hover:ring-2 hover:ring-brasil-blue transition-all"
+                                                    className="w-full h-full object-cover"
+                                                    alt=""
+                                                />
+                                            </div>
+                                            <div className="flex flex-col min-w-0 flex-1">
+                                                <div className="flex items-center gap-1.5 min-w-0">
+                                                    <span className="font-medium decoration-dotted decoration-gray-400 dark:decoration-gray-500 underline-offset-4 group-hover:text-brasil-blue dark:group-hover:text-blue-400 group-hover:underline text-base md:text-lg text-gray-900 dark:text-white truncate">
+                                                        {entry.user.name}
+                                                    </span>
+                                                    {entry.user.isPro && <span className="inline-flex items-center text-[6px] md:text-[7px] font-black bg-gradient-to-r from-yellow-100 to-yellow-200 text-gray-900 border border-yellow-300 px-0.5 py-[1px] rounded uppercase tracking-tighter shadow-sm shrink-0 leading-none" title="PRO">⭐PRO</span>}
+                                                    {entry.user.id === currentUser.id && <span className="text-[10px] font-normal text-gray-500 dark:text-gray-400 shrink-0">(Você)</span>}
+                                                </div>
 
-                                    </div><Eye size={16} className="text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity ml-auto hidden md:block" /></div></td><td className="hidden md:table-cell px-2 py-3 text-center font-black text-gray-800 dark:text-gray-200 text-base md:text-lg whitespace-nowrap">
-                                        <div className="flex flex-col items-center justify-center">
-                                            <span>{entry.totalPoints}</span>
-                                            {entry.tfTotal > 0 && (
-                                                <span className="text-[9px] bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-1 rounded flex items-center gap-0.5 mt-0.5" title={`${entry.tfTotal} pts de Finalistas`}>
-                                                    <Trophy size={8} className="text-yellow-600" /> +{entry.tfTotal}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </td><td className="hidden md:table-cell px-2 py-3 text-center"><span className="bg-blue-50 dark:bg-blue-900/30 text-brasil-blue dark:text-blue-300 font-bold px-2 py-1 rounded text-sm">{entry.exactScores}</span></td><td className="hidden md:table-cell px-2 py-3 text-center"><span className="bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-bold px-2 py-1 rounded text-sm">{entry.winnerAndDiffCount}</span></td><td className="hidden md:table-cell px-2 py-3 text-center"><span className="bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 font-bold px-2 py-1 rounded text-sm">{entry.winnerAndWinnerGoalsCount}</span></td><td className="hidden md:table-cell px-2 py-3 text-center"><span className="bg-gray-100 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 font-bold px-2 py-1 rounded text-sm">{entry.drawCount}</span></td><td className="md:hidden px-2 py-3 text-center font-bold text-brasil-green dark:text-green-400 text-base md:text-lg whitespace-nowrap">
-                                        <div className="flex flex-col items-center justify-center">
-                                            <span>{entry.totalPoints}</span>
-                                            {entry.tfTotal > 0 && (
-                                                <span className="text-[8px] bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-0.5 rounded flex items-center gap-0.5 mt-0.5">
-                                                    <Trophy size={6} className="text-yellow-600" /> +{entry.tfTotal}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </td>{isAdmin && <td className="px-0 py-3 text-center w-8">{entry.user.id !== currentUser.id && (<button type="button" onClick={(e) => initiateRemoveUser(e, entry.user.id, entry.user.name)} className="text-red-300 hover:text-red-500 dark:hover:text-red-400 p-1 rounded transition-colors z-10 relative"><Trash2 size={16} /></button>)}</td>}</tr>);
-                            })}
-                        </tbody>
-                    </table>
-                </div>
-                <LeaderboardPagination />
+                                            </div><Eye size={16} className="text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity ml-auto hidden md:block" /></div></td><td className="hidden md:table-cell px-2 py-3 text-center font-black text-gray-800 dark:text-gray-200 text-base md:text-lg whitespace-nowrap">
+                                                <div className="flex flex-col items-center justify-center">
+                                                    <span>{entry.totalPoints}</span>
+                                                    {entry.tfTotal > 0 && (
+                                                        <span className="text-[9px] bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-1 rounded flex items-center gap-0.5 mt-0.5" title={`${entry.tfTotal} pts de Finalistas`}>
+                                                            <Trophy size={8} className="text-yellow-600" /> +{entry.tfTotal}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </td><td className="hidden md:table-cell px-2 py-3 text-center"><span className="bg-blue-50 dark:bg-blue-900/30 text-brasil-blue dark:text-blue-300 font-bold px-2 py-1 rounded text-sm">{entry.exactScores}</span></td><td className="hidden md:table-cell px-2 py-3 text-center"><span className="bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-bold px-2 py-1 rounded text-sm">{entry.winnerAndDiffCount}</span></td><td className="hidden md:table-cell px-2 py-3 text-center"><span className="bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 font-bold px-2 py-1 rounded text-sm">{entry.winnerAndWinnerGoalsCount}</span></td><td className="hidden md:table-cell px-2 py-3 text-center"><span className="bg-gray-100 dark:bg-gray-700/50 text-gray-500 dark:text-gray-400 font-bold px-2 py-1 rounded text-sm">{entry.drawCount}</span></td><td className="md:hidden px-2 py-3 text-center font-bold text-brasil-green dark:text-green-400 text-base md:text-lg whitespace-nowrap">
+                                                <div className="flex flex-col items-center justify-center">
+                                                    <span>{entry.totalPoints}</span>
+                                                    {entry.tfTotal > 0 && (
+                                                        <span className="text-[8px] bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-0.5 rounded flex items-center gap-0.5 mt-0.5">
+                                                            <Trophy size={6} className="text-yellow-600" /> +{entry.tfTotal}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </td>{isAdmin && <td className="px-0 py-3 text-center w-8">{entry.user.id !== currentUser.id && (<button type="button" onClick={(e) => initiateRemoveUser(e, entry.user.id, entry.user.name)} className="text-red-300 hover:text-red-500 dark:hover:text-red-400 p-1 rounded transition-colors z-10 relative"><Trash2 size={16} /></button>)}</td>}</tr>);
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                        <LeaderboardPagination />
+                    </>
+                )}
                 {selectedUserId && selectedUser && createPortal(
                     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setSelectedUserId(null)}>
                         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-300" onClick={(e) => e.stopPropagation()}>
@@ -2623,9 +2693,14 @@ export const LeagueDetails: React.FC = () => {
                                             <h3 className="text-3xl font-bold truncate text-white drop-shadow-sm">{entry.user.name}</h3>
                                             {entry.user.isPro && <span className="inline-flex items-center text-xs font-black bg-gradient-to-r from-yellow-200 to-amber-300 text-gray-900 px-2 py-0.5 rounded uppercase mt-1 w-max">⭐ PRO</span>}
                                         </div>
-                                        <div className="flex flex-col items-end justify-center shrink-0 pl-4 border-l border-white/10">
-                                            <span className="text-5xl font-black text-brasil-yellow tabular-nums drop-shadow-md">{entry.totalPoints}</span>
-                                            <span className="text-sm opacity-80 uppercase font-bold tracking-widest mt-1">Pontos</span>
+                                        <div className="flex flex-col items-end justify-center shrink-0 pl-4 border-l border-white/10 text-right">
+                                            <div className="flex items-baseline gap-1">
+                                                <span className="text-5xl font-black text-brasil-yellow tabular-nums drop-shadow-md">{entry.totalPoints}</span>
+                                                <span className="text-sm opacity-80 uppercase font-bold tracking-widest">Pts</span>
+                                            </div>
+                                            <div className="text-sm font-bold text-blue-200 mt-1 flex items-center gap-1">
+                                                <Target size={12} className="text-blue-300" /> {entry.exactScores} Cravadas
+                                            </div>
                                         </div>
                                     </div>
                                 );

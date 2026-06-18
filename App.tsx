@@ -166,12 +166,12 @@ export const getLeagueLimit = (league: League | BrazilLeague): number => {
 };
 
 // --- ERROR BOUNDARY ---
-class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean, error?: Error }> {
   constructor(props: { children: React.ReactNode }) {
     super(props);
     this.state = { hasError: false };
   }
-  static getDerivedStateFromError() { return { hasError: true }; }
+  static getDerivedStateFromError(error: Error) { return { hasError: true, error }; }
   componentDidCatch(error: any, errorInfo: any) { console.error("Uncaught error:", error, errorInfo); }
   render() {
     if (this.state.hasError) {

@@ -11,7 +11,7 @@ if (!fs.existsSync(tempDir)) {
 
 const files = fs.readdirSync(migrationsDir);
 files.forEach(file => {
-  if (file.endsWith('.sql') && file !== '20260618_01_fix_timeout_bulk_update.sql') {
+  if (file.endsWith('.sql') && file !== '2026061804_add_fk_to_rankings.sql') {
     fs.renameSync(path.join(migrationsDir, file), path.join(tempDir, file));
   }
 });
