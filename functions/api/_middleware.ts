@@ -123,8 +123,8 @@ export const onRequest = async ({ request, env, next, data }) => {
                 return withCors(new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403 }));
             }
 
-            // Only Super Admins can access endpoints other than matches
-            if (!isSuperAdmin && isMatchAdmin && !request.url.includes('/admin/matches')) {
+            // Only Super Admins can access endpoints other than matches and push endpoints
+            if (!isSuperAdmin && isMatchAdmin && !request.url.includes('/admin/matches') && !request.url.includes('/admin/send-mass-push') && !request.url.includes('/admin/broadcast-push')) {
                  return withCors(new Response(JSON.stringify({ error: 'Forbidden. Matches admin only.' }), { status: 403 }));
             }
         }
