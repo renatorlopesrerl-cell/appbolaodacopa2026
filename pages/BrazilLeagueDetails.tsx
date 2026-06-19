@@ -16,7 +16,7 @@ import {
     UserPlus, LogOut, Trash2, Check, X, MousePointerClick,
     Save, Loader2, Medal, AlertCircle, Share2, Info, Filter, Plus, Clock, MapPin, CheckCircle2, Unlock, Calendar, ChevronDown, Crown, Eye,
     Target, Mail, AlertTriangle, Camera, Upload, MessageCircle, Copy, Bell, Star, StarHalf, Infinity as InfinityIcon, Zap, ShieldCheck, BarChart2,
-    ChevronLeft, ChevronRight
+    ChevronLeft, ChevronRight, PlayCircle
 } from 'lucide-react';
 import { OptimizedImage } from '../components/OptimizedImage';
 import { LiveCountdown } from '../components/LiveCountdown';
@@ -1182,9 +1182,7 @@ export const BrazilLeagueDetails: React.FC = () => {
                 if (filterStatus === 'upcoming') return m.status === MatchStatus.SCHEDULED || m.status === MatchStatus.IN_PROGRESS;
 
                 const userPred = predictions.find(p => p.matchId === m.id && p.userId === currentUser.id && p.leagueId === league.id);
-                const homeVal = pendingEdits[m.id]?.home ?? (userPred?.homeScore?.toString() ?? '');
-                const awayVal = pendingEdits[m.id]?.away ?? (userPred?.awayScore?.toString() ?? '');
-                const isFilled = homeVal !== '' && awayVal !== '';
+                const isFilled = userPred !== undefined && userPred !== null && userPred.homeScore !== null && userPred.homeScore !== undefined && userPred.awayScore !== null && userPred.awayScore !== undefined;
 
                 if (filterStatus === 'predicted') return isFilled;
                 if (filterStatus === 'missing') return !isFilled;
@@ -1244,7 +1242,7 @@ export const BrazilLeagueDetails: React.FC = () => {
                 </div>
 
                 {hasUnsavedChanges && !isKeyboardOpen && createPortal(
-                    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[9900] pointer-events-auto animate-in slide-in-from-bottom-6 fade-in duration-300">
+                    <div className="fixed bottom-16 left-1/2 -translate-x-1/2 z-[9900] pointer-events-auto animate-in slide-in-from-bottom-6 fade-in duration-300">
                         <button onClick={handleSaveAll} disabled={isSavingPalpites} className="bg-brasil-green hover:bg-green-700 text-white px-8 py-4 rounded-full shadow-2xl shadow-green-900/40 font-bold text-xl md:text-2xl flex items-center gap-3 transition-all transform hover:-translate-y-1 active:scale-95 border border-green-400 ring-4 ring-white/20 backdrop-blur-sm whitespace-nowrap">
                             {isSavingPalpites ? <Loader2 size={28} className="animate-spin" /> : <Save size={28} className="stroke-[3]" />}
                             <span>{isSavingPalpites ? 'Salvando...' : `Salvar ${Object.keys(pendingEdits).length} Palpite(s)`}</span>
@@ -1535,6 +1533,23 @@ export const BrazilLeagueDetails: React.FC = () => {
                                                 </div>
                                             </div>
                                             <div className="px-5 pb-5">
+                                                {Capacitor.isNativePlatform() && (
+                                                    <button
+                                                        onClick={async () => {
+                                                            try {
+                                                                if (!adMobModuleRef.current) adMobModuleRef.current = await import('@capacitor-community/admob');
+                                                                await adMobModuleRef.current.AdMob.showRewardVideoAd();
+                                                            } catch (e) {
+                                                                console.error('Failed to show ad', e);
+                                                                alert('Anúncio não está pronto ainda. Tente novamente em alguns segundos.');
+                                                            }
+                                                        }}
+                                                        className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white font-black py-3.5 px-6 rounded-xl text-sm uppercase tracking-widest shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2 mb-3"
+                                                    >
+                                                        <PlayCircle size={16} fill="currentColor" />
+                                                        Assistir Vídeo para Liberar
+                                                    </button>
+                                                )}
                                                 <button
                                                     onClick={() => { setSelectedMatchForDetails(null); navigate('/seja-pro'); }}
                                                     className="w-full bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-300 hover:to-amber-400 text-gray-900 font-black py-3.5 px-6 rounded-xl text-sm uppercase tracking-widest shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"

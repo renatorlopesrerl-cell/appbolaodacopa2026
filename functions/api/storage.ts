@@ -54,7 +54,7 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
         const { error } = await userClient.storage
             .from(bucketOverride)
             .upload(filePath, bytes, {
-                cacheControl: '3600',
+                cacheControl: '31536000',
                 upsert: true,
                 contentType: contentType
             });
