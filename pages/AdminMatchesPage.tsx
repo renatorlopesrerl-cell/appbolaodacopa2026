@@ -44,7 +44,7 @@ export const AdminMatchesPage: React.FC = () => {
 
   // Loading State for Saving
   const [isSaving, setIsSaving] = useState(false);
-  const [sendingReminder, setSendingReminder] = useState<Record<string, boolean>>({});
+  const [sendingReminder, setSendingReminder] = useState<Record<string, 'reminder' | 'start' | 'end' | null>>({});
 
   // Ref to keep editingMatch stable for async operations (prevents stale closures)
   const editingMatchRef = useRef<Match | null>(null);
@@ -100,7 +100,7 @@ export const AdminMatchesPage: React.FC = () => {
       return;
     }
 
-    setSendingReminder(prev => ({ ...prev, [match.id]: true }));
+    setSendingReminder(prev => ({ ...prev, [match.id]: 'reminder' }));
     try {
       const result = await api.admin.sendMassPush({ 
         title: `Lembrete de Palpite! ⏰`, 
@@ -115,13 +115,13 @@ export const AdminMatchesPage: React.FC = () => {
     } catch (e: any) {
       addNotification('Erro', e.message || 'Erro ao enviar lembrete.', 'warning');
     } finally {
-      setSendingReminder(prev => ({ ...prev, [match.id]: false }));
+      setSendingReminder(prev => ({ ...prev, [match.id]: null }));
     }
   };
 
   const handleMatchStartPush = async (match: Match) => {
     if (!window.confirm(`🚨 Enviar Push Global de INÍCIO para ${match.homeTeamId} x ${match.awayTeamId}?`)) return;
-    setSendingReminder(prev => ({ ...prev, [match.id]: true }));
+    setSendingReminder(prev => ({ ...prev, [match.id]: 'start' }));
     try {
       const result = await api.admin.sendMassPush({ 
         title: `⚽ Bola rolando!`, 
@@ -132,13 +132,13 @@ export const AdminMatchesPage: React.FC = () => {
     } catch (e: any) {
       addNotification('Erro', e.message || 'Erro no envio.', 'warning');
     } finally {
-      setSendingReminder(prev => ({ ...prev, [match.id]: false }));
+      setSendingReminder(prev => ({ ...prev, [match.id]: null }));
     }
   };
 
   const handleMatchEndPush = async (match: Match) => {
     if (!window.confirm(`🚨 Enviar Push Global de FIM para ${match.homeTeamId} x ${match.awayTeamId}?`)) return;
-    setSendingReminder(prev => ({ ...prev, [match.id]: true }));
+    setSendingReminder(prev => ({ ...prev, [match.id]: 'end' }));
     try {
       const result = await api.admin.sendMassPush({ 
         title: `🏁 Fim de Jogo!`, 
@@ -149,7 +149,7 @@ export const AdminMatchesPage: React.FC = () => {
     } catch (e: any) {
       addNotification('Erro', e.message || 'Erro no envio.', 'warning');
     } finally {
-      setSendingReminder(prev => ({ ...prev, [match.id]: false }));
+      setSendingReminder(prev => ({ ...prev, [match.id]: null }));
     }
   };
 
@@ -437,7 +437,7 @@ export const AdminMatchesPage: React.FC = () => {
                           <div className="flex items-center gap-0.5 md:gap-1 bg-gray-100/50 dark:bg-gray-800/50 p-0.5 md:p-1 rounded border border-gray-200 dark:border-gray-700">
                             <button
                               onClick={() => handleSendMatchReminder(match)}
-                              disabled={sendingReminder[match.id] || match.status !== MatchStatus.SCHEDULED}
+                              disabled={!!sendingReminder[match.id] || match.status !== MatchStatus.SCHEDULED}
                               className={`p-1 md:p-2 rounded shadow-sm transition-colors ${
                                 match.status !== MatchStatus.SCHEDULED 
                                   ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
@@ -445,11 +445,11 @@ export const AdminMatchesPage: React.FC = () => {
                               }`}
                               title="Enviar Lembrete (30 min)"
                             >
-                              {sendingReminder[match.id] ? <Loader2 size={13} className="animate-spin md:w-4 md:h-4" /> : <Bell size={13} className="md:w-4 md:h-4" />}
+                              {sendingReminder[match.id] === 'reminder' ? <Loader2 size={13} className="animate-spin md:w-4 md:h-4" /> : <Bell size={13} className="md:w-4 md:h-4" />}
                             </button>
                             <button
                               onClick={() => handleMatchStartPush(match)}
-                              disabled={sendingReminder[match.id] || match.status !== MatchStatus.IN_PROGRESS}
+                              disabled={!!sendingReminder[match.id] || match.status !== MatchStatus.IN_PROGRESS}
                               className={`p-1 md:p-2 rounded shadow-sm transition-colors ${
                                 match.status !== MatchStatus.IN_PROGRESS 
                                   ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
@@ -457,11 +457,11 @@ export const AdminMatchesPage: React.FC = () => {
                               }`}
                               title="Notificar Início"
                             >
-                              {sendingReminder[match.id] ? <Loader2 size={13} className="animate-spin md:w-4 md:h-4" /> : <Clock size={13} className="md:w-4 md:h-4" />}
+                              {sendingReminder[match.id] === 'start' ? <Loader2 size={13} className="animate-spin md:w-4 md:h-4" /> : <Clock size={13} className="md:w-4 md:h-4" />}
                             </button>
                             <button
                               onClick={() => handleMatchEndPush(match)}
-                              disabled={sendingReminder[match.id] || match.status !== MatchStatus.FINISHED}
+                              disabled={!!sendingReminder[match.id] || match.status !== MatchStatus.FINISHED}
                               className={`p-1 md:p-2 rounded shadow-sm transition-colors ${
                                 match.status !== MatchStatus.FINISHED 
                                   ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
@@ -469,7 +469,7 @@ export const AdminMatchesPage: React.FC = () => {
                               }`}
                               title="Notificar Fim"
                             >
-                              {sendingReminder[match.id] ? <Loader2 size={13} className="animate-spin md:w-4 md:h-4" /> : <Trophy size={13} className="md:w-4 md:h-4" />}
+                              {sendingReminder[match.id] === 'end' ? <Loader2 size={13} className="animate-spin md:w-4 md:h-4" /> : <Trophy size={13} className="md:w-4 md:h-4" />}
                             </button>
                           </div>
                           <button
