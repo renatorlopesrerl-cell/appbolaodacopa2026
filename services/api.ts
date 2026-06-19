@@ -328,39 +328,17 @@ export const api = {
     },
     brazilPredictions: {
         list: async (leagueId?: string | string[], userId?: string, matchIds?: string[]) => {
-            const step = 1000;
-            const allPredictions: any[] = [];
-            let offset = 0;
-            let keepFetching = true;
-
-            while (keepFetching) {
-                let query = supabase.from('brazil_predictions').select('*').order('user_id').order('match_id').range(offset, offset + step - 1);
-                if (leagueId) {
-                    if (Array.isArray(leagueId)) query = query.in('league_id', leagueId);
-                    else query = query.eq('league_id', leagueId);
-                }
-                if (userId) query = query.eq('user_id', userId);
-                if (matchIds && matchIds.length > 0) query = query.in('match_id', matchIds);
-
-                const data = await supabaseWithRetry(async () => await query);
-                const page = data as any[] || [];
-                
-                if (page.length === 0) {
-                    keepFetching = false;
-                } else {
-                    allPredictions.push(...page);
-                    offset += step;
-                    if (page.length < step) keepFetching = false;
-                }
+            const params = new URLSearchParams();
+            if (leagueId) {
+                if (Array.isArray(leagueId)) params.append('leagueId', leagueId.join(','));
+                else params.append('leagueId', leagueId);
             }
-            return allPredictions;
+            if (userId) params.append('userId', userId);
+            if (matchIds && matchIds.length > 0) params.append('matchIds', matchIds.join(','));
+            const query = params.toString();
+            return apiFetch<any[]>('/brazil-predictions' + (query ? `?${query}` : ''));
         },
-        submit: async (predictions: any[]) => {
-            const { error } = await supabase.from('brazil_predictions').upsert(predictions, {
-                onConflict: 'user_id,match_id,league_id'
-            });
-            if (error) throw error;
-        }
+        submit: (data: any) => apiFetch<any>('/brazil-predictions', { method: 'POST', body: JSON.stringify(data) })
     },
     brazilPlayers: {
         list: async () => {
