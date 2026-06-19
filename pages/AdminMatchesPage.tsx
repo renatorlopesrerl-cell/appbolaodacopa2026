@@ -140,9 +140,13 @@ export const AdminMatchesPage: React.FC = () => {
     if (!window.confirm(`🚨 Enviar Push Global de FIM para ${match.homeTeamId} x ${match.awayTeamId}?`)) return;
     setSendingReminder(prev => ({ ...prev, [match.id]: 'end' }));
     try {
+      const scoreStr = (match.homeScore != null && match.awayScore != null) 
+        ? ` (${match.homeScore} x ${match.awayScore}) ` 
+        : ' ';
+
       const result = await api.admin.sendMassPush({ 
         title: `🏁 Fim de Jogo!`, 
-        message: `A partida ${match.homeTeamId} x ${match.awayTeamId} encerrou. Acesse a liga para conferir os pontos!`,
+        message: `A partida ${match.homeTeamId} x ${match.awayTeamId}${scoreStr}encerrou. Acesse a liga para conferir os pontos!`,
         urlData: { url: '/leagues' }
       });
       if (result.success) addNotification('Sucesso', 'Push de Fim enviado.', 'success');
