@@ -67,11 +67,11 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
 
             // LOGIC: Only notify when status CHANGES to a target state
             if (status === 'IN_PROGRESS' && oldStatus !== 'IN_PROGRESS') {
-                title = "Jogo Iniciado! ⚽";
-                bodyText = `A partida entre ${home} x ${away} começou!`;
+                title = "⚽ Bola rolando!";
+                bodyText = `${home} x ${away}. Acompanhe e torça pelo seu palpite!`;
             } else if (status === 'FINISHED' && oldStatus !== 'FINISHED') {
-                title = "Fim de Jogo! 🏁";
-                bodyText = `Resultado final: ${home} ${homeScore} x ${awayScore} ${away}`;
+                title = "🏁 Fim de Jogo!";
+                bodyText = `${home} (${homeScore ?? ''}) x (${awayScore ?? ''}) ${away}. Acesse a liga para conferir os pontos!`;
             }
 
             if (title) {

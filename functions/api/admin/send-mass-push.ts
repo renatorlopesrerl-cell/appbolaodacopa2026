@@ -73,16 +73,17 @@ export const onRequest = async (context: any) => {
         let webSuccess = false;
         let webResult = null;
         try {
-            const fetchAll = async (table: string, column: string) => {
+            const fetchAll = async (table: string, column: string, eqColumn?: string, eqValue?: string) => {
                 let allRows: any[] = [];
                 let hasMore = true;
                 let page = 0;
                 const PAGE_SIZE = 1000;
                 while (hasMore) {
-                    const { data, error } = await supabase
-                        .from(table)
-                        .select(column)
-                        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+                    let query = supabase.from(table).select(column).range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+                    if (eqColumn && eqValue) {
+                        query = query.eq(eqColumn, eqValue);
+                    }
+                    const { data, error } = await query;
                     if (error) throw error;
                     if (data && data.length > 0) {
                         allRows.push(...data);
@@ -95,7 +96,7 @@ export const onRequest = async (context: any) => {
                 return allRows;
             };
 
-            const tokenRows = await fetchAll('user_fcm_tokens', 'token');
+            const tokenRows = await fetchAll('user_fcm_tokens', 'token', 'device_type', 'web');
             let allTokens = [...new Set((tokenRows || []).map((r: any) => r.token).filter((t: string) => t && t.trim() !== ''))];
 
             const profileRows = await fetchAll('profiles', 'fcm_token');
