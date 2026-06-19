@@ -105,7 +105,8 @@ export const AdminMatchesPage: React.FC = () => {
       const result = await api.admin.sendMassPush({ 
         title: `Lembrete de Palpite! ⏰`, 
         message: `Falta pouco para o inicio do jogo entre ${match.homeTeamId} x ${match.awayTeamId}! Revise ou faça seu palpite!`,
-        urlData: { url: '/leagues' }
+        urlData: { url: '/leagues' },
+        targetTopic: 'topic_prediction_reminder'
       });
       if (result.success) {
         addNotification('Sucesso', `Lembrete de ${match.homeTeamId} x ${match.awayTeamId} enviado globalmente.`, 'success');
@@ -126,7 +127,8 @@ export const AdminMatchesPage: React.FC = () => {
       const result = await api.admin.sendMassPush({ 
         title: `⚽ Bola rolando!`, 
         message: `${match.homeTeamId} x ${match.awayTeamId}. Acompanhe e torça pelo seu palpite!`,
-        urlData: { url: '/leagues' }
+        urlData: { url: '/leagues' },
+        targetTopic: 'topic_match_start'
       });
       if (result.success) addNotification('Sucesso', 'Push de Início enviado.', 'success');
     } catch (e: any) {
@@ -143,7 +145,8 @@ export const AdminMatchesPage: React.FC = () => {
       const result = await api.admin.sendMassPush({ 
         title: `🏁 Fim de Jogo!`, 
         message: `${match.homeTeamId} (${match.homeScore ?? ''}) x (${match.awayScore ?? ''}) ${match.awayTeamId}. Acesse a liga para conferir os pontos!`,
-        urlData: { url: '/leagues' }
+        urlData: { url: '/leagues' },
+        targetTopic: 'topic_match_end'
       });
       if (result.success) addNotification('Sucesso', 'Push de Fim enviado.', 'success');
     } catch (e: any) {

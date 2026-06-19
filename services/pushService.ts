@@ -6,6 +6,27 @@ import { api } from './api';
 
 import { requestWebPushToken } from './firebaseWeb';
 
+export const updateTopicSubscriptions = async (settings: any) => {
+    if (Capacitor.getPlatform() === 'web') return;
+    try {
+        const matchStart = settings?.matchStart ?? true;
+        const matchEnd = settings?.matchEnd ?? true;
+        const predictionReminder = settings?.predictionReminder ?? true;
+
+        if (matchStart) await FCM.subscribeTo({ topic: 'topic_match_start' }).catch(()=>{});
+        else await FCM.unsubscribeFrom({ topic: 'topic_match_start' }).catch(()=>{});
+
+        if (matchEnd) await FCM.subscribeTo({ topic: 'topic_match_end' }).catch(()=>{});
+        else await FCM.unsubscribeFrom({ topic: 'topic_match_end' }).catch(()=>{});
+
+        if (predictionReminder) await FCM.subscribeTo({ topic: 'topic_prediction_reminder' }).catch(()=>{});
+        else await FCM.unsubscribeFrom({ topic: 'topic_prediction_reminder' }).catch(()=>{});
+
+    } catch (err) {
+        console.error('Error updating FCM topics:', err);
+    }
+};
+
 let isRequestingToken = false;
 
 export const setupPushNotifications = async (userId: string, force: boolean = false) => {
@@ -81,11 +102,22 @@ export const setupPushNotifications = async (userId: string, force: boolean = fa
             await PushNotifications.addListener('registration', async (token) => {
                 console.log('Push token successfully generated:', token.value);
                 try {
-                    // Subscribe to global topic
+                    // Subscribe to global topic and granular topics
                     if (Capacitor.getPlatform() !== 'web') {
                         await FCM.subscribeTo({ topic: 'todos_palpiteiros' })
                           .then(() => console.log('Inscrito no tópico todos_palpiteiros com sucesso!'))
                           .catch((err) => console.log('Erro ao se inscrever no tópico:', err));
+                        
+                        try {
+                            const profileData = await api.profiles.get(userId);
+                            if (profileData && !profileData.error) {
+                                await updateTopicSubscriptions(profileData.notification_settings);
+                            } else {
+                                await updateTopicSubscriptions({}); // default to true
+                            }
+                        } catch (e) {
+                            await updateTopicSubscriptions({});
+                        }
                     }
 
                     const saved = localStorage.getItem('active_fcm_token');

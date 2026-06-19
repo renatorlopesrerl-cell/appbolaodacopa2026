@@ -82,7 +82,8 @@ export const AdminPage: React.FC = () => {
       const result = await api.admin.sendMassPush({
         title: "Lembrete de Palpite! ⏰",
         message: "Ainda dá tempo! Preencha seus palpites para os próximos jogos antes que eles comecem.",
-        urlData: { url: '/leagues' }
+        urlData: { url: '/leagues' },
+        targetTopic: 'topic_prediction_reminder'
       });
 
       if (result.success) {

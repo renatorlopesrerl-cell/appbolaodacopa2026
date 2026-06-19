@@ -24,7 +24,9 @@ export const onRequest = async (context: any) => {
         }
 
         const body = await request.json();
-        const { title, message, urlData } = body;
+        const { title, message, urlData, targetTopic } = body;
+
+        const topicName = targetTopic || 'todos_palpiteiros';
 
         if (!title || !message) {
             return jsonResponse({ error: 'Title e message são obrigatórios' }, 400);
@@ -40,7 +42,7 @@ export const onRequest = async (context: any) => {
             
             const payload = {
                 message: {
-                    topic: 'todos_palpiteiros',
+                    topic: topicName,
                     notification: {
                         title: title,
                         body: message
@@ -96,17 +98,46 @@ export const onRequest = async (context: any) => {
                 return allRows;
             };
 
-            const tokenRows = await fetchAll('user_fcm_tokens', 'token', 'device_type', 'web');
-            let allTokens = [...new Set((tokenRows || []).map((r: any) => r.token).filter((t: string) => t && t.trim() !== ''))];
+            // Fetch all profiles to apply preference filtering
+            const profiles = await fetchAll('profiles', 'id, fcm_token, notification_settings');
+            
+            // Determine which setting to check based on the topic
+            const allowedUserIds = new Set();
+            const allowedProfileTokens = new Set();
 
-            const profileRows = await fetchAll('profiles', 'fcm_token');
-            if (profileRows) {
-                profileRows.forEach((p: any) => {
-                    if (p.fcm_token && p.fcm_token.trim() !== '' && !allTokens.includes(p.fcm_token)) {
-                        allTokens.push(p.fcm_token);
+            if (profiles) {
+                profiles.forEach((p: any) => {
+                    let allowed = true;
+                    if (topicName === 'topic_prediction_reminder') {
+                        allowed = p.notification_settings?.predictionReminder !== false;
+                    } else if (topicName === 'topic_match_start') {
+                        allowed = p.notification_settings?.matchStart !== false;
+                    } else if (topicName === 'topic_match_end') {
+                        allowed = p.notification_settings?.matchEnd !== false;
+                    }
+                    
+                    if (allowed) {
+                        allowedUserIds.add(p.id);
+                        if (p.fcm_token && p.fcm_token.trim() !== '') {
+                            allowedProfileTokens.add(p.fcm_token);
+                        }
                     }
                 });
             }
+
+            const tokenRows = await fetchAll('user_fcm_tokens', 'token, user_id', 'device_type', 'web');
+            
+            // Only add tokens for users who are allowed
+            let allTokens = [...new Set((tokenRows || [])
+                .filter((r: any) => allowedUserIds.has(r.user_id) && r.token && r.token.trim() !== '')
+                .map((r: any) => r.token))];
+
+            // Add profile tokens that are allowed
+            allowedProfileTokens.forEach((t: any) => {
+                if (!allTokens.includes(t)) {
+                    allTokens.push(t);
+                }
+            });
 
             if (allTokens.length > 0) {
                 console.log(`Fallback Tokens: enviando para ${allTokens.length} tokens (Web + Legacy)`);

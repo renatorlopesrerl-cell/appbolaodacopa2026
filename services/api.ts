@@ -279,7 +279,7 @@ export const api = {
             apiFetch('/admin/toggle-pro', { method: 'POST', body: JSON.stringify({ userId, isPro }) }),
         testPush: () => apiFetch<any>('/admin/test-push'),
         broadcastPush: (body: any) => apiFetch<any>('/admin/broadcast-push', { method: 'POST', body: JSON.stringify(body) }),
-        sendMassPush: (body: { title: string, message: string, urlData?: any }) => 
+        sendMassPush: (body: { title: string, message: string, urlData?: any, targetTopic?: string }) => 
             apiFetch<any>('/admin/send-mass-push', { method: 'POST', body: JSON.stringify(body) })
     },
     // --- BRAZIL GAMES MODE ---

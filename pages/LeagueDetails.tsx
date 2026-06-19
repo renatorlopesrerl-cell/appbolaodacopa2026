@@ -149,6 +149,7 @@ export const LeagueDetails: React.FC = () => {
 
     // --- ADMOB REWARDED INTERSTITIAL ---
     const [pendingMatchModal, setPendingMatchModal] = useState<string | null>(null);
+    const [isPreparingAd, setIsPreparingAd] = useState<boolean>(false);
     const adStateRef = useRef({ hasWatched: hasWatchedPredictionAd, pendingMatch: pendingMatchModal });
     adStateRef.current = { hasWatched: hasWatchedPredictionAd, pendingMatch: pendingMatchModal };
 
@@ -1766,9 +1767,17 @@ export const LeagueDetails: React.FC = () => {
                                             adMobModuleRef.current = await import('@capacitor-community/admob');
                                             await adMobModuleRef.current.AdMob.initialize();
                                         }
+                                        setIsPreparingAd(true);
+                                        try {
+                                            await adMobModuleRef.current.AdMob.prepareRewardVideoAd({ adId: 'ca-app-pub-7684468298593275/3623119611', isTesting: false });
+                                        } catch (prepError) {
+                                            console.warn('Ad prepare failed or already prepared', prepError);
+                                        }
                                         await adMobModuleRef.current.AdMob.showRewardVideoAd();
+                                        setIsPreparingAd(false);
                                     } catch (e) {
                                         console.error('Failed to show ad, opening modal anyway', e);
+                                        setIsPreparingAd(false);
                                         setSelectedMatchForDetails(m.id);
                                         setMatchDetailsSearch('');
                                         setPendingMatchModal(null);
@@ -1912,21 +1921,30 @@ export const LeagueDetails: React.FC = () => {
                                                 {Capacitor.isNativePlatform() && (
                                                     <button
                                                         onClick={async () => {
+                                                            setIsPreparingAd(true);
                                                             try {
                                                                 if (!adMobModuleRef.current) {
-                                            adMobModuleRef.current = await import('@capacitor-community/admob');
-                                            await adMobModuleRef.current.AdMob.initialize();
-                                        }
+                                                                    adMobModuleRef.current = await import('@capacitor-community/admob');
+                                                                    await adMobModuleRef.current.AdMob.initialize();
+                                                                }
+                                                                try {
+                                                                    await adMobModuleRef.current.AdMob.prepareRewardVideoAd({ adId: 'ca-app-pub-7684468298593275/3623119611', isTesting: false });
+                                                                } catch (prepError) {
+                                                                    console.warn('Ad prepare failed or already prepared', prepError);
+                                                                }
                                                                 await adMobModuleRef.current.AdMob.showRewardVideoAd();
                                                             } catch (e) {
                                                                 console.error('Failed to show ad', e);
                                                                 alert('Anúncio não está pronto ainda. Tente novamente em alguns segundos.');
+                                                            } finally {
+                                                                setIsPreparingAd(false);
                                                             }
                                                         }}
-                                                        className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white font-black py-3.5 px-6 rounded-xl text-sm uppercase tracking-widest shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2 mb-3"
+                                                        disabled={isPreparingAd}
+                                                        className={`w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white font-black py-3.5 px-6 rounded-xl text-sm uppercase tracking-widest shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2 mb-3 ${isPreparingAd ? 'opacity-70 cursor-not-allowed' : ''}`}
                                                     >
-                                                        <PlayCircle size={16} fill="currentColor" />
-                                                        Assistir Vídeo para Liberar
+                                                        {isPreparingAd ? <Loader2 size={16} className="animate-spin" /> : <PlayCircle size={16} fill="currentColor" />}
+                                                        {isPreparingAd ? 'Carregando...' : 'Assistir Vídeo para Liberar'}
                                                     </button>
                                                 )}
                                                 <button
@@ -3219,6 +3237,15 @@ export const LeagueDetails: React.FC = () => {
                         </div>
                     </div>
                 </div>, document.body
+            )}
+
+            {isPreparingAd && createPortal(
+                <div className="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+                    <Loader2 size={48} className="text-white animate-spin mb-4" />
+                    <div className="text-white font-bold text-lg">Carregando anúncio...</div>
+                    <div className="text-gray-300 text-sm mt-2">Aguarde um momento</div>
+                </div>,
+                document.body
             )}
         </div>
     );

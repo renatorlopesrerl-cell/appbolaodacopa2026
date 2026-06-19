@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useStore } from '../App';
 import { User as UserIcon, Save, Camera, Upload, AlertCircle, ArrowLeft, Phone, Loader2, Bell, PlayCircle, Flag, Sun, Moon, Clock, Trash2, Lock, Trophy, CheckCircle2, X, Mail, Copy } from 'lucide-react';
-import { setupPushNotifications } from '../services/pushService';
+import { setupPushNotifications, updateTopicSubscriptions } from '../services/pushService';
 import { processImageForUpload } from '../services/dataService';
 import { OptimizedImage } from '../components/OptimizedImage';
 import { PrivacyContent } from '../components/PrivacyContent';
@@ -80,6 +80,11 @@ export const ProfilePage: React.FC = () => {
         { matchStart: notifyStart, matchEnd: notifyEnd, predictionReminder: notifyPrediction },
         selectedTheme
       );
+      
+      if (Capacitor.getPlatform() !== 'web') {
+        await updateTopicSubscriptions({ matchStart: notifyStart, matchEnd: notifyEnd, predictionReminder: notifyPrediction });
+      }
+
       setSuccessMessage('Perfil salvo com sucesso!');
       setTimeout(() => setSuccessMessage(''), 5000);
     } catch (e) {
