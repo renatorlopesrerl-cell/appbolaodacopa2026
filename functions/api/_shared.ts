@@ -89,7 +89,9 @@ export async function getAccessToken(env: any) {
     // Import the PKCS#8 private key
     // We strip headers and convert from base64 string to ArrayBuffer
     const lines = privateKey.split('\n');
-    const b64Data = lines.filter(line => !line.startsWith('-----')).join('');
+    let b64Data = lines.filter(line => !line.startsWith('-----')).join('');
+    // Remove qualquer caractere que não seja base64 (ex: \r, aspas)
+    b64Data = b64Data.replace(/[^A-Za-z0-9+/=]/g, '');
     const binaryKey = str2ab(atob(b64Data));
 
     const cryptoKey = await crypto.subtle.importKey(
