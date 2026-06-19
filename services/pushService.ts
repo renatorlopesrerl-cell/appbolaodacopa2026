@@ -1,6 +1,7 @@
 import { PushNotifications } from '@capacitor/push-notifications';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
+import { FCM } from '@capacitor-community/fcm';
 import { api } from './api';
 
 import { requestWebPushToken } from './firebaseWeb';
@@ -80,6 +81,13 @@ export const setupPushNotifications = async (userId: string, force: boolean = fa
             await PushNotifications.addListener('registration', async (token) => {
                 console.log('Push token successfully generated:', token.value);
                 try {
+                    // Subscribe to global topic
+                    if (Capacitor.getPlatform() !== 'web') {
+                        await FCM.subscribeTo({ topic: 'todos_palpiteiros' })
+                          .then(() => console.log('Inscrito no tópico todos_palpiteiros com sucesso!'))
+                          .catch((err) => console.log('Erro ao se inscrever no tópico:', err));
+                    }
+
                     const saved = localStorage.getItem('active_fcm_token');
                     if (saved === token.value) {
                         console.log('Push token já salvo localmente. Pulando chamada de API.');

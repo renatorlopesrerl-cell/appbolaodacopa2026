@@ -96,36 +96,58 @@ export const AdminMatchesPage: React.FC = () => {
   };
 
   const handleSendMatchReminder = async (match: Match) => {
-    if (!window.confirm(`🚨 Deseja enviar o lembrete de palpite para ${match.homeTeamId} x ${match.awayTeamId}?\n\nA mensagem dirá que faltam menos de 30 minutos para o encerramento do palpite deste jogo.`)) {
+    if (!window.confirm(`🚨 Deseja enviar o Lembrete Global de Palpite para ${match.homeTeamId} x ${match.awayTeamId}?\n\nIsso enviará um push em massa.`)) {
       return;
     }
 
     setSendingReminder(prev => ({ ...prev, [match.id]: true }));
     try {
-      const tokenData = await api.admin.broadcastPush({ action: 'get_reminder_tokens' });
-      
-      if (!tokenData.success || !tokenData.tokens || tokenData.tokens.length === 0) {
-        addNotification('Aviso', 'Nenhum dispositivo com lembretes ativados foi encontrado.', 'info');
-        setSendingReminder(prev => ({ ...prev, [match.id]: false }));
-        return;
+      const result = await api.admin.sendMassPush({ 
+        title: `Lembrete de Palpite! ⏰`, 
+        message: `Falta pouco para o encerramento dos palpites de ${match.homeTeamId} x ${match.awayTeamId}! Preencha agora!`,
+        urlData: { url: '/leagues' }
+      });
+      if (result.success) {
+        addNotification('Sucesso', `Lembrete de ${match.homeTeamId} x ${match.awayTeamId} enviado globalmente.`, 'success');
+      } else {
+        addNotification('Aviso', 'Erro parcial no envio.', 'warning');
       }
-
-      const tokens: string[] = tokenData.tokens;
-      const CHUNK_SIZE = 500;
-      
-      for (let i = 0; i < tokens.length; i += CHUNK_SIZE) {
-        const chunk = tokens.slice(i, i + CHUNK_SIZE);
-        await api.admin.broadcastPush({ 
-          action: 'send_chunk', 
-          title: `Lembrete de Palpite! ⏰`, 
-          message: `Faltam menos de 30 minutos para o encerramento dos palpites de ${match.homeTeamId} x ${match.awayTeamId}! Preencha agora!`, 
-          tokens: chunk 
-        });
-      }
-
-      addNotification('Sucesso', `Lembrete de ${match.homeTeamId} x ${match.awayTeamId} enviado para ${tokens.length} usuários.`, 'success');
     } catch (e: any) {
       addNotification('Erro', e.message || 'Erro ao enviar lembrete.', 'warning');
+    } finally {
+      setSendingReminder(prev => ({ ...prev, [match.id]: false }));
+    }
+  };
+
+  const handleMatchStartPush = async (match: Match) => {
+    if (!window.confirm(`🚨 Enviar Push Global de INÍCIO para ${match.homeTeamId} x ${match.awayTeamId}?`)) return;
+    setSendingReminder(prev => ({ ...prev, [match.id]: true }));
+    try {
+      const result = await api.admin.sendMassPush({ 
+        title: `⚽ Bola rolando!`, 
+        message: `Começou a partida: ${match.homeTeamId} x ${match.awayTeamId}. Acompanhe e torça pelos seus palpites!`,
+        urlData: { url: '/leagues' }
+      });
+      if (result.success) addNotification('Sucesso', 'Push de Início enviado.', 'success');
+    } catch (e: any) {
+      addNotification('Erro', e.message || 'Erro no envio.', 'warning');
+    } finally {
+      setSendingReminder(prev => ({ ...prev, [match.id]: false }));
+    }
+  };
+
+  const handleMatchEndPush = async (match: Match) => {
+    if (!window.confirm(`🚨 Enviar Push Global de FIM para ${match.homeTeamId} x ${match.awayTeamId}?`)) return;
+    setSendingReminder(prev => ({ ...prev, [match.id]: true }));
+    try {
+      const result = await api.admin.sendMassPush({ 
+        title: `🏁 Fim de Jogo!`, 
+        message: `A partida ${match.homeTeamId} x ${match.awayTeamId} encerrou. Acesse a liga para conferir os pontos!`,
+        urlData: { url: '/leagues' }
+      });
+      if (result.success) addNotification('Sucesso', 'Push de Fim enviado.', 'success');
+    } catch (e: any) {
+      addNotification('Erro', e.message || 'Erro no envio.', 'warning');
     } finally {
       setSendingReminder(prev => ({ ...prev, [match.id]: false }));
     }
@@ -348,13 +370,13 @@ export const AdminMatchesPage: React.FC = () => {
             <table className="w-full text-sm text-left table-fixed md:table-auto">
               <thead className="bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-300 uppercase font-bold text-xs border-b border-gray-200 dark:border-gray-600">
                 <tr>
-                  <th className="px-2 py-2 md:px-4 md:py-3 w-[15%] md:w-40">Data</th>
+                  <th className="px-1 py-2 md:px-4 md:py-3 w-[12%] md:w-40">Data</th>
                   <th className="hidden md:table-cell px-4 py-3 w-32">Fase</th>
-                  <th className="px-1 py-2 md:px-4 md:py-3 text-right w-[25%] md:w-40">Mandante</th>
-                  <th className="px-1 py-2 md:px-4 md:py-3 text-center w-[15%] md:w-24">Placar</th>
-                  <th className="px-1 py-2 md:px-4 md:py-3 text-left w-[25%] md:w-40">Visitante</th>
+                  <th className="px-1 py-2 md:px-4 md:py-3 text-right w-[22%] md:w-40">Mandante</th>
+                  <th className="px-1 py-2 md:px-4 md:py-3 text-center w-[16%] md:w-24">Placar</th>
+                  <th className="px-1 py-2 md:px-4 md:py-3 text-left w-[22%] md:w-40">Visitante</th>
                   <th className="hidden md:table-cell px-4 py-3 text-center w-28">Status</th>
-                  <th className="px-1 py-2 md:px-4 md:py-3 text-center w-[10%] md:w-auto">Ação</th>
+                  <th className="px-1 py-2 md:px-4 md:py-3 text-center w-[28%] md:w-auto">Ação</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
@@ -410,26 +432,52 @@ export const AdminMatchesPage: React.FC = () => {
                             match.status === MatchStatus.IN_PROGRESS ? 'Ao Vivo' : 'Agendado'}
                         </span>
                       </td>
-                      <td className="px-1 py-2 md:px-4 md:py-3 text-center">
-                        <div className="flex items-center justify-center gap-1 md:gap-2">
-                          <button
-                            onClick={() => handleSendMatchReminder(match)}
-                            disabled={sendingReminder[match.id] || match.status !== MatchStatus.SCHEDULED}
-                            className={`p-1.5 md:p-2 rounded shadow-sm transition-colors ${
-                              match.status !== MatchStatus.SCHEDULED 
-                                ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                                : 'bg-yellow-500 text-white hover:bg-yellow-600'
-                            }`}
-                            title="Enviar Lembrete (30 min)"
-                          >
-                            {sendingReminder[match.id] ? <Loader2 size={14} className="animate-spin md:w-4 md:h-4" /> : <Bell size={14} className="md:w-4 md:h-4" />}
-                          </button>
+                      <td className="px-0 py-2 md:px-4 md:py-3 text-center">
+                        <div className="flex flex-nowrap items-center justify-center gap-1 md:gap-3 overflow-visible">
+                          <div className="flex items-center gap-0.5 md:gap-1 bg-gray-100/50 dark:bg-gray-800/50 p-0.5 md:p-1 rounded border border-gray-200 dark:border-gray-700">
+                            <button
+                              onClick={() => handleSendMatchReminder(match)}
+                              disabled={sendingReminder[match.id] || match.status !== MatchStatus.SCHEDULED}
+                              className={`p-1 md:p-2 rounded shadow-sm transition-colors ${
+                                match.status !== MatchStatus.SCHEDULED 
+                                  ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                                  : 'bg-yellow-500 text-white hover:bg-yellow-600'
+                              }`}
+                              title="Enviar Lembrete (30 min)"
+                            >
+                              {sendingReminder[match.id] ? <Loader2 size={13} className="animate-spin md:w-4 md:h-4" /> : <Bell size={13} className="md:w-4 md:h-4" />}
+                            </button>
+                            <button
+                              onClick={() => handleMatchStartPush(match)}
+                              disabled={sendingReminder[match.id] || match.status !== MatchStatus.IN_PROGRESS}
+                              className={`p-1 md:p-2 rounded shadow-sm transition-colors ${
+                                match.status !== MatchStatus.IN_PROGRESS 
+                                  ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                                  : 'bg-green-500 text-white hover:bg-green-600'
+                              }`}
+                              title="Notificar Início"
+                            >
+                              {sendingReminder[match.id] ? <Loader2 size={13} className="animate-spin md:w-4 md:h-4" /> : <Clock size={13} className="md:w-4 md:h-4" />}
+                            </button>
+                            <button
+                              onClick={() => handleMatchEndPush(match)}
+                              disabled={sendingReminder[match.id] || match.status !== MatchStatus.FINISHED}
+                              className={`p-1 md:p-2 rounded shadow-sm transition-colors ${
+                                match.status !== MatchStatus.FINISHED 
+                                  ? 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                                  : 'bg-gray-800 text-white hover:bg-black dark:bg-gray-300 dark:text-gray-900 dark:hover:bg-white'
+                              }`}
+                              title="Notificar Fim"
+                            >
+                              {sendingReminder[match.id] ? <Loader2 size={13} className="animate-spin md:w-4 md:h-4" /> : <Trophy size={13} className="md:w-4 md:h-4" />}
+                            </button>
+                          </div>
                           <button
                             onClick={() => handleEditClick(match)}
-                            className="p-1.5 md:p-2 bg-brasil-blue text-white rounded shadow-sm hover:bg-blue-900 transition-colors"
+                            className="p-1 md:p-2 bg-brasil-blue text-white rounded shadow-sm hover:bg-blue-900 transition-colors ml-0.5 md:ml-1"
                             title="Editar"
                           >
-                            <Edit2 size={14} className="md:w-4 md:h-4" />
+                            <Edit2 size={13} className="md:w-4 md:h-4" />
                           </button>
                         </div>
                       </td>

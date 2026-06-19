@@ -43,122 +43,58 @@ export const AdminPage: React.FC = () => {
       return;
     }
 
-    if (!window.confirm(`🚨 ATENÇÃO: Você está prestes a enviar uma notificação Push para TODOS os usuários ativos do sistema.\n\nTítulo: ${broadcastTitle}\n\nTem certeza absoluta?`)) {
+    if (!window.confirm(`🚨 ATENÇÃO: Você está prestes a enviar uma notificação Push em MASSA (via Tópico e Web).\n\nTítulo: ${broadcastTitle}\n\nTem certeza absoluta?`)) {
       return;
     }
 
     setBroadcastLoading(true);
-    setBroadcastProgress({ current: 0, total: 0 });
     
     try {
-      // 1. Obter todos os tokens
-      const tokenData = await api.admin.broadcastPush({ action: 'get_tokens' });
-      
-      if (!tokenData.success || !tokenData.tokens) {
-        addNotification('Erro', tokenData.message || tokenData.error || 'Erro ao buscar dispositivos.', 'warning');
-        setBroadcastLoading(false);
-        setBroadcastProgress(null);
-        return;
-      }
-      
-      const tokens: string[] = tokenData.tokens;
-      if (tokens.length === 0) {
-        addNotification('Aviso', 'Nenhum dispositivo encontrado.', 'info');
-        setBroadcastLoading(false);
-        setBroadcastProgress(null);
-        return;
-      }
+      const result = await api.admin.sendMassPush({
+        title: broadcastTitle,
+        message: broadcastMessage,
+        urlData: { url: '/leagues' }
+      });
 
-      setBroadcastProgress({ current: 0, total: tokens.length });
-      
-      // 2. Disparar em lotes de 500 (Agora enviado para a Edge Function que aguenta milhares)
-      const CHUNK_SIZE = 500;
-      let sentCount = 0;
-      
-      for (let i = 0; i < tokens.length; i += CHUNK_SIZE) {
-        const chunk = tokens.slice(i, i + CHUNK_SIZE);
-        
-        const chunkData = await api.admin.broadcastPush({ 
-          action: 'send_chunk', 
-          title: broadcastTitle, 
-          message: broadcastMessage, 
-          tokens: chunk 
-        });
-        
-        if (!chunkData.success) {
-          console.error('Falha no envio de um lote:', chunkData);
-        }
-        
-        sentCount += chunk.length;
-        setBroadcastProgress({ current: sentCount, total: tokens.length });
+      if (result.success) {
+        addNotification('Broadcast Concluído', `Mensagem disparada com sucesso!`, 'success');
+        setBroadcastTitle('');
+        setBroadcastMessage('');
+      } else {
+        addNotification('Aviso', 'Ocorreram erros parciais durante o disparo.', 'warning');
       }
-
-      addNotification('Broadcast Concluído', `Mensagem disparada para ${tokens.length} dispositivos.`, 'success');
-      setBroadcastTitle('');
-      setBroadcastMessage('');
-      
     } catch (e: any) {
       console.error("Broadcast Push Error:", e);
       addNotification('Erro de Conexão', e.message || 'Não foi possível contatar o servidor.', 'warning');
     } finally {
       setBroadcastLoading(false);
-      setTimeout(() => setBroadcastProgress(null), 3000);
     }
   };
 
   const handleReminderPush = async () => {
-    if (!window.confirm(`🚨 Enviar Lembrete de Palpite para todos os usuários que não desativaram essa notificação?\n\nIsto será enviado agora.`)) {
+    if (!window.confirm(`🚨 Enviar Lembrete de Palpite Global em massa via Tópico?\n\nIsto será enviado agora.`)) {
       return;
     }
 
     setReminderLoading(true);
-    setReminderProgress({ current: 0, total: 0 });
     
     try {
-      const tokenData = await api.admin.broadcastPush({ action: 'get_reminder_tokens' });
-      
-      if (!tokenData.success || !tokenData.tokens) {
-        addNotification('Erro', tokenData.message || tokenData.error || 'Erro ao buscar dispositivos.', 'warning');
-        setReminderLoading(false);
-        setReminderProgress(null);
-        return;
-      }
-      
-      const tokens: string[] = tokenData.tokens;
-      if (tokens.length === 0) {
-        addNotification('Aviso', 'Nenhum dispositivo encontrado para envio de lembrete.', 'info');
-        setReminderLoading(false);
-        setReminderProgress(null);
-        return;
-      }
+      const result = await api.admin.sendMassPush({
+        title: "Lembrete de Palpite! ⏰",
+        message: "Ainda dá tempo! Preencha seus palpites para os próximos jogos antes que eles comecem.",
+        urlData: { url: '/leagues' }
+      });
 
-      setReminderProgress({ current: 0, total: tokens.length });
-      
-      const CHUNK_SIZE = 500;
-      let sentCount = 0;
-      
-      for (let i = 0; i < tokens.length; i += CHUNK_SIZE) {
-        const chunk = tokens.slice(i, i + CHUNK_SIZE);
-        
-        await api.admin.broadcastPush({ 
-          action: 'send_chunk', 
-          title: "Lembrete de Palpite! ⏰", 
-          message: "Ainda dá tempo! Preencha seus palpites para os próximos jogos antes que eles comecem.", 
-          tokens: chunk 
-        });
-        
-        sentCount += chunk.length;
-        setReminderProgress({ current: sentCount, total: tokens.length });
+      if (result.success) {
+        addNotification('Lembretes Enviados', `Disparado globalmente via tópicos.`, 'success');
+      } else {
+        addNotification('Aviso', 'Ocorreram erros parciais durante o disparo.', 'warning');
       }
-
-      addNotification('Lembretes Enviados', `Disparado para ${tokens.length} dispositivos.`, 'success');
-      
     } catch (e: any) {
       console.error("Reminder Push Error:", e);
       addNotification('Erro de Conexão', e.message || 'Não foi possível contatar o servidor.', 'warning');
     } finally {
       setReminderLoading(false);
-      setTimeout(() => setReminderProgress(null), 3000);
     }
   };
 
@@ -321,11 +257,6 @@ export const AdminPage: React.FC = () => {
                 className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg flex flex-col items-center justify-center transition-all active:scale-95 disabled:opacity-50 shadow-sm"
               >
                 {reminderLoading ? 'Enviando...' : 'Enviar Lembrete'}
-                {reminderProgress && (
-                  <span className="text-[10px] font-semibold mt-1">
-                    {Math.min(reminderProgress.current, reminderProgress.total)} / {reminderProgress.total}
-                  </span>
-                )}
               </button>
             </div>
           </div>
@@ -358,13 +289,8 @@ export const AdminPage: React.FC = () => {
             >
               <div className="flex items-center gap-2 uppercase tracking-wide">
                 <Send size={18} />
-                {broadcastLoading ? 'Processando Lotes...' : 'Disparar para todos os usuários'}
+                {broadcastLoading ? 'Processando...' : 'Disparar para todos os usuários'}
               </div>
-              {broadcastProgress && (
-                <div className="mt-2 text-xs font-semibold bg-black/20 px-3 py-1 rounded-full">
-                  Enviando: {Math.min(broadcastProgress.current, broadcastProgress.total)} / {broadcastProgress.total}
-                </div>
-              )}
             </button>
           </div>
         </div>

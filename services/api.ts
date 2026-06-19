@@ -278,7 +278,9 @@ export const api = {
         togglePro: (userId: string, isPro: boolean) =>
             apiFetch('/admin/toggle-pro', { method: 'POST', body: JSON.stringify({ userId, isPro }) }),
         testPush: () => apiFetch<any>('/admin/test-push'),
-        broadcastPush: (body: any) => apiFetch<any>('/admin/broadcast-push', { method: 'POST', body: JSON.stringify(body) })
+        broadcastPush: (body: any) => apiFetch<any>('/admin/broadcast-push', { method: 'POST', body: JSON.stringify(body) }),
+        sendMassPush: (body: { title: string, message: string, urlData?: any }) => 
+            apiFetch<any>('/admin/send-mass-push', { method: 'POST', body: JSON.stringify(body) })
     },
     // --- BRAZIL GAMES MODE ---
     brazilLeagues: {
