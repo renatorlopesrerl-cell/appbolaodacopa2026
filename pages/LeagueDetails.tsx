@@ -122,6 +122,7 @@ export const LeagueDetails: React.FC = () => {
                 if (!adMobModuleRef.current) {
                     adMobModuleRef.current = await import('@capacitor-community/admob');
                 }
+                await adMobModuleRef.current.AdMob.initialize();
                 if (!isMounted) return;
                 const { AdMob, BannerAdSize, BannerAdPosition } = adMobModuleRef.current;
                 await AdMob.showBanner({
@@ -169,6 +170,7 @@ export const LeagueDetails: React.FC = () => {
                 if (!adMobModuleRef.current) {
                     adMobModuleRef.current = await import('@capacitor-community/admob');
                 }
+                await adMobModuleRef.current.AdMob.initialize();
                 if (!isMounted) return;
                 const { AdMob, RewardAdPluginEvents } = adMobModuleRef.current;
 
@@ -1760,7 +1762,10 @@ export const LeagueDetails: React.FC = () => {
                                 if (!isProUser && !isVipLeague && !hasWatchedPredictionAd && Capacitor.isNativePlatform()) {
                                     setPendingMatchModal(m.id);
                                     try {
-                                        if (!adMobModuleRef.current) adMobModuleRef.current = await import('@capacitor-community/admob');
+                                        if (!adMobModuleRef.current) {
+                                            adMobModuleRef.current = await import('@capacitor-community/admob');
+                                            await adMobModuleRef.current.AdMob.initialize();
+                                        }
                                         await adMobModuleRef.current.AdMob.showRewardVideoAd();
                                     } catch (e) {
                                         console.error('Failed to show ad, opening modal anyway', e);
@@ -1908,7 +1913,10 @@ export const LeagueDetails: React.FC = () => {
                                                     <button
                                                         onClick={async () => {
                                                             try {
-                                                                if (!adMobModuleRef.current) adMobModuleRef.current = await import('@capacitor-community/admob');
+                                                                if (!adMobModuleRef.current) {
+                                            adMobModuleRef.current = await import('@capacitor-community/admob');
+                                            await adMobModuleRef.current.AdMob.initialize();
+                                        }
                                                                 await adMobModuleRef.current.AdMob.showRewardVideoAd();
                                                             } catch (e) {
                                                                 console.error('Failed to show ad', e);

@@ -104,7 +104,7 @@ export const AdminMatchesPage: React.FC = () => {
     try {
       const result = await api.admin.sendMassPush({ 
         title: `Lembrete de Palpite! ⏰`, 
-        message: `Falta pouco para o encerramento dos palpites de ${match.homeTeamId} x ${match.awayTeamId}! Preencha agora!`,
+        message: `Falta pouco para o inicio do jogo entre ${match.homeTeamId} x ${match.awayTeamId}! Revise ou faça seu palpite!`,
         urlData: { url: '/leagues' }
       });
       if (result.success) {

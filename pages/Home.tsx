@@ -24,6 +24,7 @@ export const Home: React.FC = () => {
         const mod = await import('@capacitor-community/admob');
         if (cancelled) return;
         adMobRef.current = mod.AdMob;
+        await mod.AdMob.initialize();
         await mod.AdMob.showBanner({
           adId: 'ca-app-pub-7684468298593275/3831206432',
           adSize: mod.BannerAdSize.BANNER,
