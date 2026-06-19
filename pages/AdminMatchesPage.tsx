@@ -125,7 +125,7 @@ export const AdminMatchesPage: React.FC = () => {
     try {
       const result = await api.admin.sendMassPush({ 
         title: `⚽ Bola rolando!`, 
-        message: `Começou a partida: ${match.homeTeamId} x ${match.awayTeamId}. Acompanhe e torça pelos seus palpites!`,
+        message: `${match.homeTeamId} x ${match.awayTeamId}. Acompanhe e torça pelo seu palpite!`,
         urlData: { url: '/leagues' }
       });
       if (result.success) addNotification('Sucesso', 'Push de Início enviado.', 'success');
@@ -140,13 +140,9 @@ export const AdminMatchesPage: React.FC = () => {
     if (!window.confirm(`🚨 Enviar Push Global de FIM para ${match.homeTeamId} x ${match.awayTeamId}?`)) return;
     setSendingReminder(prev => ({ ...prev, [match.id]: 'end' }));
     try {
-      const scoreStr = (match.homeScore != null && match.awayScore != null) 
-        ? ` (${match.homeScore} x ${match.awayScore}) ` 
-        : ' ';
-
       const result = await api.admin.sendMassPush({ 
         title: `🏁 Fim de Jogo!`, 
-        message: `A partida ${match.homeTeamId} x ${match.awayTeamId}${scoreStr}encerrou. Acesse a liga para conferir os pontos!`,
+        message: `${match.homeTeamId} (${match.homeScore ?? ''}) x (${match.awayScore ?? ''}) ${match.awayTeamId}. Acesse a liga para conferir os pontos!`,
         urlData: { url: '/leagues' }
       });
       if (result.success) addNotification('Sucesso', 'Push de Fim enviado.', 'success');
