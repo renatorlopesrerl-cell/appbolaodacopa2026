@@ -115,6 +115,9 @@ serve(async (req) => {
                         title,
                         body,
                         icon: "https://bolaodacopa2026.app/favicon.png"
+                    },
+                    fcmOptions: {
+                        link: data?.url ? (data.url.startsWith("http") ? data.url : `https://bolaodacopa2026.app${data.url}`) : "https://bolaodacopa2026.app"
                     }
                 },
                 tokens: chunk,

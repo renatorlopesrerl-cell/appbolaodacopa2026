@@ -41,15 +41,6 @@
   <meta property="og:type" content="website">
   <meta property="og:image" content="https://bolaodacopa2026.app/palpiteirodacopa2026.png">
   <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        // O navegador registra o arquivo gerado pelo build do Cloudflare
-        navigator.serviceWorker.register('/firebase-messaging-sw.js')
-          .then(reg => console.log('SW registrado com sucesso (v8):', reg.scope))
-          .catch(err => console.error('Falha ao registrar SW:', err));
-      });
-    }
-
     // Remove o parâmetro sw_cleared da URL para deixar o link limpo para o usuário
     if (window.location.search.includes('sw_cleared')) {
       const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;

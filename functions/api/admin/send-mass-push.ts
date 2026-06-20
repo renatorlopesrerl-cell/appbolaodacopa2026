@@ -99,11 +99,10 @@ export const onRequest = async (context: any) => {
             };
 
             // Fetch all profiles to apply preference filtering
-            const profiles = await fetchAll('profiles', 'id, fcm_token, notification_settings');
+            const profiles = await fetchAll('profiles', 'id, notification_settings');
             
             // Determine which setting to check based on the topic
             const allowedUserIds = new Set();
-            const allowedProfileTokens = new Set();
 
             if (profiles) {
                 profiles.forEach((p: any) => {
@@ -118,9 +117,6 @@ export const onRequest = async (context: any) => {
                     
                     if (allowed) {
                         allowedUserIds.add(p.id);
-                        if (p.fcm_token && p.fcm_token.trim() !== '') {
-                            allowedProfileTokens.add(p.fcm_token);
-                        }
                     }
                 });
             }
@@ -131,13 +127,6 @@ export const onRequest = async (context: any) => {
             let allTokens = [...new Set((tokenRows || [])
                 .filter((r: any) => allowedUserIds.has(r.user_id) && r.token && r.token.trim() !== '')
                 .map((r: any) => r.token))];
-
-            // Add profile tokens that are allowed
-            allowedProfileTokens.forEach((t: any) => {
-                if (!allTokens.includes(t)) {
-                    allTokens.push(t);
-                }
-            });
 
             if (allTokens.length > 0) {
                 console.log(`Fallback Tokens: enviando para ${allTokens.length} tokens (Web + Legacy)`);
