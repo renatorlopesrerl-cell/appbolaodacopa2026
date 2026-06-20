@@ -1108,11 +1108,11 @@ export const LeagueDetails: React.FC = () => {
         try {
             const updatedSettings = {
                 ...league.settings,
-                exactScore: Math.max(1, Number(editExactScore) || 1),
-                winnerAndDiff: Math.max(1, Number(editWinnerAndDiff) || 1),
-                winnerAndWinnerGoals: Math.max(1, Number(editWinnerAndWinnerGoals) || 1),
-                draw: Math.max(1, Number(editDraw) || 1),
-                winner: Math.max(1, Number(editWinner) || 1),
+                exactScore: Math.min(100, Math.max(1, Number(editExactScore) || 1)),
+                winnerAndDiff: Math.min(100, Math.max(1, Number(editWinnerAndDiff) || 1)),
+                winnerAndWinnerGoals: Math.min(100, Math.max(1, Number(editWinnerAndWinnerGoals) || 1)),
+                draw: Math.min(100, Math.max(1, Number(editDraw) || 1)),
+                winner: Math.min(100, Math.max(1, Number(editWinner) || 1)),
                 topFinishersEnabled: editTopFinishersEnabled,
                 topFinishersPoints: {
                     champion: Math.max(1, Number(editTopFinishersPoints.champion) || 20),

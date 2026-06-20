@@ -103,11 +103,11 @@ export const LeaguesPage: React.FC = () => {
 
     try {
       const finalSettings = {
-        exactScore: Math.max(1, Number(settings.exactScore) || 1),
-        winnerAndDiff: Math.max(1, Number(settings.winnerAndDiff) || 1),
-        winnerAndWinnerGoals: Math.max(1, Number(settings.winnerAndWinnerGoals) || 1),
-        winner: Math.max(1, Number(settings.winner) || 1),
-        draw: Math.max(1, Number(settings.draw) || 1),
+        exactScore: Math.min(100, Math.max(1, Number(settings.exactScore) || 1)),
+        winnerAndDiff: Math.min(100, Math.max(1, Number(settings.winnerAndDiff) || 1)),
+        winnerAndWinnerGoals: Math.min(100, Math.max(1, Number(settings.winnerAndWinnerGoals) || 1)),
+        winner: Math.min(100, Math.max(1, Number(settings.winner) || 1)),
+        draw: Math.min(100, Math.max(1, Number(settings.draw) || 1)),
         topFinishersEnabled,
         topFinishersPoints: topFinishersEnabled ? {
           champion: Math.max(1, Number(topFinishersPoints.champion) || 20),
