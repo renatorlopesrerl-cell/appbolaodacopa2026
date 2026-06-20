@@ -166,13 +166,13 @@ export const BrazilLeagueDetails: React.FC = () => {
                 }
                 await adMobModuleRef.current.AdMob.initialize();
                 if (!isMounted) return;
-                const { AdMob, RewardAdPluginEvents } = adMobModuleRef.current;
+                const { AdMob, RewardInterstitialAdPluginEvents } = adMobModuleRef.current;
 
-                const rewardListener = await AdMob.addListener(RewardAdPluginEvents.Rewarded, (rewardItem: any) => {
+                const rewardListener = await AdMob.addListener(RewardInterstitialAdPluginEvents.Rewarded, (rewardItem: any) => {
                     setHasWatchedPredictionAd(true);
                 });
                 
-                const dismissListener = await AdMob.addListener(RewardAdPluginEvents.Dismissed, () => {
+                const dismissListener = await AdMob.addListener(RewardInterstitialAdPluginEvents.Dismissed, () => {
                     const { hasWatched, pendingMatch } = adStateRef.current;
                     if (hasWatched && pendingMatch) {
                         setSelectedMatchForDetails(pendingMatch);
@@ -180,12 +180,12 @@ export const BrazilLeagueDetails: React.FC = () => {
                     }
                     setPendingMatchModal(null);
                     // Prepare next ad
-                    AdMob.prepareRewardVideoAd({ adId: 'ca-app-pub-7684468298593275/3623119611', isTesting: false }).catch(() => {});
+                    AdMob.prepareRewardInterstitialAd({ adId: 'ca-app-pub-7684468298593275/3623119611', isTesting: false }).catch(() => {});
                 });
 
                 listeners.push(rewardListener, dismissListener);
 
-                await AdMob.prepareRewardVideoAd({ adId: 'ca-app-pub-7684468298593275/3623119611', isTesting: false });
+                await AdMob.prepareRewardInterstitialAd({ adId: 'ca-app-pub-7684468298593275/3623119611', isTesting: false });
             } catch (e) { console.error('AdMob prepare error:', e); }
         })();
 
@@ -1330,11 +1330,11 @@ export const BrazilLeagueDetails: React.FC = () => {
                                         }
                                         setIsPreparingAd(true);
                                         try {
-                                            await adMobModuleRef.current.AdMob.prepareRewardVideoAd({ adId: 'ca-app-pub-7684468298593275/3623119611', isTesting: false });
+                                            await adMobModuleRef.current.AdMob.prepareRewardInterstitialAd({ adId: 'ca-app-pub-7684468298593275/3623119611', isTesting: false });
                                         } catch (prepError) {
                                             console.warn('Ad prepare failed or already prepared', prepError);
                                         }
-                                        await adMobModuleRef.current.AdMob.showRewardVideoAd();
+                                        await adMobModuleRef.current.AdMob.showRewardInterstitialAd();
                                         setIsPreparingAd(false);
                                     } catch (e) {
                                         console.error('Failed to show ad, opening modal anyway', e);
@@ -1557,11 +1557,11 @@ export const BrazilLeagueDetails: React.FC = () => {
                                                                     await adMobModuleRef.current.AdMob.initialize();
                                                                 }
                                                                 try {
-                                                                    await adMobModuleRef.current.AdMob.prepareRewardVideoAd({ adId: 'ca-app-pub-7684468298593275/3623119611', isTesting: false });
+                                                                    await adMobModuleRef.current.AdMob.prepareRewardInterstitialAd({ adId: 'ca-app-pub-7684468298593275/3623119611', isTesting: false });
                                                                 } catch (prepError) {
                                                                     console.warn('Ad prepare failed or already prepared', prepError);
                                                                 }
-                                                                await adMobModuleRef.current.AdMob.showRewardVideoAd();
+                                                                await adMobModuleRef.current.AdMob.showRewardInterstitialAd();
                                                             } catch (e) {
                                                                 console.error('Failed to show ad', e);
                                                                 alert('Anúncio não está pronto ainda. Tente novamente em alguns segundos.');
