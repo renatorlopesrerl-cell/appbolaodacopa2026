@@ -1,5 +1,5 @@
 -- ==============================================================================
--- MIGRATION: SAFE SETTINGS PARSING AND FIX CORRUPT LEAGUES
+-- MIGRATION: SAFE SETTINGS PARSING, GOALSCORER COMPUTATION AND RANKING FIXES
 -- ==============================================================================
 
 -- 1. Helper function to parse setting values safely (guaranteeing it returns integer between 0 and 10000)
@@ -35,7 +35,53 @@ END;
 $$ LANGUAGE plpgsql IMMUTABLE;
 
 
--- 2. Recreate calculate_match_points with safe settings parsing
+-- 2. Unified helper function to calculate goalscorer points (with "None" / 0-0 match handling)
+CREATE OR REPLACE FUNCTION public.calculate_brazil_goalscorer_points(
+    p_player_pick text, 
+    p_match_id text, 
+    p_goalscorer_setting integer
+)
+RETURNS integer AS $$
+DECLARE
+    v_brazil_score integer := 0;
+    v_goals integer := 0;
+BEGIN
+    -- 1. Determine Brazil's goals in this match
+    SELECT 
+        CASE 
+            WHEN m.home_team_id = 'Brasil' THEN COALESCE(m.home_score, 0)
+            WHEN m.away_team_id = 'Brasil' THEN COALESCE(m.away_score, 0)
+            ELSE 0 
+        END
+    INTO v_brazil_score
+    FROM matches m
+    WHERE m.id = p_match_id;
+
+    -- 2. If user picked None ("Nenhum", represented by NULL or empty string)
+    IF p_player_pick IS NULL OR p_player_pick = '' THEN
+        IF v_brazil_score = 0 THEN
+            RETURN p_goalscorer_setting;
+        ELSE
+            RETURN 0;
+        END IF;
+    END IF;
+
+    -- 3. If user picked a specific player, check their goals
+    SELECT COALESCE(goals, 0)
+    INTO v_goals
+    FROM brazil_match_goals
+    WHERE match_id = p_match_id AND player_name = p_player_pick;
+
+    IF v_goals > 0 THEN
+        RETURN p_goalscorer_setting + (v_goals - 1);
+    ELSE
+        RETURN 0;
+    END IF;
+END;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+
+
+-- 3. Recreate calculate_match_points with safe settings parsing (Standard Leagues)
 CREATE OR REPLACE FUNCTION public.calculate_match_points()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -112,7 +158,7 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 
--- 3. Recreate calculate_brazil_match_points with safe settings parsing
+-- 4. Recreate calculate_brazil_match_points with safe settings parsing (Brazil Leagues)
 CREATE OR REPLACE FUNCTION public.calculate_brazil_match_points()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -168,10 +214,10 @@ BEGIN
                 ELSE 0
             END
         )::integer,
-        goalscorer_points = (
-            SELECT COALESCE(SUM(bmg.goals * public.safe_get_setting(bl.settings, 'goalscorer', 2)), 0)
-            FROM brazil_match_goals bmg
-            WHERE bmg.match_id = NEW.id AND bmg.player_name = p.player_pick
+        goalscorer_points = public.calculate_brazil_goalscorer_points(
+            p.player_pick, 
+            NEW.id, 
+            public.safe_get_setting(bl.settings, 'goalscorer', 2)
         )
         FROM brazil_leagues bl
         WHERE p.league_id = bl.id AND p.match_id = NEW.id;
@@ -194,39 +240,41 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 
--- 4. Recreate recalc_brazil_goalscorer_points with safe settings parsing
+-- 5. Recreate recalc_brazil_goalscorer_points to refresh standings immediately on goal updates
 CREATE OR REPLACE FUNCTION public.recalc_brazil_goalscorer_points()
 RETURNS TRIGGER AS $$
 DECLARE
     the_match_id text;
+    affected_leagues text[];
 BEGIN
     the_match_id := COALESCE(NEW.match_id, OLD.match_id);
 
     UPDATE brazil_predictions p
-    SET goalscorer_points = (
-        CASE
-            WHEN p.player_pick IS NOT NULL THEN
-                COALESCE(
-                    (SELECT CASE 
-                              WHEN g.goals > 0 THEN public.safe_get_setting(bl.settings, 'goalscorer', 2) + (g.goals - 1)
-                              ELSE 0
-                            END
-                     FROM brazil_match_goals g
-                     WHERE g.match_id = the_match_id AND g.player_name = p.player_pick),
-                    0
-                )
-            ELSE 0
-        END
+    SET goalscorer_points = public.calculate_brazil_goalscorer_points(
+        p.player_pick, 
+        the_match_id, 
+        public.safe_get_setting(bl.settings, 'goalscorer', 2)
     )
     FROM brazil_leagues bl
     WHERE p.league_id = bl.id AND p.match_id = the_match_id;
+
+    -- Refresh affected Brazil league rankings
+    SELECT array_agg(DISTINCT p.league_id) INTO affected_leagues 
+    FROM brazil_predictions p
+    JOIN brazil_leagues bl ON p.league_id = bl.id
+    JOIN profiles pr ON p.user_id = pr.id
+    WHERE p.match_id = the_match_id;
+    
+    IF array_length(affected_leagues, 1) > 0 THEN
+        PERFORM public.refresh_multiple_league_rankings(affected_leagues);
+    END IF;
 
     RETURN COALESCE(NEW, OLD);
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 
--- 5. Fix the corrupt rows in both brazil_leagues and standard leagues
+-- 6. Fix the corrupt rows in both brazil_leagues and standard leagues
 UPDATE brazil_leagues 
 SET settings = '{"exactScore": 10, "winnerAndDiff": 7, "winnerAndWinnerGoals": 6, "draw": 6, "winner": 5, "goalscorer": 2}'::jsonb 
 WHERE id = 'bl-1781349415302-654';
