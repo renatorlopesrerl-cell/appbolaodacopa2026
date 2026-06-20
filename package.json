@@ -9,7 +9,8 @@
     "dev:worker": "wrangler pages dev --compatibility-date=2024-04-01 --proxy 3000",
     "dev:all": "npm run generate-sw && concurrently --kill-others -n vite,wrangler -c cyan,yellow \"vite --port 3000\" \"wrangler pages dev --compatibility-date=2024-04-01 --proxy 3000\"",
     "build": "npm run generate-sw && vite build",
-    "preview": "wrangler pages dev dist"
+    "preview": "wrangler pages dev dist",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "@capacitor-community/admob": "^7.2.0",
@@ -49,6 +50,7 @@
     "typescript": "~5.8.2",
     "vite": "^6.2.0",
     "wrangler": "^4.14.4",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "patch-package": "^8.0.0"
   }
 }

@@ -1,0 +1,205 @@
+diff --git a/node_modules/@capacitor-community/admob/android/src/main/java/com/getcapacitor/community/admob/banner/BannerExecutor.java b/node_modules/@capacitor-community/admob/android/src/main/java/com/getcapacitor/community/admob/banner/BannerExecutor.java
+index c629139..bc471d5 100644
+--- a/node_modules/@capacitor-community/admob/android/src/main/java/com/getcapacitor/community/admob/banner/BannerExecutor.java
++++ b/node_modules/@capacitor-community/admob/android/src/main/java/com/getcapacitor/community/admob/banner/BannerExecutor.java
+@@ -162,7 +162,11 @@ public class BannerExecutor extends Executor {
+                 .runOnUiThread(() -> {
+                     if (mAdViewLayout != null) {
+                         mAdViewLayout.setVisibility(View.GONE);
+-                        mAdView.pause();
++                        if (mAdView != null) {
++                            mAdView.pause();
++                        } else {
++                            Log.e(logTag, "mAdView is null in hideBanner runOnUiThread");
++                        }
+ 
+                         final BannerAdSizeInfo sizeInfo = new BannerAdSizeInfo(0, 0);
+ 
+@@ -205,8 +209,12 @@ public class BannerExecutor extends Executor {
+                     .get()
+                     .runOnUiThread(() -> {
+                         if (mAdView != null) {
+-                            mViewGroup.removeView(mAdViewLayout);
+-                            mAdViewLayout.removeView(mAdView);
++                            if (mViewGroup != null && mAdViewLayout != null) {
++                                mViewGroup.removeView(mAdViewLayout);
++                            }
++                            if (mAdViewLayout != null) {
++                                mAdViewLayout.removeView(mAdView);
++                            }
+                             mAdView.destroy();
+                             mAdView = null;
+                             Log.d(logTag, "Banner AD Removed");
+@@ -227,7 +235,11 @@ public class BannerExecutor extends Executor {
+             .get()
+             .runOnUiThread(() -> {
+                 final AdRequest adRequest = RequestHelper.createRequest(adOptions);
+-                mAdView.loadAd(adRequest);
++                if (mAdView != null) {
++                    mAdView.loadAd(adRequest);
++                } else {
++                    Log.e(logTag, "mAdView is null in updateExistingAdView runOnUiThread");
++                }
+             });
+     }
+ 
+@@ -240,17 +252,24 @@ public class BannerExecutor extends Executor {
+         activitySupplier
+             .get()
+             .runOnUiThread(() -> {
++                if (mAdView == null) {
++                    Log.e(logTag, "mAdView is null in createNewAdView runOnUiThread");
++                    return;
++                }
+                 final AdRequest adRequest = RequestHelper.createRequest(adOptions);
+                 // Assign the correct id needed
+                 AdViewIdHelper.assignIdToAdView(mAdView, adOptions, adRequest, logTag, contextSupplier.get());
+                 // Add the AdView to the view hierarchy.
+-                mAdViewLayout.addView(mAdView);
++                if (mAdViewLayout != null) {
++                    mAdViewLayout.addView(mAdView);
++                }
+                 // Start loading the ad.
+                 mAdView.loadAd(adRequest);
+                 mAdView.setAdListener(
+                     new AdListener() {
+                         @Override
+                         public void onAdLoaded() {
++                            if (mAdView == null) return;
+                             final BannerAdSizeInfo sizeInfo = new BannerAdSizeInfo(mAdView);
+ 
+                             notifyListeners(BannerAdPluginEvents.SizeChanged.getWebEventName(), sizeInfo);
+@@ -261,8 +280,12 @@ public class BannerExecutor extends Executor {
+                         @Override
+                         public void onAdFailedToLoad(@NonNull LoadAdError adError) {
+                             if (mAdView != null) {
+-                                mViewGroup.removeView(mAdViewLayout);
+-                                mAdViewLayout.removeView(mAdView);
++                                if (mViewGroup != null && mAdViewLayout != null) {
++                                    mViewGroup.removeView(mAdViewLayout);
++                                }
++                                if (mAdViewLayout != null) {
++                                    mAdViewLayout.removeView(mAdView);
++                                }
+                                 mAdView.destroy();
+                                 mAdView = null;
+                             }
+diff --git a/node_modules/@capacitor-community/admob/android/src/main/java/com/getcapacitor/community/admob/helpers/AdViewIdHelper.java b/node_modules/@capacitor-community/admob/android/src/main/java/com/getcapacitor/community/admob/helpers/AdViewIdHelper.java
+index 02531cd..cbd27cc 100644
+--- a/node_modules/@capacitor-community/admob/android/src/main/java/com/getcapacitor/community/admob/helpers/AdViewIdHelper.java
++++ b/node_modules/@capacitor-community/admob/android/src/main/java/com/getcapacitor/community/admob/helpers/AdViewIdHelper.java
+@@ -24,6 +24,10 @@ public final class AdViewIdHelper {
+     }
+ 
+     public static void assignIdToAdView(AdView adView, AdOptions adOptions, AdRequest adRequest, String logTag, Context context) {
++        if (adView == null) {
++            Log.e(logTag, "adView is null in assignIdToAdView");
++            return;
++        }
+         String finalId = getFinalAdId(adOptions, adRequest, logTag, context);
+         adView.setAdUnitId(finalId);
+         Log.d(logTag, "Ad ID: " + finalId);
+diff --git a/node_modules/@capacitor-community/admob/android/src/main/java/com/getcapacitor/community/admob/interstitial/AdInterstitialExecutor.java b/node_modules/@capacitor-community/admob/android/src/main/java/com/getcapacitor/community/admob/interstitial/AdInterstitialExecutor.java
+index c7a699c..04e5a42 100644
+--- a/node_modules/@capacitor-community/admob/android/src/main/java/com/getcapacitor/community/admob/interstitial/AdInterstitialExecutor.java
++++ b/node_modules/@capacitor-community/admob/android/src/main/java/com/getcapacitor/community/admob/interstitial/AdInterstitialExecutor.java
+@@ -14,6 +14,8 @@ import com.google.android.gms.ads.AdRequest;
+ import com.google.android.gms.ads.interstitial.InterstitialAd;
+ import com.google.android.gms.common.util.BiConsumer;
+ 
++import android.util.Log;
++
+ public class AdInterstitialExecutor extends Executor {
+ 
+     public static InterstitialAd interstitialAd;
+@@ -66,8 +68,16 @@ public class AdInterstitialExecutor extends Executor {
+             .get()
+             .runOnUiThread(() -> {
+                 try {
+-                    interstitialAd.show(activitySupplier.get());
+-                    call.resolve();
++                    if (interstitialAd != null) {
++                        interstitialAd.show(activitySupplier.get());
++                        call.resolve();
++                    } else {
++                        String errorMessage = "interstitialAd became null before UI thread execution";
++                        Log.e(logTag, errorMessage);
++                        call.reject(errorMessage);
++                        AdMobPluginError errorObject = new AdMobPluginError(-1, errorMessage);
++                        notifyListenersFunction.accept(InterstitialAdPluginPluginEvent.FailedToLoad, errorObject);
++                    }
+                 } catch (Exception ex) {
+                     call.reject(ex.getLocalizedMessage(), ex);
+                 }
+diff --git a/node_modules/@capacitor-community/admob/android/src/main/java/com/getcapacitor/community/admob/rewarded/AdRewardExecutor.java b/node_modules/@capacitor-community/admob/android/src/main/java/com/getcapacitor/community/admob/rewarded/AdRewardExecutor.java
+index f9ead0c..2876e90 100644
+--- a/node_modules/@capacitor-community/admob/android/src/main/java/com/getcapacitor/community/admob/rewarded/AdRewardExecutor.java
++++ b/node_modules/@capacitor-community/admob/android/src/main/java/com/getcapacitor/community/admob/rewarded/AdRewardExecutor.java
+@@ -15,6 +15,8 @@ import com.google.android.gms.ads.AdRequest;
+ import com.google.android.gms.ads.rewarded.RewardedAd;
+ import com.google.android.gms.common.util.BiConsumer;
+ 
++import android.util.Log;
++
+ public class AdRewardExecutor extends Executor {
+ 
+     public static RewardedAd mRewardedAd;
+@@ -64,10 +66,18 @@ public class AdRewardExecutor extends Executor {
+             activitySupplier
+                 .get()
+                 .runOnUiThread(() -> {
+-                    mRewardedAd.show(
+-                        activitySupplier.get(),
+-                        RewardedAdCallbackAndListeners.INSTANCE.getOnUserEarnedRewardListener(call, notifyListenersFunction)
+-                    );
++                    if (mRewardedAd != null) {
++                        mRewardedAd.show(
++                            activitySupplier.get(),
++                            RewardedAdCallbackAndListeners.INSTANCE.getOnUserEarnedRewardListener(call, notifyListenersFunction)
++                        );
++                    } else {
++                        String errorMessage = "mRewardedAd became null before UI thread execution";
++                        Log.e(logTag, errorMessage);
++                        call.reject(errorMessage);
++                        AdMobPluginError errorObject = new AdMobPluginError(-1, errorMessage);
++                        notifyListenersFunction.accept(RewardAdPluginEvents.FailedToLoad, errorObject);
++                    }
+                 });
+         } catch (Exception ex) {
+             call.reject(ex.getLocalizedMessage(), ex);
+diff --git a/node_modules/@capacitor-community/admob/android/src/main/java/com/getcapacitor/community/admob/rewardedinterstitial/AdRewardInterstitialExecutor.java b/node_modules/@capacitor-community/admob/android/src/main/java/com/getcapacitor/community/admob/rewardedinterstitial/AdRewardInterstitialExecutor.java
+index baa37f0..fdaa991 100644
+--- a/node_modules/@capacitor-community/admob/android/src/main/java/com/getcapacitor/community/admob/rewardedinterstitial/AdRewardInterstitialExecutor.java
++++ b/node_modules/@capacitor-community/admob/android/src/main/java/com/getcapacitor/community/admob/rewardedinterstitial/AdRewardInterstitialExecutor.java
+@@ -15,6 +15,8 @@ import com.google.android.gms.ads.AdRequest;
+ import com.google.android.gms.ads.rewardedinterstitial.RewardedInterstitialAd;
+ import com.google.android.gms.common.util.BiConsumer;
+ 
++import android.util.Log;
++
+ public class AdRewardInterstitialExecutor extends Executor {
+ 
+     public static RewardedInterstitialAd mRewardedInterstitialAd;
+@@ -68,10 +70,18 @@ public class AdRewardInterstitialExecutor extends Executor {
+             activitySupplier
+                 .get()
+                 .runOnUiThread(() -> {
+-                    mRewardedInterstitialAd.show(
+-                        activitySupplier.get(),
+-                        RewardedInterstitialAdCallbackAndListeners.INSTANCE.getOnUserEarnedRewardListener(call, notifyListenersFunction)
+-                    );
++                    if (mRewardedInterstitialAd != null) {
++                        mRewardedInterstitialAd.show(
++                            activitySupplier.get(),
++                            RewardedInterstitialAdCallbackAndListeners.INSTANCE.getOnUserEarnedRewardListener(call, notifyListenersFunction)
++                        );
++                    } else {
++                        String errorMessage = "mRewardedInterstitialAd became null before UI thread execution";
++                        Log.e(logTag, errorMessage);
++                        call.reject(errorMessage);
++                        AdMobPluginError errorObject = new AdMobPluginError(-1, errorMessage);
++                        notifyListenersFunction.accept(RewardInterstitialAdPluginEvents.FailedToLoad, errorObject);
++                    }
+                 });
+         } catch (Exception ex) {
+             call.reject(ex.getLocalizedMessage(), ex);
