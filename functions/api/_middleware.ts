@@ -124,7 +124,12 @@ export const onRequest = async ({ request, env, next, data }) => {
             }
 
             // Only Super Admins can access endpoints other than matches and push endpoints
-            if (!isSuperAdmin && isMatchAdmin && !request.url.includes('/admin/matches') && !request.url.includes('/admin/send-mass-push') && !request.url.includes('/admin/broadcast-push')) {
+            if (!isSuperAdmin && isMatchAdmin && 
+                !request.url.includes('/admin/matches') && 
+                !request.url.includes('/admin/brazil-match-goals') && 
+                !request.url.includes('/admin/send-mass-push') && 
+                !request.url.includes('/admin/broadcast-push')
+            ) {
                  return withCors(new Response(JSON.stringify({ error: 'Forbidden. Matches admin only.' }), { status: 403 }));
             }
         }

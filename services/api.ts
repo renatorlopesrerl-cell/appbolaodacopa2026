@@ -366,19 +366,15 @@ export const api = {
             return (data as any[]) || [];
         },
         add: async (matchId: string, playerName: string, goals: number = 1) => {
-            const { error } = await supabase.from('brazil_match_goals').upsert(
-                { match_id: matchId, player_name: playerName, goals },
-                { onConflict: 'match_id,player_name' }
-            );
-            if (error) throw error;
+            await apiFetch('/admin/brazil-match-goals', {
+                method: 'POST',
+                body: JSON.stringify({ matchId, playerName, goals })
+            });
         },
         remove: async (matchId: string, playerName: string) => {
-            const { error } = await supabase
-                .from('brazil_match_goals')
-                .delete()
-                .eq('match_id', matchId)
-                .eq('player_name', playerName);
-            if (error) throw error;
+            await apiFetch(`/admin/brazil-match-goals?matchId=${matchId}&playerName=${playerName}`, {
+                method: 'DELETE'
+            });
         }
     },
     topFinisherPredictions: {
