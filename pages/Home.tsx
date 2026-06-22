@@ -15,7 +15,7 @@ export const Home: React.FC = () => {
   // AdMob Banner para a Home - Oculta se não estiver logado ou se for PRO
   const adMobRef = React.useRef<any>(null);
   const bannerShownRef = React.useRef(false);
-  
+
   React.useEffect(() => {
     if (!currentUser || currentUser.isPro || !Capacitor.isNativePlatform()) return;
     let cancelled = false;
@@ -39,8 +39,8 @@ export const Home: React.FC = () => {
       cancelled = true;
       if (bannerShownRef.current && adMobRef.current) {
         bannerShownRef.current = false;
-        adMobRef.current.hideBanner().catch(() => {});
-        adMobRef.current.removeBanner().catch(() => {});
+        adMobRef.current.hideBanner().catch(() => { });
+        adMobRef.current.removeBanner().catch(() => { });
       }
     };
   }, [currentUser]);
@@ -70,7 +70,7 @@ export const Home: React.FC = () => {
 
           <div className="space-y-2">
             <h1 className="text-3xl md:text-5xl lg:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-brasil-green to-brasil-blue dark:from-green-400 dark:to-blue-400 tracking-tighter uppercase break-words">
-              PALPITEIRO DA COPA DO MUNDO FIFA 2026
+              PALPITEIRO DA COPA
             </h1>
             <h2 className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 font-medium max-w-lg mx-auto leading-relaxed">
               Crie sua liga grátis e desafie seus amigos.
@@ -143,7 +143,7 @@ export const Home: React.FC = () => {
 
         {/* Feature Cards */}
         <div className="w-full max-w-5xl px-4 mt-8 flex flex-col gap-2 items-center text-center">
-          <h2 className="text-lg font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider opacity-80">Copa do Mundo FIFA 2026</h2>
+          <h2 className="text-lg font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider opacity-80">Copa 2026</h2>
           <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400">Tabela, Simulador, Palpites e Ligas com Ranking em Tempo Real</h2>
 
           <Link to="/como-jogar" className="text-brasil-blue dark:text-blue-400 hover:underline font-bold text-lg mt-6 flex items-center gap-2 transition-colors">
@@ -246,10 +246,10 @@ export const Home: React.FC = () => {
           </h2>
           <div className="space-y-3">
             {pendingInvites.map(invite => {
-              const localLeague = invite.leagueType === 'brazil' 
+              const localLeague = invite.leagueType === 'brazil'
                 ? brazilLeagues.find(l => l.id === invite.leagueId)
                 : leagues.find(l => l.id === invite.leagueId);
-                
+
               const leagueName = localLeague?.name || invite.league_name || 'Liga Desconhecida';
               const leagueImage = localLeague?.image || invite.league_image;
 
@@ -366,20 +366,20 @@ export const Home: React.FC = () => {
         </Link>
 
         {!loading && !currentUser.isPro && (
-        <Link to="/seja-pro" className="group bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 p-6 rounded-2xl shadow-sm hover:shadow-xl transition-all border border-yellow-200 dark:border-yellow-800 relative overflow-hidden">
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:scale-110 duration-500">
-            <Trophy size={80} className="text-amber-500 dark:text-amber-400" />
-          </div>
-          <div className="relative z-10">
-            <div className="p-3 bg-gradient-to-br from-yellow-100 to-amber-100 dark:from-yellow-900/50 dark:to-amber-900/50 rounded-xl w-fit mb-4 group-hover:bg-gradient-to-br group-hover:from-yellow-400 group-hover:to-amber-500 transition-colors">
-              <span className="text-2xl leading-none">⭐</span>
+          <Link to="/seja-pro" className="group bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 p-6 rounded-2xl shadow-sm hover:shadow-xl transition-all border border-yellow-200 dark:border-yellow-800 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:scale-110 duration-500">
+              <Trophy size={80} className="text-amber-500 dark:text-amber-400" />
             </div>
-            <div className="flex items-center gap-2 mb-1">
-              <h2 className="text-xl font-bold text-gray-800 dark:text-white">Seja PRO</h2>
+            <div className="relative z-10">
+              <div className="p-3 bg-gradient-to-br from-yellow-100 to-amber-100 dark:from-yellow-900/50 dark:to-amber-900/50 rounded-xl w-fit mb-4 group-hover:bg-gradient-to-br group-hover:from-yellow-400 group-hover:to-amber-500 transition-colors">
+                <span className="text-2xl leading-none">⭐</span>
+              </div>
+              <div className="flex items-center gap-2 mb-1">
+                <h2 className="text-xl font-bold text-gray-800 dark:text-white">Seja PRO</h2>
+              </div>
+              <p className="text-amber-700 dark:text-amber-300 text-sm font-medium">Desbloqueie estatísticas exclusivas de cada jogo!</p>
             </div>
-            <p className="text-amber-700 dark:text-amber-300 text-sm font-medium">Desbloqueie estatísticas exclusivas de cada jogo!</p>
-          </div>
-        </Link>
+          </Link>
         )}
 
       </div>
@@ -457,8 +457,8 @@ export const Home: React.FC = () => {
           <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.3)] border-2 border-brasil-yellow dark:border-yellow-600 overflow-hidden flex flex-col md:flex-row items-center">
             {/* Background pattern/gradient */}
             <div className="absolute inset-0 bg-gradient-to-br from-yellow-50 to-green-50 dark:from-yellow-900/20 dark:to-green-900/20 opacity-50"></div>
-            
-            <button 
+
+            <button
               onClick={() => {
                 setShowFloatingBanner(false);
                 sessionStorage.setItem('hideHomeBanner', 'true');
@@ -477,8 +477,8 @@ export const Home: React.FC = () => {
             </div>
 
             <div className="flex flex-col lg:flex-row items-stretch lg:items-center w-full md:w-auto gap-3 p-4 pt-0 md:pt-4 relative z-10 justify-center">
-              <Link 
-                to="/leagues" 
+              <Link
+                to="/leagues"
                 className="flex items-center justify-center gap-2 px-4 py-3 bg-brasil-blue hover:bg-blue-800 text-white font-bold rounded-xl text-sm shadow-md transition-transform active:scale-95 border border-blue-400 whitespace-nowrap"
               >
                 <Globe size={18} />
@@ -486,8 +486,8 @@ export const Home: React.FC = () => {
                   <span className="uppercase text-sm font-black">Todos os Jogos da Copa</span>
                 </div>
               </Link>
-              <Link 
-                to="/brazil-games" 
+              <Link
+                to="/brazil-games"
                 className="flex items-center justify-center gap-2 px-4 py-3 bg-brasil-green hover:bg-green-700 text-white font-bold rounded-xl text-sm shadow-md transition-transform active:scale-95 border border-green-400 whitespace-nowrap"
               >
                 <span className="text-xl leading-none">🇧🇷</span>
@@ -496,8 +496,8 @@ export const Home: React.FC = () => {
                 </div>
               </Link>
               {!loading && !currentUser.isPro && (
-                <Link 
-                  to="/seja-pro" 
+                <Link
+                  to="/seja-pro"
                   className="flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-yellow-200 to-amber-300 hover:from-yellow-300 hover:to-amber-400 text-gray-900 font-bold rounded-xl text-sm shadow-sm transition-transform active:scale-95 border border-yellow-300 whitespace-nowrap"
                 >
                   <span className="text-xl leading-none">⭐</span>
