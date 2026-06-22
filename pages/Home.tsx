@@ -230,7 +230,7 @@ export const Home: React.FC = () => {
           </div>
           {/* Small Logo for Dashboard */}
           <img
-            src="https://sjianpqzozufnobftksp.supabase.co/storage/v1/object/public/Public/palpiteirodacopa2026.png"
+            src="/palpiteirodacopa2026.png"
             alt="Palpiteiro"
             className="w-24 h-auto drop-shadow-lg hidden md:block opacity-90"
           />
@@ -436,7 +436,7 @@ export const Home: React.FC = () => {
           <div className="flex-1">
             <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2">Informativo Legal</h2>
             <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed text-justify mb-4">
-              Este aplicativo tem finalidade exclusivamente recreativa e não possui vínculo com entidades organizadoras da Copa do Mundo 2026.
+              Este aplicativo tem finalidade exclusivamente recreativa e não possui vínculo com entidades organizadoras da Copa 2026.
               Não promovemos apostas financeiras. A gestão de ligas e premiações (se houver) é de total responsabilidade dos criadores e participantes de cada liga.
             </p>
             <div className="flex gap-4 text-sm font-medium">
