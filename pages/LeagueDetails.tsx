@@ -23,7 +23,6 @@ import { LiveCountdown } from '../components/LiveCountdown';
 import { supabase } from '../services/supabase';
 import { getHistoryForTeam } from '../historyUtils';
 import { fetchLeagueRankings } from '../services/rankingService';
-import BannerAd from '../components/BannerAd';
 
 export const LeagueDetails: React.FC = () => {
     const queryClient = useQueryClient();
@@ -3096,17 +3095,14 @@ export const LeagueDetails: React.FC = () => {
             {showLeaveConfirm && createPortal(<div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200"><div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 w-full max-w-sm animate-in zoom-in-95 duration-200 border border-gray-100 dark:border-gray-700"><div className="flex items-center gap-3 mb-4 text-red-600"><div className="bg-red-100 p-2 rounded-full"><LogOut size={24} /></div><h3 className="text-lg font-bold text-gray-800 dark:text-white">Sair da Liga?</h3></div><p className="text-gray-600 dark:text-gray-300 mb-6 text-sm leading-relaxed">Tem certeza que deseja sair da liga <strong>{league.name}</strong>? Seus palpites <strong>não serão apagados</strong>, mas você deixará de pontuar no ranking.</p><div className="flex gap-3"><button onClick={() => setShowLeaveConfirm(false)} className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 font-bold text-gray-600 dark:text-gray-300 transition-colors text-sm">Cancelar</button><button onClick={executeLeave} className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 font-bold shadow-md shadow-red-200 transition-all active:scale-95 text-sm">Sair</button></div></div></div>, document.body)}
 
             <div className="mb-6 space-y-4">
-                <div className="flex items-center justify-between mb-4 gap-4 flex-wrap">
-                    <div className="flex items-center gap-4 flex-wrap">
-                        <button onClick={() => confirmNavigation(() => {
-                            if (window.history.state?.idx > 0) {
-                                navigate(-1);
-                            } else {
-                                navigate('/leagues', { replace: true });
-                            }
-                        })} className="flex items-center gap-2 text-sm font-bold text-brasil-blue hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors group"><div className="bg-blue-50 dark:bg-gray-800 p-1.5 rounded-full group-hover:bg-blue-100 dark:group-hover:bg-gray-700"><ArrowLeft size={18} /></div> Voltar para Ligas</button>
-                        {!currentUser?.isPro && !Capacitor.isNativePlatform() && <BannerAd />}
-                    </div>
+                <div className="flex items-center justify-between mb-4">
+                    <button onClick={() => confirmNavigation(() => {
+                        if (window.history.state?.idx > 0) {
+                            navigate(-1);
+                        } else {
+                            navigate('/leagues', { replace: true });
+                        }
+                    })} className="flex items-center gap-2 text-sm font-bold text-brasil-blue hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors group"><div className="bg-blue-50 dark:bg-gray-800 p-1.5 rounded-full group-hover:bg-blue-100 dark:group-hover:bg-gray-700"><ArrowLeft size={18} /></div> Voltar para Ligas</button>
                     {isAdmin && validPendingRequestsCount > 0 && (<button onClick={() => handleTabChange('admin')} className="flex items-center gap-1.5 bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-full font-bold text-xs shadow-md transition-all animate-pulse hover:animate-none"><Bell size={14} fill="currentColor" /> {validPendingRequestsCount} pendentes</button>)}
                 </div>
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">

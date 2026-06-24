@@ -9,7 +9,6 @@ import { api } from '../services/api';
 import { BrazilLeague } from '../types';
 import { Capacitor } from '@capacitor/core';
 import { AdSenseBanner } from '../components/AdSenseBanner';
-import BannerAd from '../components/BannerAd';
 
 export const BrazilGamesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -321,12 +320,6 @@ export const BrazilGamesPage: React.FC = () => {
           </div>
         )}
       </section>
-
-      {!Capacitor.isNativePlatform() && (
-        <div style={{ marginTop: '20px' }}>
-          <BannerAd />
-        </div>
-      )}
 
       {/* AdSense Banner (Below my leagues) */}
       <div className="w-full h-auto mt-6 mb-2">
