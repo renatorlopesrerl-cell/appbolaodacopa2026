@@ -115,7 +115,7 @@ export const Home: React.FC = () => {
             <div className="flex flex-col items-center gap-2 pt-4">
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Disponível para Android</p>
               <a
-                href="https://play.google.com/store/apps/details?id=app.palpiteirodacopa"
+                href="https://play.google.com/store/apps/details?id=app.palpiteiro"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="hover:scale-105 transition-transform duration-300 active:scale-95"
@@ -396,7 +396,7 @@ export const Home: React.FC = () => {
             Acompanhe suas ligas com mais facilidade e receba notificações em tempo real.
           </p>
           <a
-            href="https://play.google.com/store/apps/details?id=app.palpiteirodacopa"
+            href="https://play.google.com/store/apps/details?id=app.palpiteiro"
             target="_blank"
             rel="noopener noreferrer"
             className="hover:scale-105 transition-transform duration-300 active:scale-95"

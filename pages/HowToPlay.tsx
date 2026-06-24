@@ -299,7 +299,7 @@ export const HowToPlay: React.FC = () => {
                                     Baixe o App para Android
                                 </div>
                                 <a
-                                    href="https://play.google.com/store/apps/details?id=app.palpiteirodacopa"
+                                    href="https://play.google.com/store/apps/details?id=app.palpiteiro"
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="hover:scale-105 transition-transform duration-300 active:scale-95"

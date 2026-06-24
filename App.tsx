@@ -1029,7 +1029,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: isNative ? 'app.palpiteirodacopa://login-callback' : window.location.origin,
+        redirectTo: isNative ? 'app.palpiteiro://login-callback' : window.location.origin,
         skipBrowserRedirect: isNative, // Impede o redirecionamento automático da página atual no nativo
         queryParams: {
           access_type: 'offline',

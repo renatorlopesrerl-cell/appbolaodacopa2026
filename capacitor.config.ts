@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'app.palpiteirodacopa',
-  appName: 'Palpiteiro da Copa 2026',
+  appId: 'app.palpiteiro',
+  appName: 'Palpiteiro',
   webDir: 'dist',
   server: {
     androidScheme: 'https',

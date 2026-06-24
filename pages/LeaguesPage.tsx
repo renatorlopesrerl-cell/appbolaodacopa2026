@@ -9,6 +9,7 @@ import { OptimizedImage } from '../components/OptimizedImage';
 import { api } from '../services/api';
 import { AdSenseBanner } from '../components/AdSenseBanner';
 import { Capacitor } from '@capacitor/core';
+import BannerAd from '../components/BannerAd';
 
 export const LeaguesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -346,6 +347,12 @@ export const LeaguesPage: React.FC = () => {
           </div>
         )}
       </section>
+
+      {!Capacitor.isNativePlatform() && (
+        <div style={{ marginTop: '20px' }}>
+          <BannerAd />
+        </div>
+      )}
 
       {/* AdSense Banner (Below my leagues) */}
       <div className="w-full h-auto mt-6 mb-2">
