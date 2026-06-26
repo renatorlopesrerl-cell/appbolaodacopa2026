@@ -12446,7 +12446,7 @@ var init_matches = __esm({
           const body = await request.json();
           const { id } = body;
           if (!id) throw new Error("Match ID required");
-          const { status, home_score, away_score, phase, date, location, group, reminder_30m_sent } = body;
+          const { status, home_score, away_score, phase, date, location, group, reminder_30m_sent, home_team_id, away_team_id } = body;
           const safeUpdates = {};
           if (status !== void 0) safeUpdates.status = status;
           if (home_score !== void 0) safeUpdates.home_score = home_score;
@@ -12456,6 +12456,8 @@ var init_matches = __esm({
           if (location !== void 0) safeUpdates.location = location;
           if (group !== void 0) safeUpdates.group = group;
           if (reminder_30m_sent !== void 0) safeUpdates.reminder_30m_sent = reminder_30m_sent;
+          if (home_team_id !== void 0) safeUpdates.home_team_id = home_team_id;
+          if (away_team_id !== void 0) safeUpdates.away_team_id = away_team_id;
           if (Object.keys(safeUpdates).length === 0) throw new Error("No valid fields to update");
           const { data: oldMatch } = await userClient.from("matches").select("status, home_team_id, away_team_id").eq("id", id).single();
           const { error } = await userClient.from("matches").update(safeUpdates).eq("id", id);

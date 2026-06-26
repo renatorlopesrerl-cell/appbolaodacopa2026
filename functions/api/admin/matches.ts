@@ -13,7 +13,7 @@ export const onRequest = async (context: any) => {
             if (!id) throw new Error("Match ID required");
 
             // SECURITY: Whitelist allowed fields — never pass raw body to the DB
-            const { status, home_score, away_score, phase, date, location, group, reminder_30m_sent } = body;
+            const { status, home_score, away_score, phase, date, location, group, reminder_30m_sent, home_team_id, away_team_id } = body;
             const safeUpdates: Record<string, any> = {};
             if (status !== undefined)           safeUpdates.status = status;
             if (home_score !== undefined)        safeUpdates.home_score = home_score;
@@ -23,6 +23,8 @@ export const onRequest = async (context: any) => {
             if (location !== undefined)          safeUpdates.location = location;
             if (group !== undefined)             safeUpdates.group = group;
             if (reminder_30m_sent !== undefined) safeUpdates.reminder_30m_sent = reminder_30m_sent;
+            if (home_team_id !== undefined)      safeUpdates.home_team_id = home_team_id;
+            if (away_team_id !== undefined)      safeUpdates.away_team_id = away_team_id;
 
             if (Object.keys(safeUpdates).length === 0) throw new Error("No valid fields to update");
 
