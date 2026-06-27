@@ -1023,8 +1023,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const loginGoogle = async () => {
     setLoading(true);
 
-    // Detectar se está rodando no Capacitor (Nativo)
-    const isNative = (window as any).Capacitor?.isNative;
+    // Detectar se está rodando no Capacitor (Nativo) usando a API correta
+    const isNative = Capacitor.isNativePlatform();
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
