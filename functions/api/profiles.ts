@@ -119,6 +119,20 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                 // ALSO update the legacy column in profiles so the backend can read it without Service Role Key
                 await userClient.from('profiles').update({ fcm_token: body.token }).eq('id', authUser.id);
 
+                if (body.device_type === 'web' && body.token) {
+                    const topics = ['todos_palpiteiros', 'topic_match_start', 'topic_match_end', 'topic_prediction_reminder'];
+                    const url = `${env.SUPABASE_URL}/functions/v1/push-notification`;
+                    const authHeader = `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_ANON_KEY}`;
+                    
+                    await Promise.all(topics.map(topic => 
+                        fetch(url, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
+                            body: JSON.stringify({ action: 'subscribeToTopic', tokens: [body.token], topic })
+                        }).catch(e => console.error(`[profiles POST] Error subscribing web token to topic ${topic}`, e))
+                    ));
+                }
+
                 if (tokenError) throw tokenError;
                 return jsonResponse({ success: true, message: "Token registered" });
             }

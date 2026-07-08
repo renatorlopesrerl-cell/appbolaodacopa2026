@@ -71,91 +71,9 @@ export const onRequest = async (context: any) => {
             console.error('Falha crítica ao enviar push para tópico:', err);
         }
 
-        // 2. Enviar via Tokens Individuais (Fallback para Web e Apps Desatualizados)
-        let webSuccess = false;
-        let webResult = null;
-        try {
-            const fetchAll = async (table: string, column: string, eqColumn?: string, eqValue?: string) => {
-                let allRows: any[] = [];
-                let hasMore = true;
-                let page = 0;
-                const PAGE_SIZE = 1000;
-                while (hasMore) {
-                    let query = supabase.from(table).select(column).range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
-                    if (eqColumn && eqValue) {
-                        query = query.eq(eqColumn, eqValue);
-                    }
-                    const { data, error } = await query;
-                    if (error) throw error;
-                    if (data && data.length > 0) {
-                        allRows.push(...data);
-                        page++;
-                        if (data.length < PAGE_SIZE) hasMore = false;
-                    } else {
-                        hasMore = false;
-                    }
-                }
-                return allRows;
-            };
-
-            // Fetch all profiles to apply preference filtering
-            const profiles = await fetchAll('profiles', 'id, notification_settings');
-            
-            // Determine which setting to check based on the topic
-            const allowedUserIds = new Set();
-
-            if (profiles) {
-                profiles.forEach((p: any) => {
-                    let allowed = true;
-                    if (topicName === 'topic_prediction_reminder') {
-                        allowed = p.notification_settings?.predictionReminder !== false;
-                    } else if (topicName === 'topic_match_start') {
-                        allowed = p.notification_settings?.matchStart !== false;
-                    } else if (topicName === 'topic_match_end') {
-                        allowed = p.notification_settings?.matchEnd !== false;
-                    }
-                    
-                    if (allowed) {
-                        allowedUserIds.add(p.id);
-                    }
-                });
-            }
-
-            const tokenRows = await fetchAll('user_fcm_tokens', 'token, user_id', 'device_type', 'web');
-            
-            // Only add tokens for users who are allowed
-            let allTokens = [...new Set((tokenRows || [])
-                .filter((r: any) => allowedUserIds.has(r.user_id) && r.token && r.token.trim() !== '')
-                .map((r: any) => r.token))];
-
-            if (allTokens.length > 0) {
-                console.log(`Fallback Tokens: enviando para ${allTokens.length} tokens (Web + Legacy)`);
-                // Enviar em lotes de 300 para não estourar o limite de CPU/Memória da Supabase Edge Function
-                const CHUNK_SIZE = 300;
-                const chunks = [];
-                for (let i = 0; i < allTokens.length; i += CHUNK_SIZE) {
-                    chunks.push(allTokens.slice(i, i + CHUNK_SIZE));
-                }
-                
-                // Dispara os lotes em paralelo
-                const results = await Promise.all(chunks.map(chunk => 
-                    processBulkNotifications(env, chunk, title, message, urlData)
-                ));
-                
-                webSuccess = results.some(r => r.success);
-                webResult = { message: `Enviados ${chunks.length} lotes de até ${CHUNK_SIZE} tokens.` };
-            } else {
-                webSuccess = true;
-                webResult = { message: 'Nenhum token encontrado para fallback' };
-            }
-        } catch (err) {
-            console.error('Falha crítica ao processar push web:', err);
-        }
-
         return jsonResponse({ 
-            success: topicSuccess || webSuccess, 
-            topicResult,
-            webResult
+            success: topicSuccess, 
+            topicResult
         });
 
     } catch (e: any) {

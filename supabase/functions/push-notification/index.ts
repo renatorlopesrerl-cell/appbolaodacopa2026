@@ -34,9 +34,17 @@ const initFirebase = () => {
 
 serve(async (req) => {
     try {
-        const { title, body, data, tokens, userIds } = await req.json();
+        const { action, topic, title, body, data, tokens, userIds } = await req.json();
 
         initFirebase();
+
+        if (action === 'subscribeToTopic' && tokens && topic) {
+            const response = await admin.messaging().subscribeToTopic(tokens, topic);
+            return new Response(
+                JSON.stringify({ success: true, response }),
+                { headers: { "Content-Type": "application/json" } }
+            );
+        }
 
         let targetTokens: string[] = [];
 
