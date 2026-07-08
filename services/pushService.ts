@@ -56,12 +56,16 @@ export const setupPushNotifications = async (userId: string, force: boolean = fa
 
             if (token) {
                 const currentSaved = localStorage.getItem('active_fcm_token');
-                if (currentSaved === token) {
-                    console.log('Web Push Token idêntico ao salvo localmente. Pulando chamada de API.');
+                const isSubscribedToTopics = localStorage.getItem('web_topic_subscribed_v1') === 'true';
+
+                if (currentSaved === token && isSubscribedToTopics) {
+                    console.log('Web Push Token idêntico e já inscrito nos tópicos. Pulando chamada de API.');
                     return true;
                 }
+                
                 localStorage.setItem('active_fcm_token', token);
                 await api.profiles.saveFcmToken(userId, token, 'web');
+                localStorage.setItem('web_topic_subscribed_v1', 'true');
                 console.log('Web Push Token salvo com sucesso na tabela de dispositivos.');
                 return true;
             } else {
