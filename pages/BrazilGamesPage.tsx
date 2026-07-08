@@ -48,7 +48,7 @@ export const BrazilGamesPage: React.FC = () => {
         if (cancelled) return; // componente já desmontado, não exibe
         adMobRef.current = mod.AdMob;
         await mod.AdMob.showBanner({
-          adId: 'ca-app-pub-7684468298593275/3831206432',
+          adId: 'ca-app-pub-7684468298593275/2185547308',
           adSize: mod.BannerAdSize.BANNER,
           position: mod.BannerAdPosition.BOTTOM_CENTER,
           margin: 0,

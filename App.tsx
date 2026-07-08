@@ -140,6 +140,8 @@ interface AppState {
   fetchLeagueTopFinisherPredictions: (leagueId: string) => Promise<any[]>;
   hasWatchedPredictionAd: boolean;
   setHasWatchedPredictionAd: (val: boolean) => void;
+  hasWatchedStatsAd: boolean;
+  setHasWatchedStatsAd: (val: boolean) => void;
   isRefreshingPredictions: boolean;
 }
 
@@ -349,6 +351,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasWatchedPredictionAd, setHasWatchedPredictionAd] = useState(false);
+  const [hasWatchedStatsAd, setHasWatchedStatsAd] = useState(false);
   const [isRefreshingPredictions, setIsRefreshingPredictions] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState(false); // Background sync indicator
   const [connectionError, setConnectionError] = useState(false);
@@ -2129,7 +2132,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       createBrazilLeague, updateBrazilLeague, joinBrazilLeague, deleteBrazilLeague, approveBrazilUser, rejectBrazilUser, removeUserFromBrazilLeague, submitBrazilPredictions, addBrazilMatchGoal, sendBrazilLeagueInvite,
       topFinisherPredictions, topFinishersResult, submitTopFinisherPrediction, setTopFinishersResult, loadLeagueData,
       fetchMatchPredictions, fetchLeagueTopFinisherPredictions,
-      hasWatchedPredictionAd, setHasWatchedPredictionAd
+      hasWatchedPredictionAd, setHasWatchedPredictionAd,
+      hasWatchedStatsAd, setHasWatchedStatsAd
     }}>
       {children}
     </AppContext.Provider>

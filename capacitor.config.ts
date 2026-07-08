@@ -18,7 +18,7 @@ const config: CapacitorConfig = {
       sound: "beep.wav"
     },
     AdMob: {
-      appId: "ca-app-pub-7684468298593275~6396459942"
+      appId: "ca-app-pub-7684468298593275~3319912418"
     }
   }
 };

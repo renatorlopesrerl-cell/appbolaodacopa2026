@@ -29,7 +29,7 @@ export const BrazilLeagueDetails: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    const { currentUser, brazilLeagues: leagues, matches, brazilPredictions: predictions, users, currentTime, loading, invitations, submitBrazilPredictions, updateBrazilLeague: updateLeague, deleteBrazilLeague: deleteLeague, approveBrazilUser: approveUser, rejectBrazilUser: rejectUser, removeUserFromBrazilLeague: removeUserFromLeague, brazilMatchGoals, addBrazilMatchGoal, addNotification, refreshPredictions, isRefreshingPredictions, joinBrazilLeague: joinLeague, sendBrazilLeagueInvite: sendLeagueInvite, brazilPlayers, loadLeagueData, fetchMatchPredictions, hasWatchedPredictionAd, setHasWatchedPredictionAd } = useStore();
+    const { currentUser, brazilLeagues: leagues, matches, brazilPredictions: predictions, users, currentTime, loading, invitations, submitBrazilPredictions, updateBrazilLeague: updateLeague, deleteBrazilLeague: deleteLeague, approveBrazilUser: approveUser, rejectBrazilUser: rejectUser, removeUserFromBrazilLeague: removeUserFromLeague, brazilMatchGoals, addBrazilMatchGoal, addNotification, refreshPredictions, isRefreshingPredictions, joinBrazilLeague: joinLeague, sendBrazilLeagueInvite: sendLeagueInvite, brazilPlayers, loadLeagueData, fetchMatchPredictions, hasWatchedPredictionAd, setHasWatchedPredictionAd, hasWatchedStatsAd, setHasWatchedStatsAd } = useStore();
     const submitPredictions = async (preds: any, leagueId: string) => submitBrazilPredictions(preds as any, leagueId);
 
     const [showUnsavedModal, setShowUnsavedModal] = useState<{ action: () => void } | null>(null);
@@ -119,7 +119,7 @@ export const BrazilLeagueDetails: React.FC = () => {
                 if (!isMounted) return;
                 const { AdMob, BannerAdSize, BannerAdPosition } = adMobModuleRef.current;
                 await AdMob.showBanner({
-                    adId: 'ca-app-pub-7684468298593275/3831206432',
+                    adId: 'ca-app-pub-7684468298593275/2185547308',
                     adSize: BannerAdSize.BANNER,
                     position: BannerAdPosition.BOTTOM_CENTER,
                     margin: 0,
@@ -142,9 +142,10 @@ export const BrazilLeagueDetails: React.FC = () => {
 
     // --- ADMOB REWARDED INTERSTITIAL ---
     const [pendingMatchModal, setPendingMatchModal] = useState<string | null>(null);
+    const [pendingStatsModal, setPendingStatsModal] = useState<string | null>(null);
     const [isPreparingAd, setIsPreparingAd] = useState<boolean>(false);
-    const adStateRef = useRef({ hasWatched: hasWatchedPredictionAd, pendingMatch: pendingMatchModal });
-    adStateRef.current = { hasWatched: hasWatchedPredictionAd, pendingMatch: pendingMatchModal };
+    const adStateRef = useRef({ hasWatched: hasWatchedPredictionAd, hasWatchedStats: hasWatchedStatsAd, pendingMatch: pendingMatchModal, pendingStats: pendingStatsModal });
+    adStateRef.current = { hasWatched: hasWatchedPredictionAd, hasWatchedStats: hasWatchedStatsAd, pendingMatch: pendingMatchModal, pendingStats: pendingStatsModal };
 
     useEffect(() => {
         if (!Capacitor.isNativePlatform()) return;
@@ -169,23 +170,31 @@ export const BrazilLeagueDetails: React.FC = () => {
                 const { AdMob, RewardInterstitialAdPluginEvents } = adMobModuleRef.current;
 
                 const rewardListener = await AdMob.addListener(RewardInterstitialAdPluginEvents.Rewarded, (rewardItem: any) => {
-                    setHasWatchedPredictionAd(true);
+                    const { pendingStats } = adStateRef.current;
+                    if (pendingStats) {
+                        setHasWatchedStatsAd(true);
+                    } else {
+                        setHasWatchedPredictionAd(true);
+                    }
                 });
                 
                 const dismissListener = await AdMob.addListener(RewardInterstitialAdPluginEvents.Dismissed, () => {
-                    const { hasWatched, pendingMatch } = adStateRef.current;
-                    if (hasWatched && pendingMatch) {
+                    const { hasWatched, hasWatchedStats, pendingMatch, pendingStats } = adStateRef.current;
+                    if (pendingStats && hasWatchedStats) {
+                        setSelectedMatchForStats(pendingStats);
+                    } else if (pendingMatch && hasWatched) {
                         setSelectedMatchForDetails(pendingMatch);
                         setMatchDetailsSearch('');
                     }
                     setPendingMatchModal(null);
+                    setPendingStatsModal(null);
                     // Prepare next ad
-                    AdMob.prepareRewardInterstitialAd({ adId: 'ca-app-pub-7684468298593275/3623119611', isTesting: false }).catch(() => {});
+                    AdMob.prepareRewardInterstitialAd({ adId: 'ca-app-pub-7684468298593275/3499840425', isTesting: false }).catch(() => {});
                 });
 
                 listeners.push(rewardListener, dismissListener);
 
-                await AdMob.prepareRewardInterstitialAd({ adId: 'ca-app-pub-7684468298593275/3623119611', isTesting: false });
+                await AdMob.prepareRewardInterstitialAd({ adId: 'ca-app-pub-7684468298593275/3499840425', isTesting: false });
             } catch (e) { console.error('AdMob prepare error:', e); }
         })();
 
@@ -1300,7 +1309,40 @@ export const BrazilLeagueDetails: React.FC = () => {
 
                             const handleMatchClick = async (m: Match, cClick: boolean, mLocked: boolean) => {
                                 if (!cClick) return;
+                                
+                                const isProUser = !!currentUser?.isPro;
+                                
                                 if (!mLocked) {
+                                    if (!isProUser && !hasWatchedStatsAd && Capacitor.isNativePlatform()) {
+                                        setPendingStatsModal(m.id);
+                                        try {
+                                            if (!adMobModuleRef.current) {
+                                                adMobModuleRef.current = await import('@capacitor-community/admob');
+                                                await adMobModuleRef.current.AdMob.initialize();
+                                            }
+                                            setIsPreparingAd(true);
+                                            try {
+                                                await adMobModuleRef.current.AdMob.prepareRewardInterstitialAd({ adId: 'ca-app-pub-7684468298593275/1743106869', isTesting: false });
+                                            } catch (prepError) {
+                                                console.warn('Ad prepare failed or already prepared', prepError);
+                                            }
+                                            await adMobModuleRef.current.AdMob.showRewardInterstitialAd();
+                                            setIsPreparingAd(false);
+                                        } catch (e) {
+                                            console.error('Failed to show ad, opening modal anyway', e);
+                                            setIsPreparingAd(false);
+                                            setSelectedMatchForStats(m.id);
+                                            setApiMatchStats(null);
+                                            setLoadingStats(true);
+                                            api.matches.getStats(m.id, league.id, 'brazil')
+                                                .then(setApiMatchStats)
+                                                .catch(() => setApiMatchStats(null))
+                                                .finally(() => setLoadingStats(false));
+                                            setPendingStatsModal(null);
+                                        }
+                                        return;
+                                    }
+
                                     setSelectedMatchForStats(m.id);
                                     setApiMatchStats(null);
                                     setLoadingStats(true);
@@ -1313,7 +1355,6 @@ export const BrazilLeagueDetails: React.FC = () => {
 
                                 const leaguePlan = (league?.settings as any)?.plan || (league?.settings?.isUnlimited ? 'VIP_UNLIMITED' : 'FREE');
                                 const isVipLeague = leaguePlan !== 'FREE';
-                                const isProUser = !!currentUser?.isPro;
                                 
                                 if (m.status === MatchStatus.FINISHED) {
                                     setSelectedMatchForDetails(m.id);
@@ -1330,7 +1371,7 @@ export const BrazilLeagueDetails: React.FC = () => {
                                         }
                                         setIsPreparingAd(true);
                                         try {
-                                            await adMobModuleRef.current.AdMob.prepareRewardInterstitialAd({ adId: 'ca-app-pub-7684468298593275/3623119611', isTesting: false });
+                                            await adMobModuleRef.current.AdMob.prepareRewardInterstitialAd({ adId: 'ca-app-pub-7684468298593275/3499840425', isTesting: false });
                                         } catch (prepError) {
                                             console.warn('Ad prepare failed or already prepared', prepError);
                                         }
@@ -1557,7 +1598,7 @@ export const BrazilLeagueDetails: React.FC = () => {
                                                                     await adMobModuleRef.current.AdMob.initialize();
                                                                 }
                                                                 try {
-                                                                    await adMobModuleRef.current.AdMob.prepareRewardInterstitialAd({ adId: 'ca-app-pub-7684468298593275/3623119611', isTesting: false });
+                                                                    await adMobModuleRef.current.AdMob.prepareRewardInterstitialAd({ adId: 'ca-app-pub-7684468298593275/3499840425', isTesting: false });
                                                                 } catch (prepError) {
                                                                     console.warn('Ad prepare failed or already prepared', prepError);
                                                                 }
@@ -1752,8 +1793,8 @@ export const BrazilLeagueDetails: React.FC = () => {
                             const sm = matches.find(m => m.id === selectedMatchForStats);
                             if (!sm) return null;
 
-                            // Non-PRO: show teaser modal
-                            if (!currentUser?.isPro) {
+                            // Non-PRO: show teaser modal if they haven't watched the ad
+                            if (!currentUser?.isPro && !hasWatchedStatsAd) {
                                 return createPortal(
                                     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={() => setSelectedMatchForStats(null)}>
                                         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-sm animate-in zoom-in-95 duration-300 overflow-hidden" onClick={e => e.stopPropagation()}>
