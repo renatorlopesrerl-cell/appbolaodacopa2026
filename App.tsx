@@ -148,6 +148,7 @@ interface AppState {
   fetchCopaData: () => Promise<void>;
   fetchBrasileiraoData: () => Promise<void>;
   fetchBrasileiraoMatchesByComp: (comps: string[]) => Promise<void>;
+  syncLiveBrasileiraoMatches: (comps: string[]) => Promise<void>;
   refreshAllData: () => Promise<void>;
   refreshCurrentUser: () => Promise<void>;
   deleteAccount: () => Promise<boolean>;
@@ -581,14 +582,13 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   }, []);
 
   
-  // --- LIVE SYNC FOR BRASILEIRAO (30 SECONDS) ---
+  // --- INTERVAL POLLING FOR BRASILEIRAO MATCHES ---
   useEffect(() => {
-    // Only poll if user is logged in
+    // Only run if we actually have matches
+    if (brasileiraoMatches.length === 0) return;
     if (!currentUserRef.current) return;
 
-    const interval = setInterval(async () => {
-      if (document.visibilityState !== 'visible') return;
-
+    const checkAndSyncMatches = async () => {
       // Check if there are any matches currently IN_PROGRESS or starting soon (e.g. within 5 mins)
       const now = new Date().getTime();
       const needsSync = brasileiraoMatches.some(m => {
@@ -644,9 +644,27 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           }
         } catch (e) {}
       }
+    };
+
+    const interval = setInterval(() => {
+      // Pausa a requisição se o aplicativo estiver minimizado ou a aba em segundo plano
+      if (document.visibilityState !== 'visible') return;
+      checkAndSyncMatches();
     }, 30000);
 
-    return () => clearInterval(interval);
+    const handleVisibilityChange = () => {
+      // Faz uma requisição imediata assim que o usuário volta para o app
+      if (document.visibilityState === 'visible') {
+        checkAndSyncMatches();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [brasileiraoMatches]);
 
   // --- PREDICTION REMINDER SCHEDULER ---
@@ -1270,6 +1288,67 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       }
     } catch (e) {
       console.error('fetchBrasileiraoMatchesByComp error', e);
+    }
+  };
+
+  const syncLiveBrasileiraoMatches = async (comps: string[]): Promise<void> => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+    
+    // Obter IDs de jogos que estão em andamento ou prestes a começar no cache local
+    const now = new Date().getTime();
+    const liveMatchesIds = brasileiraoMatches
+      .filter(m => {
+        if (!comps.includes(m.championship || 'brasileirao')) return false;
+        if (m.status === MatchStatus.IN_PROGRESS) return true;
+        if (m.status === MatchStatus.SCHEDULED) {
+          const mTime = new Date(m.date).getTime();
+          if (mTime - (5 * 60 * 1000) < now) return true;
+        }
+        return false;
+      })
+      .map(m => m.id);
+
+    if (liveMatchesIds.length === 0) return;
+
+    try {
+      const res = await api.brasileiraoMatches.listByCompetitions(comps); // Como não tem um endpoint específico para ID, pegamos todos ou podemos usar o supabase direto
+      // Para economizar banda, vamos buscar apenas os IDs específicos via Supabase client:
+      const { data, error } = await supabase.from('brasileirao_matches')
+        .select('*')
+        .in('id', liveMatchesIds);
+
+      if (error || !data) return;
+
+      const mappedMatches: BrasileiraoMatch[] = data.map((m: any) => ({
+        id: m.id, home_team_id: m.home_team_id, away_team_id: m.away_team_id,
+        date: m.date, location: m.location || '', phase: m.phase, status: m.status,
+        home_score: m.home_score !== null ? Number(m.home_score) : null,
+        away_score: m.away_score !== null ? Number(m.away_score) : null,
+        championship: m.championship,
+        is_blocked: m.is_blocked
+      }));
+
+      setBrasileiraoMatches(prev => {
+        let changed = false;
+        const newOrUpdatedMap = new Map(mappedMatches.map(m => [m.id, m]));
+        
+        const nextMatches = prev.map(p => {
+          const n = newOrUpdatedMap.get(p.id);
+          if (n && (p.home_score !== n.home_score || p.away_score !== n.away_score || p.status !== n.status)) {
+            changed = true;
+            return { ...p, ...n };
+          }
+          return p;
+        });
+
+        if (changed) {
+          try { localStorage.setItem('cache_brasileirao_matches_v2', JSON.stringify(nextMatches)); } catch (e) {}
+          return nextMatches;
+        }
+        return prev;
+      });
+    } catch (e) {
+      console.error('syncLiveBrasileiraoMatches error', e);
     }
   };
 
@@ -2786,7 +2865,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       currentUser, users, matches, leagues, predictions, currentTime, notifications, loading, isSyncing, invitations,
       brazilLeagues, brazilPredictions, brazilMatchGoals, brazilPlayers,
       brasileiraoLeagues, brasileiraoMatches, isCopaLoaded, isBrasileiraoLoaded, isCopaLoading, isBrasileiraoLoading,
-      fetchCopaData, fetchBrasileiraoData, fetchBrasileiraoMatchesByComp,
+      fetchCopaData, fetchBrasileiraoData, fetchBrasileiraoMatchesByComp, syncLiveBrasileiraoMatches,
       setCurrentTime, loginGoogle, signInWithEmail, signUpWithEmail, logout, createLeague, updateLeague, joinLeague, deleteLeague, approveUser, rejectUser, deleteAccount,
       removeUserFromLeague, submitPrediction, submitPredictions, simulateMatchResult, updateMatch, updateBrasileiraoMatch, removeNotification, updateUserProfile, syncInitialMatches,
       sendLeagueInvite, respondToInvite, theme, toggleTheme, connectionError, retryConnection, addNotification, refreshPredictions, isRefreshingPredictions,

@@ -134,7 +134,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
         joinBrasileiraoLeague: joinLeague, deleteBrasileiraoLeague: deleteLeague, approveBrasileiraoUser: approveUser, rejectBrasileiraoUser: rejectUser,
         removeUserFromBrasileiraoLeague: removeUserFromLeague, submitPredictions, sendBrasileiraoLeagueInvite: sendLeagueInvite, updateBrasileiraoLeague: updateLeague, loading, refreshPredictions, isRefreshingPredictions,
         topFinisherPredictions, topFinishersResult, submitTopFinisherPrediction, loadLeagueData, fetchLeagueTopFinisherPredictions,
-        fetchMatchPredictions,
+        fetchMatchPredictions, syncLiveBrasileiraoMatches,
         hasWatchedPredictionAd, setHasWatchedPredictionAd,
         hasWatchedStatsAd, setHasWatchedStatsAd
     } = useStore();
@@ -272,6 +272,12 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
             }
         }
     }, [allMatches, activeTab, effectivePeriod, id]);
+
+    useEffect(() => {
+        if (activeTab === 'palpites' && league) {
+            syncLiveBrasileiraoMatches(allowedCompetitions);
+        }
+    }, [activeTab, league]);
 
     useEffect(() => {
         if (!window.visualViewport) return;
