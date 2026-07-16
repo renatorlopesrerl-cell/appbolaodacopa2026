@@ -214,7 +214,8 @@ export const TablePageBrasileirao: React.FC = () => {
           setLoadingComp(false);
         });
     }
-  }, [selectedCompetition, fetchBrasileiraoMatchesByComp]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCompetition]);
 
   const brasileiraoMatches = useMemo(() => matches.filter(m => !m.championship || m.championship === 'brasileirao'), [matches]);
   const copaMatches = useMemo(() => matches.filter(m => m.championship === 'copa_do_brasil'), [matches]);

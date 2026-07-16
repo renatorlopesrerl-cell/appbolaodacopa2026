@@ -259,6 +259,20 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
         }
     }, [isRefreshingPredictions]);
 
+    const prevMatchesRef = useRef(allMatches);
+    useEffect(() => {
+        if (prevMatchesRef.current !== allMatches) {
+            prevMatchesRef.current = allMatches;
+            // Quando os placares são atualizados no App.tsx pelo polling a cada 30 seg
+            if (activeTab === 'classificacao' && id) {
+                loadRankingsForPeriod(effectivePeriod, true);
+            } else {
+                // Invalida o cache se estiver em outra aba
+                setRankingsByPeriod({});
+            }
+        }
+    }, [allMatches, activeTab, effectivePeriod, id]);
+
     useEffect(() => {
         if (!window.visualViewport) return;
         const handleResize = () => {
