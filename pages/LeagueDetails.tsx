@@ -270,6 +270,7 @@ export const LeagueDetails: React.FC = () => {
         if (!shareRef.current || !league) return;
         setIsSharingImage(true);
         setToast({ title: 'Aguarde', message: 'Gerando imagem do Top 10...', type: 'info' });
+        await new Promise(resolve => setTimeout(resolve, 300));
         try {
             const dataUrl = await toJpeg(shareRef.current, {
                 pixelRatio: 0.5,
@@ -888,7 +889,7 @@ export const LeagueDetails: React.FC = () => {
     };
     const handleShareWhatsApp = () => {
         if (!league?.leagueCode) return;
-        const text = `Venha participar da minha liga *${league.name}* no Palpiteiro da Copa 2026! ⚽🏆\n\nCopie o código:\n*${league.leagueCode}*\n\nE clique no link para acessar:\nhttps://bolaodacopa2026.app/leagues`;
+        const text = `Venha participar da minha liga *${league.name}* no Palpiteiro da Copa 2026! ⚽🏆\n\nCopie o código:\n*${league.leagueCode}*\n\nE clique no link para acessar:\nhttps://bolaodacopa2026.app/leagues?code=${league.leagueCode}`;
         window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
     };
 
@@ -996,7 +997,13 @@ export const LeagueDetails: React.FC = () => {
             const success = await submitPredictions(predsToSave, league.id);
             setIsSavingPalpites(false);
             if (success) {
-                setPendingEdits({});
+                setPendingEdits(prev => {
+                    const next = { ...prev };
+                    predsToSave.forEach(pred => {
+                        delete next[pred.matchId];
+                    });
+                    return next;
+                });
                 showToast('Sucesso!', `${predsToSave.length} palpite(s) salvo(s).`, 'success');
                 // Invalidate query
                 predsToSave.forEach(pred => {
@@ -1673,7 +1680,7 @@ export const LeagueDetails: React.FC = () => {
                     <div className="fixed bottom-16 left-1/2 -translate-x-1/2 z-[9900] pointer-events-auto animate-in slide-in-from-bottom-6 fade-in duration-300">
                         <button onClick={handleSaveAll} disabled={isSavingPalpites} className="bg-brasil-green hover:bg-green-700 text-white px-8 py-4 rounded-full shadow-2xl shadow-green-900/40 font-bold text-xl md:text-2xl flex items-center gap-3 transition-all transform hover:-translate-y-1 active:scale-95 border border-green-400 ring-4 ring-white/20 backdrop-blur-sm whitespace-nowrap">
                             {isSavingPalpites ? <Loader2 size={28} className="animate-spin" /> : <Save size={28} className="stroke-[3]" />}
-                            <span>{isSavingPalpites ? 'Salvando...' : `Salvar ${Object.keys(pendingEdits).length} Palpite(s)`}</span>
+                            <span>{isSavingPalpites ? 'Salvando...' : `Salvar ${Object.values(pendingEdits).filter((val: any) => val.home !== '' && val.away !== '').length} Palpite(s)`}</span>
                         </button>
                     </div>, document.body
                 )}
@@ -1847,7 +1854,7 @@ export const LeagueDetails: React.FC = () => {
                                         </div>
 
                                         <div className="flex flex-col items-center justify-center relative">
-                                            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}><input id={`home-${match.id}`} name={`home-${match.id}`} type="number" min="0" disabled={locked} value={homeValue} onChange={(e) => handleScoreChange(match.id, 'home', e.target.value, userPred)} placeholder="-" className={`w-14 h-12 text-center border rounded-lg font-bold text-xl md:text-2xl focus:border-brasil-blue focus:ring-1 focus:ring-brasil-blue outline-none transition-all ${locked ? 'bg-gray-800 text-gray-500 border-gray-700 cursor-pointer' : 'bg-gray-700 border-gray-600 text-white'}`} /><span className="text-gray-300 dark:text-gray-600 text-sm font-bold">X</span><input id={`away-${match.id}`} name={`away-${match.id}`} type="number" min="0" disabled={locked} value={awayValue} onChange={(e) => handleScoreChange(match.id, 'away', e.target.value, userPred)} placeholder="-" className={`w-14 h-12 text-center border rounded-lg font-bold text-xl md:text-2xl focus:border-brasil-blue focus:ring-1 focus:ring-brasil-blue outline-none transition-all ${locked ? 'bg-gray-800 text-gray-500 border-gray-700 cursor-pointer' : 'bg-gray-700 border-gray-600 text-white'}`} /></div>
+                                            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}><input id={`home-${match.id}`} name={`home-${match.id}`} type="number" min="0" autoComplete="off" disabled={locked} value={homeValue} onChange={(e) => handleScoreChange(match.id, 'home', e.target.value, userPred)} placeholder="-" className={`w-14 h-12 text-center border rounded-lg font-bold text-xl md:text-2xl focus:border-brasil-blue focus:ring-1 focus:ring-brasil-blue outline-none transition-all ${locked ? 'bg-gray-800 text-gray-500 border-gray-700 cursor-pointer' : 'bg-gray-700 border-gray-600 text-white'}`} /><span className="text-gray-300 dark:text-gray-600 text-sm font-bold">X</span><input id={`away-${match.id}`} name={`away-${match.id}`} type="number" min="0" autoComplete="off" disabled={locked} value={awayValue} onChange={(e) => handleScoreChange(match.id, 'away', e.target.value, userPred)} placeholder="-" className={`w-14 h-12 text-center border rounded-lg font-bold text-xl md:text-2xl focus:border-brasil-blue focus:ring-1 focus:ring-brasil-blue outline-none transition-all ${locked ? 'bg-gray-800 text-gray-500 border-gray-700 cursor-pointer' : 'bg-gray-700 border-gray-600 text-white'}`} /></div>
                                             {stats && <span className="text-[10px] font-bold text-gray-400 mt-3">{stats.draw_pct}% Empate</span>}
 
                                         </div>
@@ -2736,55 +2743,59 @@ export const LeagueDetails: React.FC = () => {
                 {/* Hidden Share Container */}
                 <div style={{ position: 'absolute', top: 0, left: 0, opacity: 0, pointerEvents: 'none', zIndex: -50 }}>
                     <div ref={shareRef} className="w-[1080px] h-[1920px] bg-gradient-to-br from-brasil-blue to-blue-900 text-white p-12 flex flex-col relative overflow-hidden">
-                        <div className="absolute top-[-150px] right-[-150px] w-[600px] h-[600px] bg-brasil-yellow/20 rounded-full blur-3xl"></div>
-                        <div className="absolute bottom-[-150px] left-[-150px] w-[600px] h-[600px] bg-green-500/20 rounded-full blur-3xl"></div>
-                        
-                        <div className="text-center mb-10 relative z-10 flex flex-col items-center">
-                            <div className="bg-white/20 p-4 rounded-3xl border border-white/30 shadow-2xl mb-6">
-                                <Trophy size={80} className="text-brasil-yellow drop-shadow-lg" />
-                            </div>
-                            <h1 className="text-6xl font-black text-brasil-yellow mb-2 uppercase tracking-widest drop-shadow-md">Top 10</h1>
-                            <h2 className="text-4xl font-bold opacity-95 truncate max-w-[900px] drop-shadow-sm">{league.name}</h2>
-                            <div className="mt-6 inline-block bg-white/15 px-8 py-3 rounded-full border border-white/20 text-2xl font-black uppercase tracking-widest shadow-inner">
-                                Bolão da Copa 2026
-                            </div>
-                        </div>
-
-                        <div className="flex-1 flex flex-col gap-5 relative z-10 w-full max-w-[900px] mx-auto">
-                            {leaderboard.slice(0, 10).map((entry, index) => {
-                                const rank = index + 1;
-                                return (
-                                    <div key={entry.user.id} className="flex items-center gap-6 bg-white/10 p-5 rounded-2xl border border-white/10 shadow-lg">
-                                        <div className={`w-16 h-16 shrink-0 rounded-full flex items-center justify-center text-3xl font-black shadow-md ${rank === 1 ? 'bg-yellow-400 text-yellow-900 ring-4 ring-yellow-400/50' : rank === 2 ? 'bg-gray-300 text-gray-800 ring-4 ring-gray-300/50' : rank === 3 ? 'bg-orange-400 text-orange-900 ring-4 ring-orange-400/50' : 'bg-white/20 text-white border border-white/30'}`}>
-                                            {rank}
-                                        </div>
-                                        <div className="w-20 h-20 rounded-full border-4 border-white/30 overflow-hidden shrink-0 shadow-inner bg-gray-800">
-                                            {entry.user.avatar ? <img src={entry.user.avatar} className="w-full h-full object-cover" crossOrigin="anonymous" /> : <div className="w-full h-full flex items-center justify-center bg-gray-700 text-white"><Users size={32} /></div>}
-                                        </div>
-                                        <div className="flex-1 min-w-0 flex flex-col justify-center">
-                                            <h3 className="text-3xl font-bold truncate text-white drop-shadow-sm">{entry.user.name}</h3>
-                                            {entry.user.isPro && <span className="inline-flex items-center text-xs font-black bg-gradient-to-r from-yellow-200 to-amber-300 text-gray-900 px-2 py-0.5 rounded uppercase mt-1 w-max">⭐ PRO</span>}
-                                        </div>
-                                        <div className="flex flex-col items-end justify-center shrink-0 pl-4 border-l border-white/10 text-right">
-                                            <div className="flex items-baseline gap-1">
-                                                <span className="text-5xl font-black text-brasil-yellow tabular-nums drop-shadow-md">{entry.totalPoints}</span>
-                                                <span className="text-sm opacity-80 uppercase font-bold tracking-widest">Pts</span>
-                                            </div>
-                                            <div className="text-sm font-bold text-blue-200 mt-1 flex items-center gap-1">
-                                                <Target size={12} className="text-blue-300" /> {entry.exactScores} Cravadas
-                                            </div>
-                                        </div>
+                        {isSharingImage && (
+                            <>
+                                <div className="absolute top-[-150px] right-[-150px] w-[600px] h-[600px] bg-brasil-yellow/20 rounded-full blur-3xl"></div>
+                                <div className="absolute bottom-[-150px] left-[-150px] w-[600px] h-[600px] bg-green-500/20 rounded-full blur-3xl"></div>
+                                
+                                <div className="text-center mb-10 relative z-10 flex flex-col items-center">
+                                    <div className="bg-white/20 p-4 rounded-3xl border border-white/30 shadow-2xl mb-6">
+                                        <Trophy size={80} className="text-brasil-yellow drop-shadow-lg" />
                                     </div>
-                                );
-                            })}
-                        </div>
-                        
-                        <div className="mt-8 text-center relative z-10 pb-4">
-                            <div className="inline-flex items-center justify-center gap-3 bg-black/30 px-8 py-4 rounded-full border border-white/10">
-                                <Globe size={24} className="text-brasil-yellow" />
-                                <span className="text-2xl font-black tracking-widest text-white/90">BOLAODACOPA2026.APP</span>
-                            </div>
-                        </div>
+                                    <h1 className="text-6xl font-black text-brasil-yellow mb-2 uppercase tracking-widest drop-shadow-md">Top 10</h1>
+                                    <h2 className="text-4xl font-bold opacity-95 truncate max-w-[900px] drop-shadow-sm">{league.name}</h2>
+                                    <div className="mt-6 inline-block bg-white/15 px-8 py-3 rounded-full border border-white/20 text-2xl font-black uppercase tracking-widest shadow-inner">
+                                        Bolão da Copa 2026
+                                    </div>
+                                </div>
+
+                                <div className="flex-1 flex flex-col gap-5 relative z-10 w-full max-w-[900px] mx-auto">
+                                    {leaderboard.slice(0, 10).map((entry, index) => {
+                                        const rank = index + 1;
+                                        return (
+                                            <div key={entry.user.id} className="flex items-center gap-6 bg-white/10 p-5 rounded-2xl border border-white/10 shadow-lg">
+                                                <div className={`w-16 h-16 shrink-0 rounded-full flex items-center justify-center text-3xl font-black shadow-md ${rank === 1 ? 'bg-yellow-400 text-yellow-900 ring-4 ring-yellow-400/50' : rank === 2 ? 'bg-gray-300 text-gray-800 ring-4 ring-gray-300/50' : rank === 3 ? 'bg-orange-400 text-orange-900 ring-4 ring-orange-400/50' : 'bg-white/20 text-white border border-white/30'}`}>
+                                                    {rank}
+                                                </div>
+                                                <div className="w-20 h-20 rounded-full border-4 border-white/30 overflow-hidden shrink-0 shadow-inner bg-gray-800">
+                                                    {entry.user.avatar ? <img src={entry.user.avatar} className="w-full h-full object-cover" crossOrigin="anonymous" /> : <div className="w-full h-full flex items-center justify-center bg-gray-700 text-white"><Users size={32} /></div>}
+                                                </div>
+                                                <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                                    <h3 className="text-3xl font-bold truncate text-white drop-shadow-sm">{entry.user.name}</h3>
+                                                    {entry.user.isPro && <span className="inline-flex items-center text-xs font-black bg-gradient-to-r from-yellow-200 to-amber-300 text-gray-900 px-2 py-0.5 rounded uppercase mt-1 w-max">⭐ PRO</span>}
+                                                </div>
+                                                <div className="flex flex-col items-end justify-center shrink-0 pl-4 border-l border-white/10 text-right">
+                                                    <div className="flex items-baseline gap-1">
+                                                        <span className="text-5xl font-black text-brasil-yellow tabular-nums drop-shadow-md">{entry.totalPoints}</span>
+                                                        <span className="text-sm opacity-80 uppercase font-bold tracking-widest">Pts</span>
+                                                    </div>
+                                                    <div className="text-sm font-bold text-blue-200 mt-1 flex items-center gap-1">
+                                                        <Target size={12} className="text-blue-300" /> {entry.exactScores} Cravadas
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                
+                                <div className="mt-8 text-center relative z-10 pb-4">
+                                    <div className="inline-flex items-center justify-center gap-3 bg-black/30 px-8 py-4 rounded-full border border-white/10">
+                                        <Globe size={24} className="text-brasil-yellow" />
+                                        <span className="text-2xl font-black tracking-widest text-white/90">BOLAODACOPA2026.APP</span>
+                                    </div>
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>

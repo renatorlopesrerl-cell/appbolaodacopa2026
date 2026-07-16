@@ -82,6 +82,24 @@ serve(async (req) => {
             }
         }
 
+        // If action is send and we have a topic but no tokens, send via topic broadcast!
+        if (action === 'send' && topic && (!tokens || tokens.length === 0) && (!userIds || userIds.length === 0)) {
+            const message = {
+                notification: { title, body },
+                data: data || {},
+                topic: topic,
+                android: { priority: "high" as const, notification: { channelId: "meu_canal" } },
+                apns: { payload: { aps: { sound: "default", badge: 1 } } },
+                webpush: {
+                    headers: { Urgency: "high" },
+                    notification: { title, body, icon: "https://bolaodacopa2026.app/favicon.png" },
+                    fcmOptions: { link: data?.url ? (data.url.startsWith("http") ? data.url : `https://bolaodacopa2026.app${data.url}`) : "https://bolaodacopa2026.app" }
+                }
+            };
+            const response = await admin.messaging().send(message);
+            return new Response(JSON.stringify({ success: true, message: `Successfully sent topic broadcast to ${topic}` }), { headers: { "Content-Type": "application/json" } });
+        }
+
         if (targetTokens.length === 0) {
             return new Response(
                 JSON.stringify({ success: false, message: "No tokens found" }),

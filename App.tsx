@@ -17,7 +17,8 @@ import {
   Bell,
   User as UserIcon,
   RefreshCw,
-  Home as HomeIcon
+  Home as HomeIcon,
+  Smartphone
 } from 'lucide-react';
 
 // Capacitor Plugins
@@ -47,7 +48,15 @@ import { SEOLanding } from './pages/SEOLanding';
 import { BrazilGamesPage } from './pages/BrazilGamesPage';
 import { BrazilLeagueDetails } from './pages/BrazilLeagueDetails';
 import { ProPage } from './pages/ProPage';
-
+import { HubHome } from './pages/HubHome';
+import { HomeBrasileirao } from './pages/HomeBrasileirao';
+import { TablePageBrasileirao } from './pages/TablePageBrasileirao';
+import { LeaguesPageBrasileirao } from './pages/LeaguesPageBrasileirao';
+import { LeagueDetailsBrasileirao } from './pages/LeagueDetailsBrasileirao';
+import { HowToPlayBrasileirao } from './pages/HowToPlayBrasileirao';
+import { AdminPageBrasileirao } from './pages/AdminPageBrasileirao';
+import { AdminLeaguesPageBrasileirao } from './pages/AdminLeaguesPageBrasileirao';
+import { AdminMatchesPageBrasileirao } from './pages/AdminMatchesPageBrasileirao';
 
 
 // Services
@@ -61,7 +70,7 @@ import { Purchases, LOG_LEVEL } from '@revenuecat/purchases-capacitor';
 import { AdMob } from '@capacitor-community/admob';
 
 // Types
-import { User, Match, League, Prediction, Invitation, MatchStatus, BrazilLeague, BrazilPrediction, BrazilMatchGoal, BrazilPlayer, TopFinisherPrediction, TopFinishersResult } from './types';
+import { User, Match, League, Prediction, Invitation, MatchStatus, BrazilLeague, BrazilPrediction, BrazilMatchGoal, BrazilPlayer, TopFinisherPrediction, TopFinishersResult, BrasileiraoLeague, BrasileiraoMatch, BrasileiraoPrediction, BrasileiraoTeam } from './types';
 
 // Constantes
 import { INITIAL_MATCHES } from './services/dataService';
@@ -79,6 +88,10 @@ interface AppState {
   matches: Match[];
   leagues: League[];
   predictions: Prediction[];
+  brasileiraoLeagues: BrasileiraoLeague[];
+  brasileiraoMatches: BrasileiraoMatch[];
+  brasileiraoTeams: BrasileiraoTeam[];
+  brasileiraoPredictions: BrasileiraoPrediction[];
   brazilLeagues: BrazilLeague[];
   brazilPredictions: BrazilPrediction[];
   brazilMatchGoals: BrazilMatchGoal[];
@@ -87,6 +100,10 @@ interface AppState {
   currentTime: Date;
   notifications: AppNotification[];
   loading: boolean;
+  isCopaLoaded: boolean;
+  isBrasileiraoLoaded: boolean;
+  isCopaLoading: boolean;
+  isBrasileiraoLoading: boolean;
   isSyncing: boolean;
   theme: 'light' | 'dark';
   setCurrentTime: (date: Date) => void;
@@ -96,15 +113,27 @@ interface AppState {
   logout: () => Promise<void>;
   createLeague: (name: string, isPrivate: boolean, settings: any, image: string, description: string, plan?: string) => Promise<boolean>;
   updateLeague: (id: string, updates: Partial<League>) => Promise<void>;
+  createBrasileiraoLeague: (name: string, isPrivate: boolean, settings: any, image: string, description: string, plan?: string) => Promise<boolean>;
+  updateBrasileiraoLeague: (id: string, updates: Partial<BrasileiraoLeague>) => Promise<void>;
+  joinBrasileiraoLeague: (leagueId: string, leagueData?: any) => Promise<void>;
+  deleteBrasileiraoLeague: (leagueId: string) => Promise<boolean>;
+  submitBrasileiraoPredictions: (preds: { matchId: number, home: number, away: number }[], leagueId: string) => Promise<boolean>;
+  approveBrasileiraoUser: (leagueId: string, userId: string) => Promise<void>;
+  rejectBrasileiraoUser: (leagueId: string, userId: string) => Promise<void>;
+  removeUserFromBrasileiraoLeague: (leagueId: string, userId: string) => Promise<void>;
+  sendBrasileiraoLeagueInvite: (leagueId: string, email: string) => Promise<boolean>;
+
+
   joinLeague: (leagueId: string, leagueData?: any) => Promise<void>;
   deleteLeague: (leagueId: string) => Promise<boolean>;
   approveUser: (leagueId: string, userId: string) => Promise<void>;
   rejectUser: (leagueId: string, userId: string) => Promise<void>;
   removeUserFromLeague: (leagueId: string, userId: string) => Promise<void>;
   submitPrediction: (matchId: string, leagueId: string, home: number, away: number) => Promise<void>;
-  submitPredictions: (preds: { matchId: string, home: number, away: number }[], leagueId: string) => Promise<boolean>;
+  submitPredictions: (preds: { matchId: string, home: number, away: number }[], leagueId: string, leagueType?: "standard" | "brazil" | "brasileirao") => Promise<boolean>;
   simulateMatchResult: (matchId: string, home: number, away: number) => void;
   updateMatch: (match: Match) => Promise<boolean>;
+  updateBrasileiraoMatch: (match: BrasileiraoMatch) => Promise<boolean>;
   removeNotification: (id: number) => void;
   updateUserProfile: (name: string, avatar: string, whatsapp: string, notificationSettings: any, themePreference: 'light' | 'dark') => Promise<void>;
   syncInitialMatches: () => Promise<void>;
@@ -115,7 +144,10 @@ interface AppState {
   connectionError: boolean;
   retryConnection: () => void;
   addNotification: (title: string, message: string, type: 'success' | 'info' | 'warning', duration?: number) => void;
-  refreshPredictions: () => Promise<void>;
+  refreshPredictions: (showToast?: boolean) => Promise<void>;
+  fetchCopaData: () => Promise<void>;
+  fetchBrasileiraoData: () => Promise<void>;
+  fetchBrasileiraoMatchesByComp: (comps: string[]) => Promise<void>;
   refreshAllData: () => Promise<void>;
   refreshCurrentUser: () => Promise<void>;
   deleteAccount: () => Promise<boolean>;
@@ -135,8 +167,8 @@ interface AppState {
   topFinishersResult: TopFinishersResult | null;
   submitTopFinisherPrediction: (leagueId: string, champion: string, runnerUp: string, third: string, fourth: string) => Promise<boolean>;
   setTopFinishersResult: (champion: string, runnerUp: string, third: string, fourth: string) => Promise<boolean>;
-  loadLeagueData: (leagueId: string, leagueType?: 'standard' | 'brazil', forceRefresh?: boolean) => Promise<void>;
-  fetchMatchPredictions: (matchId: string, leagueId: string, leagueType: 'standard' | 'brazil') => Promise<any[]>;
+  loadLeagueData: (leagueId: string, leagueType?: 'standard' | 'brazil' | 'brasileirao', forceRefresh?: boolean) => Promise<void>;
+  fetchMatchPredictions: (matchId: string, leagueId: string, leagueType: 'standard' | 'brazil' | 'brasileirao') => Promise<any[]>;
   fetchLeagueTopFinisherPredictions: (leagueId: string) => Promise<any[]>;
   hasWatchedPredictionAd: boolean;
   setHasWatchedPredictionAd: (val: boolean) => void;
@@ -154,7 +186,7 @@ export const useStore = () => {
 };
 
 // Helper: League Limit
-export const getLeagueLimit = (league: League | BrazilLeague): number => {
+export const getLeagueLimit = (league: any, isBrasileirao: boolean = false): number => {
   if (league.settings?.isUnlimited) return Infinity;
   const plan = (league.settings as any)?.plan || 'FREE';
   switch (plan) {
@@ -163,7 +195,7 @@ export const getLeagueLimit = (league: League | BrazilLeague): number => {
     case 'VIP': return 100;
     case 'VIP_BASIC': return 50;
     case 'FREE':
-    default: return 10;
+    default: return isBrasileirao ? 15 : 10;
   }
 };
 
@@ -237,6 +269,48 @@ const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return <>{children}</>;
 };
 
+const BrasileiraoRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { currentUser, loading } = useStore();
+  if (loading) return <AppLoading />;
+  if (!currentUser) return <Navigate to="/login" replace />;
+  
+  const isWeb = Capacitor.getPlatform() === 'web';
+  const isAdmin = currentUser.isAdmin === true;
+  
+  if (isWeb && !isAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[75vh] p-6 text-center animate-in fade-in duration-300">
+        <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 max-w-md w-full shadow-2xl border-2 border-brasil-yellow/30 text-center relative overflow-hidden">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-12 w-32 h-32 bg-brasil-yellow/20 rounded-full blur-xl"></div>
+          
+          <div className="mx-auto w-16 h-16 bg-yellow-100 dark:bg-yellow-950/50 rounded-2xl flex items-center justify-center text-yellow-600 dark:text-brasil-yellow mb-6">
+            <Trophy size={32} className="animate-bounce" />
+          </div>
+          
+          <h3 className="text-2xl font-black text-gray-800 dark:text-white mb-2 uppercase tracking-tight">
+            Competições em Breve!
+          </h3>
+          
+          <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed mb-6">
+            O Brasileirão, Copa do Brasil, Libertadores e Sul-Americana estarão disponíveis em breve!
+          </p>
+          
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => window.location.href = '/'}
+              className="w-full bg-brasil-blue hover:bg-blue-900 text-white font-bold py-3.5 px-6 rounded-2xl transition-all active:scale-95 shadow-md hover:shadow-lg"
+            >
+              Voltar ao Início
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  return <>{children}</>;
+};
+
 const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const lastFetchedLeaguesRef = useRef<Record<string, number>>({});
   const activeFetchesRef = useRef<Record<string, Promise<void>>>({});
@@ -295,6 +369,46 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     } catch (e) { console.warn('Failed to load predictions from cache:', e); }
     return [];
   });
+  const [brasileiraoLeagues, setBrasileiraoLeagues] = useState<BrasileiraoLeague[]>(() => {
+    try {
+      const cached = localStorage.getItem('cache_brasileirao_leagues');
+      if (cached) {
+        const parsed: BrasileiraoLeague[] = JSON.parse(cached);
+        if (parsed && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    return [];
+  });
+  const [brasileiraoMatches, setBrasileiraoMatches] = useState<BrasileiraoMatch[]>(() => {
+    try {
+      const cached = localStorage.getItem('cache_brasileirao_matches_v2');
+      if (cached) {
+        const parsed: BrasileiraoMatch[] = JSON.parse(cached);
+        if (parsed && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    return [];
+  });
+  const [brasileiraoTeams, setBrasileiraoTeams] = useState<BrasileiraoTeam[]>(() => {
+    try {
+      const cached = localStorage.getItem('cache_brasileirao_teams');
+      if (cached) {
+        const parsed: BrasileiraoTeam[] = JSON.parse(cached);
+        if (parsed && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    return [];
+  });
+  const [brasileiraoPredictions, setBrasileiraoPredictions] = useState<BrasileiraoPrediction[]>(() => {
+    try {
+      const cached = localStorage.getItem('cache_brasileirao_predictions');
+      if (cached) {
+        const parsed: BrasileiraoPrediction[] = JSON.parse(cached);
+        if (parsed && parsed.length > 0) return parsed;
+      }
+    } catch (e) {}
+    return [];
+  });
   const [brazilLeagues, setBrazilLeagues] = useState<BrazilLeague[]>(() => {
     try {
       const cached = localStorage.getItem('cache_brazil_leagues');
@@ -350,6 +464,10 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isCopaLoaded, setIsCopaLoaded] = useState(false);
+  const [isBrasileiraoLoaded, setIsBrasileiraoLoaded] = useState(false);
+  const [isCopaLoading, setIsCopaLoading] = useState(false);
+  const [isBrasileiraoLoading, setIsBrasileiraoLoading] = useState(false);
   const [hasWatchedPredictionAd, setHasWatchedPredictionAd] = useState(false);
   const [hasWatchedStatsAd, setHasWatchedStatsAd] = useState(false);
   const [isRefreshingPredictions, setIsRefreshingPredictions] = useState<boolean>(false);
@@ -375,6 +493,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const fetchingRef = useRef(false);
   const mountedRef = useRef(true);
   const currentUserRef = useRef<User | null>(null);
+  const lastFetchedCompsRef = useRef<Record<string, number>>({});
   const failureCountRef = useRef(0);
 
   const addNotification = (title: string, message: string, type: 'success' | 'info' | 'warning' = 'info', duration: number = 6000) => {
@@ -460,6 +579,75 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
+
+  
+  // --- LIVE SYNC FOR BRASILEIRAO (30 SECONDS) ---
+  useEffect(() => {
+    // Only poll if user is logged in
+    if (!currentUserRef.current) return;
+
+    const interval = setInterval(async () => {
+      if (document.visibilityState !== 'visible') return;
+
+      // Check if there are any matches currently IN_PROGRESS or starting soon (e.g. within 5 mins)
+      const now = new Date().getTime();
+      const needsSync = brasileiraoMatches.some(m => {
+        if (m.status === MatchStatus.IN_PROGRESS) return true;
+        if (m.status === MatchStatus.SCHEDULED) {
+          const mTime = new Date(m.date).getTime();
+          // If match starts within 5 minutes or is already past start time
+          if (mTime - (5 * 60 * 1000) < now) return true;
+        }
+        return false;
+      });
+
+      if (needsSync) {
+        try {
+          const currentChamps = Array.from(new Set(brasileiraoMatches.map(m => m.championship || 'brasileirao')));
+          if (currentChamps.length > 0) {
+            const res = await api.brasileiraoMatches.listByCompetitions(currentChamps);
+            if (res) {
+              const mappedMatches: BrasileiraoMatch[] = res.map((m: any) => ({
+                id: m.id, home_team_id: m.home_team_id, away_team_id: m.away_team_id,
+                date: m.date, location: m.location, phase: m.phase,
+                status: m.status, home_score: m.home_score !== null ? Number(m.home_score) : null,
+                away_score: m.away_score !== null ? Number(m.away_score) : null,
+                championship: m.championship,
+                is_blocked: m.is_blocked
+              }));
+              
+              setBrasileiraoMatches(prev => {
+                let changed = false;
+                const otherChampsMatches = prev.filter(m => !currentChamps.includes(m.championship || 'brasileirao'));
+                const newOrUpdatedMap = new Map(mappedMatches.map(m => [m.id, m]));
+                const prevCompMatches = prev.filter(m => currentChamps.includes(m.championship || 'brasileirao'));
+                
+                if (prevCompMatches.length !== mappedMatches.length) changed = true;
+                else {
+                  for (const p of prevCompMatches) {
+                    const n = newOrUpdatedMap.get(p.id);
+                    if (!n || p.status !== n.status || p.home_score !== n.home_score || p.away_score !== n.away_score) {
+                      changed = true;
+                      break;
+                    }
+                  }
+                }
+                
+                if (changed) {
+                  const nextMatches = [...otherChampsMatches, ...mappedMatches];
+                  try { localStorage.setItem('cache_brasileirao_matches_v2', JSON.stringify(nextMatches)); } catch (e) {}
+                  return nextMatches;
+                }
+                return prev;
+              });
+            }
+          }
+        } catch (e) {}
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [brasileiraoMatches]);
 
   // --- PREDICTION REMINDER SCHEDULER ---
   useEffect(() => {
@@ -627,6 +815,39 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       subscription.unsubscribe();
     };
   }, []);
+
+  // --- BUSCA PERFIL DE USUÁRIOS PENDENTES PARA NOTIFICAÇÕES ---
+  useEffect(() => {
+    if (!currentUserRef.current) return;
+    const uid = currentUserRef.current.id;
+    const adminL = leagues.filter(l => l.adminId === uid);
+    const adminBr = brazilLeagues.filter(l => l.adminId === uid);
+    const adminBras = brasileiraoLeagues.filter(l => l.adminId === uid);
+    
+    const allPending = [
+      ...adminL.flatMap(l => l.pendingRequests || []),
+      ...adminBr.flatMap(l => l.pendingRequests || []),
+      ...adminBras.flatMap(l => l.pendingRequests || [])
+    ];
+    
+    const missingUids = allPending.filter(pendingUid => !users.some(u => u.id === pendingUid));
+    if (missingUids.length > 0) {
+      const uniqueMissing = Array.from(new Set(missingUids));
+      api.profiles.getByIds(uniqueMissing).then(profs => {
+        if (profs && profs.length > 0) {
+          const mappedUsers: User[] = profs.map((p: any) => ({
+            id: p.id, name: p.name, email: p.email, avatar: p.avatar, isAdmin: p.is_admin, isMatchAdmin: p.is_match_admin,
+            whatsapp: p.whatsapp || '', notificationSettings: p.notification_settings, theme: p.theme, isPro: p.is_pro
+          }));
+          setUsers(prev => {
+            const prevMap = new Map(prev.map(u => [u.id, u]));
+            mappedUsers.forEach(u => prevMap.set(u.id, u));
+            return Array.from(prevMap.values());
+          });
+        }
+      }).catch(e => console.warn("Failed to fetch pending profiles:", e));
+    }
+  }, [leagues, brazilLeagues, brasileiraoLeagues, users.length]);
 
   // --- WEB PWA FOREGROUND PUSH LISTENER ---
   // O Service Worker lida com o background, mas se o usuário estiver com o app aberto (foreground)
@@ -809,36 +1030,15 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     }
   };
 
-  const fetchAllData = async (silent: boolean = false) => {
-    if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      if (!connectionError) setConnectionError(true);
-      if (mountedRef.current) setLoading(false);
-      return;
-    }
-
-    if (fetchingRef.current) return;
-    fetchingRef.current = true;
-
-    // Stale-While-Revalidate: se há cache, libera o loading imediatamente
-    const hasCachedData = !!localStorage.getItem('cache_matches');
-    if (hasCachedData && mountedRef.current) {
-      setLoading(false);
-      setIsSyncing(true);
-    }
-
+  const fetchCopaData = async () => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+    setIsCopaLoading(true);
     try {
-      // ─── FASE 1: Ligas e Partidas (leve, rápido) ─────────────────────────────
-      // Precisamos dos IDs das ligas para filtrar os palpites.
-      // Ligas e partidas são pequenos — chegam rápido.
       const [leaguesRes, matchesRes, brazilLeaguesRes] = await Promise.allSettled([
         api.leagues.list(),
         api.matches.list(),
         api.brazilLeagues.list(),
       ]);
-
-      // Processar e atualizar UI imediatamente após ligas/partidas chegarem
-      let userLeagueIds: string[] = [];
-      let userBrazilLeagueIds: string[] = [];
 
       if (leaguesRes.status === 'fulfilled' && leaguesRes.value) {
         const leaguesData = leaguesRes.value;
@@ -853,8 +1053,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           }
         }));
         setLeagues(mappedLeagues);
-        try { localStorage.setItem('cache_leagues', JSON.stringify(mappedLeagues)); } catch (e) { console.warn('cache_leagues write failed:', e); }
-        userLeagueIds = mappedLeagues.map(l => l.id);
+        try { localStorage.setItem('cache_leagues', JSON.stringify(mappedLeagues)); } catch (e) {}
       }
 
       if (matchesRes.status === 'fulfilled' && matchesRes.value && matchesRes.value.length > 0) {
@@ -866,7 +1065,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           awayScore: m.away_score !== null ? Number(m.away_score) : null
         }));
         setMatches(mappedMatches);
-        try { localStorage.setItem('cache_matches', JSON.stringify(mappedMatches)); } catch (e) { console.warn('cache_matches write failed:', e); }
+        try { localStorage.setItem('cache_matches', JSON.stringify(mappedMatches)); } catch (e) {}
       }
 
       if (brazilLeaguesRes.status === 'fulfilled' && brazilLeaguesRes.value) {
@@ -887,61 +1086,16 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           }
         }));
         setBrazilLeagues(mappedBrazilLeagues);
-        try { localStorage.setItem('cache_brazil_leagues', JSON.stringify(mappedBrazilLeagues)); } catch (e) { console.warn('cache_brazil_leagues write failed:', e); }
-        userBrazilLeagueIds = mappedBrazilLeagues.map(l => l.id);
+        try { localStorage.setItem('cache_brazil_leagues', JSON.stringify(mappedBrazilLeagues)); } catch (e) {}
       }
 
-      // ─── FASE 1.5: Carregar perfis pendentes para notificações do Admin ──────
-      if (currentUserRef.current) {
-        const adminPendingUserIds: string[] = [];
-        
-        const allMappedLeagues = leaguesRes.status === 'fulfilled' ? leaguesRes.value : [];
-        allMappedLeagues.forEach((l: any) => {
-          if (l.admin_id === currentUserRef.current?.id && l.pending_requests?.length > 0) {
-            adminPendingUserIds.push(...l.pending_requests);
-          }
-        });
-
-        const allMappedBrazilLeagues = brazilLeaguesRes.status === 'fulfilled' ? brazilLeaguesRes.value : [];
-        allMappedBrazilLeagues.forEach((l: any) => {
-          if (l.admin_id === currentUserRef.current?.id && l.pending_requests?.length > 0) {
-            adminPendingUserIds.push(...l.pending_requests);
-          }
-        });
-
-        if (adminPendingUserIds.length > 0) {
-          const uniqueIds = [...new Set(adminPendingUserIds)];
-          try {
-            const profRes = await api.profiles.getByIds(uniqueIds);
-            if (profRes && profRes.length > 0) {
-              const mappedUsers: User[] = profRes.map((p: any) => ({
-                id: p.id, name: p.name, email: p.email, avatar: p.avatar, isAdmin: p.is_admin, isMatchAdmin: p.is_match_admin,
-                whatsapp: p.whatsapp || '', notificationSettings: p.notification_settings, theme: p.theme, isPro: p.is_pro
-              }));
-              setUsers(prev => {
-                const newUsers = [...prev];
-                mappedUsers.forEach(mu => {
-                  if (!newUsers.some(u => u.id === mu.id)) newUsers.push(mu);
-                });
-                return newUsers;
-              });
-            }
-          } catch(e) { console.warn("Falha ao carregar perfis pendentes", e); }
-        }
-      }
-
-      // ─── FASE 2: Admin — carrega apenas metadados globais necessários ─────────
-      // O Admin Geral só gerencia planos de ligas e jogos.
-      // Não há necessidade de baixar todos os palpites e perfis de todos os usuários.
       if (currentUserRef.current?.isAdmin || currentUserRef.current?.isMatchAdmin) {
         const globalResults = await Promise.allSettled([
           api.brazilMatchGoals.list(),
           api.brazilPlayers.list(),
           api.topFinishersResult.get(),
         ]);
-
         const [goalsRes, playersRes, topResRes] = globalResults;
-
         if (goalsRes.status === 'fulfilled' && goalsRes.value) {
           const mapped: BrazilMatchGoal[] = goalsRes.value.map((g: any) => ({ matchId: g.match_id, playerName: g.player_name, goals: g.goals }));
           setBrazilMatchGoals(mapped);
@@ -958,50 +1112,234 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             third: topResRes.value.third || '', fourth: topResRes.value.fourth || ''
           });
         }
-
-        // Carregar perfis dos admins de todas as ligas para exibir nomes no gerenciamento
-        // (apenas admin_id únicos — muito mais leve que carregar todos os participantes)
-        try {
-          const leaguesData = leaguesRes.status === 'fulfilled' ? (leaguesRes.value || []) : [];
-          const brazilLeaguesData = brazilLeaguesRes.status === 'fulfilled' ? (brazilLeaguesRes.value || []) : [];
-          const allAdminIds = [...new Set([
-            ...leaguesData.map((l: any) => l.admin_id),
-            ...brazilLeaguesData.map((l: any) => l.admin_id)
-          ])].filter(Boolean);
-
-          if (allAdminIds.length > 0) {
-            const adminProfiles = await api.profiles.getByIds(allAdminIds);
-            if (adminProfiles && adminProfiles.length > 0) {
-              const mappedAdmins: User[] = adminProfiles.map((p: any) => ({
-                id: p.id, name: p.name, email: p.email, avatar: p.avatar,
-                isAdmin: p.is_admin, isMatchAdmin: p.is_match_admin,
-                whatsapp: p.whatsapp || '', notificationSettings: p.notification_settings,
-                theme: p.theme, isPro: p.is_pro
-              }));
-              setUsers(prev => {
-                const merged = [...prev];
-                mappedAdmins.forEach(u => { if (!merged.some(e => e.id === u.id)) merged.push(u); });
-                return merged;
-              });
-            }
+      }
+      if (currentUserRef.current?.id) {
+        const uid = currentUserRef.current.id;
+        // Palpites da Copa
+        const userLeagueIds = leaguesRes.status === 'fulfilled' && leaguesRes.value ? 
+            leaguesRes.value.filter((l: any) => (l.participants || []).includes(uid)).map((l: any) => l.id) : [];
+        if (userLeagueIds.length > 0) {
+          const predsData = await api.predictions.list(userLeagueIds, uid);
+          if (predsData) {
+            const mappedPreds = predsData.map((p: any) => ({
+              userId: p.user_id, matchId: p.match_id, leagueId: p.league_id,
+              homeScore: Number(p.home_score), awayScore: Number(p.away_score),
+              points: p.points ? Number(p.points) : 0
+            }));
+            setPredictions(prev => {
+              const others = prev.filter(p => p.userId !== uid || !userLeagueIds.includes(p.leagueId));
+              return [...others, ...mappedPreds];
+            });
           }
-        } catch(e) { console.warn('Falha ao carregar perfis de admins de ligas:', e); }
-
-      } else {
-        // Usuário Comum: Baixa apenas metadados globais se precisar no futuro
-        // (topFinishersResult foi movido para carregar apenas ao abrir uma liga)
+        }
+        
+        // Palpites do Modo Brasil (Jogos do Brasil - Copa)
+        const userBrLeagueIds = brazilLeaguesRes.status === 'fulfilled' && brazilLeaguesRes.value ?
+            brazilLeaguesRes.value.filter((l: any) => (l.participants || []).includes(uid)).map((l: any) => l.id) : [];
+        if (userBrLeagueIds.length > 0) {
+          const brPredsData = await api.brazilPredictions.list(userBrLeagueIds, uid);
+          if (brPredsData) {
+            const mappedBrPreds = brPredsData.map((p: any) => ({
+              userId: p.user_id, matchId: p.match_id, leagueId: p.league_id,
+              homeScore: Number(p.home_score), awayScore: Number(p.away_score),
+              playerPick: p.player_pick,
+              points: p.points ? Number(p.points) : 0,
+              goalscorerPoints: p.goalscorer_points ? Number(p.goalscorer_points) : 0
+            }));
+            setBrazilPredictions(prev => {
+              const others = prev.filter(p => p.userId !== uid || !userBrLeagueIds.includes(p.leagueId));
+              return [...others, ...mappedBrPreds];
+            });
+          }
+        }
       }
 
+      setIsCopaLoaded(true);
+    } catch (e) {
+      console.error('fetchCopaData error', e);
+    } finally {
+      setIsCopaLoading(false);
+    }
+  };
+
+  const fetchBrasileiraoData = async () => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+    setIsBrasileiraoLoading(true);
+    try {
+      const leaguesData = await api.brasileiraoLeagues.list();
+
+      if (leaguesData) {
+        const mappedLeagues: BrasileiraoLeague[] = leaguesData.map((l: any) => ({
+          id: l.id, name: l.name, image: l.image, description: l.description,
+          leagueCode: l.league_code, adminId: l.admin_id, isPrivate: l.is_private,
+          participants: l.participants || [], pendingRequests: l.pending_requests || [],
+          settings: {
+            ...l.settings,
+            isUnlimited: l.settings?.isUnlimited === true,
+            plan: l.settings?.plan || (l.settings?.isUnlimited ? 'VIP_UNLIMITED' : 'FREE')
+          }
+        }));
+        setBrasileiraoLeagues(mappedLeagues);
+        try { localStorage.setItem('cache_brasileirao_leagues', JSON.stringify(mappedLeagues)); } catch (e) {}
+
+        if (currentUserRef.current?.id) {
+          const uid = currentUserRef.current.id;
+          const userLeagueIds = mappedLeagues.filter((l: any) => (l.participants || []).includes(uid)).map((l: any) => l.id);
+          if (userLeagueIds.length > 0) {
+            const predsData = await api.brasileiraoPredictions.list(userLeagueIds, uid);
+            if (predsData) {
+              const mappedPreds: BrasileiraoPrediction[] = predsData.map((p: any) => ({
+                userId: p.user_id, matchId: p.match_id, leagueId: p.league_id,
+                homeScore: Number(p.home_score), awayScore: Number(p.away_score),
+                points: p.points ? Number(p.points) : 0
+              }));
+              setBrasileiraoPredictions(mappedPreds);
+              try { localStorage.setItem('cache_brasileirao_predictions', JSON.stringify(mappedPreds)); } catch(e){}
+            }
+          }
+        }
+      }
+
+      setIsBrasileiraoLoaded(true);
+    } catch (e) {
+      console.error('fetchBrasileiraoData error', e);
+    } finally {
+      setIsBrasileiraoLoading(false);
+    }
+  };
+
+  const fetchBrasileiraoMatchesByComp = async (comps: string[]): Promise<void> => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+    
+    const now = Date.now();
+    const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+    
+    let allCompsCached = true;
+    for (const comp of comps) {
+      const lastFetched = lastFetchedCompsRef.current[comp] || 0;
+      if (now - lastFetched > CACHE_DURATION) {
+        allCompsCached = false;
+        break;
+      }
+    }
+
+    const hasLiveMatch = brasileiraoMatches.some(m => 
+      comps.includes(m.championship || 'brasileirao') && m.status === MatchStatus.IN_PROGRESS
+    );
+
+    if (allCompsCached && !hasLiveMatch) {
+      console.log(`Serving matches for ${comps.join(', ')} from memory cache.`);
+      return;
+    }
+
+    try {
+      const matchesData = await api.brasileiraoMatches.listByCompetitions(comps);
+      
+      let freshTeams = brasileiraoTeams;
+      if (brasileiraoTeams.length === 0) {
+        const teamsData = await api.brasileiraoTeams.list();
+        if (teamsData) {
+          freshTeams = teamsData.map((t: any) => ({
+            id: t.id, name: t.name, short_name: t.short_name, logo: t.logo
+          }));
+          setBrasileiraoTeams(freshTeams);
+          try { localStorage.setItem('cache_brasileirao_teams', JSON.stringify(freshTeams)); } catch (e) {}
+        }
+      }
+
+      if (matchesData) {
+        const mappedMatches: BrasileiraoMatch[] = matchesData.map((m: any): BrasileiraoMatch => ({
+          id: m.id, home_team_id: m.home_team_id, away_team_id: m.away_team_id,
+          date: m.date, location: m.location || '', phase: m.phase, status: m.status,
+          home_score: m.home_score !== null ? Number(m.home_score) : null,
+          away_score: m.away_score !== null ? Number(m.away_score) : null,
+          championship: m.championship,
+          is_blocked: m.is_blocked
+        }));
+
+        setBrasileiraoMatches(prev => {
+          const filtered = prev.filter(m => !comps.includes(m.championship || 'brasileirao'));
+          const nextMatches = [...filtered, ...mappedMatches];
+          try { localStorage.setItem('cache_brasileirao_matches_v2', JSON.stringify(nextMatches)); } catch (e) {}
+          return nextMatches;
+        });
+
+        comps.forEach(comp => {
+          lastFetchedCompsRef.current[comp] = now;
+        });
+      }
+    } catch (e) {
+      console.error('fetchBrasileiraoMatchesByComp error', e);
+    }
+  };
+
+  const fetchAllData = async (silent: boolean = false) => {
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      if (!connectionError) setConnectionError(true);
+      if (mountedRef.current) setLoading(false);
+      return;
+    }
+
+    if (fetchingRef.current) return;
+    fetchingRef.current = true;
+
+    try {
       if (currentUserRef.current?.email) {
         fetchInvitations(currentUserRef.current.email);
       }
+      if (currentUserRef.current?.id) {
+        const uid = currentUserRef.current.id;
+        const [lRes, brRes, brasRes] = await Promise.allSettled([
+          supabase.from('leagues').select('id, name, admin_id, pending_requests, settings, image, description, is_private, participants').eq('admin_id', uid),
+          supabase.from('brazil_leagues').select('id, name, admin_id, pending_requests, settings, image, description, is_private, participants').eq('admin_id', uid),
+          supabase.from('brasileirao_leagues').select('id, name, admin_id, pending_requests, settings, image, description, is_private, participants').eq('admin_id', uid)
+        ]);
 
+        if (lRes.status === 'fulfilled' && lRes.value.data) {
+          const mapped: League[] = lRes.value.data.map((l: any) => ({
+            id: l.id, name: l.name, image: l.image, description: l.description,
+            leagueCode: l.league_code, adminId: l.admin_id, isPrivate: l.is_private,
+            participants: l.participants || [], pendingRequests: l.pending_requests || [],
+            settings: l.settings || {}
+          }));
+          setLeagues(prev => {
+            const map = new Map(prev.map(item => [item.id, item]));
+            mapped.forEach(item => map.set(item.id, item));
+            return Array.from(map.values());
+          });
+        }
+        if (brRes.status === 'fulfilled' && brRes.value.data) {
+          const mapped: BrazilLeague[] = brRes.value.data.map((l: any) => ({
+            id: l.id, name: l.name, image: l.image, description: l.description,
+            leagueCode: l.league_code, adminId: l.admin_id, isPrivate: l.is_private,
+            participants: l.participants || [], pendingRequests: l.pending_requests || [],
+            settings: l.settings || {}
+          }));
+          setBrazilLeagues(prev => {
+            const map = new Map(prev.map(item => [item.id, item]));
+            mapped.forEach(item => map.set(item.id, item));
+            return Array.from(map.values());
+          });
+        }
+        if (brasRes.status === 'fulfilled' && brasRes.value.data) {
+          const mapped: BrasileiraoLeague[] = brasRes.value.data.map((l: any) => ({
+            id: l.id, name: l.name, image: l.image, description: l.description,
+            leagueCode: l.league_code, adminId: l.admin_id, isPrivate: l.is_private,
+            participants: l.participants || [], pendingRequests: l.pending_requests || [],
+            settings: l.settings || {}
+          }));
+          setBrasileiraoLeagues(prev => {
+            const map = new Map(prev.map(item => [item.id, item]));
+            mapped.forEach(item => map.set(item.id, item));
+            return Array.from(map.values());
+          });
+        }
+      }
       setConnectionError(false);
       failureCountRef.current = 0;
       const syncDate = new Date();
       setLastSyncTime(syncDate);
       try { localStorage.setItem('last_sync_time', syncDate.toISOString()); } catch {}
-
     } catch (e: any) {
       console.error('fetchAllData unexpected error', e);
       const isAuthError = e.message?.includes('401') ||
@@ -1224,6 +1562,201 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     } catch (e: any) {
       console.error("Failed to update profile", e);
       addNotification('Erro ao Salvar', e.message || 'Não foi possível salvar as alterações.', 'warning');
+    }
+  };
+
+  
+  const createBrasileiraoLeague = async (name: string, isPrivate: boolean, settings: any, image: string, description: string, plan: string = 'FREE'): Promise<boolean> => {
+    if (!currentUser) return false;
+    let finalImage = image;
+    if (image && !image.startsWith('http')) {
+      try {
+        finalImage = await uploadBase64Image(image, 'leagues');
+      } catch (e) {
+        addNotification('Erro', 'Falha no upload da imagem da liga.', 'warning');
+        return false;
+      }
+    }
+    try {
+      const payload = {
+        name, is_private: isPrivate,
+        settings: { ...settings, plan },
+        image: finalImage, description
+      };
+      const { data } = await api.brasileiraoLeagues.create(payload);
+      if (data) {
+        setBrasileiraoLeagues(prev => [...prev, {
+          id: data.id, name: data.name, image: data.image, description: data.description,
+          leagueCode: data.league_code, adminId: data.admin_id, isPrivate: data.is_private,
+          participants: data.participants, pendingRequests: data.pending_requests,
+          settings: data.settings
+        }]);
+        addNotification('Sucesso', 'Liga do Brasileirão criada!', 'success');
+        return true;
+      }
+    } catch (e: any) {
+      addNotification('Erro', e.message, 'warning');
+    }
+    return false;
+  };
+
+  const updateBrasileiraoLeague = async (id: string, updates: Partial<BrasileiraoLeague>) => {
+    const payload: any = {};
+    if (updates.name) payload.name = updates.name;
+    if (updates.description !== undefined) payload.description = updates.description;
+    if (updates.isPrivate !== undefined) payload.is_private = updates.isPrivate;
+    if (updates.settings) payload.settings = updates.settings;
+
+    if (updates.image && !updates.image.startsWith('http')) {
+      try {
+        const url = await uploadBase64Image(updates.image, 'leagues');
+        payload.image = url;
+      } catch (e) {
+        addNotification('Erro', 'Falha ao atualizar imagem.', 'warning');
+        return;
+      }
+    } else if (updates.image === '') {
+      payload.image = null;
+    } else if (updates.image) {
+      payload.image = updates.image;
+    }
+
+    try {
+      await api.brasileiraoLeagues.update(id, payload);
+      setBrasileiraoLeagues(prev => prev.map(l => l.id === id ? { ...l, ...updates, image: payload.image !== undefined ? payload.image : l.image } : l));
+      addNotification('Sucesso', 'Liga atualizada!', 'success');
+    } catch (e: any) {
+      addNotification('Erro', e.message, 'warning');
+    }
+  };
+
+  const joinBrasileiraoLeague = async (leagueId: string, leagueData?: any) => {
+    if (!currentUser) return;
+    try {
+      await api.brasileiraoLeagues.join(leagueId);
+      if (leagueData?.isPrivate) {
+        addNotification('Solicitação Enviada', 'Aguarde o administrador aprovar.', 'success');
+        setBrasileiraoLeagues(prev => {
+          if (prev.some(l => l.id === leagueId)) {
+            return prev.map(l => l.id === leagueId ? { ...l, pendingRequests: [...(l.pendingRequests || []), currentUser.id] } : l);
+          } else {
+            return [...prev, {
+              id: leagueId, name: leagueData.name, leagueCode: leagueData.leagueCode,
+              adminId: leagueData.adminId, isPrivate: true,
+              participants: [], pendingRequests: [currentUser.id],
+              settings: leagueData.settings
+            }];
+          }
+        });
+      } else {
+        addNotification('Bem-vindo!', 'Você entrou na liga.', 'success');
+        setBrasileiraoLeagues(prev => {
+          if (prev.some(l => l.id === leagueId)) {
+            return prev.map(l => l.id === leagueId ? { ...l, participants: [...l.participants, currentUser.id] } : l);
+          } else {
+            return [...prev, {
+              id: leagueId, name: leagueData.name, leagueCode: leagueData.leagueCode,
+              adminId: leagueData.adminId, isPrivate: false,
+              participants: [currentUser.id], pendingRequests: [],
+              settings: leagueData.settings
+            }];
+          }
+        });
+      }
+    } catch (e: any) {
+      addNotification('Erro', e.message || 'Falha ao entrar.', 'warning');
+    }
+  };
+
+  const deleteBrasileiraoLeague = async (leagueId: string): Promise<boolean> => {
+    try {
+      await api.brasileiraoLeagues.delete(leagueId);
+      setBrasileiraoLeagues(prev => prev.filter(l => l.id !== leagueId));
+      addNotification('Liga Excluída', 'A liga foi removida.', 'success');
+      return true;
+    } catch (e: any) {
+      addNotification('Erro', e.message, 'warning');
+      return false;
+    }
+  };
+
+  const submitBrasileiraoPredictions = async (preds: { matchId: number, home: number, away: number }[], leagueId: string): Promise<boolean> => {
+    if (!currentUser) return false;
+    try {
+      const payload = preds.map(p => ({
+        match_id: p.matchId, league_id: leagueId,
+        home_score: p.home, away_score: p.away
+      }));
+      await api.brasileiraoPredictions.submit(payload);
+      
+      const newPreds = preds.map(p => ({
+        userId: currentUser.id, matchId: p.matchId, leagueId,
+        homeScore: p.home, awayScore: p.away
+      }));
+      setBrasileiraoPredictions(prev => {
+        const others = prev.filter(p => p.userId !== currentUser.id || p.leagueId !== leagueId || !preds.some(np => np.matchId === p.matchId));
+        return [...others, ...newPreds];
+      });
+      addNotification('Sucesso!', 'Palpites salvos.', 'success');
+      return true;
+    } catch (e: any) {
+      addNotification('Erro', e.message, 'warning');
+      return false;
+    }
+  };
+
+  
+  const approveBrasileiraoUser = async (leagueId: string, userId: string) => {
+    try {
+      await api.brasileiraoLeagues.approveUser(leagueId, userId);
+      setBrasileiraoLeagues(prev => prev.map(l => {
+        if (l.id === leagueId) {
+          return {
+            ...l,
+            participants: [...l.participants, userId],
+            pendingRequests: l.pendingRequests.filter(id => id !== userId)
+          };
+        }
+        return l;
+      }));
+      addNotification('Sucesso', 'Usuário aprovado.', 'success');
+    } catch (e: any) { addNotification('Erro', e.message, 'warning'); }
+  };
+
+  const rejectBrasileiraoUser = async (leagueId: string, userId: string) => {
+    try {
+      await api.brasileiraoLeagues.rejectUser(leagueId, userId);
+      setBrasileiraoLeagues(prev => prev.map(l => {
+        if (l.id === leagueId) {
+          return { ...l, pendingRequests: l.pendingRequests.filter(id => id !== userId) };
+        }
+        return l;
+      }));
+      addNotification('Sucesso', 'Usuário rejeitado.', 'success');
+    } catch (e: any) { addNotification('Erro', e.message, 'warning'); }
+  };
+
+  const removeUserFromBrasileiraoLeague = async (leagueId: string, userId: string) => {
+    try {
+      await api.brasileiraoLeagues.removeUser(leagueId, userId);
+      setBrasileiraoLeagues(prev => prev.map(l => {
+        if (l.id === leagueId) {
+          return { ...l, participants: l.participants.filter(id => id !== userId) };
+        }
+        return l;
+      }));
+      addNotification('Sucesso', 'Usuário removido.', 'success');
+    } catch (e: any) { addNotification('Erro', e.message, 'warning'); }
+  };
+
+  const sendBrasileiraoLeagueInvite = async (leagueId: string, email: string) => {
+    try {
+      await api.brasileiraoLeagues.invite(leagueId, email);
+      addNotification('Convite Enviado', `O convite foi enviado para ${email}`, 'success');
+      return true;
+    } catch (e: any) {
+      addNotification('Erro', e.message, 'warning');
+      return false;
     }
   };
 
@@ -1726,6 +2259,20 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             optimisticNotificationShown = true;
           }
         }
+      } else if (invite.leagueType === 'brasileirao') {
+        const league = brasileiraoLeagues.find(l => l.id === invite.leagueId);
+        if (league) {
+          if (league.participants.includes(currentUser.id)) {
+            addNotification('Aviso', 'Você já participa desta liga.', 'info');
+            optimisticNotificationShown = true;
+          } else {
+            const updatedParticipants = [...league.participants, currentUser.id];
+            const updatedPending = (league.pendingRequests || []).filter(uid => uid !== currentUser.id);
+            setBrasileiraoLeagues(prev => prev.map(l => l.id === league.id ? { ...l, participants: updatedParticipants, pendingRequests: updatedPending } : l));
+            addNotification('Sucesso', `Bem-vindo à liga ${league.name}!`, 'success');
+            optimisticNotificationShown = true;
+          }
+        }
       } else {
         const league = leagues.find(l => l.id === invite.leagueId);
         if (league) {
@@ -1775,29 +2322,66 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     }
   };
 
-  const submitPredictions = async (predictionsToSubmit: { matchId: string, home: number, away: number }[], leagueId: string) => {
-    if (!currentUser) return false;
-    setPredictions(prev => {
-      let newPreds = [...prev];
-      predictionsToSubmit.forEach(p => {
-        newPreds = newPreds.filter(existing => !(existing.matchId === p.matchId && existing.leagueId === leagueId && existing.userId === currentUser.id));
-        newPreds.push({ userId: currentUser.id, matchId: p.matchId, leagueId, homeScore: p.home, awayScore: p.away, points: 0 });
-      });
-      return newPreds;
-    });
+  const updateBrasileiraoMatch = async (updatedMatch: BrasileiraoMatch): Promise<boolean> => {
+    const previousMatches = [...brasileiraoMatches];
+    setBrasileiraoMatches(prev => prev.map(m => m.id === updatedMatch.id ? updatedMatch : m));
     try {
-      const dbPayload = predictionsToSubmit.map(p => ({ user_id: currentUser.id, match_id: p.matchId, league_id: leagueId, home_score: p.home, away_score: p.away }));
-      await api.predictions.submit(dbPayload);
-      // Notification handled by caller
+      const dbPayload = {
+        id: updatedMatch.id, home_team_id: updatedMatch.home_team_id, away_team_id: updatedMatch.away_team_id,
+        date: updatedMatch.date, location: updatedMatch.location,
+        phase: updatedMatch.phase, status: updatedMatch.status, home_score: updatedMatch.home_score, away_score: updatedMatch.away_score,
+        is_blocked: updatedMatch.is_blocked
+      };
+      await api.brasileiraoMatches.update(dbPayload);
       return true;
     } catch (e) {
+      addNotification('Erro', 'Falha ao atualizar a partida.', 'warning');
+      setBrasileiraoMatches(previousMatches);
+      return false;
+    }
+  };
+
+  const submitPredictions = async (predictionsToSubmit: { matchId: string, home: number, away: number }[], leagueId: string, leagueType: "standard" | "brazil" | "brasileirao" = "standard") => {
+    if (!currentUser) return false;
+    if (leagueType === 'brasileirao') {
+      setBrasileiraoPredictions(prev => {
+        let newPreds = [...prev];
+        predictionsToSubmit.forEach(p => {
+          newPreds = newPreds.filter(existing => !(existing.matchId === Number(p.matchId) && existing.leagueId === leagueId && existing.userId === currentUser.id));
+          newPreds.push({ userId: currentUser.id, matchId: Number(p.matchId), leagueId, homeScore: p.home, awayScore: p.away, points: 0 });
+        });
+        return newPreds;
+      });
+    } else {
+      setPredictions(prev => {
+        let newPreds = [...prev];
+        predictionsToSubmit.forEach(p => {
+          newPreds = newPreds.filter(existing => !(existing.matchId === p.matchId && existing.leagueId === leagueId && existing.userId === currentUser.id));
+          newPreds.push({ userId: currentUser.id, matchId: p.matchId, leagueId, homeScore: p.home, awayScore: p.away, points: 0 });
+        });
+        return newPreds;
+      });
+    }
+    try {
+      const dbPayload = predictionsToSubmit.map(p => ({ user_id: currentUser.id, match_id: p.matchId, league_id: leagueId, home_score: p.home, away_score: p.away }));
+      if (leagueType === 'brasileirao') {
+        await api.brasileiraoPredictions.submit(dbPayload);
+      } else if (leagueType === 'brazil') {
+        await api.brazilPredictions.submit(dbPayload);
+      } else {
+        await api.predictions.submit(dbPayload);
+      }
+      // Notification handled by caller
+      return true;
+    } catch (e: any) {
+      console.error('Falha ao salvar palpites (detalhe):', e?.message || e);
       addNotification('Erro', 'Falha ao salvar palpites.', 'warning');
       return false;
     }
   };
 
-  const submitPrediction = async (matchId: string, leagueId: string, home: number, away: number) => {
-    await submitPredictions([{ matchId, home, away }], leagueId);
+  const submitPrediction = async (matchId: string, leagueId: string, home: number, away: number, leagueType: "standard" | "brazil" | "brasileirao" = "standard") => {
+    await submitPredictions([{ matchId, home, away }], leagueId, leagueType);
   };
 
   const simulateMatchResult = (matchId: string, home: number, away: number) => {
@@ -1807,7 +2391,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   const syncInitialMatches = async () => { };
 
-  const refreshPredictions = async () => {
+  const refreshPredictions = async (showToast: boolean = true) => {
     if (isRefreshingPredictions) return;
     setIsRefreshingPredictions(true);
     try {
@@ -1853,7 +2437,25 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         }
       }
 
-      addNotification('Atualizado', 'Palpites sincronizados com sucesso.', 'success');
+      const userBrasileiraoLeagueIds = brasileiraoLeagues.filter(l => l.participants.includes(uid)).map(l => l.id);
+      if (userBrasileiraoLeagueIds.length > 0) {
+        const predsData = await api.brasileiraoPredictions.list(userBrasileiraoLeagueIds, uid);
+        if (predsData) {
+          const mappedPreds: BrasileiraoPrediction[] = predsData.map((p: any) => ({
+            userId: p.user_id, matchId: p.match_id, leagueId: p.league_id,
+            homeScore: Number(p.home_score), awayScore: Number(p.away_score),
+            points: p.points ? Number(p.points) : 0
+          }));
+          setBrasileiraoPredictions(prev => {
+            const others = prev.filter(p => p.userId !== uid || !userBrasileiraoLeagueIds.includes(p.leagueId));
+            return [...others, ...mappedPreds];
+          });
+        }
+      }
+
+      if (showToast) {
+        addNotification('Atualizado', 'Palpites sincronizados com sucesso.', 'success');
+      }
     } catch (e) {
       console.error("Refresh Preds Error", e);
     } finally {
@@ -1861,7 +2463,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     }
   };
 
-  const loadLeagueData = async (leagueId: string, leagueType: 'standard' | 'brazil' = 'standard', forceRefresh: boolean = false) => {
+  const loadLeagueData = async (leagueId: string, leagueType: 'standard' | 'brazil' | 'brasileirao' = 'standard', forceRefresh: boolean = false) => {
     const cacheKey = `${leagueType}_${leagueId}`;
 
     if (!forceRefresh && activeFetchesRef.current[cacheKey]) {
@@ -1883,16 +2485,25 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         }
 
         const isBrazil = leagueType === 'brazil';
+        const isBrasileirao = leagueType === 'brasileirao';
 
       // Always fetch fresh league data from the server to get latest pending_requests and participants
       let freshLeague: any = null;
       try {
         freshLeague = isBrazil
           ? await api.brazilLeagues.getById(leagueId)
+          : isBrasileirao
+          ? await api.brasileiraoLeagues.getById(leagueId)
           : await api.leagues.getById(leagueId);
         if (freshLeague) {
           if (isBrazil) {
             setBrazilLeagues(prev => prev.map(l => l.id === leagueId ? {
+              ...l,
+              participants: freshLeague.participants || l.participants,
+              pendingRequests: freshLeague.pending_requests || l.pendingRequests,
+            } : l));
+          } else if (isBrasileirao) {
+            setBrasileiraoLeagues(prev => prev.map(l => l.id === leagueId ? {
               ...l,
               participants: freshLeague.participants || l.participants,
               pendingRequests: freshLeague.pending_requests || l.pendingRequests,
@@ -1911,6 +2522,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       
       const league = freshLeague || (isBrazil 
         ? brazilLeagues.find(l => l.id === leagueId)
+        : isBrasileirao
+        ? brasileiraoLeagues.find(l => l.id === leagueId)
         : leagues.find(l => l.id === leagueId));
         
       const participantIds = league ? [
@@ -1924,16 +2537,21 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       const predsPromise = currentUserId
         ? (isBrazil
             ? api.brazilPredictions.list(leagueId, currentUserId)
+            : isBrasileirao
+            ? api.brasileiraoPredictions.list(leagueId, currentUserId)
             : api.predictions.list(leagueId, currentUserId))
         : Promise.resolve([]);
 
-      const [predsRes, profilesRes, topRes, playersRes, goalsRes, matchesRes] = await Promise.all([
+      const [predsRes, profilesRes, topRes, playersRes, goalsRes, matchesRes, teamsRes] = await Promise.all([
         predsPromise,
         participantIds.length > 0 ? api.profiles.getByIds(participantIds) : Promise.resolve([]),
-        api.topFinisherPredictions.list(leagueId, currentUserId),
+        !isBrasileirao ? api.topFinisherPredictions.list(leagueId, currentUserId) : Promise.resolve([]),
         isBrazil ? api.brazilPlayers.list() : Promise.resolve([]),
         isBrazil ? api.brazilMatchGoals.list() : Promise.resolve([]),
-        api.matches.list()
+        isBrasileirao
+          ? api.brasileiraoMatches.listByCompetitions(league?.settings?.competitions || ['brasileirao'])
+          : api.matches.list(),
+        isBrasileirao && brasileiraoTeams.length === 0 ? api.brasileiraoTeams.list() : Promise.resolve(null)
       ]);
 
       // (Sem cache incremental de matchIds — agora carregamos apenas os próprios palpites)
@@ -1947,6 +2565,17 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           goalscorerPoints: p.goalscorer_points ? Number(p.goalscorer_points) : 0
         }));
         setBrazilPredictions(prev => {
+          // Mantém palpites de outras ligas e de outros usuários já carregados nessa liga
+          const others = prev.filter(p => !(p.leagueId === leagueId && p.userId === currentUserId));
+          return [...others, ...mappedBrPreds];
+        });
+      } else if (isBrasileirao) {
+        const mappedBrPreds: BrasileiraoPrediction[] = (predsRes || []).map((p: any) => ({
+          userId: p.user_id, matchId: p.match_id, leagueId: p.league_id,
+          homeScore: Number(p.home_score), awayScore: Number(p.away_score),
+          points: p.points ? Number(p.points) : 0
+        }));
+        setBrasileiraoPredictions(prev => {
           // Mantém palpites de outras ligas e de outros usuários já carregados nessa liga
           const others = prev.filter(p => !(p.leagueId === leagueId && p.userId === currentUserId));
           return [...others, ...mappedBrPreds];
@@ -1991,47 +2620,69 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           const mapped: BrazilPlayer[] = playersRes.map((p: any) => ({ id: p.id, name: p.name, position: p.position, is_active: p.is_active }));
           setBrazilPlayers(mapped);
         }
-
         if (goalsRes && goalsRes.length > 0) {
           const mapped: BrazilMatchGoal[] = goalsRes.map((g: any) => ({ matchId: g.match_id, playerName: g.player_name, goals: g.goals }));
           setBrazilMatchGoals(mapped);
         }
       }
 
-      if (matchesRes && matchesRes.length > 0) {
-        const mappedMatches: Match[] = matchesRes.map((m: any) => ({
-          id: m.id, homeTeamId: m.home_team_id, awayTeamId: m.away_team_id,
-          date: m.date, location: m.location, group: m.group, phase: m.phase,
-          status: m.status, homeScore: m.home_score !== null ? Number(m.home_score) : null,
-          awayScore: m.away_score !== null ? Number(m.away_score) : null
+      if (isBrasileirao && teamsRes && teamsRes.length > 0) {
+        const mappedTeams: BrasileiraoTeam[] = teamsRes.map((t: any) => ({
+          id: t.id, name: t.name, short_name: t.short_name, logo: t.logo
         }));
-        setMatches(mappedMatches);
-        // Also update localStorage cache so future renders don't use stale status
-        try { localStorage.setItem('cache_matches', JSON.stringify(mappedMatches)); } catch (e) { console.warn('cache_matches write failed:', e); }
+        setBrasileiraoTeams(mappedTeams);
+        try { localStorage.setItem('cache_brasileirao_teams', JSON.stringify(mappedTeams)); } catch (e) {}
       }
-      
-      lastFetchedLeaguesRef.current[cacheKey] = Date.now(); // Marca como carregado apenas após sucesso
+
+      if (matchesRes && matchesRes.length > 0) {
+        if (isBrasileirao) {
+          // For brasileirao, update the brasileirao matches state (not copa matches)
+          const mappedMatches: BrasileiraoMatch[] = matchesRes.map((m: any): BrasileiraoMatch => ({
+            id: m.id, home_team_id: m.home_team_id, away_team_id: m.away_team_id,
+            date: m.date, location: m.location || '', phase: m.phase, status: m.status,
+            home_score: m.home_score !== null ? Number(m.home_score) : null,
+            away_score: m.away_score !== null ? Number(m.away_score) : null,
+            championship: m.championship,
+            is_blocked: m.is_blocked
+          }));
+          
+          setBrasileiraoMatches(prev => {
+            const comps = league?.settings?.competitions || ['brasileirao'];
+            const filtered = prev.filter(m => !comps.includes(m.championship || 'brasileirao'));
+            const nextMatches = [...filtered, ...mappedMatches];
+            try { localStorage.setItem('cache_brasileirao_matches_v2', JSON.stringify(nextMatches)); } catch (e) {}
+            return nextMatches;
+          });
+        } else {
+          const mappedMatches: Match[] = matchesRes.map((m: any) => ({
+            id: m.id, homeTeamId: m.home_team_id, awayTeamId: m.away_team_id,
+            date: m.date, location: m.location, group: m.group, phase: m.phase,
+            status: m.status, homeScore: m.home_score !== null ? Number(m.home_score) : null,
+            awayScore: m.away_score !== null ? Number(m.away_score) : null
+          }));
+          setMatches(mappedMatches);
+          try { localStorage.setItem('cache_matches', JSON.stringify(mappedMatches)); } catch (e) { console.warn('cache_matches write failed:', e); }
+        }
+      }
+
+      lastFetchedLeaguesRef.current[cacheKey] = Date.now();
     } catch (e) {
       console.error("Error loading league data:", e);
     } finally {
-      delete activeFetchesRef.current[cacheKey]; // Limpa a promise ativa
+      delete activeFetchesRef.current[cacheKey];
     }
   })();
-  
-  activeFetchesRef.current[cacheKey] = fetchPromise;
-  return fetchPromise;
-};
+  };
 
-  // === LAZY LOADING: Palpites de um jogo específico sob demanda ===
   // Cache em memória por sessão para evitar re-fetches desnecessários.
   const matchPredsCache = useRef<Record<string, any[]>>({});
 
-  const fetchMatchPredictions = async (matchId: string, leagueId: string, leagueType: 'standard' | 'brazil'): Promise<any[]> => {
+  // === LAZY LOADING: Palpites de um jogo específico sob demanda ===
+  const fetchMatchPredictions = async (matchId: string, leagueId: string, leagueType: 'standard' | 'brazil' | 'brasileirao'): Promise<any[]> => {
     const cacheKey = `${leagueType}_${leagueId}_${matchId}`;
     if (matchPredsCache.current[cacheKey]) {
       return matchPredsCache.current[cacheKey];
     }
-
     try {
       let preds: any[];
       if (leagueType === 'brazil') {
@@ -2043,8 +2694,20 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           points: p.points ? Number(p.points) : 0,
           goalscorerPoints: p.goalscorer_points ? Number(p.goalscorer_points) : 0
         }));
-        // Merges into global state without replacing own user's data
         setBrazilPredictions(prev => {
+          const others = prev.filter(p => !(p.matchId === matchId && p.leagueId === leagueId));
+          return [...others, ...mappedPreds];
+        });
+        matchPredsCache.current[cacheKey] = mappedPreds;
+        return mappedPreds;
+      } else if (leagueType === 'brasileirao') {
+        preds = await api.brasileiraoPredictions.list([leagueId], undefined, [matchId]);
+        const mappedPreds: BrasileiraoPrediction[] = (preds || []).map((p: any) => ({
+          userId: p.user_id, matchId: p.match_id, leagueId: p.league_id,
+          homeScore: Number(p.home_score), awayScore: Number(p.away_score),
+          points: p.points ? Number(p.points) : 0
+        }));
+        setBrasileiraoPredictions(prev => {
           const others = prev.filter(p => !(p.matchId === matchId && p.leagueId === leagueId));
           return [...others, ...mappedPreds];
         });
@@ -2057,7 +2720,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           homeScore: Number(p.home_score), awayScore: Number(p.away_score),
           points: p.points ? Number(p.points) : 0
         }));
-        // Merges into global state without replacing own user's data
         setPredictions(prev => {
           const others = prev.filter(p => !(p.matchId === matchId && p.leagueId === leagueId));
           return [...others, ...mappedPreds];
@@ -2123,8 +2785,10 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     <AppContext.Provider value={{
       currentUser, users, matches, leagues, predictions, currentTime, notifications, loading, isSyncing, invitations,
       brazilLeagues, brazilPredictions, brazilMatchGoals, brazilPlayers,
+      brasileiraoLeagues, brasileiraoMatches, isCopaLoaded, isBrasileiraoLoaded, isCopaLoading, isBrasileiraoLoading,
+      fetchCopaData, fetchBrasileiraoData, fetchBrasileiraoMatchesByComp,
       setCurrentTime, loginGoogle, signInWithEmail, signUpWithEmail, logout, createLeague, updateLeague, joinLeague, deleteLeague, approveUser, rejectUser, deleteAccount,
-      removeUserFromLeague, submitPrediction, submitPredictions, simulateMatchResult, updateMatch, removeNotification, updateUserProfile, syncInitialMatches,
+      removeUserFromLeague, submitPrediction, submitPredictions, simulateMatchResult, updateMatch, updateBrasileiraoMatch, removeNotification, updateUserProfile, syncInitialMatches,
       sendLeagueInvite, respondToInvite, theme, toggleTheme, connectionError, retryConnection, addNotification, refreshPredictions, isRefreshingPredictions,
       refreshAllData: async () => { await fetchAllData(false); await refreshCurrentUser(); },
       refreshCurrentUser,
@@ -2133,8 +2797,13 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       topFinisherPredictions, topFinishersResult, submitTopFinisherPrediction, setTopFinishersResult, loadLeagueData,
       fetchMatchPredictions, fetchLeagueTopFinisherPredictions,
       hasWatchedPredictionAd, setHasWatchedPredictionAd,
-      hasWatchedStatsAd, setHasWatchedStatsAd
-    }}>
+      hasWatchedStatsAd, setHasWatchedStatsAd,
+      brasileiraoTeams, brasileiraoPredictions,
+
+    createBrasileiraoLeague, updateBrasileiraoLeague, joinBrasileiraoLeague, deleteBrasileiraoLeague, submitBrasileiraoPredictions,
+
+    approveBrasileiraoUser, rejectBrasileiraoUser, removeUserFromBrasileiraoLeague, sendBrasileiraoLeagueInvite,
+}}>
       {children}
     </AppContext.Provider>
   );
@@ -2221,7 +2890,8 @@ const AppRoutes: React.FC = () => {
       <Layout>
         <OfflineRedirect>
           <Routes>
-            <Route path="/" element={isRecoveryMode ? <Navigate to="/reset-password" /> : <Home />} />
+            <Route path="/" element={<HubHome />} />
+            <Route path="/copa" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <Home /> : <Navigate to="/" />)} />
             <Route path="/table" element={isRecoveryMode ? <Navigate to="/reset-password" /> : <TablePage />} />
             <Route path="/leagues" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <LeaguesPage /> : <Navigate to="/" />)} />
             <Route path="/league/:id" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <LeagueDetails /> : <Navigate to="/" />)} />
@@ -2229,10 +2899,26 @@ const AppRoutes: React.FC = () => {
             <Route path="/brazil-league/:id" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <BrazilLeagueDetails /> : <Navigate to="/" />)} />
             <Route path="/simulador" element={currentUser ? <SimulatePage /> : <Navigate to="/" />} />
             <Route path="/como-jogar" element={<HowToPlay />} />
+
+            {/* Rotas Brasileirão */}
+            <Route path="/brasileirao" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <BrasileiraoRoute><HomeBrasileirao /></BrasileiraoRoute> : <Navigate to="/" />)} />
+            <Route path="/table-brasileirao" element={isRecoveryMode ? <Navigate to="/reset-password" /> : <BrasileiraoRoute><TablePageBrasileirao /></BrasileiraoRoute>} />
+            <Route path="/leagues-brasileirao" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <BrasileiraoRoute><LeaguesPageBrasileirao /></BrasileiraoRoute> : <Navigate to="/" />)} />
+            <Route path="/league-brasileirao/:id" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <BrasileiraoRoute><LeagueDetailsBrasileirao /></BrasileiraoRoute> : <Navigate to="/" />)} />
+            <Route path="/como-jogar-brasileirao" element={<HowToPlayBrasileirao />} />
+            
+            <Route path="/admin-brasileirao" element={isRecoveryMode ? <Navigate to="/reset-password" /> : <AdminRoute><AdminPageBrasileirao /></AdminRoute>} />
+            <Route path="/admin-brasileirao/leagues" element={<AdminRoute><AdminLeaguesPageBrasileirao /></AdminRoute>} />
+            <Route path="/admin-brasileirao/matches" element={<AdminRoute><AdminMatchesPageBrasileirao /></AdminRoute>} />
+
             <Route path="/bolao-copa-2026" element={<SEOLanding variant="bolao" />} />
             <Route path="/simulador-copa-2026" element={<SEOLanding variant="simulador" />} />
             <Route path="/tabela-copa-2026" element={<SEOLanding variant="tabela" />} />
             <Route path="/bolao-jogos-do-brasil" element={<SEOLanding variant="brazil" />} />
+            <Route path="/bolao-brasileirao" element={<SEOLanding variant="brasileirao" />} />
+            <Route path="/bolao-copa-do-brasil" element={<SEOLanding variant="copa-do-brasil" />} />
+            <Route path="/bolao-libertadores" element={<SEOLanding variant="libertadores" />} />
+            <Route path="/bolao-sul-americana" element={<SEOLanding variant="sul-americana" />} />
             <Route path="/termos" element={<TermsPage />} />
             <Route path="/privacidade" element={<PrivacyPage />} />
             <Route path="/exclusao-conta" element={<AccountDeletionPage />} />

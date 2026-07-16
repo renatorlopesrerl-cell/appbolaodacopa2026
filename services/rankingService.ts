@@ -26,7 +26,7 @@ export interface RankingEntry {
 
 export const fetchLeagueRankings = async (
     leagueId: string, 
-    leagueType: 'standard' | 'brazil' = 'standard',
+    leagueType: 'standard' | 'brazil' | 'brasileirao' = 'standard',
     period: string = 'total'
 ): Promise<RankingEntry[]> => {
     try {
@@ -34,7 +34,7 @@ export const fetchLeagueRankings = async (
         const PRODUCAO_URL = 'https://bolaodacopa2026.app';
         const apiBase = isCapacitor ? `${PRODUCAO_URL}/api` : (import.meta.env.VITE_API_URL || '/api');
         
-        const endpoint = leagueType === 'standard' ? '/rankings' : '/brazil-rankings';
+        const endpoint = leagueType === 'brasileirao' ? '/brasileirao-rankings' : leagueType === 'brazil' ? '/brazil-rankings' : '/rankings';
         const fullUrl = `${apiBase}${endpoint}?leagueId=${leagueId}&period=${period}`;
 
         const { data: sessionData } = await supabase.auth.getSession();

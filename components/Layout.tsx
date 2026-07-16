@@ -85,12 +85,39 @@ const ToastContainer: React.FC<{
 
 
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentUser, logout, invitations, leagues, brazilLeagues, users, connectionError, retryConnection, isRecoveryMode, approveUser, rejectUser, approveBrazilUser, rejectBrazilUser, respondToInvite, notifications, removeNotification, refreshAllData, lastSyncTime } = useStore();
+  const { currentUser, logout, invitations, leagues, brazilLeagues, brasileiraoLeagues, users, connectionError, retryConnection, isRecoveryMode, approveUser, rejectUser, approveBrazilUser, rejectBrazilUser, approveBrasileiraoUser, rejectBrasileiraoUser, respondToInvite, notifications, removeNotification, refreshAllData, lastSyncTime, fetchCopaData, fetchBrasileiraoData, isCopaLoaded, isBrasileiraoLoaded } = useStore();
   const location = useLocation();
+  const isBrasileiraoMode = location.pathname.includes('brasileirao');
+  const isHubMode = location.pathname === '/' || location.pathname === '/profile' || location.pathname === '/login';
+  
+  let appName = 'Palpiteiro da Copa';
+  if (isHubMode) appName = 'PALPITEIRO';
+  else if (isBrasileiraoMode) appName = 'Palpiteiro do Brasileirão';
+
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
   const isNative = Capacitor.getPlatform() !== 'web';
+
+  const hasFetchedCopa = useRef(false);
+  const hasFetchedBrasileirao = useRef(false);
+
+  useEffect(() => {
+    const path = location.pathname;
+    const isCopaRoute = path.startsWith('/copa') || path.startsWith('/table') || path.startsWith('/leagues') || path.startsWith('/league/') || path.startsWith('/simulador') || path.startsWith('/brazil-');
+    const isBrasileiraoRoute = path.includes('brasileirao');
+
+    if (isCopaRoute && !isBrasileiraoRoute && !isCopaLoaded && !hasFetchedCopa.current) {
+      hasFetchedCopa.current = true;
+      fetchCopaData();
+    }
+    if (isBrasileiraoRoute && !isBrasileiraoLoaded && !hasFetchedBrasileirao.current) {
+      hasFetchedBrasileirao.current = true;
+      fetchBrasileiraoData();
+    }
+  }, [location.pathname, isCopaLoaded, isBrasileiraoLoaded, fetchCopaData, fetchBrasileiraoData]);
+
+  // Handle outside click to close menus
   const isMinimalLayout = isRecoveryMode || location.pathname === '/reset-password';
   const notificationRef = useRef<HTMLDivElement>(null);
   const mobileNotificationRef = useRef<HTMLDivElement>(null);
@@ -123,9 +150,14 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     ? brazilLeagues.filter(l => l.adminId === currentUser.id && l.pendingRequests?.some(uid => users.some(u => u.id === uid)))
     : [];
 
+  const adminBrasileiraoLeaguesWithRequests = currentUser
+    ? brasileiraoLeagues.filter(l => l.adminId === currentUser.id && l.pendingRequests?.some(uid => users.some(u => u.id === uid)))
+    : [];
+
   const pendingLeagueRequestsCount = adminLeaguesWithRequests
     .reduce((acc, l) => acc + (l.pendingRequests?.filter(uid => users.some(u => u.id === uid)).length || 0), 0) +
-    adminBrazilLeaguesWithRequests.reduce((acc, l) => acc + (l.pendingRequests?.filter(uid => users.some(u => u.id === uid)).length || 0), 0);
+    adminBrazilLeaguesWithRequests.reduce((acc, l) => acc + (l.pendingRequests?.filter(uid => users.some(u => u.id === uid)).length || 0), 0) +
+    adminBrasileiraoLeaguesWithRequests.reduce((acc, l) => acc + (l.pendingRequests?.filter(uid => users.some(u => u.id === uid)).length || 0), 0);
 
   const totalNotifications = pendingInvites.length + pendingLeagueRequestsCount;
 
@@ -145,8 +177,11 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           <div className="divide-y divide-gray-100 dark:divide-gray-700">
             {pendingInvites.map(invite => {
               const isBrazil = invite.leagueType === 'brazil';
+              const isBrasileirao = invite.leagueType === 'brasileirao';
               const localLeague = isBrazil 
                 ? brazilLeagues.find(l => l.id === invite.leagueId)
+                : isBrasileirao
+                ? brasileiraoLeagues.find(l => l.id === invite.leagueId)
                 : leagues.find(l => l.id === invite.leagueId);
               
               const leagueName = localLeague?.name || invite.league_name || 'Liga desconhecida';
@@ -164,8 +199,8 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                     />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold text-gray-800 dark:text-white flex items-center gap-2">
-                        <Mail size={14} className={`${isBrazil ? 'text-brasil-yellow' : 'text-yellow-600'} flex-shrink-0`} /> 
-                        Convite {isBrazil ? 'Modo BR' : 'Liga Padrão'}
+                        <Mail size={14} className={`${isBrasileirao ? 'text-brasil-green' : isBrazil ? 'text-brasil-yellow' : 'text-yellow-600'} flex-shrink-0`} /> 
+                        Convite {isBrasileirao ? 'Brasileirão' : isBrazil ? 'Modo BR' : 'Liga Padrão'}
                       </p>
                       <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">
                         Convidado para: <span className="font-bold text-brasil-blue dark:text-blue-400">{leagueName}</span>
@@ -189,15 +224,16 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                 </div>
               );
             })}
-            {[...adminLeaguesWithRequests, ...adminBrazilLeaguesWithRequests].flatMap(l => {
+            {[...adminLeaguesWithRequests, ...adminBrazilLeaguesWithRequests, ...adminBrasileiraoLeaguesWithRequests].flatMap(l => {
               const isBrazil = brazilLeagues.some(bl => bl.id === l.id);
+              const isBrasileirao = brasileiraoLeagues.some(bl => bl.id === l.id);
               const validRequests = (l.pendingRequests || [])
                 .map(uid => users.find(u => u.id === uid))
                 .filter((u): u is typeof users[0] => !!u);
 
               return validRequests.map(user => (
                 <div key={`${l.id}-${user.id}`} className="block p-3 hover:bg-white dark:hover:bg-gray-800 transition-colors group relative">
-                  <div className={`absolute left-0 top-0 bottom-0 w-1 ${isBrazil ? 'bg-brasil-blue' : 'bg-brasil-green'}`}></div>
+                  <div className={`absolute left-0 top-0 bottom-0 w-1 ${isBrasileirao ? 'bg-brasil-green' : isBrazil ? 'bg-brasil-blue' : 'bg-brasil-green'}`}></div>
                   <div className="flex gap-3 mb-2">
                     <OptimizedImage
                       src={user.avatar}
@@ -207,8 +243,8 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                     />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold text-gray-800 dark:text-white flex items-center gap-2">
-                        <Users size={14} className={`${isBrazil ? 'text-brasil-blue' : 'text-green-600'} flex-shrink-0`} /> 
-                        Solicitação {isBrazil ? 'Modo BR' : ''}
+                        <Users size={14} className={`${isBrasileirao ? 'text-brasil-green' : isBrazil ? 'text-brasil-blue' : 'text-green-600'} flex-shrink-0`} /> 
+                        Solicitação {isBrasileirao ? 'Brasileirão' : isBrazil ? 'Modo BR' : ''}
                       </p>
                       <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">
                         <span className="font-bold">{user.name}</span> quer entrar na liga <span className="font-bold text-brasil-blue dark:text-blue-400">{l.name}</span>
@@ -220,7 +256,8 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        if (isBrazil) approveBrazilUser(l.id, user.id);
+                        if (isBrasileirao) approveBrasileiraoUser(l.id, user.id);
+                        else if (isBrazil) approveBrazilUser(l.id, user.id);
                         else approveUser(l.id, user.id);
                       }}
                       className="flex-1 bg-green-100 hover:bg-green-200 text-green-700 text-xs font-bold py-1.5 rounded flex items-center justify-center gap-1 transition-colors"
@@ -231,7 +268,8 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        if (isBrazil) rejectBrazilUser(l.id, user.id);
+                        if (isBrasileirao) rejectBrasileiraoUser(l.id, user.id);
+                        else if (isBrazil) rejectBrazilUser(l.id, user.id);
                         else rejectUser(l.id, user.id);
                       }}
                       className="flex-1 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-bold py-1.5 rounded flex items-center justify-center gap-1 transition-colors"
@@ -286,26 +324,46 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         <div className="container mx-auto px-4 py-3 flex justify-between items-center">
           <div className="flex items-center gap-2">
             <Trophy className="w-6 h-6 text-brasil-yellow" />
-            <span className="text-xl font-bold tracking-wide">Palpiteiro da Copa 2026</span>
+            <span className="text-xl font-bold tracking-wide">{appName}</span>
           </div>
 
           {/* Desktop Nav */}
           <nav className="hidden xl:flex gap-4 items-center">
-            <Link to="/" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/')}`}>Início</Link>
-            <Link to="/table" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/table')}`}>Tabela</Link>
-            <Link to="/simulador" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/simulador')}`}>Simulador</Link>
-            <Link to="/leagues" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/leagues')}`}>Ligas</Link>
-            <Link to="/brazil-games" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/brazil-games')}`}>Modo BR</Link>
-            <Link to="/como-jogar" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/como-jogar')}`}>Como Funciona</Link>
-            {!currentUser?.isPro && (
-              <Link to="/seja-pro" className="px-3 py-1.5 rounded-full bg-gradient-to-r from-yellow-200 to-amber-300 text-gray-900 font-black text-sm whitespace-nowrap hover:from-yellow-300 hover:to-amber-400 transition-all shadow-sm border border-yellow-300 flex items-center gap-1.5 active:scale-95">⭐ Seja PRO</Link>
+            {isHubMode ? (
+              <>
+                <Link to="/copa" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/copa')}`}>Copa 2026</Link>
+                <Link to="/brasileirao" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/brasileirao')}`}>Brasileirão</Link>
+              </>
+            ) : isBrasileiraoMode ? (
+              <>
+                <Link to="/brasileirao" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/brasileirao')}`}>Início</Link>
+                <Link to="/table-brasileirao" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/table-brasileirao')}`}>Tabelas</Link>
+                <Link to="/leagues-brasileirao" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/leagues-brasileirao')}`}>Ligas</Link>
+                <Link to="/como-jogar-brasileirao" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/como-jogar-brasileirao')}`}>Como Funciona</Link>
+                {(currentUser?.isAdmin || currentUser?.isMatchAdmin) && (
+                  <Link id="admin-link-brasileirao" to="/admin-brasileirao" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap flex items-center gap-1 ${isActive('/admin-brasileirao')}`}>
+                    <Settings size={16} /> Admin
+                  </Link>
+                )}
+              </>
+            ) : (
+              <>
+                <Link to="/copa" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/copa')}`}>Início</Link>
+                <Link to="/table" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/table')}`}>Tabela</Link>
+                <Link to="/simulador" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/simulador')}`}>Simulador</Link>
+                <Link to="/leagues" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/leagues')}`}>Ligas</Link>
+                <Link to="/brazil-games" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/brazil-games')}`}>Modo BR</Link>
+                <Link to="/como-jogar" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/como-jogar')}`}>Como Funciona</Link>
+                {(currentUser?.isAdmin || currentUser?.isMatchAdmin) && (
+                  <Link id="admin-link" to="/admin" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap flex items-center gap-1 ${isActive('/admin')}`}>
+                    <Settings size={16} /> Admin
+                  </Link>
+                )}
+              </>
             )}
-
-            {(currentUser?.isAdmin || currentUser?.isMatchAdmin) && (
-              <Link id="admin-link" to="/admin" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap flex items-center gap-1 ${isActive('/admin')}`}>
-                <Settings size={16} />
-                Admin
-              </Link>
+            
+            {!isHubMode && !currentUser?.isPro && (
+              <Link to="/seja-pro" className="px-3 py-1.5 rounded-full bg-gradient-to-r from-yellow-200 to-amber-300 text-gray-900 font-black text-sm whitespace-nowrap hover:from-yellow-300 hover:to-amber-400 transition-all shadow-sm border border-yellow-300 flex items-center gap-1.5 active:scale-95">⭐ Seja PRO</Link>
             )}
 
             <div className="flex items-center gap-3 ml-4 border-l border-white/20 pl-4">
@@ -384,21 +442,37 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         {/* Mobile Nav */}
         {isMenuOpen && (
           <nav className="xl:hidden bg-brasil-blue border-t border-white/10 p-4 flex flex-col gap-2 shadow-inner">
-            <Link onClick={() => setIsMenuOpen(false)} to="/" className={`block px-3 py-2 rounded-md ${isActive('/')}`}>
-              <div className="flex justify-between items-center">
-                Início
-              </div>
-            </Link>
-            <Link onClick={() => setIsMenuOpen(false)} to="/table" className={`block px-3 py-2 rounded-md ${isActive('/table')}`}>Tabela</Link>
-            <Link onClick={() => setIsMenuOpen(false)} to="/simulador" className={`block px-3 py-2 rounded-md ${isActive('/simulador')}`}>Simulador</Link>
-            <Link onClick={() => setIsMenuOpen(false)} to="/leagues" className={`block px-3 py-2 rounded-md ${isActive('/leagues')}`}>Ligas</Link>
-            <Link onClick={() => setIsMenuOpen(false)} to="/brazil-games" className={`block px-3 py-2 rounded-md ${isActive('/brazil-games')}`}>Modo BR</Link>
-            <Link onClick={() => setIsMenuOpen(false)} to="/como-jogar" className={`block px-3 py-2 rounded-md ${isActive('/como-jogar')}`}>Como Funciona</Link>
-            {!currentUser?.isPro && (
-              <Link onClick={() => setIsMenuOpen(false)} to="/seja-pro" className="flex items-center gap-2 px-3 py-2 rounded-full bg-gradient-to-r from-yellow-200 to-amber-300 text-gray-900 font-black text-sm mt-1 active:scale-95 transition-all shadow-sm border border-yellow-300">⭐ Seja PRO</Link>
+            {isHubMode ? (
+              <>
+                <Link onClick={() => setIsMenuOpen(false)} to="/copa" className={`block px-3 py-2 rounded-md ${isActive('/copa')}`}>Copa 2026</Link>
+                <Link onClick={() => setIsMenuOpen(false)} to="/brasileirao" className={`block px-3 py-2 rounded-md ${isActive('/brasileirao')}`}>Brasileirão</Link>
+              </>
+            ) : isBrasileiraoMode ? (
+              <>
+                <Link onClick={() => setIsMenuOpen(false)} to="/brasileirao" className={`block px-3 py-2 rounded-md ${isActive('/brasileirao')}`}>Início</Link>
+                <Link onClick={() => setIsMenuOpen(false)} to="/table-brasileirao" className={`block px-3 py-2 rounded-md ${isActive('/table-brasileirao')}`}>Tabelas</Link>
+                <Link onClick={() => setIsMenuOpen(false)} to="/leagues-brasileirao" className={`block px-3 py-2 rounded-md ${isActive('/leagues-brasileirao')}`}>Ligas</Link>
+                <Link onClick={() => setIsMenuOpen(false)} to="/como-jogar-brasileirao" className={`block px-3 py-2 rounded-md ${isActive('/como-jogar-brasileirao')}`}>Como Funciona</Link>
+                {(currentUser?.isAdmin || currentUser?.isMatchAdmin) && (
+                  <Link id="admin-link-mobile-brasileirao" onClick={() => setIsMenuOpen(false)} to="/admin-brasileirao" className={`block px-3 py-2 rounded-md ${isActive('/admin-brasileirao')}`}>Admin Painel</Link>
+                )}
+              </>
+            ) : (
+              <>
+                <Link onClick={() => setIsMenuOpen(false)} to="/copa" className={`block px-3 py-2 rounded-md ${isActive('/copa')}`}>Início</Link>
+                <Link onClick={() => setIsMenuOpen(false)} to="/table" className={`block px-3 py-2 rounded-md ${isActive('/table')}`}>Tabela</Link>
+                <Link onClick={() => setIsMenuOpen(false)} to="/simulador" className={`block px-3 py-2 rounded-md ${isActive('/simulador')}`}>Simulador</Link>
+                <Link onClick={() => setIsMenuOpen(false)} to="/leagues" className={`block px-3 py-2 rounded-md ${isActive('/leagues')}`}>Ligas</Link>
+                <Link onClick={() => setIsMenuOpen(false)} to="/brazil-games" className={`block px-3 py-2 rounded-md ${isActive('/brazil-games')}`}>Modo BR</Link>
+                <Link onClick={() => setIsMenuOpen(false)} to="/como-jogar" className={`block px-3 py-2 rounded-md ${isActive('/como-jogar')}`}>Como Funciona</Link>
+                {(currentUser?.isAdmin || currentUser?.isMatchAdmin) && (
+                  <Link id="admin-link-mobile" onClick={() => setIsMenuOpen(false)} to="/admin" className={`block px-3 py-2 rounded-md ${isActive('/admin')}`}>Admin Painel</Link>
+                )}
+              </>
             )}
-            {(currentUser?.isAdmin || currentUser?.isMatchAdmin) && (
-              <Link id="admin-link-mobile" onClick={() => setIsMenuOpen(false)} to="/admin" className={`block px-3 py-2 rounded-md ${isActive('/admin')}`}>Admin Painel</Link>
+            
+            {!isHubMode && !currentUser?.isPro && (
+              <Link onClick={() => setIsMenuOpen(false)} to="/seja-pro" className="flex items-center gap-2 px-3 py-2 rounded-full bg-gradient-to-r from-yellow-200 to-amber-300 text-gray-900 font-black text-sm mt-1 active:scale-95 transition-all shadow-sm border border-yellow-300">⭐ Seja PRO</Link>
             )}
             <div className="mt-4 pt-4 border-t border-white/10">
               {currentUser ? (
@@ -447,10 +521,10 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               <div>
                 <div className="flex items-center gap-2 mb-4">
                   <Trophy className="w-5 h-5 text-brasil-green" />
-                  <span className="font-bold text-gray-800 dark:text-white">Palpiteiro da Copa 2026</span>
+                  <span className="font-bold text-gray-800 dark:text-white">{appName}</span>
                 </div>
                 <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-                  O melhor simulador e gerenciador de bolão para a Copa do Mundo 2026. Crie sua liga e vença seus amigos!
+                  O melhor gerenciador de bolão para o Brasileirão, Copa do Brasil, Libertadores e Sul Americana. Crie sua liga e vença seus amigos!
                 </p>
               </div>
               <div>
@@ -460,7 +534,11 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                   <li><Link to="/simulador-copa-2026" className="text-gray-500 dark:text-gray-400 hover:text-brasil-blue transition-colors">Simulador Copa 2026</Link></li>
                   <li><Link to="/tabela-copa-2026" className="text-gray-500 dark:text-gray-400 hover:text-brasil-blue transition-colors">Tabela Copa 2026</Link></li>
                   <li><Link to="/bolao-jogos-do-brasil" className="text-gray-500 dark:text-gray-400 hover:text-brasil-blue transition-colors">Bolão Apenas Jogos do Brasil</Link></li>
-                  <li><Link to="/como-jogar" className="text-gray-500 dark:text-gray-400 hover:text-brasil-blue transition-colors">Como Jogar</Link></li>
+                  <li><Link to="/bolao-brasileirao" className="text-gray-500 dark:text-gray-400 hover:text-brasil-blue transition-colors">Bolão do Brasileirão</Link></li>
+                  <li><Link to="/bolao-copa-do-brasil" className="text-gray-500 dark:text-gray-400 hover:text-brasil-blue transition-colors">Bolão da Copa do Brasil</Link></li>
+                  <li><Link to="/bolao-libertadores" className="text-gray-500 dark:text-gray-400 hover:text-brasil-blue transition-colors">Bolão da Libertadores</Link></li>
+                  <li><Link to="/bolao-sul-americana" className="text-gray-500 dark:text-gray-400 hover:text-brasil-blue transition-colors">Bolão da Sul-Americana</Link></li>
+                  <li><Link to="/como-jogar-brasileirao" className="text-gray-500 dark:text-gray-400 hover:text-brasil-blue transition-colors">Como Jogar</Link></li>
                 </ul>
               </div>
               <div>
@@ -472,13 +550,13 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               </div>
             </div>
             <div className="pt-8 border-t border-gray-100 dark:border-gray-700 text-center">
-              <p className="text-xs text-gray-400">© 2026 Palpiteiro da Copa. Todos os direitos reservados.</p>
+              <p className="text-xs text-gray-400">© 2026 Palpiteiro. Todos os direitos reservados.</p>
             </div>
           </div>
         </footer>
       ) : (
         <footer className="bg-gray-800 dark:bg-black text-gray-400 py-6 text-center text-sm transition-colors duration-300">
-          <p>© 2026 Palpiteiro da Copa.</p>
+          <p>© 2026 Palpiteiro.</p>
         </footer>
       )}
       

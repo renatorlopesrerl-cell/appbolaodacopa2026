@@ -44,17 +44,25 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                 
                 if (participants.length === 0) return jsonResponse([]);
 
-                // Busca apenas os perfis desses participantes
-                const { data, error } = await adminClient
-                    .from('profiles')
-                    .select('id, email, name, avatar, is_admin, is_match_admin, whatsapp, theme, is_pro')
-                    .in('id', participants);
+                // Chunk requests to avoid URL too long errors on Supabase GET
+                const chunkSize = 100;
+                const profiles: any[] = [];
                 
-                if (error) {
-                    console.error('[profiles GET by league] error:', error.message);
-                    return jsonResponse([]);
+                for (let i = 0; i < participants.length; i += chunkSize) {
+                    const chunk = participants.slice(i, i + chunkSize);
+                    const { data: chunkProfiles, error } = await adminClient
+                        .from('profiles')
+                        .select('id, email, name, avatar, is_admin, is_match_admin, whatsapp, theme, is_pro')
+                        .in('id', chunk);
+                    
+                    if (error) {
+                        console.error('[profiles GET by league] chunk error:', error.message);
+                        continue;
+                    }
+                    if (chunkProfiles) profiles.push(...chunkProfiles);
                 }
-                return jsonResponse(data || []);
+                
+                return jsonResponse(profiles);
             }
 
             // Fallback (não deveria ser chamado pela UI nova, mas mantido por segurança)

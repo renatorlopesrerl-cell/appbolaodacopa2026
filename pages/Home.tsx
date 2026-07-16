@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '../App';
-import { Calendar, Trophy, Users, PlayCircle, ShieldCheck, Mail, Check, X, Loader2, Info, Globe, ExternalLink, Smartphone, Copy } from 'lucide-react';
+import { Calendar, Trophy, Users, PlayCircle, ShieldCheck, Mail, Check, X, Loader2, Info, Globe, ExternalLink, Smartphone, Copy, ArrowLeft } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { supabase } from '../services/supabase';
 
 export const Home: React.FC = () => {
+  const navigate = useNavigate();
   const { currentUser, matches, leagues, brazilLeagues, currentTime, loading, invitations, respondToInvite, loginGoogle } = useStore();
   const [copied, setCopied] = useState(false);
   const [showFloatingBanner, setShowFloatingBanner] = useState(() => {
@@ -213,6 +214,18 @@ export const Home: React.FC = () => {
 
   return (
     <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
+      <div className="mb-2">
+        <button
+          onClick={() => navigate('/')}
+          className="flex items-center gap-2 text-sm font-bold text-brasil-blue hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors group"
+        >
+          <div className="bg-blue-50 dark:bg-gray-800 p-1.5 rounded-full group-hover:bg-blue-100 dark:group-hover:bg-gray-700">
+            <ArrowLeft size={18} />
+          </div>
+          Voltar para Home
+        </button>
+      </div>
+
       {/* Welcome Banner */}
       <div className="relative overflow-hidden bg-gradient-to-r from-brasil-blue via-blue-800 to-brasil-blue rounded-3xl p-8 text-white shadow-xl">
         <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-brasil-yellow rounded-full blur-3xl opacity-20"></div>
@@ -225,7 +238,7 @@ export const Home: React.FC = () => {
               <span className="ml-2 inline-block animate-bounce">⚽</span>
             </h1>
             <p className="text-blue-100 text-lg max-w-xl">
-              A emoção da Copa começou. Não esqueça de conferir os jogos de hoje e deixar os seus palpites!
+              A Copa acabou, mas a emoção do futebol não. Crie ou participe das outras ligas com competições em andamento!
             </p>
           </div>
           {/* Small Logo for Dashboard */}

@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 
 const corsHeaders = {
@@ -72,7 +73,8 @@ serve(async (req) => {
         value: 6.99,
         dueDate: formattedDueDate,
         description: 'Acesso Pro - Palpiteiro da Copa',
-        externalReference: userId
+        externalReference: userId,
+        daysAfterDueDateToRegistrationCancellation: 0
       })
     })
 

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Trophy, Users, BarChart3, Target, ArrowRight, Star } from 'lucide-react';
 
 interface SEOLandingProps {
-    variant: 'bolao' | 'simulador' | 'tabela' | 'brazil';
+    variant: 'bolao' | 'simulador' | 'tabela' | 'brazil' | 'brasileirao' | 'copa-do-brasil' | 'libertadores' | 'sul-americana';
 }
 
 const content = {
@@ -34,6 +34,34 @@ const content = {
         heroSubtitle: 'Participe do bolão exclusivo para os jogos da Seleção Brasileira com bônus de artilheiro!',
         icon: Trophy,
         color: 'from-brasil-green via-brasil-yellow to-brasil-blue',
+    },
+    brasileirao: {
+        title: 'Bolão do Brasileirão – Crie ligas com amigos',
+        heroTitle: 'Bolão do Brasileirão',
+        heroSubtitle: 'Crie ligas, convide amigos e dispute quem acerta mais palpites do Campeonato Brasileiro!',
+        icon: Trophy,
+        color: 'from-green-600 to-green-800',
+    },
+    'copa-do-brasil': {
+        title: 'Bolão da Copa do Brasil – Crie ligas com amigos',
+        heroTitle: 'Bolão da Copa do Brasil',
+        heroSubtitle: 'A emoção do mata-mata! Crie seu bolão da Copa do Brasil e desafie seus amigos.',
+        icon: Trophy,
+        color: 'from-blue-600 to-blue-800',
+    },
+    libertadores: {
+        title: 'Bolão da Libertadores – Crie ligas com amigos',
+        heroTitle: 'Bolão da Libertadores',
+        heroSubtitle: 'A Glória Eterna! Faça seus palpites e mostre que você entende tudo de Libertadores.',
+        icon: Trophy,
+        color: 'from-yellow-500 to-amber-700',
+    },
+    'sul-americana': {
+        title: 'Bolão da Sul-Americana – Crie ligas com amigos',
+        heroTitle: 'Bolão da Sul-Americana',
+        heroSubtitle: 'A Grande Conquista! Crie seu bolão da Copa Sul-Americana e divirta-se.',
+        icon: Trophy,
+        color: 'from-slate-700 to-gray-900',
     },
 };
 
@@ -80,10 +108,10 @@ export const SEOLanding: React.FC<SEOLandingProps> = ({ variant }) => {
             <div className="max-w-3xl mx-auto space-y-10">
                 <section>
                     <h1 className="text-2xl md:text-3xl font-extrabold text-gray-800 dark:text-white mb-4">
-                        Bolão da Copa do Mundo 2026
+                        {page.heroTitle}
                     </h1>
                     <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-lg">
-                        O Bolão da Copa 2026 permite criar ligas entre amigos para fazer palpites dos jogos da Copa do Mundo.
+                        O {page.heroTitle} permite criar ligas entre amigos para fazer palpites de todos os jogos do campeonato.
                         Os participantes podem prever os resultados das partidas e acompanhar a classificação em tempo real.
                     </p>
                 </section>
@@ -121,12 +149,11 @@ export const SEOLanding: React.FC<SEOLandingProps> = ({ variant }) => {
                             <BarChart3 size={24} className="text-brasil-green dark:text-green-400" />
                         </div>
                         <h2 className="text-xl md:text-2xl font-bold text-gray-800 dark:text-white">
-                            Simulador da Copa 2026
+                            Simulador e Ranking
                         </h2>
                     </div>
                     <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
-                        Utilize nosso simulador para prever os resultados da Copa do Mundo e descobrir quais seleções podem
-                        chegar até a final.
+                        Utilize nossa plataforma para acompanhar a tabela, simular os resultados e descobrir quem será o grande campeão das competições.
                     </p>
                 </section>
 

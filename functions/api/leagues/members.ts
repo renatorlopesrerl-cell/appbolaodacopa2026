@@ -1,7 +1,7 @@
 
 import { getUserClient, jsonResponse, errorResponse, sendPushNotificationToUser, getSupabaseClient } from '../_shared';
 
-const getLeagueLimit = (settings: any) => {
+const getLeagueLimit = (settings: any, isBrasileirao: boolean = false) => {
     if (settings?.isUnlimited) return Infinity;
     const plan = settings?.plan || 'FREE';
     switch (plan) {
@@ -10,7 +10,7 @@ const getLeagueLimit = (settings: any) => {
         case 'VIP': return 100;
         case 'VIP_BASIC': return 50;
         case 'FREE':
-        default: return 10;
+        default: return isBrasileirao ? 15 : 10;
     }
 };
 
@@ -25,7 +25,7 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
         const { leagueId, userId, action, leagueType = 'standard' } = await request.json() as any;
         if (!leagueId || !userId || !action) return errorResponse(new Error("Missing arguments"), 400);
 
-        const table = leagueType === 'brazil' ? 'brazil_leagues' : 'leagues';
+        const table = leagueType === 'brazil' ? 'brazil_leagues' : leagueType === 'brasileirao' ? 'brasileirao_leagues' : 'leagues';
 
         // Fetch League
         const { data: league, error: fetchError } = await adminClient.from(table).select('*').eq('id', leagueId).single();
@@ -37,7 +37,7 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
         if (action === 'approve') {
             if (!isAdmin) return errorResponse(new Error("Forbidden"), 403);
 
-            const limit = getLeagueLimit(league.settings);
+            const limit = getLeagueLimit(league.settings, leagueType === 'brasileirao');
             if (league.participants.length >= limit) return jsonResponse({ success: false, message: "League limit reached" }, 400);
 
             const updatedPending = league.pending_requests.filter((id: string) => id !== userId);
@@ -51,7 +51,7 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
             if (updateError) throw updateError;
 
             // Notify User of Approval
-            const url = leagueType === 'brazil' ? `/brazil-league/${leagueId}` : `/league/${leagueId}`;
+            const url = leagueType === 'brazil' ? `/brazil-league/${leagueId}` : leagueType === 'brasileirao' ? `/league-brasileirao/${leagueId}` : `/league/${leagueId}`;
             await sendPushNotificationToUser(
                 env,
                 userId,

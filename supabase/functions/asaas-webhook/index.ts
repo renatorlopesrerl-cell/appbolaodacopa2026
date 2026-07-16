@@ -1,8 +1,23 @@
+// @ts-nocheck
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.6"
 
 serve(async (req) => {
   try {
+    // 1. Validar a chave de autorização do webhook do Asaas (token definido na plataforma Asaas)
+    const authHeader = req.headers.get('asaas-access-token')
+    const secret = Deno.env.get('ASAAS_WEBHOOK_SECRET')
+
+    if (!secret) {
+      console.warn("ASAAS_WEBHOOK_SECRET não configurada no ambiente. Bloqueando requisição.");
+      return new Response(JSON.stringify({ error: 'Webhook configuration error' }), { status: 500 })
+    }
+
+    if (!authHeader || authHeader !== secret) {
+      console.warn("Token de webhook inválido ou ausente no header asaas-access-token.");
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 })
+    }
+
     const payload = await req.json()
     
     // Check if it is a payment received event

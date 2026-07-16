@@ -60,7 +60,7 @@ export const AdminMatchesPage: React.FC = () => {
           </div>
           <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2">Não Autorizado</h2>
           <p className="text-gray-600 dark:text-gray-300 mb-6">Você não tem permissão para acessar esta página. Apenas administradores podem gerenciar jogos.</p>
-          <button onClick={() => navigate('/')} className="bg-brasil-blue hover:bg-blue-800 text-white font-bold py-3 px-8 rounded-xl transition-colors">
+          <button onClick={() => navigate('/admin')} className="bg-brasil-blue hover:bg-blue-800 text-white font-bold py-3 px-8 rounded-xl transition-colors">
             Voltar ao Início
           </button>
         </div>

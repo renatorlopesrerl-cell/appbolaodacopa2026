@@ -1,0 +1,3412 @@
+[
+  {
+    "lineNum": 1,
+    "content": "import React, { useState, useMemo, useRef, useEffect } from 'react';",
+    "chars": "﻿"
+  },
+  {
+    "lineNum": 8,
+    "content": "import { useParams� useNavigate, Link, Navigate, useSearchParams } from 'react-router-dom';",
+    "chars": "�"
+  },
+  {
+    "lineNum": 11,
+    "content": "import { BrasileiraoMatch as Match, MatchStatus� Phase, User� Prediction, LeaguePlan, BrasileiraoPrediction, BrasileiraoTeam } from '../types';",
+    "chars": "�"
+  },
+  {
+    "lineNum": 12,
+    "content": "import { isPredictionLocked, calculatePoints� getPredictionHitType, GROUPS_CONFIG, processImageForUpload } from '../services/dataService';",
+    "chars": "�"
+  },
+  {
+    "lineNum": 15,
+    "content": "Trophy, Users� ArrowLeft, Search, Lock, Globe,",
+    "chars": "�"
+  },
+  {
+    "lineNum": 16,
+    "content": "UserPlus� LogOut, Trash2� Check, X, MousePointerClick,",
+    "chars": "�"
+  },
+  {
+    "lineNum": 17,
+    "content": "Save, Loader2� Medal, AlertCircle, Share2� Info, Filter, Plus� Clock, MapPin, CheckCircle2� Unlock, Calendar, ChevronDown, Crown, Eye,",
+    "chars": "�"
+  },
+  {
+    "lineNum": 18,
+    "content": "Target, Mail, AlertTriangle, Camera, Upload, MessageCircle, Copy, Bell, Star, StarHalf, Infinity as InfinityIcon, Zap, BarChart2�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 28,
+    "content": "118: '/img/teams/brasileirao/118.png?v=3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 29,
+    "content": "119: '/img/teams/brasileirao/119.png?v=3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 30,
+    "content": "120: '/img/teams/brasileirao/120.png?v=3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 31,
+    "content": "121� '/img/teams/brasileirao/121.png?v=3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 32,
+    "content": "124� '/img/teams/brasileirao/124.png?v=3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 33,
+    "content": "126: '/img/teams/brasileirao/126.png?v=3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 34,
+    "content": "127: '/img/teams/brasileirao/127.png?v=3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 35,
+    "content": "128: '/img/teams/brasileirao/128.png?v=3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 36,
+    "content": "129: '/img/teams/brasileirao/129.png?v=3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 37,
+    "content": "130: '/img/teams/brasileirao/130.png?v=3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 38,
+    "content": "131� '/img/teams/brasileirao/131.png?v=3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 39,
+    "content": "132� '/img/teams/brasileirao/132.png?v=3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 40,
+    "content": "133� '/img/teams/brasileirao/133.png?v=3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 41,
+    "content": "134� '/img/teams/brasileirao/134.png?v=3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 42,
+    "content": "135� '/img/teams/brasileirao/135.png?v=3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 43,
+    "content": "136: '/img/teams/brasileirao/136.png?v=3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 44,
+    "content": "144� '/img/teams/brasileirao/144.png?v=3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 45,
+    "content": "146: '/img/teams/brasileirao/146.png?v=3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 46,
+    "content": "147: '/img/teams/brasileirao/147.png?v=3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 47,
+    "content": "149: '/img/teams/brasileirao/149.png?v=3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 48,
+    "content": "151� '/img/teams/brasileirao/151.png?v=3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 49,
+    "content": "152� '/img/teams/brasileirao/152.png?v=3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 50,
+    "content": "154� '/img/teams/brasileirao/154.png?v=3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 51,
+    "content": "794� '/img/teams/brasileirao/794.png?v=3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 52,
+    "content": "1062� '/img/teams/brasileirao/1062.png?v=3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 53,
+    "content": "1198: '/img/teams/brasileirao/1198.png?v=3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 54,
+    "content": "1223� '/img/teams/brasileirao/1223.png?v=3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 55,
+    "content": "7772� '/img/teams/brasileirao/7772.png?v=3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 56,
+    "content": "7831� '/img/teams/brasileirao/7831.png?v=3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 57,
+    "content": "7848: '/img/teams/brasileirao/7848.png?v=3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 58,
+    "content": "13975� '/img/teams/brasileirao/13975.png?v=3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 59,
+    "content": "18271� '/img/teams/brasileirao/18271.png?v=3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 85,
+    "content": "'Sao Paulo': 'SÃ£o Paulo',",
+    "chars": "£"
+  },
+  {
+    "lineNum": 86,
+    "content": "'Atletico-MG': 'AtlÃ©tico-MG',",
+    "chars": "©"
+  },
+  {
+    "lineNum": 87,
+    "content": "'Atletico Mineiro': 'AtlÃ©tico-MG',",
+    "chars": "©"
+  },
+  {
+    "lineNum": 88,
+    "content": "'Gremio': 'GrÃªmio',",
+    "chars": "ª"
+  },
+  {
+    "lineNum": 89,
+    "content": "'Goianiense': 'AtlÃ©tico-GO',",
+    "chars": "©"
+  },
+  {
+    "lineNum": 90,
+    "content": "'Atletico Goianiense': 'AtlÃ©tico-GO',",
+    "chars": "©"
+  },
+  {
+    "lineNum": 91,
+    "content": "'Criciuma': 'CriciÃºma',",
+    "chars": "º"
+  },
+  {
+    "lineNum": 92,
+    "content": "'Vitoria': 'VitÃ³ria',",
+    "chars": "³"
+  },
+  {
+    "lineNum": 95,
+    "content": "'Cuiaba': 'Cuiab�¡',",
+    "chars": "�¡"
+  },
+  {
+    "lineNum": 96,
+    "content": "'Avai': 'Ava�­',",
+    "chars": "�­"
+  },
+  {
+    "lineNum": 97,
+    "content": "'Goias': 'GoiÃ¡s',",
+    "chars": "¡"
+  },
+  {
+    "lineNum": 98,
+    "content": "'Ceara': 'Cear�¡',",
+    "chars": "�¡"
+  },
+  {
+    "lineNum": 113,
+    "content": "const [searchParams� = useSearchParams();",
+    "chars": "�"
+  },
+  {
+    "lineNum": 115,
+    "content": "currentUser� brasileiraoLeagues� leagues� brasileiraoMatches� allMatches� brasileiraoPredictions� predictions� brasileiraoTeams� teams� users� currentTime, invitations�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 116,
+    "content": "joinBrasileiraoLeague: joinLeague, deleteBrasileiraoLeague: deleteLeague, approveBrasileiraoUser� approveUser� rejectBrasileiraoUser� rejectUser�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 117,
+    "content": "removeUserFromBrasileiraoLeague: removeUserFromLeague, submitPredictions� sendBrasileiraoLeagueInvite: sendLeagueInvite, updateBrasileiraoLeague: updateLeague, loading, refreshPredictions� isRefreshingPredictions�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 118,
+    "content": "topFinisherPredictions� topFinishersResult, submitTopFinisherPrediction, loadLeagueData, fetchLeagueTopFinisherPredictions�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 119,
+    "content": "fetchMatchPredictions�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 127,
+    "content": "const [leagueMatches� setLeagueMatches� = useState<Match[]>([]);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 128,
+    "content": "const [isLoadingMatches� setIsLoadingMatches� = useState(true);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 144,
+    "content": "status� m.status�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 163,
+    "content": "const matches = leagueMatches�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 164,
+    "content": "const [activeTab, setActiveTab] = useState<'palpites� | 'classificacao' | 'regras� | 'admin'>('palpites');",
+    "chars": "�"
+  },
+  {
+    "lineNum": 225,
+    "content": "// AdMob Banner â€” sÃ³ aparece se: plataforma nativa AND usuÃ¡rio NÃƒO Ã© PRO AND liga Ã© FREE",
+    "chars": "€”³¡ƒ©"
+  },
+  {
+    "lineNum": 235,
+    "content": "const isProUser = !!currentUser�.isPro;",
+    "chars": "�"
+  },
+  {
+    "lineNum": 247,
+    "content": "// Se o banner jÃ¡ estÃ¡ ativo, nÃ£o chama showBanner novamente",
+    "chars": "¡£"
+  },
+  {
+    "lineNum": 254,
+    "content": "// Reutiliza o mÃ³dulo jÃ¡ carregado para evitar import duplo",
+    "chars": "³¡"
+  },
+  {
+    "lineNum": 274,
+    "content": "// Usa a ref sÃ­ncrona â€” sem novo import assÃ­ncrono",
+    "chars": "­€”"
+  },
+  {
+    "lineNum": 281,
+    "content": "}, [id, currentUser�.isPro]);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 287,
+    "content": "const adStateRef = useRef({ hasWatched: hasWatchedPredictionAd, hasWatchedStats� hasWatchedStatsAd, pendingMatch: pendingMatchModal, pendingStats� pendingStatsModal });",
+    "chars": "�"
+  },
+  {
+    "lineNum": 288,
+    "content": "adStateRef.current = { hasWatched: hasWatchedPredictionAd, hasWatchedStats� hasWatchedStatsAd, pendingMatch: pendingMatchModal, pendingStats� pendingStatsModal };",
+    "chars": "�"
+  },
+  {
+    "lineNum": 296,
+    "content": "const isProUser = !!currentUser�.isPro;",
+    "chars": "�"
+  },
+  {
+    "lineNum": 301,
+    "content": "let listeners� any[] = [];",
+    "chars": "�"
+  },
+  {
+    "lineNum": 314,
+    "content": "if (pendingStats� {",
+    "chars": "�"
+  },
+  {
+    "lineNum": 322,
+    "content": "const { hasWatched, hasWatchedStats� pendingMatch, pendingStats } = adStateRef.current;",
+    "chars": "�"
+  },
+  {
+    "lineNum": 323,
+    "content": "if (pendingStats && hasWatchedStats� {",
+    "chars": "�"
+  },
+  {
+    "lineNum": 332,
+    "content": "AdMob.prepareRewardInterstitialAd({ adId: 'ca-app-pub-7684468298593275/3499840425� isTesting: false }).catch(() => {});",
+    "chars": "�"
+  },
+  {
+    "lineNum": 337,
+    "content": "await AdMob.prepareRewardInterstitialAd({ adId: 'ca-app-pub-7684468298593275/3499840425� isTesting: false });",
+    "chars": "�"
+  },
+  {
+    "lineNum": 345,
+    "content": "}, [id, currentUser�.isPro]);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 357,
+    "content": "const [toast, setToast] = useState<{ title: string; message: string; type: 'success� | 'info' | 'warning' } | null>(null);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 366,
+    "content": "const [pendingEdits� setPendingEdits� = useState<Record<string, { home: string, away: string }>>({});",
+    "chars": "�"
+  },
+  {
+    "lineNum": 367,
+    "content": "const [selectedMatchForDetails� setSelectedMatchForDetails� = useState<string | number | null>(null);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 368,
+    "content": "const [matchDetailedStats� setMatchDetailedStats� = useState<any>(null);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 369,
+    "content": "const [isLoadingDetailedStats� setIsLoadingDetailedStats� = useState(false);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 370,
+    "content": "const [loadingStats� setLoadingStats� = useState(false);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 371,
+    "content": "const [selectedMatchForStats� setSelectedMatchForStats� = useState<string | number | null>(null);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 372,
+    "content": "const [apiMatchStats� setApiMatchStats� = useState<any>(null);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 377,
+    "content": "const [matchDetailsPage, setMatchDetailsPage] = useState(1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 379,
+    "content": "const [statsPageSaved, setStatsPageSaved] = useState(1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 380,
+    "content": "const [statsPagePending, setStatsPagePending] = useState(1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 381,
+    "content": "const [isSavingPalpites� setIsSavingPalpites� = useState(false);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 385,
+    "content": "const [filterStatus� setFilterStatus� = useState<'all' | 'predicted' | 'missing' | 'upcoming' | 'live' | 'finished'>('upcoming');",
+    "chars": "�"
+  },
+  {
+    "lineNum": 392,
+    "content": "const [leaderboardPage, setLeaderboardPage] = useState(1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 407,
+    "content": "pixelRatio: 0.5�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 412,
+    "content": "skipFonts� true,",
+    "chars": "�"
+  },
+  {
+    "lineNum": 418,
+    "content": "const base64Data = dataUrl.split(',')[1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 437,
+    "content": "if (navigator.share && navigator.canShare && navigator.canShare({ files� [file] })) {",
+    "chars": "�"
+  },
+  {
+    "lineNum": 440,
+    "content": "files� [file]",
+    "chars": "�"
+  },
+  {
+    "lineNum": 450,
+    "content": "setToast({ title: 'Sucesso', message: 'Imagem baixada com sucesso!', type: 'success� });",
+    "chars": "�"
+  },
+  {
+    "lineNum": 470,
+    "content": "const [isSavingSettings� setIsSavingSettings� = useState(false);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 474,
+    "content": "const [editWinnerAndWinnerGoals� setEditWinnerAndWinnerGoals� = useState<number | string>(6);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 476,
+    "content": "const [editWinner, setEditWinner] = useState<number | string>(5�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 479,
+    "content": "const [foundUser� setFoundUser� = useState<User | null>(null);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 480,
+    "content": "const [searchStatus� setSearchStatus� = useState<'idle' | 'searching' | 'found' | 'not_found'>('idle');",
+    "chars": "�"
+  },
+  {
+    "lineNum": 489,
+    "content": "const [isSavingTopFinishers� setIsSavingTopFinishers� = useState(false);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 491,
+    "content": "const [editTopFinishersPoints� setEditTopFinishersPoints� = useState({ champion: 20, runnerUp: 15� third: 10, fourth: 5 });",
+    "chars": "�"
+  },
+  {
+    "lineNum": 494,
+    "content": "const [isFetchingTopFinishers� setIsFetchingTopFinishers� = useState(false);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 496,
+    "content": "const [tfModalPage, setTfModalPage] = useState(1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 500,
+    "content": "const [userHistoryPredictions� setUserHistoryPredictions� = useState<Prediction[]>([]);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 520,
+    "content": "points� p.points",
+    "chars": "�"
+  },
+  {
+    "lineNum": 553,
+    "content": "pendingEdits� tfChampion, tfRunnerUp, tfThird, tfFourth, topFinisherPredictions�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 554,
+    "content": "showUnsavedModal, zoomedImage, currentUser� league, activeTab, selectedUserId",
+    "chars": "�"
+  },
+  {
+    "lineNum": 557,
+    "content": "pendingEdits� tfChampion, tfRunnerUp, tfThird, tfFourth, topFinisherPredictions�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 558,
+    "content": "showUnsavedModal, zoomedImage, currentUser� league, activeTab, selectedUserId",
+    "chars": "�"
+  },
+  {
+    "lineNum": 581,
+    "content": "if (!state.league || !state.currentUser� return;",
+    "chars": "�"
+  },
+  {
+    "lineNum": 583,
+    "content": "const existingPred = state.topFinisherPredictions.find(p => p.userId === state.currentUser�.id && p.leagueId === state.league!.id);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 612,
+    "content": "const mergedUsers = users�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 623,
+    "content": "if (league.settings� {",
+    "chars": "�"
+  },
+  {
+    "lineNum": 628,
+    "content": "setEditWinner(league.settings.winner ?? 5�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 632,
+    "content": "runnerUp: league.settings.topFinishersPoints?.runnerUp ?? 15�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 634,
+    "content": "fourth: league.settings.topFinishersPoints?.fourth ?? 5�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 651,
+    "content": "}, [matches� currentTime, league?.settings?.manualScoringLock]);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 654,
+    "content": "const isAdmin = currentUser && league ? (league.adminId === currentUser�id) : false;",
+    "chars": "�"
+  },
+  {
+    "lineNum": 665,
+    "content": "// Extract the number from the match ID (e.g. 'm-A1� -> 1� 'm-B3� -> 3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 666,
+    "content": "const matchStr = String(match.id).split('-')[1� // 'A1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 672,
+    "content": "// Jogos 1 e 2 =ª Rodada 1",
+    "chars": "ª"
+  },
+  {
+    "lineNum": 673,
+    "content": "// Jogos 3 e 4 =ª Rodada 2",
+    "chars": "ª"
+  },
+  {
+    "lineNum": 674,
+    "content": "// Jogos 5 e 6 =ª Rodada 3",
+    "chars": "ª"
+  },
+  {
+    "lineNum": 675,
+    "content": "return Math.floor((matchNumber - 1� / 2� + 1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 687,
+    "content": "const user = mergedUsers.find(u => u.id === userId) || { name: 'Unknown', id: userId, email: '', avatar: '' } as User�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 693,
+    "content": "const tfPts = league.settings.topFinishersPoints ?? { champion: 20, runnerUp: 15� third: 10, fourth: 5 };",
+    "chars": "�"
+  },
+  {
+    "lineNum": 703,
+    "content": "user�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 704,
+    "content": "totalPoints� Number(dbRank.total_points� + tfTotal,",
+    "chars": "�"
+  },
+  {
+    "lineNum": 705,
+    "content": "exactScores� Number(dbRank.exact_scores),",
+    "chars": "�"
+  },
+  {
+    "lineNum": 710,
+    "content": "knockoutPoints� Number(dbRank.knockout_points),",
+    "chars": "�"
+  },
+  {
+    "lineNum": 717,
+    "content": "user�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 718,
+    "content": "totalPoints� tfTotal,",
+    "chars": "�"
+  },
+  {
+    "lineNum": 719,
+    "content": "exactScores� 0,",
+    "chars": "�"
+  },
+  {
+    "lineNum": 724,
+    "content": "knockoutPoints� 0,",
+    "chars": "�"
+  },
+  {
+    "lineNum": 728,
+    "content": "if (b.totalPoints !== a.totalPoints� return b.totalPoints - a.totalPoints�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 729,
+    "content": "if (b.exactScores !== a.exactScores� return b.exactScores - a.exactScores�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 733,
+    "content": "if (b.onlyWinnerCount !== a��onlyWinnerCount) return b.onlyWinnerCount - a��onlyWinnerCount;",
+    "chars": "�"
+  },
+  {
+    "lineNum": 740,
+    "content": "const user = mergedUsers.find(u => u.id === userId) || { name: 'Unknown', id: userId, email: '', avatar: '' } as User�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 750,
+    "content": "else if (leaderboardView === '1� && match.phase.includes('Regular Season') && mRound === 1� includeInSum = true;",
+    "chars": "�"
+  },
+  {
+    "lineNum": 751,
+    "content": "else if (leaderboardView === '2� && match.phase.includes('Regular Season') && mRound === 2� includeInSum = true;",
+    "chars": "�"
+  },
+  {
+    "lineNum": 752,
+    "content": "else if (leaderboardView === '3� && match.phase.includes('Regular Season') && mRound === 3� includeInSum = true;",
+    "chars": "�"
+  },
+  {
+    "lineNum": 754,
+    "content": "else if (leaderboardView === '16_avos� && match.phase === Phase.ROUND_32� includeInSum = true;",
+    "chars": "�"
+  },
+  {
+    "lineNum": 762,
+    "content": "totalPoints += points�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 763,
+    "content": "if ((!match.phase.includes('Regular Season'))) knockoutPoints += points�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 780,
+    "content": "const tfPts = league.settings.topFinishersPoints ?? { champion: 20, runnerUp: 15� third: 10, fourth: 5 };",
+    "chars": "�"
+  },
+  {
+    "lineNum": 790,
+    "content": "return { user� totalPoints� exactScores� winnerAndDiffCount, winnerAndWinnerGoalsCount, drawCount, onlyWinnerCount, knockoutPoints� tfTotal };",
+    "chars": "�"
+  },
+  {
+    "lineNum": 794,
+    "content": "if (b.totalPoints !== a.totalPoints� return b.totalPoints - a.totalPoints�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 795,
+    "content": "if (b.exactScores !== a.exactScores� return b.exactScores - a.exactScores�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 799,
+    "content": "if (b.onlyWinnerCount !== a��onlyWinnerCount) return b.onlyWinnerCount - a��onlyWinnerCount;",
+    "chars": "�"
+  },
+  {
+    "lineNum": 802,
+    "content": "}, [league, mergedUsers� predictions� matches� leaderboardView, topFinishersResult, topFinisherPredictions� rankingsByPeriod]);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 815,
+    "content": "const handleTabChange = (newTab: 'palpites� | 'classificacao' | 'regras� | 'admin') => {",
+    "chars": "�"
+  },
+  {
+    "lineNum": 825,
+    "content": "navigate(`?tab=${newTab}`); // Empurra no histÃ³rico (Essencial para a versÃ£o Web)",
+    "chars": "³£"
+  },
+  {
+    "lineNum": 862,
+    "content": "}, [selectedMatchForDetails� selectedMatchForStats� selectedUserId, showDeleteConfirm, showLeaveConfirm, showUpgradeModal, showTopFinishersModal, userToRemove]);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 876,
+    "content": "const timeouts� NodeJS.Timeout[] = [];",
+    "chars": "�"
+  },
+  {
+    "lineNum": 891,
+    "content": "// Only schedule if it's in the future and less than 24h away (avoid massive timeouts�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 904,
+    "content": "}, [matches� league?.id]);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 908,
+    "content": "setStatsPageSaved(1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 909,
+    "content": "setStatsPagePending(1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 929,
+    "content": "}, [selectedMatchForDetails� league?.id]);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 931,
+    "content": "// LAZY LOADING: Quando o modal de um jogo bloqueado/em andamento/finalizado Ã© aberto,",
+    "chars": "©"
+  },
+  {
+    "lineNum": 932,
+    "content": "// busca os palpites de TODOS os participantes apenas daquele jogo especÃ­fico.",
+    "chars": "­"
+  },
+  {
+    "lineNum": 941,
+    "content": "}, [selectedMatchForDetails� league?.id]);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 943,
+    "content": "const smForStats = useMemo(() => matches.find(m => m.id == selectedMatchForStats), [matches� selectedMatchForStats]);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 955,
+    "content": "return { stats� history };",
+    "chars": "�"
+  },
+  {
+    "lineNum": 975,
+    "content": "if (loading || isLeagueLoading || isLoadingMatches� return <div className=\"flex justify-center items-center h-screen\"><Loader2 className=\"animate-spin text-brasil-green\" size={48} /></div>;",
+    "chars": "�"
+  },
+  {
+    "lineNum": 976,
+    "content": "if (!currentUser� return <Navigate to=\"/\" replace />;",
+    "chars": "�"
+  },
+  {
+    "lineNum": 979,
+    "content": "const isParticipant = league.participants.includes(currentUser�id);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 980,
+    "content": "const isPending = league.pendingRequests.includes(currentUser�id);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1002,
+    "content": "const showToast = (title: string, message: string, type: 'success� | 'info' | 'warning' = 'success') => {",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1010,
+    "content": "if (league && currentUser� {",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1011,
+    "content": "removeUserFromLeague(league.id, currentUser�id);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1018,
+    "content": "if (success� navigate('/leagues');",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1023,
+    "content": "const text = `Venha participar da minha liga *${league.name}* no Palpiteiro da Copa 2026! âš½ðŸ†\\n\\nCopie o cÃ³digo:\\n*${league.leagueCode}*\\n\\nE clique no link para acessar:\\nhttps://bolaodacopa2026.app/leagues`;",
+    "chars": "š½Ÿ†³"
+  },
+  {
+    "lineNum": 1048,
+    "content": "if (success� navigate('/leagues');",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1061,
+    "content": "champLabel = 'BrasileirÃ£o';",
+    "chars": "£"
+  },
+  {
+    "lineNum": 1069,
+    "content": "<span className={`text-[9px] ${champColorClass� px-1.5 py-0.5 rounded font-black border uppercase tracking-wider shadow-sm`}>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1073,
+    "content": "<span className={`text-[9px] ${roundColorClass� px-1.5 py-0.5 rounded font-black border uppercase tracking-wider shadow-sm`}>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1105,
+    "content": "if (hasError) { showToast('Aten��o', 'NÃ£o Ã© permitido placar negativo.', 'warning'); return false; }",
+    "chars": "�£©"
+  },
+  {
+    "lineNum": 1111,
+    "content": "if (success� {",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1113,
+    "content": "showToast('Sucesso!', `${predsToSave.length} palpite(s� salvo(s).`, 'success');",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1128,
+    "content": "const existingPred = topFinisherPredictions.find(p => p.userId === currentUser�id && p.leagueId === league.id);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1138,
+    "content": "const hasUnsaved = Object.keys(pendingEdits).length > 0 || hasTopFinisherChanges�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1148,
+    "content": "if (!selectedMatchForDetails� return null;",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1152,
+    "content": "// Create Maps for O(1� lookup",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1153,
+    "content": "const usersMap = new Map�string, User�(mergedUsers.map(u => [u.id, u]));",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1154,
+    "content": "const matchPredictionsMap = new Map�string, any>(",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1161,
+    "content": "points� p.points",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1166,
+    "content": "const user = usersMap�get(userId) || { name: 'Unknown', id: userId, avatar: '' } as User�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1167,
+    "content": "const pred = matchPredictionsMap�get(userId);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1172,
+    "content": "return { user� pred, points };",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1176,
+    "content": "participants� participantPredictions.sort((a, b) => {",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1177,
+    "content": "if (b.points !== a.points� return b.points - a.points�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1178,
+    "content": "return a.user�name.localeCompare(b.user�name);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1187,
+    "content": "if (!file.type.startsWith('image/')) { showToast(\"Erro\", \"Arquivo invÃ¡lido.\", 'info'); return; }",
+    "chars": "¡"
+  },
+  {
+    "lineNum": 1203,
+    "content": "// Check if image is new (Base64� and needs upload",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1219,
+    "content": "showToast('Sucesso', 'Altera��es salvas.', 'success');",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1222,
+    "content": "showToast('Erro', 'Falha ao salvar as altera��es.', 'warning');",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1233,
+    "content": "...league.settings�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1234,
+    "content": "exactScore: Math.min(100, Math.max(1� Number(editExactScore) || 1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1235,
+    "content": "winnerAndDiff: Math.min(100, Math.max(1� Number(editWinnerAndDiff) || 1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1236,
+    "content": "winnerAndWinnerGoals� Math.min(100, Math.max(1� Number(editWinnerAndWinnerGoals� || 1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1237,
+    "content": "draw: Math.min(100, Math.max(1� Number(editDraw) || 1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1238,
+    "content": "winner: Math.min(100, Math.max(1� Number(editWinner) || 1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1240,
+    "content": "topFinishersPoints� {",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1241,
+    "content": "champion: Math.max(1� Number(editTopFinishersPoints.champion) || 20),",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1242,
+    "content": "runnerUp: Math.max(1� Number(editTopFinishersPoints.runnerUp) || 15�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1243,
+    "content": "third: Math.max(1� Number(editTopFinishersPoints.third) || 10),",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1244,
+    "content": "fourth: Math.max(1� Number(editTopFinishersPoints.fourth) || 5�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1247,
+    "content": "await updateLeague(league.id, { settings� updatedSettings });",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1248,
+    "content": "showToast('Sucesso', 'Pontua��es atualizadas.', 'success');",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1251,
+    "content": "showToast('Erro', 'Falha ao salvar pontua��es.', 'warning');",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1259,
+    "content": "setSearchStatus('searching'); setFoundUser�null);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1265,
+    "content": "if (!user� {",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1269,
+    "content": "if (user� {",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1270,
+    "content": "if (league.participants.includes(user�id)) {",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1271,
+    "content": "showToast('Aviso', 'Este usuÃ¡rio jÃ¡ participa da liga.', 'info');",
+    "chars": "¡"
+  },
+  {
+    "lineNum": 1273,
+    "content": "} else if (league.pendingRequests?.includes(user�id)) {",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1274,
+    "content": "showToast('Aviso', 'Este usuÃ¡rio jÃ¡ solicitou entrada. Aprove-o na lista acima.', 'info');",
+    "chars": "¡"
+  },
+  {
+    "lineNum": 1277,
+    "content": "setFoundUser�user�;",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1289,
+    "content": "if (!foundUser� return;",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1291,
+    "content": "const success = await sendLeagueInvite(league.id, foundUser�email);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1293,
+    "content": "if (success� { setAdminInviteEmail(''); setFoundUser�null); setSearchStatus('idle'); }",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1295,
+    "content": "const handleClearSearch = () => { setAdminInviteEmail(''); setFoundUser�null); setSearchStatus('idle'); };",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1302,
+    "content": "// Check if a knockout match has real teams defined (not placeholder names�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1320,
+    "content": "if (p.includes('round of 32� return '16-Avos';",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1332,
+    "content": "String(name).startsWith('1� || String(name).startsWith('2� || String(name).startsWith('3� ||",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1343,
+    "content": "const sourcePreds = overridePreds || predictions�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1351,
+    "content": "return { match, totalPreds� 0, mostPredictedScore: null as string | null, homeWinPct: 0, drawPct: 0, awayWinPct: 0 };",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1364,
+    "content": "scoreCount[key] = (scoreCount[key] || 0) + 1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1367,
+    "content": "// Most predicted score â€” tiebreaker: fewer total goals (conservative), then home advantage",
+    "chars": "€”"
+  },
+  {
+    "lineNum": 1378,
+    "content": "// Prefer fewer total goals� if equal, prefer higher home score",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1385,
+    "content": "const homeWinPct = Math.round((homeWins / totalPreds� * 100);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1386,
+    "content": "const awayWinPct = Math.round((awayWins / totalPreds� * 100);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1389,
+    "content": "return { match, totalPreds� mostPredictedScore, homeWinPct, drawPct, awayWinPct };",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1416,
+    "content": "const userPred = predictions.find(p => p.matchId === m.id && p.userId === currentUser�id && p.leagueId === league.id);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1434,
+    "content": "participants� league.participants.map(uid => {",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1435,
+    "content": "const u = mergedUsers.find(user => user�id === uid) || { name: 'UsuÃ¡rio', id: uid, email: '', avatar: '', isAdmin: false, whatsapp: '', theme: undefined, isPro: false } as User�",
+    "chars": "�¡"
+  },
+  {
+    "lineNum": 1441,
+    "content": "return { user� u, pred, points };",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1445,
+    "content": "if (aHasPred && !bHasPred) return -1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1446,
+    "content": "if (!aHasPred && bHasPred) return 1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1447,
+    "content": "if (b.points !== a.points� return b.points - a.points�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1448,
+    "content": "return a.user�name.localeCompare(b.user�name);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1456,
+    "content": "const filteredDetailsParticipants = detailsData?.participants.filter(p => p.user�name.toLowerCase().includes(matchDetailsSearch.toLowerCase())) || [];",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1461,
+    "content": "<div className=\"space-y-6 pb-24�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1469,
+    "content": "? \"Palpites dos 4 Primeiros encerrados� Clique em cima do card para conferir os palpites da galera.\"",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1470,
+    "content": ": \"O palpite dos 4 primeiros Ã© encerrado junto com o inÃ­cio do 1� jogo da competi��o.\"}",
+    "chars": "©­�"
+  },
+  {
+    "lineNum": 1477,
+    "content": "const existingPred = topFinisherPredictions.find(p => p.userId === currentUser�id && p.leagueId === league.id);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1478,
+    "content": "const tfPoints = league.settings.topFinishersPoints ?? { champion: 20, runnerUp: 15� third: 10, fourth: 5 };",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1479,
+    "content": "const fields� Array<{ key: keyof typeof tfPoints� label: string; emoji: string; color: string; pts� number; value: string; setter: (v: string) => void }> = [",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1480,
+    "content": "{ key: 'champion', label: 'CampeÃ£o', emoji: 'ðŸ¥‡', color: 'text-yellow-600 dark:text-yellow-400', pts� tfPoints.champion, value: tfChampion, setter: setTfChampion },",
+    "chars": "£Ÿ¥‡�"
+  },
+  {
+    "lineNum": 1481,
+    "content": "{ key: 'runnerUp', label: 'Vice-CampeÃ£o', emoji: 'ðŸ¥ˆ', color: 'text-slate-500 dark:text-slate-300', pts� tfPoints.runnerUp, value: tfRunnerUp, setter: setTfRunnerUp },",
+    "chars": "£Ÿ¥ˆ�"
+  },
+  {
+    "lineNum": 1482,
+    "content": "{ key: 'third', label: '3� Lugar', emoji: 'ðŸ¥‰', color: 'text-amber-700 dark:text-amber-500', pts� tfPoints.third, value: tfThird, setter: setTfThird },",
+    "chars": "�Ÿ¥‰"
+  },
+  {
+    "lineNum": 1483,
+    "content": "{ key: 'fourth', label: '4� Lugar', emoji: 'ðŸ…', color: 'text-gray-500 dark:text-gray-400', pts� tfPoints.fourth, value: tfFourth, setter: setTfFourth },",
+    "chars": "�Ÿ…"
+  },
+  {
+    "lineNum": 1498,
+    "content": "const allTeams = [...new Set(matches.flatMap(m => [m.home_team_id, m.away_team_id]).filter(t => t && !String(t).startsWith('Venc') && !String(t).startsWith('Perd') && !String(t).startsWith('1� && !String(t).startsWith('2� && !String(t).startsWith('3Âº')))].sort();",
+    "chars": "�º"
+  },
+  {
+    "lineNum": 1507,
+    "content": "<div className=\"flex items-center gap-3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1514,
+    "content": "{isLocked ? 'Toque para ver os palpites da galera ðŸ‘†' : 'Palpite de coloca��o final da competi��o'}",
+    "chars": "Ÿ‘†�"
+  },
+  {
+    "lineNum": 1518,
+    "content": "<div className=\"flex flex-col items-end gap-1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1519,
+    "content": "<div className=\"flex items-center gap-2�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1520,
+    "content": "{isLocked && <Eye size={16} className=\"text-gray-400 group-hover:text-white transition-colors� />}",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1522,
+    "content": "<span className=\"text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2.5 py-1 rounded-full font-bold tracking-wide flex items-center gap-1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1538,
+    "content": "<div className=\"flex items-center gap-2�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1539,
+    "content": "<CheckCircle2 size={14� /> {isOfficialResultDefined ? 'Resultado oficial definido â€” palpites encerrados� : 'A competi��o jÃ¡ comeÃ§ou â€” palpites encerrados'}",
+    "chars": "�€”¡§"
+  },
+  {
+    "lineNum": 1542,
+    "content": "{isTop4FieldsExpanded ? 'Ocultar palpites� : 'Mostrar palpites'}",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1549,
+    "content": "<div className=\"p-4 grid grid-cols-1 sm:grid-cols-2 gap-3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1561,
+    "content": "<div className=\"flex items-center justify-between mb-2�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1566,
+    "content": "+{f.pts� pts",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1575,
+    "content": "<option value=\"\">-- Selecione a sele��o --</option>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1593,
+    "content": "{userValue ? <span>Palpitou: <strong className=\"text-gray-700 dark:text-gray-200\">{userValue}</strong></span> : <span className=\"italic\">NÃ£o palpitou</span>}",
+    "chars": "£"
+  },
+  {
+    "lineNum": 1594,
+    "content": "{isCorrect && <span className=\"ml-1 text-emerald-600 dark:text-emerald-400 font-bold\">âœ… ACERTOU!</span>}",
+    "chars": "œ…"
+  },
+  {
+    "lineNum": 1595,
+    "content": "{isWrong && <span className=\"ml-1 text-red-500 font-bold text-[9px]\">âŒ ERROU</span>}",
+    "chars": "Œ"
+  },
+  {
+    "lineNum": 1619,
+    "content": "<div className=\"flex items-center gap-3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1630,
+    "content": "<div className=\"relative flex-1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1636,
+    "content": "onChange={(e) => { setTfModalSearch(e.target.value); setTfModalPage(1� }}",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1644,
+    "content": "<Loader2 className=\"animate-spin mb-2� size={24� />",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1652,
+    "content": "const tfPts = league.settings.topFinishersPoints ?? { champion: 20, runnerUp: 15� third: 10, fourth: 5 };",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1654,
+    "content": "const user = mergedUsers.find(u => u.id === uid) || { name: 'Unknown', id: uid, avatar: '' } as User�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1663,
+    "content": "return { user� pred, pts };",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1665,
+    "content": ".filter(p => p.user�name.toLowerCase().includes(tfModalSearch.toLowerCase()))",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1669,
+    "content": "if (aHasPred && !bHasPred) return -1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1670,
+    "content": "if (!aHasPred && bHasPred) return 1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1671,
+    "content": "return a.user�name.localeCompare(b.user�name);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1675,
+    "content": "const totalPages = Math.ceil(allPreds.length / itemsPerPage) || 1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1676,
+    "content": "const paginatedPreds = allPreds.slice((tfModalPage - 1� * itemsPerPage, tfModalPage * itemsPerPage);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1679,
+    "content": "{ key: 'champion' as const, label: 'CampeÃ£o', emoji: 'ðŸ¥‡' },",
+    "chars": "£Ÿ¥‡"
+  },
+  {
+    "lineNum": 1680,
+    "content": "{ key: 'runnerUp' as const, label: 'Vice', emoji: 'ðŸ¥ˆ' },",
+    "chars": "Ÿ¥ˆ"
+  },
+  {
+    "lineNum": 1681,
+    "content": "{ key: 'third' as const, label: '3� Lugar', emoji: 'ðŸ¥‰' },",
+    "chars": "�Ÿ¥‰"
+  },
+  {
+    "lineNum": 1682,
+    "content": "{ key: 'fourth' as const, label: '4� Lugar', emoji: 'ðŸ…' },",
+    "chars": "�Ÿ…"
+  },
+  {
+    "lineNum": 1686,
+    "content": "<div className=\"divide-y divide-gray-100 dark:divide-gray-700 flex-1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1687,
+    "content": "{paginatedPreds.map(({ user� pred, pts }, idx) => (",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1688,
+    "content": "<div key={user�id} className={`p-4 ${user�id === currentUser�id ? 'bg-yellow-50 dark:bg-yellow-900/20' : 'bg-white dark:bg-gray-800'}`}>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1689,
+    "content": "<div className=\"flex items-center justify-between mb-3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1690,
+    "content": "<div className=\"flex items-center gap-2�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1692,
+    "content": "<OptimizedImage src={user�avatar} containerClassName=\"w-9 h-9 rounded-full border border-gray-200 dark:border-gray-600\" className=\"w-full h-full object-cover\" alt=\"\" />",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1693,
+    "content": "<div className=\"absolute -top-1 -left-1 w-4 h-4 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center text-[9px] font-bold text-gray-600 dark:text-gray-300 border border-white dark:border-gray-700\">{(tfModalPage - 1� * itemsPerPage + idx + 1� /div>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1696,
+    "content": "<div className=\"font-bold text-sm text-gray-800 dark:text-gray-200\">{user�name}{user�id === currentUser�id && <span className=\"text-[10px] font-normal text-gray-500 ml-1\">(Voc�ª)</span>??</div>",
+    "chars": "�ª"
+  },
+  {
+    "lineNum": 1697,
+    "content": "{!pred && <div className=\"text-[10px] text-gray-400 italic\">NÃ£o palpitou</div>}",
+    "chars": "£"
+  },
+  {
+    "lineNum": 1701,
+    "content": "{pts > 0 ? `+${pts}` : 'â€”'} pts",
+    "chars": "€”"
+  },
+  {
+    "lineNum": 1705,
+    "content": "<div className=\"grid grid-cols-2 gap-1.5�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1734,
+    "content": "onClick={() => setTfModalPage(p => Math.max(1� p - 1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1735,
+    "content": "disabled={tfModalPage === 1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1736,
+    "content": "className=\"p-1.5 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800 disabled:opacity-50 transition-colors�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1741,
+    "content": "PÃ¡gina {tfModalPage} de {totalPages�",
+    "chars": "¡�"
+  },
+  {
+    "lineNum": 1744,
+    "content": "onClick={() => setTfModalPage(p => Math.min(totalPages� p + 1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1745,
+    "content": "disabled={tfModalPage === totalPages�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1746,
+    "content": "className=\"p-1.5 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800 disabled:opacity-50 transition-colors�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1761,
+    "content": "<div className=\"space-y-3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1763,
+    "content": "<MousePointerClick size={16} className=\"shrink-0\" /><span>Clique em qualquer partida para ver as estat�­sticas.</span>",
+    "chars": "�­"
+  },
+  {
+    "lineNum": 1766,
+    "content": "<AlertCircle size={16} className=\"shrink-0\" /><span>O palpite Ã© bloqueado 5 min. antes do inÃ­cio do jogo.</span>",
+    "chars": "©­"
+  },
+  {
+    "lineNum": 1769,
+    "content": "<MousePointerClick size={16} className=\"shrink-0\" /><span>ApÃ³s o bloqueio, clique na partida e confira os palpites.</span>",
+    "chars": "³"
+  },
+  {
+    "lineNum": 1776,
+    "content": "const existingPred = topFinisherPredictions.find(p => p.userId === currentUser�id && p.leagueId === league.id);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1798,
+    "content": "disabled={isSavingTopFinishers�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1801,
+    "content": "{isSavingTopFinishers ? <Loader2 size={28} className=\"animate-spin\" /> : <Trophy size={28} className=\"stroke-[2� />}",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1812,
+    "content": "<button onClick={handleSaveAll} disabled={isSavingPalpites� className=\"bg-brasil-green hover:bg-green-700 text-white px-8 py-4 rounded-full shadow-2xl shadow-green-900/40 font-bold text-xl md:text-2xl flex items-center gap-3 transition-all transform hover:-translate-y-1 active:scale-95 border border-green-400 ring-4 ring-white/20 backdrop-blur-sm whitespace-nowrap\">",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1813,
+    "content": "{isSavingPalpites ? <Loader2 size={28} className=\"animate-spin\" /> : <Save size={28} className=\"stroke-[3� />}",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1819,
+    "content": "<div className=\"flex flex-col gap-4 pt-2�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1820,
+    "content": "<div className=\"flex items-center justify-between px-1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1822,
+    "content": "<div className=\"text-sm font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2� Filter size={16} className=\"text-brasil-blue dark:text-blue-400\" /> Filtros</div>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1823,
+    "content": "{hasFilters && (<button onClick={clearFilters� className=\"text-xs font-bold text-red-500 hover:text-red-700 transition-colors flex items-center gap-1 ml-3� X size={12� /> Limpar</button>)}",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1824,
+    "content": "<button onClick={() => refreshPredictions()} disabled={isRefreshingPredictions� className={`text-xs font-bold text-brasil-green hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors flex items-center gap-1 ml-3 bg-green-50 dark:bg-green-900/30 px-2 py-1 rounded border border-green-200 dark:border-green-800 ${isRefreshingPredictions ? 'opacity-70 cursor-not-allowed' : ''}`}><Loader2 size={12� className={isRefreshingPredictions ? 'animate-spin' : ''} /> {isRefreshingPredictions ? 'Atualizando...' : 'Atualizar Palpites'}</button>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1826,
+    "content": "<div className=\"text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 bg-gray-50 dark:bg-gray-900 px-3 py-1 rounded-full shadow-sm border border-gray-200 dark:border-gray-700\"><Clock size={12� /> HorÃ¡rios de BrasÃ­lia (BRT)</div>",
+    "chars": "�¡­"
+  },
+  {
+    "lineNum": 1828,
+    "content": "<div className=\"flex flex-col gap-3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1831,
+    "content": "<button onClick={() => setFilterStatus('missing')} className={`flex justify-center items-center px-1.5 md:px-4 py-2 rounded-full text-[9px] md:text-xs font-bold transition-all border whitespace-nowrap gap-1 ${filterStatus === 'missing' ? 'bg-red-500 text-white border-red-500 shadow-md' : 'bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'}`}><AlertCircle size={12� /> Pendentes</button>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1832,
+    "content": "<button onClick={() => setFilterStatus('predicted')} className={`flex justify-center items-center px-1.5 md:px-4 py-2 rounded-full text-[9px] md:text-xs font-bold transition-all border whitespace-nowrap gap-1 ${filterStatus === 'predicted' ? 'bg-blue-800 text-white border-blue-800 shadow-md' : 'bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'}`}><CheckCircle2 size={12� /> Salvos</button>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1833,
+    "content": "<button onClick={() => setFilterStatus('upcoming')} className={`flex justify-center items-center px-1.5 md:px-4 py-2 rounded-full text-[9px] md:text-xs font-bold transition-all border whitespace-nowrap gap-1 ${filterStatus === 'upcoming' ? 'bg-gray-800 text-white border-gray-800 shadow-md' : 'bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'} `}><Calendar size={12� /> Abertos</button>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1834,
+    "content": "<button onClick={() => setFilterStatus('finished')} className={`flex justify-center items-center px-1.5 md:px-4 py-2 rounded-full text-[9px] md:text-xs font-bold transition-all border whitespace-nowrap gap-1 ${filterStatus === 'finished' ? 'bg-green-600 text-white border-green-600 shadow-md' : 'bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'}`}><CheckCircle2 size={12� /> Finalizados</button>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1835,
+    "content": "<button onClick={() => setFilterStatus('live')} className={`flex justify-center items-center px-1.5 md:px-4 py-2 rounded-full text-[9px] md:text-xs font-bold transition-all border whitespace-nowrap gap-1 ${filterStatus === 'live' ? 'bg-yellow-400 text-yellow-950 border-yellow-400 shadow-md animate-pulse' : 'bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'}`}><Zap size={12� fill=\"currentColor\" /> Ao Vivo</button>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1843,
+    "content": "<ChevronDown size={14� className=\"absolute right-3 top-3 text-gray-300 pointer-events-none\" />",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1850,
+    "content": "{groupsList.map�g => <option key={g} value={g}>Grupo {g}</option>)}",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1852,
+    "content": "<ChevronDown size={14� className=\"absolute right-3 top-3 text-gray-300 pointer-events-none\" />",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1856,
+    "content": "<option value=\"all\">Todas� Rodadas</option>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1857,
+    "content": "<option value=\"1\">1� Rodada��option>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1858,
+    "content": "<option value=\"2\">2� Rodada��option>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1859,
+    "content": "<option value=\"3\">3� Rodada��option>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1861,
+    "content": "<ChevronDown size={14� className=\"absolute right-3 top-3 text-gray-300 pointer-events-none\" />",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1872,
+    "content": "<button onClick={clearFilters� className=\"mt-2 text-sm text-brasil-blue dark:text-blue-400 font-bold hover:underline\">Limpar filtros</button>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1875,
+    "content": "<div className=\"space-y-4�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1878,
+    "content": "const userPred = predictions.find(p => p.matchId === match.id && p.userId === currentUser�id && p.leagueId === league.id);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1890,
+    "content": "const stats = currentUser�.isPro ? getMatchStats(String(match.id)) : null;",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1891,
+    "content": "const showBlurStats = !currentUser�.isPro && getMatchStats(String(match.id)) !== null;",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1897,
+    "content": "const isProUser = !!currentUser�.isPro;",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1945,
+    "content": "await adMobModuleRef.current.AdMob.prepareRewardInterstitialAd({ adId: 'ca-app-pub-7684468298593275/3499840425� isTesting: false });",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1969,
+    "content": "match.status === MatchStatus.IN_PROGRESS ? <div className=\"bg-red-100 text-red-600 px-3 py-1 rounded-bl-lg text-[10px] font-bold flex items-center gap-1 animate-pulse\"><Lock size={10} /> Em Andamento</div> : match.status === MatchStatus.FINISHED ? <div className=\"bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-300 px-3 py-1 rounded-bl-lg text-[10px] font-bold flex items-center gap-1� Lock size={10} /> Finalizado</div> : <div className=\"bg-yellow-100 dark:bg-yellow-900 text-orange-600 dark:text-orange-300 px-3 py-1 rounded-bl-lg text-[10px] font-bold flex items-center gap-1� Lock size={10} /> Palpite Encerrado</div>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1970,
+    "content": ") : userPred ? <div className=\"bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-300 px-3 py-1 rounded-bl-lg text-[10px] font-bold flex items-center gap-1� CheckCircle2 size={10} /> Palpite Salvo</div> : <div className=\"bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 px-3 py-1 rounded-bl-lg text-[10px] font-bold flex items-center gap-1� Unlock size={10} /> Palpite Aberto</div>}",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1976,
+    "content": "<span className=\"font-bold text-brasil-blue dark:text-blue-400 uppercase flex items-center gap-1.5 flex-wrap\"><Calendar size={12� />{isDateValid ? matchDate.toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' }) : 'Data InvÃ¡lida'}<span className=\"text-gray-300 dark:text-gray-600\">??</span>{isDateValid ? matchDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '--:--'}<span className=\"text-gray-400 dark:text-gray-500 font-normal normal-case flex items-center gap-1� MapPin size={10} /><span className=\"truncate max-w-[120px]\">{match.location}</span></span></span>",
+    "chars": "�¡"
+  },
+  {
+    "lineNum": 1977,
+    "content": "<div className=\"flex items-center gap-1.5� => { const champ = match.championship; if (champ === 'copa_do_brasil') return <span className=\"text-[9px] bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-800 px-1.5 py-0.5 rounded font-black uppercase tracking-wider shadow-sm\">Copa do Brasil</span>; return <span className=\"text-[9px] bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800 px-1.5 py-0.5 rounded font-black uppercase tracking-wider shadow-sm\">BrasileirÃ£o</span>; })()}{match.phase && <span className={`text-[9px] font-black border border-black/5 dark:border-white/5 px-1.5 py-0.5 rounded uppercase tracking-wider shadow-sm ${getRoundColorClass(match.phase, match.championship === 'copa_do_brasil')}`}>{translatePhase(match.phase)}</span>??</div>",
+    "chars": "�£"
+  },
+  {
+    "lineNum": 1979,
+    "content": "<div className=\"flex items-center justify-between mb-2�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1980,
+    "content": "<div className=\"flex flex-col items-center justify-center w-1/3 gap-2�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1987,
+    "content": "<div className=\"flex items-center gap-2� onClick={(e) => e.stopPropagation()}><input id={`home-${String(String(match.id))}`} name={`home-${String(String(match.id))}`} type=\"number\" min=\"0\" disabled={locked} value={homeValue} onChange={(e) => handleScoreChange(String(String(match.id)), 'home', e.target.value, userPred)} placeholder=\"-\" className={`w-14 h-12 text-center border rounded-lg font-bold text-xl md:text-2xl focus:border-brasil-blue focus:ring-1 focus:ring-brasil-blue outline-none transition-all ${locked ? 'bg-gray-800 text-gray-500 border-gray-700 cursor-pointer' : 'bg-gray-700 border-gray-600 text-white'}`} /><span className=\"text-gray-300 dark:text-gray-600 text-sm font-bold\">X</span><input id={`away-${String(String(match.id))}`} name={`away-${String(String(match.id))}`} type=\"number\" min=\"0\" disabled={locked} value={awayValue} onChange={(e) => handleScoreChange(String(String(match.id)), 'away', e.target.value, userPred)} placeholder=\"-\" className={`w-14 h-12 text-center border rounded-lg font-bold text-xl md:text-2xl focus:border-brasil-blue focus:ring-1 focus:ring-brasil-blue outline-none transition-all ${locked ? 'bg-gray-800 text-gray-500 border-gray-700 cursor-pointer' : 'bg-gray-700 border-gray-600 text-white'}`} /></div>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1991,
+    "content": "<div className=\"flex flex-col items-center justify-center w-1/3 gap-2�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 1999,
+    "content": "<div className=\"mt-3 flex gap-2�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2014,
+    "content": "{/* Pontua��o do UsuÃ¡rio */}",
+    "chars": "�¡"
+  },
+  {
+    "lineNum": 2017,
+    "content": "<div className=\"text-[10px] font-bold uppercase text-gray-500 dark:text-gray-400 mb-1 flex items-center gap-1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2022,
+    "content": "+{displayPoints�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2027,
+    "content": "<div className=\"text-[10px] font-bold uppercase text-gray-500 dark:text-gray-400 mb-1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2041,
+    "content": "<span className=\"text-[10px] font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest flex items-center gap-1.5 bg-white/80 dark:bg-gray-800/80 px-3 py-1 rounded-full shadow-sm\"><Crown size={12� className=\"text-yellow-500\" /> Ver Estat�­sticas PRO</span>",
+    "chars": "�­"
+  },
+  {
+    "lineNum": 2051,
+    "content": "const shouldBlockPredictions = currentPlan === 'FREE' && !currentUser�.isPro && isMatchLockedOrLive && !isFinished && !hasWatchedPredictionAd;",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2053,
+    "content": "if (shouldBlockPredictions� {",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2058,
+    "content": "<div className=\"absolute inset-0 bg-gradient-to-br from-yellow-500/10 to-amber-500/5� />",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2060,
+    "content": "<div className=\"flex justify-end mb-1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2061,
+    "content": "<button onClick={() => { setSelectedMatchForDetails(Number(null)); setMatchDetailsSearch(''); setMatchDetailsPage(1� }} className=\"p-1.5 hover:bg-white/20 rounded-full transition-colors text-white\"><X size={16} /></button>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2063,
+    "content": "<div className=\"flex justify-center mb-3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2065,
+    "content": "<Lock size={24� className=\"text-white\" />",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2068,
+    "content": "<div className=\"inline-flex items-center gap-1 bg-gradient-to-r from-yellow-400 to-amber-500 text-gray-900 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-widest mb-2�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2071,
+    "content": "<h3 className=\"text-white font-black text-lg leading-tight\">Palpites da Galera</h3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2072,
+    "content": "<p className=\"text-gray-400 text-xs mt-1\">DisponÃ­vel somente para usuÃ¡rios PRO</p>",
+    "chars": "­¡"
+  },
+  {
+    "lineNum": 2075,
+    "content": "<div className=\"p-5 space-y-4�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2077,
+    "content": "Para ver os palpites dos participantes nas partidas em andamento, assine o plano PRO ou aguarde at�© que o jogo seja finalizado.",
+    "chars": "�©"
+  },
+  {
+    "lineNum": 2079,
+    "content": "<div className=\"space-y-2 border-t border-gray-150 dark:border-gray-700 pt-4�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2082,
+    "content": "{ icon: Target, text: 'Seca ou torce sabendo exatamente o placar do adversÃ¡rio', color: 'text-emerald-500' },",
+    "chars": "¡"
+  },
+  {
+    "lineNum": 2083,
+    "content": "{ icon: BarChart2� text: 'Estat�­sticas exclusivas e placares mais palpitados', color: 'text-blue-500' },",
+    "chars": "�­"
+  },
+  {
+    "lineNum": 2086,
+    "content": "<div className={`${color} shrink-0`}><Icon size={14� /></div>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2092,
+    "content": "<div className=\"px-5 pb-5�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2103,
+    "content": "await adMobModuleRef.current.AdMob.prepareRewardInterstitialAd({ adId: 'ca-app-pub-7684468298593275/3499840425� isTesting: false });",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2110,
+    "content": "alert('AnÃºncio nÃ£o estÃ¡ pronto ainda. Tente novamente em alguns segundos.');",
+    "chars": "º£¡"
+  },
+  {
+    "lineNum": 2119,
+    "content": "{isPreparingAd ? 'Carregando...' : 'Assistir VÃ­deo para Liberar'}",
+    "chars": "­"
+  },
+  {
+    "lineNum": 2124,
+    "content": "className=\"w-full bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-300 hover:to-amber-400 text-gray-900 font-black py-3.5 px-6 rounded-xl text-sm uppercase tracking-widest shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2148,
+    "content": "<div className=\"flex justify-between items-start mb-1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2150,
+    "content": "<h3 className=\"font-bold text-sm uppercase tracking-wide opacity-80\">Palpites da Liga</h3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2152,
+    "content": "{totalPreds� palpite{totalPreds !== 1 ? 's� : ''} registrado{totalPreds !== 1 ? 's� : ''}",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2157,
+    "content": "<div className=\"flex items-center justify-between gap-4� div className=\"flex flex-col items-center w-1/3� img referrerPolicy='no-referrer' src={getTeamFlag(detailsData.match.home_team_id, teams)} className=\"w-9 h-9 object-contain drop-shadow-sm mb-1� /><span className=\"text-xs font-bold text-center leading-tight\">{getTeamNameForDisplay(detailsData.match.home_team_id)}</span></div><div className=\"flex flex-col items-center\"><div className=\"text-2xl font-black bg-white/10 px-3 py-1 rounded-lg backdrop-blur-sm border border-white/20 whitespace-nowrap\">{detailsData.match.home_score ?? '-'} <span className=\"text-sm mx-1\">x</span> {detailsData.match.away_score ?? '-'}</div><span className={`text-[10px] mt-1 font-bold px-2 py-0.5 rounded-full ${detailsData.match.status === MatchStatus.IN_PROGRESS ? 'bg-red-500 text-white animate-pulse' : detailsData.match.status === MatchStatus.FINISHED ? 'bg-black/30 text-white' : 'bg-blue-800 text-blue-200'}`}>{detailsData.match.status === MatchStatus.IN_PROGRESS ? 'AO VIVO' : detailsData.match.status === MatchStatus.FINISHED ? 'ENCERRADO' : 'AGUARDANDO'}</span></div><div className=\"flex flex-col items-center w-1/3� img referrerPolicy='no-referrer' src={getTeamFlag(detailsData.match.away_team_id, teams)} className=\"w-9 h-9 object-contain drop-shadow-sm mb-1� /><span className=\"text-xs font-bold text-center leading-tight\">{getTeamNameForDisplay(detailsData.match.away_team_id)}</span></div></div>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2162,
+    "content": "<Loader2 className=\"animate-spin text-brasil-green dark:text-green-400\" size={32� />",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2163,
+    "content": "<span className=\"text-sm font-bold text-gray-400 mt-4\">Carregando estat�­sticas...</span>",
+    "chars": "�­"
+  },
+  {
+    "lineNum": 2181,
+    "content": "<div className=\"flex flex-col items-center justify-center shrink-0 w-24�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2187,
+    "content": "<span className=\"text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1 text-center\">Distribui��o</span>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2206,
+    "content": "<div className=\"px-4 py-2 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600\"><div className=\"relative\"><Search className=\"absolute left-3 top-2.5 text-gray-400\" size={16} /><input type=\"text\" placeholder=\"Buscar participante...\" value={matchDetailsSearch} onChange={(e) => { setMatchDetailsSearch(e.target.value); setMatchDetailsPage(1� }} className=\"w-full bg-gray-700 border border-gray-600 text-white placeholder-gray-400 rounded-lg pl-9 pr-8 py-2 text-sm focus:ring-1 focus:ring-brasil-blue focus:border-brasil-blue outline-none\" />{matchDetailsSearch && (<button onClick={() => { setMatchDetailsSearch(''); setMatchDetailsPage(1� }} className=\"absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white cursor-pointer\"><X size={14� /></button>??</div></div>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2210,
+    "content": "const pagedDetailsParticipants = filteredDetailsParticipants.slice((matchDetailsPage - 1� * 100, matchDetailsPage * 100);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2219,
+    "content": "{pagedDetailsParticipants.map(({ user� pred }, idx) => {",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2220,
+    "content": "const globalIdx = (matchDetailsPage - 1� * 100 + idx + 1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2228,
+    "content": "<div key={user�id} className={`p-3 flex items-center justify-between ${user�id === currentUser�id ? 'bg-yellow-50 dark:bg-yellow-900/20' : 'bg-white dark:bg-gray-800'}`}>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2231,
+    "content": "<OptimizedImage src={user�avatar} containerClassName=\"w-10 h-10 rounded-full border border-gray-200 dark:border-gray-600\" className=\"w-full h-full object-cover\" alt=\"\" />",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2234,
+    "content": "<div className=\"min-w-0 flex-1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2235,
+    "content": "<div className=\"font-bold text-sm text-gray-800 dark:text-gray-200 flex items-center gap-1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2236,
+    "content": "<span className=\"truncate\">{user�name}</span>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2237,
+    "content": "{user�id === currentUser�id && <span className=\"text-[10px] font-normal text-gray-500 dark:text-gray-400 shrink-0\">(Voc�ª)</span>}",
+    "chars": "�ª"
+  },
+  {
+    "lineNum": 2239,
+    "content": "<div className=\"text-xs text-gray-500 dark:text-gray-400 truncate\">{pred ? 'Palpite enviado' : 'NÃ£o palpitou'}</div>",
+    "chars": "£"
+  },
+  {
+    "lineNum": 2242,
+    "content": "<div className=\"flex items-center gap-3 shrink-0 ml-2�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2254,
+    "content": "onClick={() => setMatchDetailsPage(p => Math.max(1� p - 1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2255,
+    "content": "disabled={matchDetailsPage === 1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2261,
+    "content": "PÃ¡gina {matchDetailsPage} de {totalDetailsPages�",
+    "chars": "¡�"
+  },
+  {
+    "lineNum": 2264,
+    "content": "onClick={() => setMatchDetailsPage(p => Math.min(totalDetailsPages� p + 1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2265,
+    "content": "disabled={matchDetailsPage === totalDetailsPages�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2290,
+    "content": "if (!currentUser�.isPro && !hasWatchedStatsAd) {",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2295,
+    "content": "<div className=\"absolute inset-0 bg-gradient-to-br from-yellow-500/10 to-amber-500/5� />",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2297,
+    "content": "<div className=\"flex justify-end mb-1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2300,
+    "content": "<div className=\"flex justify-center mb-3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2302,
+    "content": "<Lock size={24� className=\"text-white\" />",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2305,
+    "content": "<div className=\"inline-flex items-center gap-1 bg-gradient-to-r from-yellow-400 to-amber-500 text-gray-900 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-widest mb-2�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2308,
+    "content": "<h3 className=\"text-white font-black text-lg leading-tight\">Estat�­sticas Exclusivas</h3�",
+    "chars": "�­"
+  },
+  {
+    "lineNum": 2309,
+    "content": "<p className=\"text-gray-400 text-xs mt-1\">DisponÃ­vel somente para usuÃ¡rios PRO</p>",
+    "chars": "­¡"
+  },
+  {
+    "lineNum": 2312,
+    "content": "<div className=\"p-5 space-y-3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2315,
+    "content": "{ icon: BarChart2� text: 'Distribui��o: % Casa, Empate, Visitante', color: 'text-emerald-500' },",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2316,
+    "content": "{ icon: Calendar, text: 'HistÃ³rico recente dos times', color: 'text-blue-500' },",
+    "chars": "³"
+  },
+  {
+    "lineNum": 2324,
+    "content": "<div className=\"px-5 pb-5�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2327,
+    "content": "className=\"w-full bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-300 hover:to-amber-400 text-gray-900 font-black py-3.5 px-6 rounded-xl text-sm uppercase tracking-widest shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2351,
+    "content": "const u = users.find(u => u.id === uid) || { id: uid, name: 'Participante', avatar: '' } as User�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2359,
+    "content": ".map(uid => users.find(u => u.id === uid) || { id: uid, name: 'Participante', avatar: '' } as User�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2371,
+    "content": "const totalSavedPages = Math.max(1� Math.ceil(filteredPredicted.length / PAGE_SIZE));",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2373,
+    "content": "const pagedPredicted = filteredPredicted.slice((safeSavedPage - 1� * PAGE_SIZE, safeSavedPage * PAGE_SIZE);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2375,
+    "content": "const totalPendingPages = Math.max(1� Math.ceil(filteredMissing.length / PAGE_SIZE));",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2377,
+    "content": "const pagedMissing = filteredMissing.slice((safePendingPage - 1� * PAGE_SIZE, safePendingPage * PAGE_SIZE);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2388,
+    "content": "<div className=\"flex justify-between items-start mb-3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2389,
+    "content": "<div className=\"flex items-center gap-2�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2392,
+    "content": "<h3 className=\"font-black text-base uppercase tracking-widest\">Estat�­sticas da Liga</h3�",
+    "chars": "�­"
+  },
+  {
+    "lineNum": 2394,
+    "content": "{loadingStats ? 'Carregando palpites...' : `${totalPreds� palpite${totalPreds !== 1 ? 's� : ''} registrado${totalPreds !== 1 ? 's� : ''}`}",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2401,
+    "content": "<div className=\"flex items-center justify-between gap-4�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2402,
+    "content": "<div className=\"flex flex-col items-center w-1/3 gap-1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2406,
+    "content": "<div className=\"flex flex-col items-center gap-1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2409,
+    "content": "<div className=\"flex flex-col items-center w-1/3 gap-1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2422,
+    "content": "<Loader2 className=\"animate-spin text-brasil-green\" size={32� />",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2423,
+    "content": "<span className=\"text-xs font-bold uppercase tracking-wider\">Carregando estat�­sticas...</span>",
+    "chars": "�­"
+  },
+  {
+    "lineNum": 2429,
+    "content": "<p className=\"text-xs mt-1 opacity-70\">As estat�­sticas aparecerÃ£o quando os participantes fizerem seus palpites.</p>",
+    "chars": "�­£"
+  },
+  {
+    "lineNum": 2433,
+    "content": "<div className=\"space-y-4�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2435,
+    "content": "<div className=\"bg-white dark:bg-gray-700/60 rounded-xl p-4 border border-gray-100 dark:border-gray-600 shadow-sm flex flex-col items-center justify-center text-center gap-3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2437,
+    "content": "<span className=\"text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500 mb-0.5 flex items-center gap-1.5�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2440,
+    "content": "<span className=\"text-[10px] text-gray-500 dark:text-gray-400 leading-tight\">Entre os palpites jÃ¡ registrados na liga</span>",
+    "chars": "¡"
+  },
+  {
+    "lineNum": 2452,
+    "content": "<div className=\"bg-white dark:bg-gray-700/60 rounded-xl p-3.5 border border-gray-100 dark:border-gray-600 shadow-sm space-y-3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2453,
+    "content": "<div className=\"text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500 flex items-center gap-1.5�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2454,
+    "content": "<BarChart2 size={10} /> Distribui��o dos palpites",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2458,
+    "content": "<div className=\"flex items-stretch justify-between gap-2�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2485,
+    "content": "<div className=\"grid grid-cols-1 gap-4 mt-2�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2487,
+    "content": "<div className=\"flex flex-col gap-2�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2488,
+    "content": "<div className=\"text-xs font-bold uppercase text-gray-500 dark:text-gray-400 mb-2 mt-2 flex items-center justify-center gap-2�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2489,
+    "content": "<img referrerPolicy='no-referrer' src={getTeamFlag(sm.home_team_id, teams)} className=\"w-8 h-8 object-contain drop-shadow-sm\" /> Ã�ltimos jogos� {sm.home_team_id}",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2492,
+    "content": "<div key={h.id} className={`p-3 rounded-lg border flex justify-between items-center ${h.result === 'VitÃ³ria' ? 'bg-green-50/50 dark:bg-green-900/10 border-green-200 dark:border-green-800 text-green-800 dark:text-green-300' :",
+    "chars": "³"
+  },
+  {
+    "lineNum": 2502,
+    "content": "<span className={`ml-2 px-2.5 py-1 rounded text-xs font-bold shrink-0 ${h.result === 'VitÃ³ria' ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300' :",
+    "chars": "³"
+  },
+  {
+    "lineNum": 2505,
+    "content": "}`}>{h.result.charAt�0)}</span>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2511,
+    "content": "<div className=\"flex flex-col gap-2�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2512,
+    "content": "<div className=\"text-xs font-bold uppercase text-gray-500 dark:text-gray-400 mb-2 mt-2 flex items-center justify-center gap-2�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2513,
+    "content": "<img referrerPolicy='no-referrer' src={getTeamFlag(sm.away_team_id, teams)} className=\"w-8 h-8 object-contain drop-shadow-sm\" /> Ã�ltimos jogos� {sm.away_team_id}",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2516,
+    "content": "<div key={h.id} className={`p-3 rounded-lg border flex justify-between items-center ${h.result === 'VitÃ³ria' ? 'bg-green-50/50 dark:bg-green-900/10 border-green-200 dark:border-green-800 text-green-800 dark:text-green-300' :",
+    "chars": "³"
+  },
+  {
+    "lineNum": 2526,
+    "content": "<span className={`ml-2 px-2.5 py-1 rounded text-xs font-bold shrink-0 ${h.result === 'VitÃ³ria' ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300' :",
+    "chars": "³"
+  },
+  {
+    "lineNum": 2529,
+    "content": "}`}>{h.result.charAt�0)}</span>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2537,
+    "content": "<div className=\"bg-white dark:bg-gray-700/60 rounded-xl p-3.5 border border-gray-100 dark:border-gray-600 shadow-sm space-y-3 mt-4�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2538,
+    "content": "<div className=\"text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500 flex items-center gap-1.5 border-b border-gray-100 dark:border-gray-650 pb-2�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2539,
+    "content": "<Users size={12� /> Status dos Palpites ({league.participants.length})",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2543,
+    "content": "<div className=\"relative mt-2�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2544,
+    "content": "<Search className=\"absolute left-3 top-2.5 text-gray-400\" size={14� />",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2551,
+    "content": "setStatsPageSaved(1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2552,
+    "content": "setStatsPagePending(1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2560,
+    "content": "setStatsPageSaved(1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2561,
+    "content": "setStatsPagePending(1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2565,
+    "content": "<X size={14� />",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2570,
+    "content": "<div className=\"space-y-4�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2573,
+    "content": "<div className=\"space-y-1.5�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2575,
+    "content": "<span className=\"flex items-center gap-1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2580,
+    "content": "PÃ¡g. {safeSavedPage} de {totalSavedPages�",
+    "chars": "¡�"
+  },
+  {
+    "lineNum": 2584,
+    "content": "<div className=\"grid grid-cols-2 gap-2�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2588,
+    "content": "<div className=\"flex flex-col min-w-0 flex-1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2591,
+    "content": "<span className=\"text-[10px] font-black text-gray-700 dark:text-gray-200 flex items-center gap-1.5 mt-0.5�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2602,
+    "content": "<div className=\"flex items-center justify-end gap-2 pt-1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2604,
+    "content": "onClick={() => setStatsPageSaved(prev => Math.max(1� prev - 1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2605,
+    "content": "disabled={safeSavedPage <= 1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2608,
+    "content": "<ChevronLeft size={12� />",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2611,
+    "content": "onClick={() => setStatsPageSaved(prev => Math.min(totalSavedPages� prev + 1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2612,
+    "content": "disabled={safeSavedPage >= totalSavedPages�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2615,
+    "content": "<ChevronRight size={12� />",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2624,
+    "content": "<div className=\"space-y-1.5 mt-2�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2626,
+    "content": "<span className=\"flex items-center gap-1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2631,
+    "content": "PÃ¡g. {safePendingPage} de {totalPendingPages�",
+    "chars": "¡�"
+  },
+  {
+    "lineNum": 2635,
+    "content": "<div className=\"grid grid-cols-2 gap-2�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2644,
+    "content": "<div className=\"flex items-center justify-end gap-2 pt-1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2646,
+    "content": "onClick={() => setStatsPagePending(prev => Math.max(1� prev - 1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2647,
+    "content": "disabled={safePendingPage <= 1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2650,
+    "content": "<ChevronLeft size={12� />",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2653,
+    "content": "onClick={() => setStatsPagePending(prev => Math.min(totalPendingPages� prev + 1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2654,
+    "content": "disabled={safePendingPage >= totalPendingPages�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2657,
+    "content": "<ChevronRight size={12� />",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2694,
+    "content": "const filteredLeaderboard = leaderboard.filter(entry => entry.user�name.toLowerCase().includes(leaderboardSearch.toLowerCase()));",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2695,
+    "content": "const totalLbPages = Math.max(1� Math.ceil(filteredLeaderboard.length / LEADERBOARD_PAGE_SIZE));",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2697,
+    "content": "const pagedLeaderboard = filteredLeaderboard.slice((safeLbPage - 1� * LEADERBOARD_PAGE_SIZE, safeLbPage * LEADERBOARD_PAGE_SIZE);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2698,
+    "content": "const goLbPage = (p: number) => setLeaderboardPage(Math.max(1� Math.min(p, totalLbPages)));",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2703,
+    "content": "<span className=\"font-bold text-gray-800 dark:text-white\">{filteredLeaderboard.length}</span> participantes Â· pÃ¡g. <span className=\"font-bold text-gray-800 dark:text-white\">{safeLbPage}</span> de <span className=\"font-bold text-gray-800 dark:text-white\">{totalLbPages}</span>",
+    "chars": "·¡"
+  },
+  {
+    "lineNum": 2705,
+    "content": "<div className=\"flex items-center gap-1.5�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2706,
+    "content": "<button onClick={() => goLbPage(safeLbPage - 1� disabled={safeLbPage <= 1� className=\"p-1.5 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors\"><ChevronLeft size={16} /></button>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2707,
+    "content": "{Array.from({ length: Math.min(5� totalLbPages� }, (_, i) => {",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2709,
+    "content": "if (totalLbPages <= 5� pg = i + 1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2710,
+    "content": "else if (safeLbPage <= 3� pg = i + 1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2711,
+    "content": "else if (safeLbPage >= totalLbPages - 2� pg = totalLbPages - 4 + i;",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2715,
+    "content": "<button onClick={() => goLbPage(safeLbPage + 1� disabled={safeLbPage >= totalLbPages� className=\"p-1.5 rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors\"><ChevronRight size={16} /></button>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2745,
+    "content": "<MousePointerClick size={16} /><span>Clique no participante para ver o histÃ³rico detalhado.</span>",
+    "chars": "³"
+  },
+  {
+    "lineNum": 2747,
+    "content": "<div className=\"p-4 bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 space-y-3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2750,
+    "content": "<span className=\"text-sm\">Compartilhar Classifica��o</span>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2752,
+    "content": "<div className=\"flex flex-col sm:flex-row items-start sm:items-center gap-2�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2759,
+    "content": "<option value=\"brasileirao\" className=\"bg-white dark:bg-gray-800 text-gray-900 dark:text-white\">Apenas Brasileir�o</option>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2762,
+    "content": "<ChevronDown size={14� className=\"absolute right-3 top-3.5 text-blue-200 pointer-events-none\" />",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2769,
+    "content": "<option value=\"total\" className=\"bg-white dark:bg-gray-800 text-gray-900 dark:text-white\">Brasileir�o - Total</option>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2770,
+    "content": "{Array.from({ length: 20 }, (_, i) => i + 19).map(round => (<option key={round} value={`Rodada ${round}`} className=\"bg-white dark:bg-gray-800 text-gray-900 dark:text-white\">{round}Âªªª Rodada��option>))}",
+    "chars": "ª�"
+  },
+  {
+    "lineNum": 2772,
+    "content": "<ChevronDown size={14� className=\"absolute right-3 top-3.5 text-blue-200 pointer-events-none\" />",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2785,
+    "content": "<ChevronDown size={14� className=\"absolute right-3 top-3.5 text-blue-200 pointer-events-none\" />",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2791,
+    "content": "<div className=\"relative flex-1 w-full\"><Search className=\"absolute left-3 top-2.5 text-gray-400\" size={18} /><input type=\"text\" placeholder=\"Buscar participante...\" value={leaderboardSearch} onChange={(e) => setLeaderboardSearch(e.target.value)} className=\"w-full pl-10 pr-8 py-2 border border-gray-600 bg-gray-700 text-white placeholder-gray-400 rounded-lg text-sm focus:ring-1 focus:ring-brasil-blue focus:border-brasil-blue outline-none\" />{leaderboardSearch && (<button onClick={() => setLeaderboardSearch('')} className=\"absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white cursor-pointer\"><X size={14� /></button>??</div>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2796,
+    "content": "<Loader2 size={32� className=\"animate-spin mb-4� />",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2797,
+    "content": "<p className=\"font-medium text-sm text-gray-500\">Buscando classifica��o...</p>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2803,
+    "content": "<thead className=\"bg-brasil-blue dark:bg-blue-900 text-white\"><tr><th className=\"px-2 py-3 text-center w-12 md:w-16 text-xs md:text-sm\">Pos.</th><th className=\"px-2 py-3 text-left\">Participantes</th><th className=\"hidden md:table-cell px-2 py-3 text-center w-20\"><span className=\"flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-2 py-1 rounded font-bold whitespace-nowrap\">Pontos</span></th><th className=\"hidden md:table-cell px-2 py-3 text-center w-20\"><span className=\"flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-2 py-1 rounded whitespace-nowrap\"><Target size={14� /> Cravadas</span></th><th className=\"hidden md:table-cell px-2 py-3 text-center w-16\"><span className=\"flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-1.5 py-1 rounded whitespace-nowrap\">V+S</span></th><th className=\"hidden md:table-cell px-2 py-3 text-center w-16\"><span className=\"flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-1.5 py-1 rounded whitespace-nowrap\">V+G</span></th><th className=\"hidden md:table-cell px-2 py-3 text-center w-16\"><span className=\"flex items-center justify-center gap-1 text-xs uppercase bg-white/20 px-1.5 py-1 rounded whitespace-nowrap\">Emp</span></th><th className=\"md:hidden px-2 py-3 text-center w-20 whitespace-nowrap\">Pontos</th>{isAdmin && <th className=\"px-0 py-3 w-8\"></th>??</tr></thead>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2806,
+    "content": "const rank = leaderboard.findIndex(item => item.user�id === entry.user�id) + 1� return (<tr key={entry.user�id} className={entry.user�id === currentUser�id ? 'bg-yellow-50 dark:bg-yellow-900/20' : ''}><td className=\"px-2 py-3 font-bold text-center text-sm align-middle\">{rank === 1 ? <div className=\"w-6 h-6 mx-auto bg-yellow-400 text-yellow-900 rounded-full flex items-center justify-center shadow-sm font-black text-xs\">1</div> : rank === 2 ? <div className=\"w-6 h-6 mx-auto bg-gray-300 text-gray-800 rounded-full flex items-center justify-center shadow-sm font-black text-xs\">2</div> : rank === 3 ? <div className=\"w-6 h-6 mx-auto bg-orange-400 text-orange-900 rounded-full flex items-center justify-center shadow-sm font-black text-xs\">3</div> : <span className=\"text-gray-500 dark:text-gray-400\">{rank}</span>??</td><td className=\"px-2 py-3 relative w-full max-w-[130px] sm:max-w-[200px] md:max-w-none\"><div className=\"flex items-center gap-2 md:gap-3 cursor-pointer group\" onClick={() => setSelectedUserId(entry.user�id)}>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2807,
+    "content": "<div onClick={(e) => { e.stopPropagation(); setZoomedImage(entry.user�avatar as any); }}>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2809,
+    "content": "src={entry.user�avatar}",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2815,
+    "content": "<div className=\"flex flex-col min-w-0 flex-1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2818,
+    "content": "{entry.user�name}",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2820,
+    "content": "{entry.user�isPro && <span className=\"inline-flex items-center text-[6px] md:text-[7px] font-black bg-gradient-to-r from-yellow-100 to-yellow-200 text-gray-900 border border-yellow-300 px-0.5 py-[1px] rounded uppercase tracking-tighter shadow-sm shrink-0 leading-none\" title=\"PRO\">?? PRO</span>}",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2821,
+    "content": "{entry.user�id === currentUser�id && <span className=\"text-[10px] font-normal text-gray-500 dark:text-gray-400 shrink-0\">(Voc�ª)</span>}",
+    "chars": "�ª"
+  },
+  {
+    "lineNum": 2824,
+    "content": "</div><Eye size={16} className=\"text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition�opacity ml-auto hidden md:block\" /></div></td><td className=\"hidden md:table-cell px-2 py-3 text-center font-black text-gray-800 dark:text-gray-200 text-base md:text-lg whitespace-nowrap\">",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2828,
+    "content": "<span className=\"text-[9px] bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-1 rounded flex items-center gap-0.5 mt-0.5� title={`${entry.tfTotal} pts de Finalistas`}>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2837,
+    "content": "<span className=\"text-[8px] bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-0.5 rounded flex items-center gap-0.5 mt-0.5�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2842,
+    "content": "</td>{isAdmin && <td className=\"px-0 py-3 text-center w-8\">{entry.user�id !== currentUser�id && (<button type=\"button\" onClick={(e) => initiateRemoveUser�e, entry.user�id, entry.user�name)} className=\"text-red-300 hover:text-red-500 dark:hover:text-red-400 p-1 rounded transition-colors z-10 relative\"><Trash2 size={16} /></button>??</td>??</tr>);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2853,
+    "content": "<div className=\"bg-brasil-blue dark:bg-blue-900 text-white p-4 flex justify-between items-center shrink-0\"><div className=\"flex items-center gap-3� div onClick={(e) => { e.stopPropagation(); setZoomedImage(selectedUser�avatar as any); }} className=\"cursor-pointer hover:ring-2 hover:ring-white/50 rounded-full transition-all\"><OptimizedImage src={selectedUser�avatar} containerClassName=\"w-10 h-10 rounded-full border-2 border-white/30\" className=\"w-full h-full object-cover\" alt=\"\" /></div><div><h3 className=\"font-bold text-lg leading-tight flex items-center gap-1.5\">{selectedUser�name} {selectedUser�isPro && <span className=\"inline-flex items-center text-[10px] font-black bg-gradient-to-r from-yellow-200 to-amber-300 text-gray-900 border border-yellow-400 px-1.5 py-0.5 rounded uppercase tracking-wider shadow-sm shrink-0 leading-none\">â­ PRO</span>??</h3� p className=\"text-xs text-blue-200\">HistÃ³rico de Palpites</p></div></div><button onClick={() => setSelectedUserId(null)} className=\"p-2 hover:bg-white/20 rounded-full transition-colors\"><X size={20} /></button></div>",
+    "chars": "�­³"
+  },
+  {
+    "lineNum": 2855,
+    "content": "const selEntry = leaderboard.find(e => e.user�id == selectedUserId);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2858,
+    "content": "<div className=\"flex flex-nowrap items-center justify-between px-4 py-3 bg-blue-50 dark:bg-blue-900/40 border-b border-blue-100 dark:border-blue-800/50 overflow-x-auto gap-2�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2859,
+    "content": "<span className=\"flex items-center gap-1.5 text-base font-bold text-brasil-blue dark:text-blue-400 whitespace-nowrap\" title=\"Cravadas\"><Target size={16} /> {selEntry.exactScores� Cravadas</span>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2867,
+    "content": "<div className=\"flex justify-between items-center px-1� div className=\"flex items-center gap-2� span className=\"text-xs font-bold text-gray-500 dark:text-gray-300 uppercase flex items-center gap-1� Filter size={12� /> Filtrar Jogos</span>{hasHistoryFilters && (<button onClick={clearHistoryFilters� className=\"text-[10px] font-bold text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors flex items-center gap-1 bg-white dark:bg-gray-600 border border-red-200 dark:border-red-800 px-2 py-0.5 rounded shadow-sm\"><X size={10} /> Limpar</button>??</div><span className=\"text-[10px] bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded font-bold\">{filteredHistory.length} resultados</span></div>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2868,
+    "content": "<div className=\"flex flex-wrap gap-2 pb-1�                                     <select value={histPhase} onChange={(e) => { setHistPhase(e.target.value); setHistRound('all'); }} className=\"w-full sm:w-auto flex-1 min-w-[120px] text-xs border border-gray-600 bg-gray-700 text-white rounded-lg p-2 outline-none focus:border-brasil-blue focus:ring-1 focus:ring-brasil-blue\">",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2869,
+    "content": "<option value=\"all\">Todas as Competi��es</option>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2870,
+    "content": "{(!league.settings?.competitions || league.settings.competitions.includes('brasileirao')) && <option value=\"brasileirao\">Brasileir�o</option>}",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2875,
+    "content": "<select value={histRound} onChange={(e) => setHistRound(e.target.value)} className=\"flex-1 min-w-[45� text-xs border border-gray-600 bg-gray-700 text-white rounded-lg p-2 outline-none focus:border-brasil-blue focus:ring-1 focus:ring-brasil-blue\">",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2877,
+    "content": "{Array.from({ length: 38 }, (_, i) => i + 1).map(round => (<option key={round} value={String(round)}>{round}ª Rodada��option>))}",
+    "chars": "ª�"
+  },
+  {
+    "lineNum": 2882,
+    "content": "<select value={histRound} onChange={(e) => setHistRound(e.target.value)} className=\"flex-1 min-w-[45� text-xs border border-gray-600 bg-gray-700 text-white rounded-lg p-2 outline-none focus:border-brasil-blue focus:ring-1 focus:ring-brasil-blue\">",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2895,
+    "content": "const tfPts = league.settings.topFinishersPoints ?? { champion: 20, runnerUp: 15� third: 10, fourth: 5 };",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2906,
+    "content": "<div className=\"flex justify-between items-center mb-3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2908,
+    "content": "<Trophy size={12� className=\"text-yellow-600\" /><span>4 Primeiros Colocados</span>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2913,
+    "content": "<div className=\"flex flex-col gap-1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2914,
+    "content": "<span className=\"text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-tight\">Acertos na Coloca��o Final:</span>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2915,
+    "content": "<div className=\"flex flex-wrap gap-1 mt-0.5�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2916,
+    "content": "{topFinishersResult?.champion && tfPred.champion === topFinishersResult.champion ? <span className=\"text-[9px] bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300 px-1.5 py-0.5 rounded border border-yellow-200 dark:border-yellow-800/50 font-bold\">CAMPEÃƒO (+{tfPts.champion})</span> : null}",
+    "chars": "ƒ"
+  },
+  {
+    "lineNum": 2918,
+    "content": "{topFinishersResult?.third && tfPred.third === topFinishersResult.third ? <span className=\"text-[9px] bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800/50 font-bold\">3� LUGAR (+{tfPts.third})</span> : null}",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2919,
+    "content": "{topFinishersResult?.fourth && tfPred.fourth === topFinishersResult.fourth ? <span className=\"text-[9px] bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-1.5 py-0.5 rounded border border-gray-200 dark:border-gray-600 font-bold\">4� LUGAR (+{tfPts.fourth})</span> : null}",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2930,
+    "content": "<Loader2 size={32� className=\"animate-spin mb-4� />",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2933,
+    "content": ") : filteredHistory.length === 0 ? <div className=\"flex flex-col items-center justify-center h-48 text-gray-400 dark:text-gray-500 gap-2� Search size={32� className=\"opacity-20\" /><p className=\"text-sm italic\">Nenhum palpite encontrado.</p></div> : <div className=\"divide-y divide-gray-100 dark:divide-gray-700\">{filteredHistory.map(({ match, pred }) => { const isLive = match.status === MatchStatus.IN_PROGRESS; const isFinished = match.status === MatchStatus.FINISHED; const matchDate = new Date(match.date); const isDateValid = !isNaN(matchDate.getTime()); let histPoints = 0; if ((isLive || isFinished) && match.home_score !== null && match.away_score !== null && pred) { histPoints = calculatePoints(Number(pred.homeScore), Number(pred.awayScore), Number(match.home_score), Number(match.away_score), league.settings); } return (<div key={String(String(match.id))} className=\"p-4 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0\"><div className=\"flex justify-between items-center mb-3� div className=\"flex items-center gap-2 text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500\"><Calendar size={12� /><span>{isDateValid ? matchDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : 'Data InvÃ¡lida'}</span>{isDateValid && <span className=\"text-gray-300 dark:text-gray-600\">??</span>}{isDateValid && <span>{matchDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>??<span> </span>{renderMatchBadge(match)}</div>{isLive && <span className=\"bg-red-500 text-white px-2 py-0.5 rounded text-[10px] font-bold animate-pulse\">AO VIVO</span>??</div><div className=\"flex flex-col items-center mb-4� div className=\"flex items-center gap-6 mb-2� img referrerPolicy='no-referrer' src={getTeamFlag(String(String(match.home_team_id)), teams)} className=\"w-9 h-9 object-contain drop-shadow-sm\" alt={String(String(match.home_team_id))} /><span className=\"text-gray-300 dark:text-gray-600 text-xs font-bold\">X</span><img referrerPolicy='no-referrer' src={getTeamFlag(String(String(match.away_team_id)), teams)} className=\"w-9 h-9 object-contain drop-shadow-sm\" alt={String(String(match.away_team_id))} /></div><div className=\"text-sm font-black text-gray-900 dark:text-white text-center uppercase tracking-tight\">{getTeamNameForDisplay(match.home_team_id)} <span className=\"text-gray-400 dark:text-gray-500 font-normal mx-1\">x</span> {getTeamNameForDisplay(match.away_team_id)}</div></div><div className=\"flex items-stretch rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden\"><div className=\"flex-1 bg-gray-50 dark:bg-gray-700 p-2 flex flex-col items-center justify-center border-r border-gray-200 dark:border-gray-600\"><span className=\"text-[9px] uppercase font-bold text-gray-400 dark:text-gray-500 mb-1\">Placar Oficial</span><div className={`text-xl font-black ${isLive ? 'text-green-600 dark:text-green-400 animate-pulse' : 'text-gray-800 dark:text-white'}`}>{match.home_score ?? '-'} <span className=\"text-gray-300 dark:text-gray-600 text-sm\">x</span> {match.away_score ?? '-'}</div></div><div className=\"flex-1 bg-white dark:bg-gray-800 p-2 flex flex-col items-center justify-center relative\"><span className=\"text-[9px] uppercase font-bold text-brasil-blue dark:text-blue-400 mb-1\">Palpite</span><div className=\"text-xl font-black text-gray-800 dark:text-white\">{pred ? <>{pred.homeScore} <span className=\"text-gray-300 dark:text-gray-600 text-sm\">x</span> {pred.awayScore}</> : <span className=\"text-gray-300 dark:text-gray-600\">??</span>??</div>{(isFinished || isLive) && pred && (<div className={`absolute top-1 right-1 text-[9px] font-bold px-1.5 py-0.5 rounded ${histPoints > 0 ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'}`}>{histPoints > 0 ? `+${histPoints}` : '0'} pts</div>??</div></div></div>); })}</div>}",
+    "chars": "�¡"
+  },
+  {
+    "lineNum": 2940,
+    "content": "<div style={{ position: 'absolute', top: 0, left: 0, opacity: 0, pointerEvents� 'none', zIndex: -50 }}>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2949,
+    "content": "<h1 className=\"text-6xl font-black text-brasil-yellow mb-2 uppercase tracking-widest drop-shadow-md\">Top 10</h1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2950,
+    "content": "<h2 className=\"text-4xl font-bold opacity-95 truncate max-w-[900px] drop-shadow-sm\">{league.name}</h2�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2952,
+    "content": "BolÃ£o da Copa 2026",
+    "chars": "£"
+  },
+  {
+    "lineNum": 2958,
+    "content": "const rank = index + 1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2960,
+    "content": "<div key={entry.user�id} className=\"flex items-center gap-6 bg-white/10 p-5 rounded-2xl border border-white/10 shadow-lg\">",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2965,
+    "content": "{entry.user�avatar ? <img src={entry.user�avatar} className=\"w-full h-full object-cover\" crossOrigin=\"anonymous� /> : <div className=\"w-full h-full flex items-center justify-center bg-gray-700 text-white\"><Users size={32� /></div>}",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2968,
+    "content": "<h3 className=\"text-3xl font-bold truncate text-white drop-shadow-sm\">{entry.user�name}</h3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2969,
+    "content": "{entry.user�isPro && <span className=\"inline-flex items-center text-xs font-black bg-gradient-to-r from-yellow-200 to-amber-300 text-gray-900 px-2 py-0.5 rounded uppercase mt-1 w-max\">â­ PRO</span>}",
+    "chars": "�­"
+  },
+  {
+    "lineNum": 2972,
+    "content": "<div className=\"flex items-baseline gap-1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2976,
+    "content": "<div className=\"text-sm font-bold text-blue-200 mt-1 flex items-center gap-1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2977,
+    "content": "<Target size={12� className=\"text-blue-300\" /> {entry.exactScores� Cravadas",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2985,
+    "content": "<div className=\"mt-8 text-center relative z-10 pb-4�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 2987,
+    "content": "<Globe size={24� className=\"text-brasil-yellow\" />",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3001,
+    "content": "<h3 className=\"text-lg font-bold text-gray-800 dark:text-white mb-6 flex items-center gap-2� Target size={24� className=\"text-brasil-blue dark:text-blue-400\" /> Sistema de Pontua��o</h3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3002,
+    "content": "<div className={`grid grid-cols-1 sm:grid-cols-2 ${league.settings?.topFinishersEnabled ? 'lg:grid-cols-6' : 'lg:grid-cols-5� gap-4�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3003,
+    "content": "<div className=\"bg-blue-50 dark:bg-blue-900/20 p-5 rounded-xl border border-blue-100 dark:border-blue-800 flex flex-col items-center text-center hover:shadow-md transition-all\"><div className=\"text-3xl font-black text-brasil-blue dark:text-blue-400 mb-2\">{league.settings?.exactScore ?? 10}</div><div className=\"font-bold text-gray-800 dark:text-gray-200 text-sm uppercase tracking-wide mb-2\">Cravada</div><p className=\"text-xs text-gray-600 dark:text-gray-400 leading-relaxed\">Acertou o placar exato do jogo.<br /><span className=\"text-blue-600 dark:text-blue-300 font-medium\">Ex: Palpitou 2x1 e foi 2x1� /span></p></div>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3006,
+    "content": "<div className=\"bg-gray-50 dark:bg-gray-700/50 p-5 rounded-xl border border-gray-200 dark:border-gray-600 flex flex-col items-center text-center hover:shadow-md transition-all\"><div className=\"text-3xl font-black text-gray-400 dark:text-gray-300 mb-2\">{league.settings?.draw ?? 7}</div><div className=\"font-bold text-gray-800 dark:text-gray-200 text-sm uppercase tracking-wide mb-2\">Empate (NÃ£o Exato)</div><p className=\"text-xs text-gray-600 dark:text-gray-400 leading-relaxed\">Acertou o empate, mas placar diferente.<br /><span className=\"text-gray-500 dark:text-gray-300 font-medium\">Ex: Palpitou 1x1 e foi 2x2� /span></p></div>",
+    "chars": "£�"
+  },
+  {
+    "lineNum": 3007,
+    "content": "<div className=\"bg-[#5c4033]/10 dark:bg-[#5c4033]/20 p-5 rounded-xl border border-[#5c4033]/20 flex flex-col items-center text-center hover:shadow-md transition-all\"><div className=\"text-3xl font-black text-[#5c4033� dark:text-[#a67b5b] mb-2\">{league.settings?.winner ?? 5� /div><div className=\"font-bold text-gray-800 dark:text-gray-200 text-sm uppercase tracking-wide mb-2\">Apenas Vencedor</div><p className=\"text-xs text-gray-600 dark:text-gray-400 leading-relaxed\">Acertou quem ganhou, mas errou o resto.<br /><span className=\"text-[#5c4033� dark:text-[#a67b5b] font-medium\">Ex: Palpitou 2x1 e foi 4x0.</span></p></div>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3011,
+    "content": "ðŸ¥‡{league.settings.topFinishersPoints?.champion ?? 20} ðŸ¥ˆ{league.settings.topFinishersPoints?.runnerUp ?? 15� br />",
+    "chars": "Ÿ¥‡ˆ�"
+  },
+  {
+    "lineNum": 3012,
+    "content": "ðŸ¥‰{league.settings.topFinishersPoints?.third ?? 10} ðŸ…{league.settings.topFinishersPoints?.fourth ?? 5�",
+    "chars": "Ÿ¥‰…�"
+  },
+  {
+    "lineNum": 3015,
+    "content": "<p className=\"text-xs text-gray-600 dark:text-gray-400 leading-relaxed\">Acertos da posi��o final de cada sele��o.<br /><span className=\"text-slate-600 dark:text-slate-400 font-medium\">Pontos acumulados por posi��o.</span></p>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3021,
+    "content": "<h4 className=\"font-bold text-gray-800 dark:text-gray-100 mb-3 flex items-center gap-2� Crown size={20} className=\"text-yellow-600 dark:text-yellow-400\" /> CritÃ©rios de Desempate</h4�",
+    "chars": "�©"
+  },
+  {
+    "lineNum": 3023,
+    "content": "<li className=\"flex items-start gap-3 bg-gray-50 dark:bg-gray-700 p-3 rounded-lg border border-gray-100 dark:border-gray-600\"><span className=\"bg-brasil-blue dark:bg-blue-600 text-white w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold shrink-0\">1� /span><span>Maior <strong>Pontua��o Total</strong> acumulada.</span></li>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3024,
+    "content": "<li className=\"flex items-start gap-3 bg-gray-50 dark:bg-gray-700 p-3 rounded-lg border border-gray-100 dark:border-gray-600\"><span className=\"bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold shrink-0\">2� /span><span>Maior nÃºmero de <strong>Cravadas</strong> (Acerto exato do placar).</span></li>",
+    "chars": "�º"
+  },
+  {
+    "lineNum": 3025,
+    "content": "<li className=\"flex items-start gap-3 bg-gray-50 dark:bg-gray-700 p-3 rounded-lg border border-gray-100 dark:border-gray-600\"><span className=\"bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold shrink-0\">3� /span><span>Maior nÃºmero de acertos em <strong>Vencedor + Saldo</strong>??</span></li>",
+    "chars": "�º"
+  },
+  {
+    "lineNum": 3026,
+    "content": "<li className=\"flex items-start gap-3 bg-gray-50 dark:bg-gray-700 p-3 rounded-lg border border-gray-100 dark:border-gray-600\"><span className=\"bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold shrink-0\">4� /span><span>Maior nÃºmero de acertos em <strong>Vencedor + Gols</strong>??</span></li>",
+    "chars": "�º"
+  },
+  {
+    "lineNum": 3027,
+    "content": "<li className=\"flex items-start gap-3 bg-gray-50 dark:bg-gray-700 p-3 rounded-lg border border-gray-100 dark:border-gray-600\"><span className=\"bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold shrink-0\">5� /span><span>Maior nÃºmero de acertos em <strong>Empates (NÃ£o Exatos)</strong>??</span></li>",
+    "chars": "�º£"
+  },
+  {
+    "lineNum": 3030,
+    "content": "<div className=\"bg-orange-50 dark:bg-orange-900/20 border-l-4 border-orange-400 p-4 rounded-r-xl flex gap-3 text-sm text-orange-900 dark:text-orange-200 items-start shadow-sm\"><AlertCircle className=\"shrink-0 mt-0.5 text-orange-600 dark:text-orange-400\" size={20} /><div><span className=\"font-bold block mb-1 text-orange-800 dark:text-orange-300 text-base\">Aten��o aos Jogos de Mata-Mata</span><p className=\"leading-relaxed\">Em caso de empate no tempo normal que leve Ã  prorroga��o, <strong>o placar final considerado ser�¡ o resultado apÃ³s os 120 minutos (Tempo Normal + Prorroga��o)</strong>??<br /><span className=\"font-semibold text-red-600 dark:text-red-400\">A disputa de pÃªnaltis NÃƒO conta para o placar da liga.</span></p></div></div>",
+    "chars": "� ¡³ªƒ"
+  },
+  {
+    "lineNum": 3037,
+    "content": "const pendingUsers = league.pendingRequests.map(uid => mergedUsers.find(u => u.id === uid)).filter(Boolean) as User�];",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3042,
+    "content": "if (isFree) { targetPlan = 'VIP BÃ¡sico'; upgradeLimit = 'At�© 50 Participantes'; upgradeText = 'Liberar VIP BÃ¡sico'; }",
+    "chars": "¡�©"
+  },
+  {
+    "lineNum": 3043,
+    "content": "else if (isBasic) { targetPlan = 'VIP Top'; upgradeLimit = 'At�© 100 Participantes'; upgradeText = 'Liberar VIP Top'; }",
+    "chars": "�©"
+  },
+  {
+    "lineNum": 3044,
+    "content": "else if (isVip) { targetPlan = 'VIP Master'; upgradeLimit = 'At�© 200 Participantes'; upgradeText = 'Liberar VIP Master'; }",
+    "chars": "�©"
+  },
+  {
+    "lineNum": 3046,
+    "content": "const whatsAppLink = `https://wa.me/5515997165772?text=Ol�¡, gostaria de assinar o plano ${targetPlan} para minha liga: ${encodeURIComponent(league.name)}`;",
+    "chars": "�¡"
+  },
+  {
+    "lineNum": 3056,
+    "content": "<div className={`rounded-xl p-6 shadow-sm border ${planBorder} ${planColor}`}><div className=\"flex justify-between items-start\"><div className=\"space-y-1� h3 className={`font-bold text-lg flex items-center gap-2 ${planTextColor}`}><PlanIcon size={20} className={iconClass� fill={!isFree && !isUnlimited && !isBasic ? \"currentColor\" : \"none\"} strokeWidth={isUnlimited ? 3 : 2� />Plano da Liga: <span>{isUnlimited ? 'VIP ILIMITADO' : isMaster ? 'VIP MASTER' : isVip ? 'VIP TOP' : isBasic ? 'VIP BÃSICO' : 'GRATUITO'}</span></h3� p className={`text-sm ${isAnyVip ? 'text-gray-400' : 'text-gray-600 dark:text-gray-400'}`}>{isUnlimited ? \"Participantes ILIMITADOS!\" : `Limite atual: ${league.participants.length} / ${limit} participantes.`}</p></div>{!isUnlimited && (<button onClick={() => setShowUpgradeModal(true)} className=\"bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2 px-4 rounded-lg shadow-md shadow-yellow-200 transition-all active:scale-95 text-sm flex items-center gap-2� Crown size={16} /> Upgrade</button>??</div>{!isUnlimited && (<div className=\"w-full bg-black/10 dark:bg-white/10 rounded-full h-2.5 mt-4 overflow-hidden\"><div className={`h-2.5 rounded-full ${league.participants.length >= limit ? 'bg-red-500' : 'bg-green-400'}`} style={{ width: `${Math.min(100, (league.participants.length / limit) * 100)}%` }}></div></div>??</div>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3057,
+    "content": "<div className=\"bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm\"><h3 className=\"font-bold text-lg mb-4 flex items-center gap-2 text-gray-800 dark:text-white\">Solicita��es Pendentes {pendingUsers.length > 0 && <span className=\"bg-red-500 text-white text-xs px-2 py-1 rounded-full\">{pendingUsers.length}</span>??</h3>{pendingUsers.length === 0 ? (<p className=\"text-gray-400 italic\">Nenhuma solicita��o pendente.</p>) : (<div className=\"space-y-3\">{pendingUsers.map(u => (<div key={u.id} className=\"flex items-center justify-between bg-gray-50 dark:bg-gray-700 p-3 rounded-lg\">",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3058,
+    "content": "<div className=\"flex items-center gap-3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3066,
+    "content": "</div><div className=\"flex gap-2� button onClick={() => approveUser�league.id, u.id)} className=\"p-2 bg-green-100 text-green-700 rounded hover:bg-green-200\"><Check size={18} /></button><button onClick={() => rejectUser�league.id, u.id)} className=\"p-2 bg-red-100 text-red-700 rounded hover:bg-red-200\"><X size={18} /></button></div></div>??</div>??</div>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3067,
+    "content": "<div className=\"bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm\"><h3 className=\"font-bold text-lg mb-4 text-gray-800 dark:text-white flex items-center gap-2� Mail size={20} className=\"text-brasil-blue dark:text-blue-400\" /> Convidar Participantes</h3>{isFull ? (<div className=\"bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 p-4 rounded-xl border border-yellow-200 dark:border-yellow-800 flex items-center gap-3� AlertTriangle size={24� className=\"shrink-0\" /><span className=\"text-sm\"><strong>Limite Atingido:</strong> Esta liga jÃ¡ possui o nÃºmero mÃ¡ximo de {limit} participantes do plano atual. Para convidar mais amigos� faÃ§a um upgrade.</span></div>) : (<><form onSubmit={handleSearchUser� className=\"flex gap-2 mb-4� input type=\"email\" required value={adminInviteEmail} onChange={(e) => setAdminInviteEmail(e.target.value)} placeholder=\"E-mail de cadastro do usuÃ¡rio\" className=\"flex-1 border border-gray-600 bg-gray-700 text-white placeholder-gray-400 rounded-lg p-3 text-sm focus:ring-2 focus:ring-brasil-blue outline-none disabled:opacity-50\" disabled={searchStatus === 'found'} />{searchStatus !== 'found' ? (<button type=\"submit\" disabled={searchStatus === 'searching'} className=\"bg-brasil-blue hover:bg-blue-900 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-all disabled:opacity-50\">{searchStatus === 'searching' ? <Loader2 className=\"animate-spin\" size={20} /> : <Search size={20} />??<span className=\"hidden sm:inline\">Buscar</span></button>) : (<button type=\"button\" onClick={handleClearSearch} className=\"bg-gray-200 hover:bg-gray-300 text-gray-600 font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-all\"><X size={20} /></button>??</form>{searchStatus === 'found' && foundUser && (<div className=\"bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-2�",
+    "chars": "�¡º§"
+  },
+  {
+    "lineNum": 3068,
+    "content": "<div className=\"flex items-center gap-3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3070,
+    "content": "src={foundUser�avatar}",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3071,
+    "content": "alt={foundUser�name}",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3075,
+    "content": "<div><p className=\"font-bold text-gray-800 dark:text-white\">{foundUser�name}</p><p className=\"text-xs text-gray-500 dark:text-gray-400\">{foundUser�email}</p></div></div><button onClick={handleConfirmInvite} disabled={isSendingInvite} className=\"w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70\">{isSendingInvite ? <Loader2 className=\"animate-spin\" size={18} /> : <UserPlus size={18} />} Confirmar Convite</button></div>)}{searchStatus === 'not_found' && (<div className=\"bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-300 p-4 rounded-xl border border-red-200 dark:border-red-800 flex items-center gap-3 animate-in fade-in slide-in-from-top-2� AlertCircle size={20} /><span className=\"font-medium text-sm\">UsuÃ¡rio nÃ£o encontrado. Verifique se o e-mail estÃ¡ correto e se o usuÃ¡rio jÃ¡ possui cadastro na Liga.</span></div>??</div>",
+    "chars": "�¡£"
+  },
+  {
+    "lineNum": 3077,
+    "content": "<h3 className=\"font-bold text-lg mb-4 text-gray-800 dark:text-white flex items-center gap-2\">Configura��es da Liga</h3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3080,
+    "content": "<div className=\"flex flex-col items-center space-y-2�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3083,
+    "content": "{editImage ? <img src={editImage} alt=\"Preview\" className={`w-full h-full object-cover ${imageProcessing ? 'opacity-50' : ''}`} /> : <div className=\"flex flex-col items-center text-gray-400\"><Camera size={24� /><span className=\"text-[10px] mt-1\">Logo</span></div>}",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3084,
+    "content": "{imageProcessing && (<div className=\"absolute inset-0 flex items-center justify-center\"><Loader2 className=\"animate-spin text-brasil-blue\" size={24� /></div>)}",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3085,
+    "content": "<div className=\"absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition�opacity\"><Upload className=\"text-white\" size={20} /></div>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3089,
+    "content": "<div className=\"flex-1 w-full space-y-4�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3090,
+    "content": "<div><label className=\"block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1\">Nome da Liga</label><input value={league.name} disabled className=\"w-full border border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-lg p-2.5 cursor-not-allowed\" placeholder=\"Nome da liga\" /><p className=\"text-xs text-gray-400 mt-1\">O nome da liga nÃ£o pode ser alterado.</p></div>",
+    "chars": "£"
+  },
+  {
+    "lineNum": 3091,
+    "content": "<div><label className=\"block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1\">Descri��o</label><textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} className=\"w-full border border-gray-600 bg-gray-700 text-white rounded-lg p-2.5 focus:ring-2 focus:ring-brasil-blue outline-none h-24 resize-none text-sm\" placeholder=\"Adicione uma descri��o para sua liga...\" /></div>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3092,
+    "content": "<div className=\"flex items-center justify-between\"><label className=\"text-sm font-medium text-gray-700 dark:text-gray-300\">Visibilidade da Liga</label><button type=\"button\" onClick={() => setEditIsPrivate(!editIsPrivate)} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-brasil-blue focus:ring-offset-2 ${editIsPrivate ? 'bg-gray-300' : 'bg-brasil-green'}`}><span className={`inline-block h-4 w-4 transform rounded-full bg-white transition duration-200 ease-in�out ${editIsPrivate ? 'translate-x-1� : 'translate-x-6'}`} /></button></div>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3093,
+    "content": "<p className=\"text-xs text-gray-500 dark:text-gray-400 -mt-2 flex items-center gap-1\">{editIsPrivate ? <Lock size={12� /> : <Globe size={12� />}{editIsPrivate ? 'Privada: Requer aprova��o.' : 'PÃºblica: Aberta a todos.'}</p>",
+    "chars": "�º"
+  },
+  {
+    "lineNum": 3094,
+    "content": "<button onClick={handleUpdateLeague} disabled={imageProcessing || isSavingSettings� className=\"bg-brasil-blue text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-900 transition-colors flex items-center gap-2 text-sm disabled:opacity-50\">{imageProcessing || isSavingSettings ? <Loader2 size={16} className=\"animate-spin\" /> : <Save size={16} />} {imageProcessing ? 'Aguarde...' : isSavingSettings ? 'Salvando...' : 'Salvar Altera��es'}</button>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3101,
+    "content": "<div className=\"flex items-center justify-between mb-4 border-b border-gray-100 dark:border-gray-700 pb-4�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3102,
+    "content": "<h3 className=\"font-bold text-lg text-gray-800 dark:text-white flex items-center gap-2�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3103,
+    "content": "<Trophy size={20} className=\"text-brasil-blue dark:text-blue-400\" /> Pontua��es da Liga",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3104,
+    "content": "</h3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3115,
+    "content": "<p>As pontua��es sÃ³ podem ser alteradas at�© <strong>24 horas antes do inÃ­cio da competi��o</strong>. ApÃ³s esse prazo, as configura��es ficam bloqueadas automaticamente.</p>",
+    "chars": "�³©­"
+  },
+  {
+    "lineNum": 3119,
+    "content": "<p>Se quiser deixar desativado <strong>Vencedor + Gols do Vencedor</strong>, <strong>Vencedor + Saldo</strong> ou <strong>Empate (NÃ£o Exato)</strong> basta deixar a mesma pontua��o de <strong>Apenas Vencedor</strong>??</p>",
+    "chars": "£�"
+  },
+  {
+    "lineNum": 3121,
+    "content": "<div className=\"grid grid-cols-1 sm:grid-cols-2 gap-4�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3122,
+    "content": "<div className=\"space-y-2�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3126,
+    "content": "min=\"1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3140,
+    "content": "<div className=\"space-y-2�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3144,
+    "content": "min=\"1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3158,
+    "content": "<div className=\"space-y-2�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3162,
+    "content": "min=\"1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3164,
+    "content": "value={editWinnerAndWinnerGoals�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3176,
+    "content": "<div className=\"space-y-2�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3177,
+    "content": "<label className=\"text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider\">Empate (NÃ£o Exato)</label>",
+    "chars": "£"
+  },
+  {
+    "lineNum": 3180,
+    "content": "min=\"1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3194,
+    "content": "<div className=\"space-y-2�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3198,
+    "content": "min=\"1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3215,
+    "content": "<div className=\"bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4 space-y-3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3218,
+    "content": "<p className=\"text-sm font-bold text-green-800 dark:text-green-300 flex items-center gap-2�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3221,
+    "content": "<p className=\"text-[11px] text-green-700 dark:text-green-400 mt-0.5\">Participantes palpitam nos 4 primeiros da competi��o</p>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3229,
+    "content": "<span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${editTopFinishersEnabled ? 'translate-x-6' : 'translate-x-1� />",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3235,
+    "content": "const labels = ['ðŸ¥‡ CampeÃ£o', 'ðŸ¥ˆ Vice', 'ðŸ¥‰ 3� Lugar', '4� Lugar'];",
+    "chars": "Ÿ¥‡£ˆ‰�"
+  },
+  {
+    "lineNum": 3237,
+    "content": "<div key={key} className=\"space-y-1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3267,
+    "content": "{isScoringLocked ? 'Configura��es Bloqueadas� : 'Salvar Pontua��es'}",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3272,
+    "content": "<div className=\"bg-red-50 dark:bg-red-900/20 rounded-xl p-6 shadow-sm border border-red-100 dark:border-red-800\"><h3 className=\"font-bold text-lg mb-4 text-red-800 dark:text-red-300 flex items-center gap-2� AlertTriangle size={20} /> Zona de Perigo</h3� p className=\"text-sm text-red-700 dark:text-red-300 mb-4\">Ao excluir a liga, todos os dados� participantes e palpites ser�£o permanentemente removidos� Esta a��o nÃ£o pode ser desfeita.</p><button onClick={() => setShowDeleteConfirm(true)} className=\"bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg flex items-center gap-2 transition-colors shadow-sm\"><Trash2 size={18} /> Excluir Liga e Dados</button></div>",
+    "chars": "�£"
+  },
+  {
+    "lineNum": 3277,
+    "content": "<Crown className=\"w-16 h-16 text-yellow-300 mx-auto mb-2� fill=\"currentColor\" />",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3278,
+    "content": "<h2 className=\"text-2xl font-black text-white uppercase tracking-wide\">{targetPlan.toUpperCase()}</h2�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3282,
+    "content": "<div className=\"text-center space-y-2�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3286,
+    "content": "<div className=\"bg-gray-50 dark:bg-gray-700 p-4 rounded-xl border border-gray-200 dark:border-gray-600 text-sm text-gray-600 dark:text-gray-300 leading-relaxed text-center\">Favor entrar em contato via WhatsApp para enviar o comprovante. O desbloqueio Ã© imediato.</div>",
+    "chars": "©"
+  },
+  {
+    "lineNum": 3287,
+    "content": "<a href={whatsAppLink} target=\"_blank\" rel=\"noopener noreferrer\" className=\"block w-full bg-[#25D366] hover:bg-[#128C7E] text-white font-bold py-4 px-6 rounded-xl text-center transition-all shadow-lg hover:shadow-xl active:scale-95 flex items-center justify-center gap-3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3288,
+    "content": "<MessageCircle size={24� /> {upgradeText}",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3308,
+    "content": "alignItems� 'center',",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3311,
+    "content": "pointerEvents� 'none',",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3318,
+    "content": "pointerEvents� 'auto',",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3323,
+    "content": "borderColor: toast.type === 'warning' ? '#f59e0b' : toast.type === 'success� ? '#009c3b' : '#002776',",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3326,
+    "content": "<div className=\"mt-0.5� div className={`p-1.5 rounded-full ${toast.type === 'warning' ? 'bg-yellow-100 text-yellow-700' : toast.type === 'success� ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-brasil-blue'}`}>{toast.type === 'warning' ? <AlertTriangle size={16} /> : toast.type === 'success� ? <Check size={16} /> : <Info size={16} />??</div></div><div className=\"flex-1� h3 className=\"font-bold text-gray-800 dark:text-white text-sm\">{toast.title}</h3� p className=\"text-gray-600 dark:text-gray-300 text-xs mt-0.5\">{toast.message}</p></div><button onClick={() => setToast(null)} className=\"text-gray-400 hover:text-gray-600\"><X size={14� /></button>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3331,
+    "content": "{userToRemove && createPortal(<div className=\"fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200\"><div className=\"bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 w-full max-w-sm animate-in zoom-in-95 duration-200 border border-gray-100 dark:border-gray-700\"><div className=\"flex items-center gap-3 mb-4 text-red-600\"><div className=\"bg-red-100 p-2 rounded-full\"><AlertTriangle size={24� /></div><h3 className=\"text-lg font-bold text-gray-800 dark:text-white\">Remover Participante?</h3� /div><p className=\"text-gray-600 dark:text-gray-300 mb-6 text-sm leading-relaxed\">Voc�ª tem certeza que deseja remover <strong>{userToRemove.name}</strong> desta liga? Essa a��o remover�¡ o acesso do usuÃ¡rio e nÃ£o poder�¡ ser desfeita imediatamente.</p><div className=\"flex gap-3� button onClick={() => setUserToRemove(null)} className=\"flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 font-bold text-gray-600 dark:text-gray-300 transition-colors text-sm\">Cancelar</button><button onClick={confirmRemoveUser� className=\"flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 font-bold shadow-md shadow-red-200 transition-all active:scale-95 text-sm\">Confirmar</button></div></div></div>, document.body)}",
+    "chars": "�ª¡£"
+  },
+  {
+    "lineNum": 3332,
+    "content": "{showDeleteConfirm && createPortal(<div className=\"fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200\"><div className=\"bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 w-full max-w-sm animate-in zoom-in-95 duration-200 border-2 border-red-100 dark:border-red-900\"><div className=\"flex items-center gap-3 mb-4 text-red-700 dark:text-red-400\"><div className=\"bg-red-100 dark:bg-red-900 p-2 rounded-full\"><Trash2 size={24� /></div><h3 className=\"text-lg font-bold text-gray-900 dark:text-white\">Excluir Liga Permanentemente?</h3� /div><div className=\"bg-red-50 dark:bg-red-900/20 p-3 rounded-lg mb-4 text-xs text-red-800 dark:text-red-200 border border-red-100 dark:border-red-800\"><p className=\"font-bold mb-1\">ATEN��O:</p><p>Esta a��o Ã© irreversÃ­vel e apagar�¡ todos os dados.</p></div><p className=\"text-gray-600 dark:text-gray-300 mb-6 text-sm leading-relaxed\">Voc�ª estÃ¡ prestes a excluir a liga <strong>{league.name}</strong>. Todos os palpites de todos os usuÃ¡rios e o ranking ser�£o <strong>apagados do banco de dados</strong>??</p><div className=\"flex gap-3� button onClick={() => setShowDeleteConfirm(false)} disabled={isDeleting} className=\"flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 font-bold text-gray-600 dark:text-gray-300 transition-colors text-sm disabled:opacity-50\">Cancelar</button><button onClick={executeDeleteLeague} disabled={isDeleting} className=\"flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 font-bold shadow-md shadow-red-200 transition-all active:scale-95 text-sm flex items-center justify-center gap-2 disabled:opacity-50\">{isDeleting ? 'Excluindo...' : 'Confirmar ExclusÃ£o'}</button></div></div></div>, document.body)}",
+    "chars": "�©­¡ª£"
+  },
+  {
+    "lineNum": 3333,
+    "content": "{showLeaveConfirm && createPortal(<div className=\"fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200\"><div className=\"bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 w-full max-w-sm animate-in zoom-in-95 duration-200 border border-gray-100 dark:border-gray-700\"><div className=\"flex items-center gap-3 mb-4 text-red-600\"><div className=\"bg-red-100 p-2 rounded-full\"><LogOut size={24� /></div><h3 className=\"text-lg font-bold text-gray-800 dark:text-white\">Sair da Liga?</h3� /div><p className=\"text-gray-600 dark:text-gray-300 mb-6 text-sm leading-relaxed\">Tem certeza que deseja sair da liga <strong>{league.name}</strong>? Seus palpites <strong>nÃ£o ser�£o apagados</strong>, mas voc�ª deixar�¡ de pontuar no ranking.</p><div className=\"flex gap-3� button onClick={() => setShowLeaveConfirm(false)} className=\"flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 font-bold text-gray-600 dark:text-gray-300 transition-colors text-sm\">Cancelar</button><button onClick={executeLeave} className=\"flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 font-bold shadow-md shadow-red-200 transition-all active:scale-95 text-sm\">Sair</button></div></div></div>, document.body)}",
+    "chars": "�£ª¡"
+  },
+  {
+    "lineNum": 3335,
+    "content": "<div className=\"mb-6 space-y-4�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3336,
+    "content": "<div className=\"flex items-center justify-between mb-4�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3339,
+    "content": "navigate(-1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3344,
+    "content": "{isAdmin && validPendingRequestsCount > 0 && (<button onClick={() => handleTabChange('admin')} className=\"flex items-center gap-1.5 bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-full font-bold text-xs shadow-md transition-all animate-pulse hover:animate-none\"><Bell size={14� fill=\"currentColor\" /> {validPendingRequestsCount} pendentes</button>)}",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3346,
+    "content": "<div className=\"bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3347,
+    "content": "<div className=\"flex items-center gap-4�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3357,
+    "content": ") : (<div className=\"w-16 h-16 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-brasil-blue dark:text-blue-400\"><Trophy size={32� /></div>)}",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3359,
+    "content": "<h1 className=\"text-2xl font-black text-gray-800 dark:text-white\">{league.name}</h1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3360,
+    "content": "<div className=\"flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400 mt-1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3361,
+    "content": "<span className=\"flex items-center gap-1\">{league.isPrivate ? <Lock size={12� /> : <Globe size={12� />}{league.isPrivate ? 'Privada' : 'Aberta'}</span><span>??</span>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3362,
+    "content": "<span className=\"flex items-center gap-1�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3363,
+    "content": "{isUnlimited ? (<InfinityIcon size={14� className=\"text-yellow-500\" strokeWidth={3� />) : isMaster ? (<Crown size={14� className=\"text-green-600 dark:text-green-400\" fill=\"currentColor\" />) : isVip ? (<Star size={14� className=\"text-blue-500 dark:text-blue-400\" fill=\"currentColor\" />) : isBasic ? (<StarHalf size={14� className=\"text-teal-600 dark:text-teal-400\" fill=\"currentColor\" />) : null}",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3364,
+    "content": "<span className={isUnlimited ? \"font-bold text-yellow-700 dark:text-yellow-400\" : isMaster ? \"font-bold text-green-700 dark:text-green-400\" : isVip ? \"font-bold text-blue-700 dark:text-blue-400\" : isBasic ? \"font-bold text-teal-700 dark:text-teal-400\" : \"text-gray-600 dark:text-gray-400\"}>{isUnlimited ? 'VIP Ilimitado' : isMaster ? 'VIP Master' : isVip ? 'VIP Top' : isBasic ? 'VIP BÃ¡sico' : 'GrÃ¡tis'}</span>",
+    "chars": "¡"
+  },
+  {
+    "lineNum": 3366,
+    "content": "{league.leagueCode && (<div className=\"hidden md:flex items-center gap-1� span>??</span><div onClick={handleCopyCode} className=\"flex items-center gap-1 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 px-2 py-0.5 rounded transition-all select-none border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 group\" title=\"Clique para copiar o cÃ³digo\"><span className=\"font-bold text-gray-700 dark:text-gray-300 text-xs font-mono tracking-wide\">CÃ³digo da Liga: {league.leagueCode}</span>{copiedCode ? <Check size={12� className=\"text-green-600 dark:text-green-400\" /> : <Copy size={12� className=\"text-gray-400 dark:text-gray-500 group-hover:text-brasil-blue dark:group-hover:text-blue-400\" />??</div></div>)}",
+    "chars": "�³"
+  },
+  {
+    "lineNum": 3368,
+    "content": "{league.leagueCode && (<div className=\"md:hidden mt-3� div onClick={handleCopyCode} className=\"inline-flex items-center gap-1 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 px-2 py-0.5 rounded transition-all select-none border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 group\" title=\"Clique para copiar o cÃ³digo\"><span className=\"font-bold text-gray-700 dark:text-gray-300 text-xs font-mono tracking-wide\">CÃ³digo da Liga: {league.leagueCode}</span>{copiedCode ? <Check size={12� className=\"text-green-600 dark:text-green-400\" /> : <Copy size={12� className=\"text-gray-400 dark:text-gray-500 group-hover:text-brasil-blue dark:group-hover:text-blue-400\" />??</div></div>)}",
+    "chars": "�³"
+  },
+  {
+    "lineNum": 3375,
+    "content": "<button disabled className=\"w-full md:w-auto bg-yellow-100 text-yellow-700 px-6 py-2 rounded-lg font-bold text-sm cursor-not-allowed\">Solicita��o Enviada</button>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3378,
+    "content": "<button disabled className=\"w-full md:w-auto bg-blue-100 text-blue-700 px-6 py-2 rounded-lg font-bold text-sm cursor-not-allowed flex items-center gap-2�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3381,
+    "content": "<span className=\"text-[10px] text-blue-600 font-bold mt-1\">Aceite no sininho de notifica��es</span>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3384,
+    "content": "<button onClick={handleJoin} className=\"w-full md:w-auto bg-brasil-green text-white px-6 py-2 rounded-lg font-bold text-sm hover:bg-green-700 transition-colors flex items-center justify-center gap-2� UserPlus size={16} /> Participar da Liga</button>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3388,
+    "content": "{league.description && (<div className=\"mt-4 bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300\"><h3 className=\"font-bold text-gray-800 dark:text-white mb-1\">Sobre a Liga</h3� p>{league.description}</p></div>)}",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3392,
+    "content": "<button onClick={() => handleTabChange('palpites')} className={`flex-1 py-2 px-4 rounded-md text-sm font-bold transition-colors whitespace-nowrap ${activeTab === 'palpites� ? 'bg-white dark:bg-gray-600 shadow text-brasil-blue dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Palpites</button>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3393,
+    "content": "<button onClick={() => handleTabChange('classificacao')} className={`flex-1 py-2 px-4 rounded-md text-sm font-bold transition-colors whitespace-nowrap ${activeTab === 'classificacao' ? 'bg-white dark:bg-gray-600 shadow text-brasil-blue dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Classifica��o</button>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3394,
+    "content": "<button onClick={() => handleTabChange('regras')} className={`flex-1 py-2 px-4 rounded-md text-sm font-bold transition-colors whitespace-nowrap ${activeTab === 'regras� ? 'bg-white dark:bg-gray-600 shadow text-brasil-blue dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Regras</button>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3399,
+    "content": "{activeTab === 'palpites� && renderPalpitesTab()}",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3401,
+    "content": "{activeTab === 'regras� && renderRegrasTab()}",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3408,
+    "content": "<button onClick={() => setZoomedImage(null)} className=\"absolute top-4 right-4 text-white hover:text-gray-300 p-2� X size={32� /></button>",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3419,
+    "content": "<AlertTriangle size={24� />",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3421,
+    "content": "<h3 className=\"text-xl font-black text-center text-gray-900 dark:text-white mb-2\">Aten��o</h3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3423,
+    "content": "Voc�ª tem palpites nÃ£o salvos� Deseja salvar antes de sair?",
+    "chars": "�ª£"
+  },
+  {
+    "lineNum": 3425,
+    "content": "<div className=\"flex flex-col gap-3�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3433,
+    "content": "if (ok && hasTopFinisherChanges� {",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3456,
+    "content": "const existingPred = topFinisherPredictions.find(p => p.userId === currentUser�id && p.leagueId === league.id);",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3464,
+    "content": "className=\"w-full bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 font-bold py-3 rounded-xl transition-colors�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3470,
+    "content": "className=\"w-full text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 font-bold py-3 transition-colors�",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3482,
+    "content": "<Loader2 size={48} className=\"text-white animate-spin mb-4� />",
+    "chars": "�"
+  },
+  {
+    "lineNum": 3483,
+    "content": "<div className=\"text-white font-bold text-lg\">Carregando anÃºncio...</div>",
+    "chars": "º"
+  }
+]

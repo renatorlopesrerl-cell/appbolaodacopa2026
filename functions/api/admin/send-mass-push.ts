@@ -24,7 +24,7 @@ export const onRequest = async (context: any) => {
         }
 
         const body = await request.json();
-        const { title, message, urlData, targetTopic } = body;
+        const { title, message, urlData, targetTopic, championship } = body;
 
         const topicName = targetTopic || 'todos_palpiteiros';
 
@@ -32,7 +32,51 @@ export const onRequest = async (context: any) => {
             return jsonResponse({ error: 'Title e message são obrigatórios' }, 400);
         }
 
-        // 1. Enviar para Tópico Firebase (Aplicativos Android/iOS)
+        // Se houver championship (envio segmentado de partida), enviamos via userIds
+        if (championship) {
+            const { data: leagues, error: leaguesError } = await supabase
+                .from('brasileirao_leagues')
+                .select('participants, settings');
+
+            if (leaguesError) {
+                console.error("Erro ao buscar ligas para notificação:", leaguesError);
+                return errorResponse(leaguesError);
+            }
+
+            const eligibleLeagues = leagues?.filter((l: any) => {
+                const comps = l.settings?.competitions;
+                return !comps || comps.includes(championship);
+            }) || [];
+
+            const userIds = [...new Set(
+                eligibleLeagues.flatMap((l: any) => l.participants ?? [])
+            )];
+
+            if (userIds.length === 0) {
+                return jsonResponse({ success: true, message: 'Nenhum usuário elegível para este campeonato.' });
+            }
+
+            // Usamos fetch direto para o edge function assim como a update-brasileirao faz
+            const url = `${env.SUPABASE_URL}/functions/v1/push-notification`;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY || env.SUPABASE_ANON_KEY}`
+                },
+                body: JSON.stringify({
+                    action: 'send',
+                    userIds,
+                    title,
+                    body: message,
+                    data: urlData || {}
+                })
+            });
+            const result = await response.json();
+            return jsonResponse({ success: response.ok, topicResult: result });
+        }
+
+        // 1. Enviar para Tópico Firebase (Aplicativos Android/iOS) (Fallback genérico)
         let topicSuccess = false;
         let topicResult = null;
         try {

@@ -1,0 +1,497 @@
+import React, { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useStore } from '../App';
+import { Calendar, Trophy, Users, PlayCircle, ShieldCheck, Mail, Check, X, Loader2, Info, Globe, ExternalLink, Smartphone, Copy, ArrowLeft } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
+import { supabase } from '../services/supabase';
+
+export const HomeBrasileirao: React.FC = () => {
+  const navigate = useNavigate();
+  const { currentUser, brasileiraoLeagues: leagues, brazilLeagues, currentTime, loading, isBrasileiraoLoading, invitations, respondToInvite, loginGoogle } = useStore();
+  const [copied, setCopied] = useState(false);
+  const [showFloatingBanner, setShowFloatingBanner] = useState(() => {
+    return sessionStorage.getItem('hideHomeBanner') !== 'true';
+  });
+
+  // AdMob Banner para a Home - Oculta se não estiver logado ou se for PRO
+  const adMobRef = React.useRef<any>(null);
+  const bannerShownRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (!currentUser || currentUser.isPro || !Capacitor.isNativePlatform()) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const mod = await import('@capacitor-community/admob');
+        if (cancelled) return;
+        adMobRef.current = mod.AdMob;
+        await mod.AdMob.initialize();
+        await mod.AdMob.showBanner({
+          adId: 'ca-app-pub-7684468298593275/2185547308',
+          adSize: mod.BannerAdSize.BANNER,
+          position: mod.BannerAdPosition.BOTTOM_CENTER,
+          margin: 0,
+          isTesting: false
+        });
+        if (!cancelled) bannerShownRef.current = true;
+      } catch (e) { console.error('AdMob show error:', e); }
+    })();
+    return () => {
+      cancelled = true;
+      if (bannerShownRef.current && adMobRef.current) {
+        bannerShownRef.current = false;
+        adMobRef.current.hideBanner().catch(() => { });
+        adMobRef.current.removeBanner().catch(() => { });
+      }
+    };
+  }, [currentUser]);
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText('https://bolaodacopa2026.app/');
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  // --- GUEST VIEW (Landing Page) ---
+  if (!currentUser) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[75vh] text-center animate-in fade-in zoom-in-95 duration-500 pb-10">
+
+        {/* Hero Section */}
+        <div className="space-y-6 max-w-2xl px-4 flex flex-col items-center">
+          <div className="relative inline-block mb-4">
+            <div className="absolute inset-0 bg-brasil-yellow blur-xl opacity-50 rounded-full"></div>
+            {/* LOGO DA COPA */}
+            <img
+              src="/palpiteirodacopa2026.png"
+              alt="Logo Palpiteiro da Copa 2026"
+              className="relative w-64 md:w-80 h-auto drop-shadow-2xl hover:scale-105 transition-transform duration-500"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <h1 className="text-3xl md:text-5xl lg:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-600 to-yellow-500 dark:from-green-400 dark:to-yellow-400 tracking-tighter uppercase break-words">
+              BOLÃO DO BRASILEIRÃO
+            </h1>
+            <h2 className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 font-medium max-w-lg mx-auto leading-relaxed">
+              Crie sua liga grátis e desafie seus amigos.
+              <span className="block">A sua torcida começa aqui!</span>
+            </h2>
+          </div>
+        </div>
+
+        {/* Login Actions */}
+        <div className="w-full max-w-xs space-y-4 mt-10">
+          <button
+            onClick={loginGoogle}
+            className="relative w-full group overflow-hidden bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 hover:border-brasil-blue dark:hover:border-blue-500 text-gray-700 dark:text-white font-bold py-4 px-6 rounded-2xl transition-all shadow-lg hover:shadow-xl active:scale-95 flex items-center justify-center gap-3"
+          >
+            <img src="https://www.svgrepo.com/show/475656/google-color.svg" className="w-6 h-6" alt="Google" />
+            <span className="text-sm md:text-base uppercase tracking-wide">LOGIN COM O GOOGLE</span>
+          </button>
+
+          <div className="flex items-center justify-center gap-2">
+            <div className="h-px bg-gray-300 dark:bg-gray-700 w-full opacity-50"></div>
+            <span className="text-xs text-gray-400 uppercase font-bold whitespace-nowrap">OU</span>
+            <div className="h-px bg-gray-300 dark:bg-gray-700 w-full opacity-50"></div>
+          </div>
+
+          <Link
+            id="email-login-link"
+            to="/login"
+            className="relative w-full group overflow-hidden bg-brasil-blue border-2 border-brasil-blue hover:bg-blue-900 text-white font-bold py-4 px-6 rounded-2xl transition-all shadow-lg hover:shadow-xl active:scale-95 flex items-center justify-center gap-3"
+          >
+            <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
+            <Mail className="w-6 h-6" />
+            <span className="text-sm md:text-base uppercase tracking-wide">ENTRAR OU CADASTRAR COM E-MAIL</span>
+          </Link>
+
+          <div className="flex items-center justify-center gap-2 text-sm text-gray-400 dark:text-gray-500 pt-2">
+            <ShieldCheck size={14} />
+            <span>Ambiente Seguro via Supabase Auth</span>
+          </div>
+
+          {/* Platform Specific Action (Play Store or Web Link) */}
+          {Capacitor.getPlatform() === 'web' ? (
+            <div className="flex flex-col items-center gap-2 pt-4">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Disponível para Android</p>
+              <a
+                href="https://play.google.com/store/apps/details?id=app.palpiteiro"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:scale-105 transition-transform duration-300 active:scale-95"
+              >
+                <img
+                  src="https://play.google.com/intl/en_us/badges/static/images/badges/pt-br_badge_web_generic.png"
+                  alt="Disponível no Google Play"
+                  className="h-14 w-auto drop-shadow-md"
+                />
+              </a>
+            </div>
+          ) : Capacitor.getPlatform() === 'android' && (
+            <div className="flex flex-col items-center gap-3 pt-6 w-full">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Copiar Link do Site</p>
+              <button
+                onClick={handleCopyLink}
+                className="w-full bg-white dark:bg-gray-800 border-2 border-brasil-blue dark:border-blue-500 text-brasil-blue dark:text-blue-400 font-bold py-3 px-6 rounded-2xl transition-all shadow-md hover:shadow-lg active:scale-95 flex items-center justify-center gap-2 group"
+              >
+                {copied ? <Check className="w-5 h-5 text-green-500" /> : <Copy className="w-5 h-5" />}
+                <span className="text-sm">{copied ? 'LINK COPIADO!' : 'BOLAODACOPA2026.APP'}</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Feature Cards */}
+        <div className="w-full max-w-5xl px-4 mt-8 flex flex-col gap-2 items-center text-center">
+          <h2 className="text-lg font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider opacity-80">Brasileirão Série A</h2>
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400">Tabela, Palpites e Ligas com Ranking em Tempo Real</h2>
+
+          <Link to="/como-jogar-brasileirao" className="text-brasil-blue dark:text-blue-400 hover:underline font-bold text-lg mt-6 flex items-center gap-2 transition-colors">
+            <Info size={20} />
+            Clique Aqui e Saiba Como Funciona
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8 w-full max-w-5xl px-4">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 hover:border-brasil-green hover:shadow-md transition-all">
+            <div className="bg-green-100 dark:bg-green-900 w-12 h-12 rounded-xl flex items-center justify-center mb-4 text-brasil-green dark:text-green-300">
+              <Users size={24} />
+            </div>
+            <h3 className="font-bold text-gray-800 dark:text-white text-lg">Crie Ligas</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Convide amigos para grupos de palpites privados.</p>
+          </div>
+
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 hover:border-brasil-blue hover:shadow-md transition-all">
+            <div className="bg-blue-100 dark:bg-blue-900/30 w-12 h-12 rounded-xl flex items-center justify-center mb-4 text-brasil-blue dark:text-blue-300">
+              <Calendar size={24} />
+            </div>
+            <h3 className="font-bold text-gray-800 dark:text-white text-lg">Tabela Completa</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Acompanhe datas, horários e chaveamento de todos os jogos.</p>
+          </div>
+        </div>
+
+        {/* Footer Links */}
+        <div className="flex flex-wrap justify-center gap-6 mt-8 text-sm text-gray-500 dark:text-gray-400">
+          <Link to="/termos" className="hover:text-brasil-blue dark:hover:text-blue-400 transition-colors">Termos de Uso</Link>
+          <Link to="/privacidade" className="hover:text-brasil-blue dark:hover:text-blue-400 transition-colors">Política de Privacidade</Link>
+        </div>
+
+        {/* Decorative Bottom Border */}
+        <div className="w-full max-w-5xl mt-8 h-1.5 bg-gradient-to-r from-brasil-green via-brasil-yellow to-brasil-blue rounded-full opacity-60"></div>
+      </div >
+    );
+  }
+
+  // --- AUTHENTICATED VIEW (Dashboard) ---
+  const myLeagues = leagues.filter(l => l.participants.includes(currentUser.id));
+  const pendingInvites = invitations.filter(i => i.status === 'pending');
+
+  // Handle hash scrolling
+  const location = useLocation();
+  React.useEffect(() => {
+    if (location.hash === '#invites-section') {
+      // Small timeout to ensure DOM is ready
+      setTimeout(() => {
+        const element = document.getElementById('invites-section');
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 100);
+    }
+  }, [loading, pendingInvites.length, location.hash]); // Re-run when invites load/change or hash changes
+
+  if (isBrasileiraoLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] text-brasil-blue">
+        <Loader2 size={40} className="animate-spin mb-4" />
+        <p className="font-bold">Carregando Brasileirão...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500">
+      <div className="mb-2">
+        <button
+          onClick={() => navigate('/')}
+          className="flex items-center gap-2 text-sm font-bold text-brasil-blue hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors group"
+        >
+          <div className="bg-blue-50 dark:bg-gray-800 p-1.5 rounded-full group-hover:bg-blue-100 dark:group-hover:bg-gray-700">
+            <ArrowLeft size={18} />
+          </div>
+          Voltar para Home
+        </button>
+      </div>
+
+      {/* Welcome Banner */}
+      <div className="relative overflow-hidden bg-gradient-to-r from-green-800 via-brasil-green to-green-800 rounded-3xl p-8 text-white shadow-xl">
+        <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-brasil-yellow rounded-full blur-3xl opacity-20"></div>
+        <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-brasil-yellow rounded-full blur-3xl opacity-20"></div>
+
+        <div className="relative z-10 flex flex-col md:flex-row items-center gap-6">
+          <div className="flex-1">
+            <h1 className="text-3xl md:text-4xl font-black mb-2 tracking-tight">
+              Olá, {currentUser.name}!
+              <span className="ml-2 inline-block animate-bounce">⚽</span>
+            </h1>
+            <p className="text-green-100 text-lg max-w-xl">
+              Quanto mais competições, mais emoção. Não esqueça de conferir os próximos jogos e deixar os seus palpites!
+            </p>
+          </div>
+          {/* Small Logo for Dashboard */}
+          <img
+            src="/palpiteirodacopa2026.png"
+            alt="Palpiteiro"
+            className="w-24 h-auto drop-shadow-lg hidden md:block opacity-90"
+          />
+        </div>
+      </div>
+
+      {/* PENDING INVITES SECTION */}
+      {pendingInvites.length > 0 && (
+        <div id="invites-section" className="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 p-4 rounded-r-lg shadow-sm">
+          <h2 className="font-bold text-yellow-800 dark:text-yellow-400 flex items-center gap-2 mb-3">
+            <Mail size={20} />
+            Convites Pendentes
+          </h2>
+          <div className="space-y-3">
+            {pendingInvites.map(invite => {
+              const localLeague = invite.leagueType === 'brazil'
+                ? brazilLeagues.find(l => l.id === invite.leagueId)
+                : invite.leagueType === 'brasileirao'
+                ? leagues.find(l => l.id === invite.leagueId)
+                : leagues.find(l => l.id === invite.leagueId);
+
+              const leagueName = localLeague?.name || invite.league_name || 'Liga Desconhecida';
+              const leagueImage = localLeague?.image || invite.league_image;
+
+              return (
+                <div key={invite.id} className="bg-white dark:bg-gray-800 p-3 rounded-lg flex flex-col sm:flex-row justify-between items-center gap-3 border border-yellow-200 dark:border-yellow-800">
+                  <div className="flex items-center gap-3">
+                    {leagueImage ? (
+                      <img
+                        src={leagueImage}
+                        alt={leagueName}
+                        className="w-12 h-12 rounded-xl object-cover border border-gray-100 dark:border-gray-700 shadow-sm"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-gray-400 border border-gray-100 dark:border-gray-700">
+                        <Trophy size={20} />
+                      </div>
+                    )}
+                    <div>
+                      <span className="text-sm text-gray-600 dark:text-gray-300">Você foi convidado para entrar na liga:</span>
+                      <div className="font-bold text-gray-800 dark:text-white text-lg">{leagueName}</div>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 w-full sm:w-auto">
+                    <button
+                      onClick={() => respondToInvite(invite.id, true)}
+                      className="flex-1 sm:flex-none px-4 py-2 bg-green-600 text-white rounded-lg font-bold text-sm hover:bg-green-700 flex items-center justify-center gap-1"
+                    >
+                      <Check size={16} /> Aceitar
+                    </button>
+                    <button
+                      onClick={() => respondToInvite(invite.id, false)}
+                      className="flex-1 sm:flex-none px-4 py-2 bg-red-100 text-red-600 rounded-lg font-bold text-sm hover:bg-red-200 flex items-center justify-center gap-1"
+                    >
+                      <X size={16} /> Recusar
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Main Actions Grid */}
+      {/* Main Actions Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <Link to="/table-brasileirao" className="group bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm hover:shadow-xl transition-all border border-gray-100 dark:border-gray-700 hover:border-brasil-green relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:scale-110 duration-500">
+            <Calendar size={80} className="text-brasil-green dark:text-green-400" />
+          </div>
+          <div className="relative z-10">
+            <div className="p-3 bg-green-50 dark:bg-green-900/30 rounded-xl w-fit mb-4 group-hover:bg-brasil-green group-hover:text-white transition-colors">
+              <Calendar className="w-6 h-6 text-brasil-green dark:text-green-400 group-hover:text-white" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-1">Tabelas</h2>
+            <p className="text-gray-500 dark:text-gray-400 text-sm">Visualize grupos, horários e classificação atualizada.</p>
+          </div>
+        </Link>
+
+
+
+        <Link to="/leagues-brasileirao" className="group bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm hover:shadow-xl transition-all border border-gray-100 dark:border-gray-700 hover:border-brasil-yellow relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:scale-110 duration-500">
+            <Users size={80} className="text-yellow-600 dark:text-yellow-400" />
+          </div>
+          <div className="relative z-10">
+            <div className="p-3 bg-yellow-50 dark:bg-yellow-900/30 rounded-xl w-fit mb-4 group-hover:bg-brasil-yellow group-hover:text-blue-900 transition-colors">
+              <Users className="w-6 h-6 text-yellow-600 dark:text-yellow-400 group-hover:text-blue-900" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-1">Minhas Ligas</h2>
+            <p className="text-gray-500 dark:text-gray-400 text-sm">
+              {myLeagues.length > 0
+                ? `Você está participando de ${myLeagues.length} liga(s).`
+                : "Crie ou participe de ligas para competir."}
+            </p>
+          </div>
+        </Link>
+
+        <Link to="/como-jogar-brasileirao" className="group bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-sm hover:shadow-xl transition-all border border-gray-100 dark:border-gray-700 hover:border-brasil-blue relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:scale-110 duration-500">
+            <Info size={80} className="text-brasil-blue dark:text-blue-400" />
+          </div>
+          <div className="relative z-10">
+            <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-xl w-fit mb-4 group-hover:bg-brasil-blue group-hover:text-white transition-colors">
+              <Info className="w-6 h-6 text-brasil-blue dark:text-blue-400 group-hover:text-white" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-1">Como Jogar</h2>
+            <p className="text-gray-500 dark:text-gray-400 text-sm">Entenda as regras de pontuação.</p>
+          </div>
+        </Link>
+
+
+
+        {!loading && !currentUser.isPro && (
+          <Link to="/seja-pro" className="group bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 p-6 rounded-2xl shadow-sm hover:shadow-xl transition-all border border-yellow-200 dark:border-yellow-800 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:scale-110 duration-500">
+              <Trophy size={80} className="text-amber-500 dark:text-amber-400" />
+            </div>
+            <div className="relative z-10">
+              <div className="p-3 bg-gradient-to-br from-yellow-100 to-amber-100 dark:from-yellow-900/50 dark:to-amber-900/50 rounded-xl w-fit mb-4 group-hover:bg-gradient-to-br group-hover:from-yellow-400 group-hover:to-amber-500 transition-colors">
+                <span className="text-2xl leading-none">⭐</span>
+              </div>
+              <div className="flex items-center gap-2 mb-1">
+                <h2 className="text-xl font-bold text-gray-800 dark:text-white">Seja PRO</h2>
+              </div>
+              <p className="text-amber-700 dark:text-amber-300 text-sm font-medium">Desbloqueie estatísticas exclusivas de cada jogo!</p>
+            </div>
+          </Link>
+        )}
+
+      </div>
+
+
+      {/* Platform Specific Action (Play Store or Web Link) */}
+      {Capacitor.getPlatform() === 'web' ? (
+        <div className="flex flex-col items-center justify-center gap-3 p-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
+          <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300 font-bold text-sm uppercase tracking-wider">
+            <Smartphone className="w-5 h-5 text-brasil-green" />
+            Baixe o App para Android
+          </div>
+          <p className="text-xs text-gray-500 text-center max-w-xs">
+            Acompanhe suas ligas com mais facilidade e receba notificações em tempo real.
+          </p>
+          <a
+            href="https://play.google.com/store/apps/details?id=app.palpiteiro"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:scale-105 transition-transform duration-300 active:scale-95"
+          >
+            <img
+              src="https://play.google.com/intl/en_us/badges/static/images/badges/pt-br_badge_web_generic.png"
+              alt="Disponível no Google Play"
+              className="h-14 w-auto drop-shadow-md"
+            />
+          </a>
+        </div>
+      ) : Capacitor.getPlatform() === 'android' && (
+        <div className="flex flex-col items-center justify-center gap-4 p-6 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm">
+          <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300 font-bold text-sm uppercase tracking-wider">
+            <Copy className="w-5 h-5 text-brasil-blue" />
+            Link da Versão Web
+          </div>
+          <p className="text-xs text-gray-500 text-center max-w-xs">
+            {copied ? 'Link copiado com sucesso!' : 'Copie o link abaixo para compartilhar com amigos que não usam Android.'}
+          </p>
+          <button
+            onClick={handleCopyLink}
+            className="w-full max-w-xs bg-white dark:bg-gray-700 border-2 border-brasil-blue dark:border-blue-500 text-brasil-blue dark:text-blue-400 font-bold py-3 px-6 rounded-2xl transition-all shadow-md hover:shadow-lg active:scale-95 flex items-center justify-center gap-2"
+          >
+            {copied ? <Check className="w-5 h-5 text-green-500" /> : <Copy className="w-4 h-4 opacity-50" />}
+            <span className="text-sm">{copied ? 'LINK COPIADO!' : 'BOLAODACOPA2026.APP'}</span>
+          </button>
+        </div>
+      )}
+
+      {/* LEGAL INFO CARD */}
+      <div className="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 relative overflow-hidden">
+        <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+          <div className="p-4 rounded-2xl bg-gray-200 dark:bg-gray-700 shrink-0">
+            <ShieldCheck className="w-8 h-8 text-gray-600 dark:text-gray-300" />
+          </div>
+          <div className="flex-1">
+            <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2">Informativo Legal</h2>
+            <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed text-justify mb-4">
+              Este aplicativo tem finalidade exclusivamente recreativa e não possui vínculo com entidades organizadoras da Copa 2026.
+              Não promovemos apostas financeiras. A gestão de ligas e premiações (se houver) é de total responsabilidade dos criadores e participantes de cada liga.
+            </p>
+            <div className="flex gap-4 text-sm font-medium">
+              <Link to="/termos" className="text-brasil-blue dark:text-blue-400 hover:underline">Termos de Uso</Link>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Decorative Bottom Border for Dashboard */}
+      <div className="pt-4">
+        <div className="w-full h-1 bg-gradient-to-r from-brasil-green via-brasil-yellow to-brasil-blue rounded-full opacity-30"></div>
+      </div>
+
+      {/* Floating Banner */}
+      {showFloatingBanner && (
+        <div className="fixed bottom-24 md:bottom-8 left-4 right-4 md:left-1/2 md:-translate-x-1/2 z-50 w-auto md:w-full max-w-4xl lg:max-w-5xl animate-in slide-in-from-bottom-8 fade-in duration-500">
+          <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.3)] border-2 border-brasil-yellow dark:border-yellow-600 overflow-hidden flex flex-col md:flex-row items-center">
+            {/* Background pattern/gradient */}
+            <div className="absolute inset-0 bg-gradient-to-br from-yellow-50 to-green-50 dark:from-yellow-900/20 dark:to-green-900/20 opacity-50"></div>
+
+            <button
+              onClick={() => {
+                setShowFloatingBanner(false);
+                sessionStorage.setItem('hideHomeBanner', 'true');
+              }}
+              className="absolute top-2 right-2 p-1.5 bg-white/50 hover:bg-gray-200 dark:bg-gray-700/50 dark:hover:bg-gray-600 rounded-full text-gray-500 dark:text-gray-400 hover:text-red-500 transition-colors z-20 backdrop-blur-sm"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="p-5 md:p-6 flex-1 relative z-10 w-full text-center md:text-left">
+              <h3 className="font-black text-gray-800 dark:text-white text-lg md:text-xl uppercase flex items-center justify-center md:justify-start gap-2 mb-1">
+                <Trophy size={20} className="text-brasil-yellow" />
+                Dê seu palpite!
+              </h3>
+              <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300 font-medium">Crie ou participe de uma liga agora mesmo:</p>
+            </div>
+
+            <div className="flex flex-col lg:flex-row items-stretch lg:items-center w-full md:w-auto gap-3 p-4 pt-0 md:pt-4 relative z-10 justify-center">
+              <Link
+                to="/leagues-brasileirao"
+                className="flex items-center justify-center gap-2 px-4 py-3 bg-brasil-blue hover:bg-blue-800 text-white font-bold rounded-xl text-sm shadow-md transition-transform active:scale-95 border border-blue-400 whitespace-nowrap"
+              >
+                <Globe size={18} />
+                <div className="flex items-center text-left leading-none">
+                  <span className="uppercase text-sm font-black">Confira as Competições</span>
+                </div>
+              </Link>
+              {!loading && !currentUser.isPro && (
+                <Link
+                  to="/seja-pro"
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-yellow-200 to-amber-300 hover:from-yellow-300 hover:to-amber-400 text-gray-900 font-bold rounded-xl text-sm shadow-sm transition-transform active:scale-95 border border-yellow-300 whitespace-nowrap"
+                >
+                  <span className="text-xl leading-none">⭐</span>
+                  <div className="flex items-center text-left leading-none">
+                    <span className="uppercase text-sm font-black">Seja PRO</span>
+                  </div>
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};

@@ -108,7 +108,7 @@ export const AdminPage: React.FC = () => {
     <div className="space-y-8 animate-in fade-in zoom-in-95 duration-300">
       <div className="mb-2">
         <button
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/copa')}
           className="flex items-center gap-2 text-sm font-bold text-brasil-blue hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors group"
         >
           <div className="bg-blue-50 dark:bg-gray-800 p-1.5 rounded-full group-hover:bg-blue-100 dark:group-hover:bg-gray-700">

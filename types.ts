@@ -1,4 +1,3 @@
-
 export enum MatchStatus {
   SCHEDULED = 'SCHEDULED',
   IN_PROGRESS = 'IN_PROGRESS',
@@ -15,6 +14,8 @@ export enum Phase {
 }
 
 export interface Team {
+  logo?: string;
+  short_name?: string;
   id: string;
   name: string;
   group: string;
@@ -98,8 +99,8 @@ export interface LeagueSettings {
   topFinishersEnabled?: boolean;
   topFinishersPoints?: TopFinisherPoints;
   topFinishersUnlocked?: boolean;
+  competitions?: ('brasileirao' | 'copa_do_brasil' | 'libertadores' | 'sul_americana')[]; // Controls which matches are included
 }
-
 export interface League {
   id: string;
   name: string;
@@ -118,7 +119,7 @@ export interface Invitation {
   leagueId: string;
   email: string;
   status: 'pending' | 'accepted' | 'rejected';
-  leagueType: 'standard' | 'brazil';
+  leagueType: 'standard' | 'brazil' | 'brasileirao';
   league_name?: string;
   league_image?: string;
 }
@@ -207,4 +208,48 @@ export interface AppNotification {
   title: string;
   message: string;
   type: 'success' | 'info' | 'warning';
+}
+
+// --- BRASILEIRAO MODE ---
+export interface BrasileiraoTeam {
+  id: number;
+  name: string;
+  short_name: string;
+  logo: string;
+}
+
+export interface BrasileiraoMatch {
+  id: string | number;
+  home_team_id: string | number;
+  away_team_id: string | number;
+  home_score: number | null;
+  away_score: number | null;
+  date: string; // ISO String
+  phase: string;
+  status: MatchStatus;
+  location: string;
+  championship?: string;
+  is_blocked?: boolean;
+}
+
+export interface BrasileiraoLeague {
+  id: string;
+  name: string;
+  image?: string;
+  description?: string;
+  leagueCode?: string;
+  adminId: string;
+  isPrivate: boolean;
+  participants: string[];
+  pendingRequests: string[];
+  settings: LeagueSettings; // Utiliza o mesmo modelo de pontos da Copa
+}
+
+export interface BrasileiraoPrediction {
+  userId: string;
+  matchId: string | number;
+  leagueId: string;
+  homeScore: number;
+  awayScore: number;
+  points?: number;
 }

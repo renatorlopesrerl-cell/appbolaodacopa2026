@@ -1,7 +1,7 @@
 
 import { getUserClient, jsonResponse, errorResponse, sendPushNotificationToUser, getSupabaseClient } from '../_shared';
 
-const getLeagueLimit = (settings: any) => {
+const getLeagueLimit = (settings: any, isBrasileirao: boolean = false) => {
     if (settings?.isUnlimited) return Infinity;
     const plan = settings?.plan || 'FREE';
     switch (plan) {
@@ -10,7 +10,7 @@ const getLeagueLimit = (settings: any) => {
         case 'VIP': return 100;
         case 'VIP_BASIC': return 50;
         case 'FREE':
-        default: return 10;
+        default: return isBrasileirao ? 15 : 10;
     }
 };
 
@@ -34,7 +34,7 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
             // Map data to include league_type if missing, and fetch league details
             const mappedData = await Promise.all((data || []).map(async (i: any) => {
                 const type = i.league_type || 'standard';
-                const table = type === 'brazil' ? 'brazil_leagues' : 'leagues';
+                const table = type === 'brasileirao' ? 'brasileirao_leagues' : type === 'brazil' ? 'brazil_leagues' : 'leagues';
                 const { data: leagueData } = await adminClient.from(table).select('name, image').eq('id', i.league_id).maybeSingle();
                 
                 return {
@@ -59,7 +59,7 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                 const formattedEmail = email.toLowerCase().trim();
                 const adminClient = getSupabaseClient(env);
                 
-                const table = leagueType === 'brazil' ? 'brazil_leagues' : 'leagues';
+                const table = leagueType === 'brasileirao' ? 'brasileirao_leagues' : leagueType === 'brazil' ? 'brazil_leagues' : 'leagues';
                 const { data: league, error: fetchError } = await adminClient.from(table).select('*').eq('id', leagueId).single();
                 if (fetchError || !league) return errorResponse(new Error("League not found"), 404);
 
@@ -85,7 +85,7 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                     return errorResponse(new Error("Convite já enviado para este usuário"), 400);
                 }
 
-                const limit = getLeagueLimit(league.settings);
+                const limit = getLeagueLimit(league.settings, leagueType === 'brasileirao');
                 if (league.participants.length >= limit) return errorResponse(new Error("Limite de participantes da liga atingido"), 400);
 
                 const { error } = await userClient.from('league_invites').insert({
@@ -124,7 +124,7 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                 const adminClient = getSupabaseClient(env);
 
                 if (accept) {
-                    const table = invite.league_type === 'brazil' ? 'brazil_leagues' : 'leagues';
+                    const table = invite.league_type === 'brasileirao' ? 'brasileirao_leagues' : invite.league_type === 'brazil' ? 'brazil_leagues' : 'leagues';
                     const { data: league, error: fetchLeagueError } = await adminClient.from(table).select('*').eq('id', invite.league_id).single();
                     if (fetchLeagueError || !league) return errorResponse(new Error("League not found"), 404);
 
@@ -135,7 +135,7 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                         return jsonResponse({ success: true, message: "Joined league" });
                     }
 
-                    const limit = getLeagueLimit(league.settings);
+                    const limit = getLeagueLimit(league.settings, invite.league_type === 'brasileirao');
                     if (league.participants.length >= limit) return jsonResponse({ success: false, message: "League limit reached" }, 400);
 
                     const updatedParticipants = Array.from(new Set([...league.participants, authUser.id]));
@@ -150,7 +150,7 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                     // Fetch the user's name from profiles to ensure it's displayed correctly
                     const { data: profile } = await userClient.from('profiles').select('name').eq('id', authUser.id).maybeSingle();
                     const requesterName = profile?.name || authUser.user_metadata?.full_name || authUser.email || "Um usuário";
-                    const url = invite.league_type === 'brazil' ? `/brazil-league/${league.id}?tab=admin` : `/league/${league.id}?tab=admin`;
+                    const url = invite.league_type === 'brasileirao' ? `/league-brasileirao/${league.id}?tab=admin` : invite.league_type === 'brazil' ? `/brazil-league/${league.id}?tab=admin` : `/league/${league.id}?tab=admin`;
                     await sendPushNotificationToUser(
                         env,
                         league.admin_id,

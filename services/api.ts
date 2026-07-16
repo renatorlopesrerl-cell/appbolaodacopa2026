@@ -182,18 +182,21 @@ export const api = {
         removeUser: (leagueId: string, userId: string) => apiFetch('/leagues/members', { method: 'POST', body: JSON.stringify({ leagueId, userId, action: 'remove' }) }),
 
         // Invites
-        invite: (leagueId: string, email: string, leagueType: 'standard' | 'brazil' = 'standard') => apiFetch('/leagues/invites', { method: 'POST', body: JSON.stringify({ leagueId, email, action: 'invite', leagueType }) }),
+        invite: (leagueId: string, email: string, leagueType: 'standard' | 'brazil' | 'brasileirao' = 'standard') => apiFetch('/leagues/invites', { method: 'POST', body: JSON.stringify({ leagueId, email, action: 'invite', leagueType }) }),
         respondInvite: (inviteId: string, accept: boolean) => apiFetch('/leagues/invites', { method: 'POST', body: JSON.stringify({ inviteId, accept, action: 'respond' }) }),
         listInvites: (email: string) => apiFetch<any[]>(`/leagues/invites?email=${encodeURIComponent(email)}`)
     },
     matches: {
         list: () => apiFetch<any[]>('/matches'),
         update: (data: any) => apiFetch('/admin/matches', { method: 'POST', body: JSON.stringify(data) }), // Admin
-        getStats: async (matchId: string, leagueId: string, leagueType: 'standard' | 'brazil') => {
+        getStats: async (matchId: string, leagueId: string, leagueType: 'standard' | 'brazil' | 'brasileirao') => {
             const data = await apiFetch<any>(`/match-stats?matchId=${matchId}&leagueId=${leagueId}&leagueType=${leagueType}`);
             return data;
         },
-        getDetailedMatchStats: async (matchId: string, leagueId: string, isBrazil: boolean) => {
+        getDetailedMatchStats: async (matchId: string, leagueId: string, isBrazil: boolean, leagueType?: 'brasileirao') => {
+            if (leagueType === 'brasileirao') {
+                return await apiFetch<any>(`/match-detailed-stats?matchId=${matchId}&leagueId=${leagueId}&leagueType=${leagueType}`);
+            }
             const { data, error } = await supabase.rpc('get_match_detailed_stats', {
                 p_league_id: leagueId,
                 p_match_id: matchId,
@@ -279,7 +282,7 @@ export const api = {
             apiFetch('/admin/toggle-pro', { method: 'POST', body: JSON.stringify({ userId, isPro }) }),
         testPush: () => apiFetch<any>('/admin/test-push'),
         broadcastPush: (body: any) => apiFetch<any>('/admin/broadcast-push', { method: 'POST', body: JSON.stringify(body) }),
-        sendMassPush: (body: { title: string, message: string, urlData?: any, targetTopic?: string }) => 
+        sendMassPush: (body: { title: string, message: string, urlData?: any, targetTopic?: string, championship?: string }) => 
             apiFetch<any>('/admin/send-mass-push', { method: 'POST', body: JSON.stringify(body) })
     },
     // --- BRAZIL GAMES MODE ---
@@ -339,6 +342,75 @@ export const api = {
             return apiFetch<any[]>('/brazil-predictions' + (query ? `?${query}` : ''));
         },
         submit: (data: any) => apiFetch<any>('/brazil-predictions', { method: 'POST', body: JSON.stringify(data) })
+    },
+    // --- BRASILEIRAO MODE ---
+    brasileiraoLeagues: {
+        list: () => apiFetch<any[]>('/brasileirao-leagues'),
+        search: (code: string) => apiFetch<any[]>(`/brasileirao-leagues?code=${encodeURIComponent(code)}`),
+        getById: async (id: string) => {
+            const { data, error } = await supabase
+                .from('brasileirao_leagues')
+                .select('*')
+                .eq('id', id)
+                .single();
+            if (error) return null;
+            return data;
+        },
+        getRankings: async (leagueId: string) => {
+            const { data, error } = await supabase
+                .from('brasileirao_league_rankings')
+                .select('*')
+                .eq('league_id', leagueId);
+            if (error) return [];
+            return data;
+        },
+        create: (leagueData: any) =>
+            apiFetch<{ success: boolean; data: any }>('/brasileirao-leagues', {
+                method: 'POST',
+                body: JSON.stringify(leagueData)
+            }),
+        update: (id: string, updates: any) =>
+            apiFetch('/brasileirao-leagues', {
+                method: 'PUT',
+                body: JSON.stringify({ id, ...updates })
+            }),
+        delete: async (id: string) => {
+            return apiFetch(`/brasileirao-leagues?id=${id}`, { method: 'DELETE' });
+        },
+        join: (leagueId: string) => apiFetch('/leagues/join', { method: 'POST', body: JSON.stringify({ id: leagueId, leagueType: 'brasileirao' }) }),
+        approveUser: (leagueId: string, userId: string) => apiFetch('/leagues/members', { method: 'POST', body: JSON.stringify({ leagueId, userId, action: 'approve', leagueType: 'brasileirao' }) }),
+        rejectUser: (leagueId: string, userId: string) => apiFetch('/leagues/members', { method: 'POST', body: JSON.stringify({ leagueId, userId, action: 'reject', leagueType: 'brasileirao' }) }),
+        removeUser: (leagueId: string, userId: string) => apiFetch('/leagues/members', { method: 'POST', body: JSON.stringify({ leagueId, userId, action: 'remove', leagueType: 'brasileirao' }) }),
+        invite: async (leagueId: string, email: string) => {
+            return api.leagues.invite(leagueId, email, 'brasileirao');
+        }
+    },
+    brasileiraoPredictions: {
+        list: async (leagueId?: string | string[], userId?: string, matchIds?: string[]) => {
+            const params = new URLSearchParams();
+            if (leagueId) {
+                if (Array.isArray(leagueId)) params.append('leagueId', leagueId.join(','));
+                else params.append('leagueId', leagueId);
+            }
+            if (userId) params.append('userId', userId);
+            if (matchIds && matchIds.length > 0) params.append('matchIds', matchIds.join(','));
+            const query = params.toString();
+            return apiFetch<any[]>('/brasileirao-predictions' + (query ? `?${query}` : ''));
+        },
+        submit: (data: any) => apiFetch<any>('/brasileirao-predictions', { method: 'POST', body: JSON.stringify(data) })
+    },
+    brasileiraoMatches: {
+        list: () => apiFetch<any[]>('/brasileirao-matches'),
+        listByCompetitions: async (comps: string[]) => {
+            const data = await supabaseWithRetry(async () =>
+                await supabase.from('brasileirao_matches').select('*').in('championship', comps).order('date', { ascending: true })
+            );
+            return (data as any[]) || [];
+        },
+        update: (data: any) => apiFetch('/admin/brasileirao-matches', { method: 'POST', body: JSON.stringify(data) })
+    },
+    brasileiraoTeams: {
+        list: () => apiFetch<any[]>('/brasileirao-teams'),
     },
     brazilPlayers: {
         list: async () => {

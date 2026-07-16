@@ -46,11 +46,19 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
         }
 
         // Only cache remote assets (e.g. Supabase Storage urls), exclude SVG generation or placeholder services
-        const shouldCache = src.startsWith('http') && !src.includes('placehold.co') && !src.includes('dicebear.com');
+        // Also exclude googleusercontent.com and other OAuth avatar providers since they fail CORS on fetch
+        const isExcluded = src.includes('placehold.co') ||
+                           src.includes('dicebear.com') ||
+                           src.includes('googleusercontent.com') ||
+                           src.includes('facebook.com') ||
+                           src.includes('fbcdn.net') ||
+                           src.includes('githubusercontent.com');
+
+        const shouldCache = src.startsWith('http') && !isExcluded;
 
         if (!shouldCache) {
             setDisplaySrc(src);
-            setIsLoaded(false);
+            setIsLoaded(true); // <--- Changed from false to true so local/uncached assets don't have fade-in delay
             setHasError(false);
             return;
         }
@@ -88,6 +96,15 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
             } catch (err) {
                 // Safe fallback to direct source url if fetch fails (e.g. CORS or offline)
                 if (active) {
+                    try {
+                        cleanExpiredCache();
+                        imageCache.set(src, {
+                            blobUrl: src, // Store original URL to avoid retrying fetch
+                            expiry: Date.now() + 5 * 60 * 1000 // Cache failure for 5 minutes
+                        });
+                    } catch (cacheErr) {
+                        console.error("Failed to cache image load failure:", cacheErr);
+                    }
                     setDisplaySrc(src);
                 }
             }
@@ -110,7 +127,7 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
             )}
 
             <img
-                src={finalSrc}
+                src={finalSrc || undefined}
                 alt={alt}
                 onLoad={() => setIsLoaded(true)}
                 onError={() => {

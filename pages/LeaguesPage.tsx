@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Link, useNavigate, Navigate } from 'react-router-dom';
+import { Link, useNavigate, Navigate, useSearchParams } from 'react-router-dom';
 import { useStore } from '../App';
 import { Plus, Lock, Globe, ArrowRight, Search, ArrowLeft, Upload, Camera, Trophy, Loader2, X, Star, Info } from 'lucide-react';
 import { processImageForUpload } from '../services/dataService';
@@ -19,7 +19,8 @@ export const LeaguesPage: React.FC = () => {
   const [isPrivate, setIsPrivate] = useState(true);
   const [leagueImage, setLeagueImage] = useState('');
   const [leaguePlan, setLeaguePlan] = useState<LeaguePlan>('FREE');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchParams] = useSearchParams();
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('code') || searchParams.get('join') || '');
   const [isCreating, setIsCreating] = useState(false);
   const [imageProcessing, setImageProcessing] = useState(false);
   const [searchedPrivateLeague, setSearchedPrivateLeague] = useState<League | null>(null);
@@ -70,13 +71,6 @@ export const LeaguesPage: React.FC = () => {
       }
     };
   }, []);
-
-  if (loading) {
-    return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin text-brasil-green" size={48} /></div>;
-  }
-
-  // Guaranteed by ProtectedRoute
-  if (!currentUser) return <Navigate to="/" replace />;
 
   const resetForm = () => {
     setNewLeagueName('');
@@ -202,6 +196,13 @@ export const LeaguesPage: React.FC = () => {
     setSearchedPrivateLeague(null);
   }, [searchTerm, leagues]);
 
+  if (loading) {
+    return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin text-brasil-green" size={48} /></div>;
+  }
+
+  // Guaranteed by ProtectedRoute
+  if (!currentUser) return <Navigate to="/" replace />;
+
   // Base lists
   const myLeagues = leagues.filter(l => l.participants.includes(currentUser.id));
   const otherLeagues = leagues.filter(l => !l.participants.includes(currentUser.id));
@@ -255,7 +256,7 @@ export const LeaguesPage: React.FC = () => {
     <div className="space-y-6">
       <div className="mb-2">
         <button
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/copa')}
           className="flex items-center gap-2 text-sm font-bold text-brasil-blue hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors group"
         >
           <div className="bg-blue-50 dark:bg-gray-800 p-1.5 rounded-full group-hover:bg-blue-100 dark:group-hover:bg-gray-700">

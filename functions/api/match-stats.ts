@@ -16,6 +16,83 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
         // 2. Instantiate the Supabase client
         // O Supabase usa a Service Role Key se configurada, ou Anon Key
         const supabase = getSupabaseClient(env);
+
+        if (leagueType === 'brasileirao') {
+            const { data: league, error: leagueErr } = await supabase
+                .from('brasileirao_leagues')
+                .select('participants')
+                .eq('id', leagueId)
+                .single();
+            if (leagueErr || !league) {
+                return new Response(JSON.stringify({ error: 'Liga não encontrada' }), { status: 404 });
+            }
+            if (!league.participants.includes(authUser.id)) {
+                return new Response(JSON.stringify({ error: 'Proibido: usuário não é participante' }), { status: 403 });
+            }
+
+            const chunkSize = 100;
+            const preds: any[] = [];
+            let predsErr = null;
+            for (let i = 0; i < league.participants.length; i += chunkSize) {
+                const chunk = league.participants.slice(i, i + chunkSize);
+                const { data: chunkPreds, error } = await supabase
+                    .from('brasileirao_predictions')
+                    .select('user_id, home_score, away_score, created_at')
+                    .eq('match_id', matchId)
+                    .eq('league_id', leagueId)
+                    .in('user_id', chunk);
+                if (error) { predsErr = error; break; }
+                if (chunkPreds) preds.push(...chunkPreds);
+            }
+
+            if (predsErr || preds.length === 0) {
+                 return jsonResponse({
+                     totalPreds: 0, mostPredictedScore: null, homeWinPct: 0, drawPct: 0, awayWinPct: 0, predictedUserIds: [], predictionTimestamps: {}
+                 });
+            }
+
+            let homeWins = 0, draws = 0, awayWins = 0;
+            const scoreCount: Record<string, number> = {};
+            const predictionTimestamps: Record<string, string> = {};
+            preds.forEach((p: any) => {
+                predictionTimestamps[p.user_id] = p.created_at;
+                const h = Number(p.home_score);
+                const a = Number(p.away_score);
+                if (h > a) homeWins++;
+                else if (a > h) awayWins++;
+                else draws++;
+                const key = `${h}-${a}`;
+                scoreCount[key] = (scoreCount[key] || 0) + 1;
+            });
+
+            const total = preds.length;
+            let mostScore = null;
+            let maxCount = 0;
+            Object.entries(scoreCount).forEach(([key, count]) => {
+                if (count > maxCount) { maxCount = count; mostScore = key; }
+                else if (count === maxCount && mostScore) {
+                    const [hA, aA] = mostScore.split('-').map(Number);
+                    const [hB, aB] = key.split('-').map(Number);
+                    if (hB + aB < hA + aA || (hB + aB === hA + aA && hB > hA)) {
+                        mostScore = key;
+                    }
+                }
+            });
+
+            const homeWinPct = Math.round((homeWins / total) * 100);
+            const awayWinPct = Math.round((awayWins / total) * 100);
+            const drawPct = 100 - homeWinPct - awayWinPct;
+
+            return jsonResponse({
+                totalPreds: total,
+                mostPredictedScore: mostScore,
+                homeWinPct,
+                drawPct,
+                awayWinPct,
+                predictedUserIds: preds.map((p: any) => p.user_id),
+                predictionTimestamps
+            });
+        }
         
         // 3. Chamar a função RPC que calcula as estatísticas diretamente no banco
         // A função get_match_stats roda como SECURITY DEFINER, bypassando o RLS

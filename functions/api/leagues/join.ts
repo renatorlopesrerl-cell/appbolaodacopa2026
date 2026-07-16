@@ -1,7 +1,7 @@
 
 import { getUserClient, jsonResponse, errorResponse, sendPushNotificationToUser, getSupabaseClient } from '../_shared';
 
-const getLeagueLimit = (settings: any) => {
+const getLeagueLimit = (settings: any, isBrasileirao: boolean = false) => {
     if (settings?.isUnlimited) return Infinity;
     const plan = settings?.plan || 'FREE';
     switch (plan) {
@@ -10,7 +10,7 @@ const getLeagueLimit = (settings: any) => {
         case 'VIP': return 100;
         case 'VIP_BASIC': return 50;
         case 'FREE':
-        default: return 10;
+        default: return isBrasileirao ? 15 : 10;
     }
 };
 
@@ -31,7 +31,7 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
             return errorResponse(new Error("User not authenticated"), 401);
         }
 
-        const table = leagueType === 'brazil' ? 'brazil_leagues' : 'leagues';
+        const table = leagueType === 'brasileirao' ? 'brasileirao_leagues' : leagueType === 'brazil' ? 'brazil_leagues' : 'leagues';
         const adminClient = getSupabaseClient(env);
 
         console.log(`[join] SERVICE_ROLE_KEY presente: ${!!env.SUPABASE_SERVICE_ROLE_KEY}`);
@@ -47,7 +47,7 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
             return jsonResponse({ success: false, message: "Already a participant" }, 400);
         }
 
-        const limit = getLeagueLimit(league.settings);
+        const limit = getLeagueLimit(league.settings, leagueType === 'brasileirao');
         if (league.participants.length >= limit) {
             return jsonResponse({ success: false, message: "League is full" }, 400);
         }
@@ -80,7 +80,7 @@ export const onRequest = async ({ request, env, data }: { request: Request, env:
                 .single();
 
             const requesterName = requesterProfile?.name || authUser.user_metadata?.full_name || authUser.email || "Um usuário";
-            const url = leagueType === 'brazil' ? `/brazil-league/${id}?tab=admin` : `/league/${id}?tab=admin`;
+            const url = leagueType === 'brasileirao' ? `/league-brasileirao/${id}?tab=admin` : leagueType === 'brazil' ? `/brazil-league/${id}?tab=admin` : `/league/${id}?tab=admin`;
 
             await sendPushNotificationToUser(
                 env,
