@@ -162,7 +162,10 @@ export const setupPushNotifications = async (userId: string, force: boolean = fa
             await PushNotifications.addListener('pushNotificationActionPerformed', (notification) => {
                 console.log('Push action performed:', notification.actionId, notification.notification.data);
                 const data = notification.notification.data;
-                if (data?.url) window.location.href = data.url;
+                if (data?.url) {
+                    try { localStorage.removeItem('last_sync_time'); } catch (e) {}
+                    window.location.href = data.url;
+                }
             });
 
             // Create channels for Android (Important for modern Android versions)
@@ -195,7 +198,10 @@ export const setupPushNotifications = async (userId: string, force: boolean = fa
         await LocalNotifications.addListener('localNotificationActionPerformed', (notification) => {
             console.log('Local notification action performed:', notification);
             const data = notification.notification.extra;
-            if (data?.url) window.location.href = data.url;
+            if (data?.url) {
+                try { localStorage.removeItem('last_sync_time'); } catch (e) {}
+                window.location.href = data.url;
+            }
         });
 
     } catch (error) {

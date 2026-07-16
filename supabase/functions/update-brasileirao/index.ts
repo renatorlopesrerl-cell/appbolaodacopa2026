@@ -76,6 +76,8 @@ async function processMatches(supabase: any) {
   const minReminderTime = new Date(agora.getTime() + 34 * 60000).toISOString();
   const maxReminderTime = new Date(agora.getTime() + 35 * 60000).toISOString();
 
+  const { data: teamsData } = await supabase.from('brasileirao_teams').select('id, name, short_name');
+
   const { data: reminderMatches } = await supabase
     .from("brasileirao_matches")
     .select("id, home_team_id, away_team_id, status, championship")
@@ -85,11 +87,12 @@ async function processMatches(supabase: any) {
 
   if (reminderMatches && reminderMatches.length > 0) {
     console.log(`Encontrados ${reminderMatches.length} jogos para lembrete (35 min).`);
-    const { data: teamsData } = await supabase.from('brasileirao_teams').select('id, name');
     
     for (const m of reminderMatches) {
-      const homeName = teamsData?.find(t => t.id === Number(m.home_team_id))?.name || "Mandante";
-      const awayName = teamsData?.find(t => t.id === Number(m.away_team_id))?.name || "Visitante";
+      const homeTeam = teamsData?.find(t => t.id === Number(m.home_team_id));
+      const awayTeam = teamsData?.find(t => t.id === Number(m.away_team_id));
+      const homeName = homeTeam?.short_name || homeTeam?.name || "Mandante";
+      const awayName = awayTeam?.short_name || awayTeam?.name || "Visitante";
       const title = `Lembrete de Palpite! ⏰`;
       const body = `Falta pouco para o inicio do jogo entre ${homeName} x ${awayName}! Revise ou faça seu palpite!`;
       const championship = m.championship || 'brasileirao';
@@ -103,7 +106,7 @@ async function processMatches(supabase: any) {
   
   const { data: jogosAtivos, error: dbError } = await supabase
     .from("brasileirao_matches")
-    .select("id, status")
+    .select("id, status, home_team_id, away_team_id")
     .lte("date", limiteSuperior)
     .gte("date", limiteInferior)
     .neq("status", "FINISHED");
@@ -146,8 +149,10 @@ async function processMatches(supabase: any) {
         
         // Se a partida acabou AGORA, disparamos a notificação de fim de jogo.
         if (matchDb && matchDb.status !== "FINISHED" && novoStatus === "FINISHED") {
-           const homeName = jogoAPI.teams.home.name;
-           const awayName = jogoAPI.teams.away.name;
+           const homeTeam = teamsData?.find(t => t.id === Number(matchDb.home_team_id));
+           const awayTeam = teamsData?.find(t => t.id === Number(matchDb.away_team_id));
+           const homeName = homeTeam?.short_name || homeTeam?.name || jogoAPI.teams.home.name;
+           const awayName = awayTeam?.short_name || awayTeam?.name || jogoAPI.teams.away.name;
            const homeScore = jogoAPI.goals.home ?? 0;
            const awayScore = jogoAPI.goals.away ?? 0;
            
