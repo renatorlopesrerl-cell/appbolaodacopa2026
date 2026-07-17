@@ -91,8 +91,8 @@ async function processMatches(supabase: any) {
     for (const m of reminderMatches) {
       const homeTeam = teamsData?.find(t => t.id === Number(m.home_team_id));
       const awayTeam = teamsData?.find(t => t.id === Number(m.away_team_id));
-      const homeName = homeTeam?.short_name || homeTeam?.name || "Mandante";
-      const awayName = awayTeam?.short_name || awayTeam?.name || "Visitante";
+      const homeName = homeTeam?.name || homeTeam?.short_name || "Mandante";
+      const awayName = awayTeam?.name || awayTeam?.short_name || "Visitante";
       const title = `Lembrete de Palpite! ⏰`;
       const body = `Falta pouco para o inicio do jogo entre ${homeName} x ${awayName}! Revise ou faça seu palpite!`;
       const championship = m.championship || 'brasileirao';
@@ -121,12 +121,15 @@ async function processMatches(supabase: any) {
     return;
   }
 
-  console.log(`Encontrados ${jogosAtivos.length} jogos que devem estar rolando. Iniciando busca de 15 em 15s...`);
+  const activeIds = jogosAtivos.map(j => j.id).slice(0, 20); // API-Football aceita no máximo 20 IDs juntos por req
+  const idsString = activeIds.join('-');
+
+  console.log(`Encontrados ${jogosAtivos.length} jogos que devem estar rolando. Iniciando busca de 15 em 15s para os IDs: ${idsString}`);
   
   for (let iteracao = 1; iteracao <= 4; iteracao++) {
     console.log(`Buscando placares da API (iteração ${iteracao}/4)...`);
     
-    const response = await fetch(`https://v3.football.api-sports.io/fixtures?live=${LIGAS}`, {
+    const response = await fetch(`https://v3.football.api-sports.io/fixtures?ids=${idsString}`, {
       headers: {
         "x-apisports-key": API_FOOTBALL_KEY,
       },
@@ -151,8 +154,8 @@ async function processMatches(supabase: any) {
         if (matchDb && matchDb.status !== "FINISHED" && novoStatus === "FINISHED") {
            const homeTeam = teamsData?.find(t => t.id === Number(matchDb.home_team_id));
            const awayTeam = teamsData?.find(t => t.id === Number(matchDb.away_team_id));
-           const homeName = homeTeam?.short_name || homeTeam?.name || jogoAPI.teams.home.name;
-           const awayName = awayTeam?.short_name || awayTeam?.name || jogoAPI.teams.away.name;
+           const homeName = homeTeam?.name || homeTeam?.short_name || jogoAPI.teams.home.name;
+           const awayName = awayTeam?.name || awayTeam?.short_name || jogoAPI.teams.away.name;
            const homeScore = jogoAPI.goals.home ?? 0;
            const awayScore = jogoAPI.goals.away ?? 0;
            

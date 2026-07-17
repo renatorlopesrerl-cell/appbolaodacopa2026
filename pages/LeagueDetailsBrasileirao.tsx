@@ -157,33 +157,9 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
         }
     }, [league?.id]);
 
-    const { data: leagueMatches = [], isLoading: isLoadingMatches } = useQuery({
-        queryKey: ['brasileiraoMatches', league?.id, allowedCompetitions],
-        queryFn: async () => {
-            const data = await api.brasileiraoMatches.listByCompetitions(allowedCompetitions);
-            return data.map((m: any) => ({
-                id: m.id,
-                home_team_id: m.home_team_id,
-                away_team_id: m.away_team_id,
-                date: m.date,
-                location: m.location || 'A definir',
-                status: m.status,
-                home_score: m.home_score ?? null,
-                away_score: m.away_score ?? null,
-                phase: m.phase || '',
-                championship: m.championship,
-                is_blocked: m.is_blocked
-            }));
-        },
-        staleTime: (() => {
-            const cached = queryClient.getQueryData<Match[]>(['brasileiraoMatches', league?.id, allowedCompetitions]);
-            return cached?.some(m => m.status === 'IN_PROGRESS') ? 0 : 5 * 60 * 1000;
-        })(),
-        enabled: !!league,
-        // Sem polling (refetchInterval) para poupar o banco de dados. Atualiza apenas ao entrar na tela (se staleTime = 0).
-    });
-
-    const matches = leagueMatches;
+    const matches = useMemo(() => {
+        return allMatches.filter(m => allowedCompetitions.includes(m.championship || 'brasileirao'));
+    }, [allMatches, allowedCompetitions]);
     const [activeTab, setActiveTab] = useState<'palpites' | 'classificacao' | 'regras' | 'admin'>('palpites');
     const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
     const [leaderboardView, setLeaderboardView] = useState<string>('total');
@@ -1075,7 +1051,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
         }
     }, [statsData, isLoadingStatsQuery]);
 
-    if (loading || isLeagueLoading || isLoadingMatches) return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin text-brasil-green" size={48} /></div>;
+    if (loading || isLeagueLoading) return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin text-brasil-green" size={48} /></div>;
     if (!currentUser) return <Navigate to="/" replace />;
     if (!league) return <Navigate to="/leagues-brasileirao" />;
 
