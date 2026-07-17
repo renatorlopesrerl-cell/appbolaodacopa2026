@@ -298,7 +298,7 @@ export const TablePageBrasileirao: React.FC = () => {
     });
 
     brasileiraoMatches.forEach(match => {
-      if (match.status === MatchStatus.FINISHED) {
+      if (match.status === MatchStatus.FINISHED || match.status === MatchStatus.IN_PROGRESS) {
         const homeId = match.home_team_id;
         const awayId = match.away_team_id;
         const homeScore = match.home_score || 0;
