@@ -1,0 +1,7 @@
+name = "appbolaodacopa2026"
+compatibility_date = "2024-04-01"
+
+# Tells Cloudflare Pages where the built static files are.
+# When connected via GitHub (no explicit build command), Cloudflare Pages
+# will serve static files from this directory.
+pages_build_output_dir = "dist"
