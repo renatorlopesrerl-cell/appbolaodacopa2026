@@ -1849,7 +1849,7 @@ export const LeagueDetails: React.FC = () => {
                                     <div className="flex items-center justify-between mb-2 gap-2 flex-nowrap">
                                         <div className="flex flex-col items-center justify-center w-1/3 flex-1 min-w-0 gap-1.5">
                                             <img src={getTeamFlag(match.homeTeamId)} alt={match.homeTeamId} className="w-12 h-9 object-cover rounded shadow-md shrink-0" />
-                                            <span className="text-center font-black text-[10px] min-[360px]:text-xs min-[380px]:text-sm md:text-base text-gray-900 dark:text-gray-100 leading-tight truncate w-full px-1" title={match.homeTeamId}>{match.homeTeamId}</span>
+                                            <span className="text-center font-black text-[10px] min-[360px]:text-xs min-[380px]:text-sm md:text-base text-gray-900 dark:text-gray-100 leading-tight line-clamp-2 break-words w-full px-1" title={match.homeTeamId}>{match.homeTeamId}</span>
                                             {stats && <span className="text-[10px] font-bold text-gray-500 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded shrink-0">{stats.home_win_pct}%</span>}
                                         </div>
 
@@ -1860,7 +1860,7 @@ export const LeagueDetails: React.FC = () => {
                                         </div>
                                         <div className="flex flex-col items-center justify-center w-1/3 flex-1 min-w-0 gap-1.5">
                                             <img src={getTeamFlag(match.awayTeamId)} alt={match.awayTeamId} className="w-12 h-9 object-cover rounded shadow-md shrink-0" />
-                                            <span className="text-center font-black text-[10px] min-[360px]:text-xs min-[380px]:text-sm md:text-base text-gray-900 dark:text-gray-100 leading-tight truncate w-full px-1" title={match.awayTeamId}>{match.awayTeamId}</span>
+                                            <span className="text-center font-black text-[10px] min-[360px]:text-xs min-[380px]:text-sm md:text-base text-gray-900 dark:text-gray-100 leading-tight line-clamp-2 break-words w-full px-1" title={match.awayTeamId}>{match.awayTeamId}</span>
                                             {stats && <span className="text-[10px] font-bold text-gray-500 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded shrink-0">{stats.away_win_pct}%</span>}
                                         </div>
                                     </div>
@@ -3204,10 +3204,10 @@ export const LeagueDetails: React.FC = () => {
             </div>
 
             <div className="flex gap-0.5 bg-gray-200 dark:bg-gray-700 p-0.5 rounded-lg mb-6 overflow-x-auto">
-                <button onClick={() => handleTabChange('palpites')} className={`flex-auto py-2 px-1 min-[380px]:px-2 sm:px-4 rounded-md text-[13px] sm:text-sm font-bold transition-colors whitespace-nowrap ${activeTab === 'palpites' ? 'bg-white dark:bg-gray-600 shadow-sm text-brasil-blue dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Palpites</button>
-                <button onClick={() => handleTabChange('classificacao')} className={`flex-auto py-2 px-1 min-[380px]:px-2 sm:px-4 rounded-md text-[13px] sm:text-sm font-bold transition-colors whitespace-nowrap ${activeTab === 'classificacao' ? 'bg-white dark:bg-gray-600 shadow-sm text-brasil-blue dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Classificação</button>
-                <button onClick={() => handleTabChange('regras')} className={`flex-auto py-2 px-1 min-[380px]:px-2 sm:px-4 rounded-md text-[13px] sm:text-sm font-bold transition-colors whitespace-nowrap ${activeTab === 'regras' ? 'bg-white dark:bg-gray-600 shadow-sm text-brasil-blue dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Regras</button>
-                {isAdmin && <button onClick={() => handleTabChange('admin')} className={`flex-auto py-2 px-1 min-[380px]:px-2 sm:px-4 rounded-md text-[13px] sm:text-sm font-bold transition-colors whitespace-nowrap ${activeTab === 'admin' ? 'bg-white dark:bg-gray-600 shadow-sm text-brasil-blue dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Admin {validPendingRequestsCount > 0 && <span className="ml-1.5 w-1.5 h-1.5 inline-block bg-red-500 rounded-full"></span>}</button>}
+                <button onClick={() => handleTabChange('palpites')} className={`flex-auto py-2 px-1 min-[380px]:px-2 sm:px-4 rounded-md text-sm sm:text-base font-bold transition-colors whitespace-nowrap ${activeTab === 'palpites' ? 'bg-white dark:bg-gray-600 shadow-sm text-brasil-blue dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Palpites</button>
+                <button onClick={() => handleTabChange('classificacao')} className={`flex-auto py-2 px-1 min-[380px]:px-2 sm:px-4 rounded-md text-sm sm:text-base font-bold transition-colors whitespace-nowrap ${activeTab === 'classificacao' ? 'bg-white dark:bg-gray-600 shadow-sm text-brasil-blue dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Classificação</button>
+                <button onClick={() => handleTabChange('regras')} className={`flex-auto py-2 px-1 min-[380px]:px-2 sm:px-4 rounded-md text-sm sm:text-base font-bold transition-colors whitespace-nowrap ${activeTab === 'regras' ? 'bg-white dark:bg-gray-600 shadow-sm text-brasil-blue dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Regras</button>
+                {isAdmin && <button onClick={() => handleTabChange('admin')} className={`flex-auto py-2 px-1 min-[380px]:px-2 sm:px-4 rounded-md text-sm sm:text-base font-bold transition-colors whitespace-nowrap ${activeTab === 'admin' ? 'bg-white dark:bg-gray-600 shadow-sm text-brasil-blue dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Admin {validPendingRequestsCount > 0 && <span className="ml-1.5 w-1.5 h-1.5 inline-block bg-red-500 rounded-full"></span>}</button>}
             </div>
 
             <div className="min-h-[400px]">
