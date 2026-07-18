@@ -1,3 +1,6 @@
+/*
+  Cache-Control: no-cache, no-store, must-revalidate
+
 /firebase-messaging-sw.js
   Content-Type: application/javascript
   Service-Worker-Allowed: /

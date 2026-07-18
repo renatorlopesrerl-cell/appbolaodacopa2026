@@ -24,7 +24,7 @@ try {
 }
 
 // Lógica de cache para o PWA funcionar offline
-const CACHE_NAME = 'palpiteiro-v9';
+const CACHE_NAME = 'palpiteiro-v10';
 const ASSETS_TO_CACHE = ['/', '/index.html', '/manifest.json', '/favicon.png'];
 
 self.addEventListener('install', (event) => {
@@ -56,8 +56,9 @@ self.addEventListener('fetch', (event) => {
   }
 
   // 3. Estratégia "Network-First" com fallback seguro apenas para o restante
+  const fetchOptions = event.request.mode === 'navigate' ? { cache: 'no-cache' } : {};
   event.respondWith(
-    fetch(event.request).catch(() => {
+    fetch(event.request, fetchOptions).catch(() => {
       // Se a rede falhar e for uma navegação de página, tenta o cache
       if (event.request.mode === 'navigate') {
         return caches.match('/index.html');
