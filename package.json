@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "generate-sw": "node scripts/generate-sw.js",
     "dev": "npm run generate-sw && vite --port 3000 --host 0.0.0.0",
