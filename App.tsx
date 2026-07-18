@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, createContext, useContext, useCallback } from 'react';
+import React, { useState, useEffect, useRef, createContext, useContext, useCallback, Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Trophy,
@@ -30,7 +30,6 @@ import { Layout } from './components/Layout';
 import { Home } from './pages/Home';
 import { TablePage } from './pages/TablePage';
 import { LeaguesPage } from './pages/LeaguesPage';
-import { LeagueDetails } from './pages/LeagueDetails';
 import { SimulatePage } from './pages/SimulatePage';
 import { ProfilePage } from './pages/ProfilePage';
 import { AdminPage } from './pages/AdminPage';
@@ -46,17 +45,20 @@ import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { ConfirmacaoCadastro } from './pages/ConfirmacaoCadastro';
 import { SEOLanding } from './pages/SEOLanding';
 import { BrazilGamesPage } from './pages/BrazilGamesPage';
-import { BrazilLeagueDetails } from './pages/BrazilLeagueDetails';
 import { ProPage } from './pages/ProPage';
 import { HubHome } from './pages/HubHome';
-import { HomeBrasileirao } from './pages/HomeBrasileirao';
-import { TablePageBrasileirao } from './pages/TablePageBrasileirao';
 import { LeaguesPageBrasileirao } from './pages/LeaguesPageBrasileirao';
-import { LeagueDetailsBrasileirao } from './pages/LeagueDetailsBrasileirao';
 import { HowToPlayBrasileirao } from './pages/HowToPlayBrasileirao';
-import { AdminPageBrasileirao } from './pages/AdminPageBrasileirao';
-import { AdminLeaguesPageBrasileirao } from './pages/AdminLeaguesPageBrasileirao';
-import { AdminMatchesPageBrasileirao } from './pages/AdminMatchesPageBrasileirao';
+
+// Heavy pages — loaded lazily for code splitting (reduces initial bundle ~40%)
+const LeagueDetails = lazy(() => import('./pages/LeagueDetails').then(m => ({ default: m.LeagueDetails })));
+const BrazilLeagueDetails = lazy(() => import('./pages/BrazilLeagueDetails').then(m => ({ default: m.BrazilLeagueDetails })));
+const HomeBrasileirao = lazy(() => import('./pages/HomeBrasileirao').then(m => ({ default: m.HomeBrasileirao })));
+const TablePageBrasileirao = lazy(() => import('./pages/TablePageBrasileirao').then(m => ({ default: m.TablePageBrasileirao })));
+const LeagueDetailsBrasileirao = lazy(() => import('./pages/LeagueDetailsBrasileirao').then(m => ({ default: m.LeagueDetailsBrasileirao })));
+const AdminPageBrasileirao = lazy(() => import('./pages/AdminPageBrasileirao').then(m => ({ default: m.AdminPageBrasileirao })));
+const AdminLeaguesPageBrasileirao = lazy(() => import('./pages/AdminLeaguesPageBrasileirao').then(m => ({ default: m.AdminLeaguesPageBrasileirao })));
+const AdminMatchesPageBrasileirao = lazy(() => import('./pages/AdminMatchesPageBrasileirao').then(m => ({ default: m.AdminMatchesPageBrasileirao })));
 
 
 // Services
@@ -2968,52 +2970,54 @@ const AppRoutes: React.FC = () => {
       <CapacitorBackButtonHandler />
       <Layout>
         <OfflineRedirect>
-          <Routes>
-            <Route path="/" element={<HubHome />} />
-            <Route path="/copa" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <Home /> : <Navigate to="/" />)} />
-            <Route path="/table" element={isRecoveryMode ? <Navigate to="/reset-password" /> : <TablePage />} />
-            <Route path="/leagues" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <LeaguesPage /> : <Navigate to="/" />)} />
-            <Route path="/league/:id" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <LeagueDetails /> : <Navigate to="/" />)} />
-            <Route path="/brazil-games" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <BrazilGamesPage /> : <Navigate to="/" />)} />
-            <Route path="/brazil-league/:id" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <BrazilLeagueDetails /> : <Navigate to="/" />)} />
-            <Route path="/simulador" element={currentUser ? <SimulatePage /> : <Navigate to="/" />} />
-            <Route path="/como-jogar" element={<HowToPlay />} />
+          <Suspense fallback={<AppLoading />}>
+            <Routes>
+              <Route path="/" element={<HubHome />} />
+              <Route path="/copa" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <Home /> : <Navigate to="/" />)} />
+              <Route path="/table" element={isRecoveryMode ? <Navigate to="/reset-password" /> : <TablePage />} />
+              <Route path="/leagues" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <LeaguesPage /> : <Navigate to="/" />)} />
+              <Route path="/league/:id" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <LeagueDetails /> : <Navigate to="/" />)} />
+              <Route path="/brazil-games" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <BrazilGamesPage /> : <Navigate to="/" />)} />
+              <Route path="/brazil-league/:id" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <BrazilLeagueDetails /> : <Navigate to="/" />)} />
+              <Route path="/simulador" element={currentUser ? <SimulatePage /> : <Navigate to="/" />} />
+              <Route path="/como-jogar" element={<HowToPlay />} />
 
-            {/* Rotas Brasileirão */}
-            <Route path="/brasileirao" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <BrasileiraoRoute><HomeBrasileirao /></BrasileiraoRoute> : <Navigate to="/" />)} />
-            <Route path="/table-brasileirao" element={isRecoveryMode ? <Navigate to="/reset-password" /> : <BrasileiraoRoute><TablePageBrasileirao /></BrasileiraoRoute>} />
-            <Route path="/leagues-brasileirao" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <BrasileiraoRoute><LeaguesPageBrasileirao /></BrasileiraoRoute> : <Navigate to="/" />)} />
-            <Route path="/league-brasileirao/:id" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <BrasileiraoRoute><LeagueDetailsBrasileirao /></BrasileiraoRoute> : <Navigate to="/" />)} />
-            <Route path="/como-jogar-brasileirao" element={<HowToPlayBrasileirao />} />
-            
-            <Route path="/admin-brasileirao" element={isRecoveryMode ? <Navigate to="/reset-password" /> : <AdminRoute><AdminPageBrasileirao /></AdminRoute>} />
-            <Route path="/admin-brasileirao/leagues" element={<AdminRoute><AdminLeaguesPageBrasileirao /></AdminRoute>} />
-            <Route path="/admin-brasileirao/matches" element={<AdminRoute><AdminMatchesPageBrasileirao /></AdminRoute>} />
+              {/* Rotas Brasileirão */}
+              <Route path="/brasileirao" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <BrasileiraoRoute><HomeBrasileirao /></BrasileiraoRoute> : <Navigate to="/" />)} />
+              <Route path="/table-brasileirao" element={isRecoveryMode ? <Navigate to="/reset-password" /> : <BrasileiraoRoute><TablePageBrasileirao /></BrasileiraoRoute>} />
+              <Route path="/leagues-brasileirao" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <BrasileiraoRoute><LeaguesPageBrasileirao /></BrasileiraoRoute> : <Navigate to="/" />)} />
+              <Route path="/league-brasileirao/:id" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <BrasileiraoRoute><LeagueDetailsBrasileirao /></BrasileiraoRoute> : <Navigate to="/" />)} />
+              <Route path="/como-jogar-brasileirao" element={<HowToPlayBrasileirao />} />
+              
+              <Route path="/admin-brasileirao" element={isRecoveryMode ? <Navigate to="/reset-password" /> : <AdminRoute><AdminPageBrasileirao /></AdminRoute>} />
+              <Route path="/admin-brasileirao/leagues" element={<AdminRoute><AdminLeaguesPageBrasileirao /></AdminRoute>} />
+              <Route path="/admin-brasileirao/matches" element={<AdminRoute><AdminMatchesPageBrasileirao /></AdminRoute>} />
 
-            <Route path="/bolao-copa-2026" element={<SEOLanding variant="bolao" />} />
-            <Route path="/simulador-copa-2026" element={<SEOLanding variant="simulador" />} />
-            <Route path="/tabela-copa-2026" element={<SEOLanding variant="tabela" />} />
-            <Route path="/bolao-jogos-do-brasil" element={<SEOLanding variant="brazil" />} />
-            <Route path="/bolao-brasileirao" element={<SEOLanding variant="brasileirao" />} />
-            <Route path="/bolao-copa-do-brasil" element={<SEOLanding variant="copa-do-brasil" />} />
-            <Route path="/bolao-libertadores" element={<SEOLanding variant="libertadores" />} />
-            <Route path="/bolao-sul-americana" element={<SEOLanding variant="sul-americana" />} />
-            <Route path="/termos" element={<TermsPage />} />
-            <Route path="/privacidade" element={<PrivacyPage />} />
-            <Route path="/exclusao-conta" element={<AccountDeletionPage />} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
-            <Route path="/profile" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <ProfilePage /> : <Navigate to="/" />)} />
-            <Route path="/seja-pro" element={currentUser ? <ProPage /> : <Navigate to="/login" />} />
+              <Route path="/bolao-copa-2026" element={<SEOLanding variant="bolao" />} />
+              <Route path="/simulador-copa-2026" element={<SEOLanding variant="simulador" />} />
+              <Route path="/tabela-copa-2026" element={<SEOLanding variant="tabela" />} />
+              <Route path="/bolao-jogos-do-brasil" element={<SEOLanding variant="brazil" />} />
+              <Route path="/bolao-brasileirao" element={<SEOLanding variant="brasileirao" />} />
+              <Route path="/bolao-copa-do-brasil" element={<SEOLanding variant="copa-do-brasil" />} />
+              <Route path="/bolao-libertadores" element={<SEOLanding variant="libertadores" />} />
+              <Route path="/bolao-sul-americana" element={<SEOLanding variant="sul-americana" />} />
+              <Route path="/termos" element={<TermsPage />} />
+              <Route path="/privacidade" element={<PrivacyPage />} />
+              <Route path="/exclusao-conta" element={<AccountDeletionPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
+              <Route path="/profile" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <ProfilePage /> : <Navigate to="/" />)} />
+              <Route path="/seja-pro" element={currentUser ? <ProPage /> : <Navigate to="/login" />} />
 
-            <Route path="/admin" element={isRecoveryMode ? <Navigate to="/reset-password" /> : <AdminRoute><AdminPage /></AdminRoute>} />
-            <Route path="/admin/leagues" element={<AdminRoute><AdminLeaguesPage /></AdminRoute>} />
-            <Route path="/admin/brazil-leagues" element={<AdminRoute><AdminBrazilLeaguesPage /></AdminRoute>} />
-            <Route path="/admin/matches" element={<AdminRoute><AdminMatchesPage /></AdminRoute>} />
+              <Route path="/admin" element={isRecoveryMode ? <Navigate to="/reset-password" /> : <AdminRoute><AdminPage /></AdminRoute>} />
+              <Route path="/admin/leagues" element={<AdminRoute><AdminLeaguesPage /></AdminRoute>} />
+              <Route path="/admin/brazil-leagues" element={<AdminRoute><AdminBrazilLeaguesPage /></AdminRoute>} />
+              <Route path="/admin/matches" element={<AdminRoute><AdminMatchesPage /></AdminRoute>} />
 
-            <Route path="/auth/callback" element={<ConfirmacaoCadastro />} />
-            <Route path="/login" element={!currentUser ? <Login /> : <Navigate to="/" />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
+              <Route path="/auth/callback" element={<ConfirmacaoCadastro />} />
+              <Route path="/login" element={!currentUser ? <Login /> : <Navigate to="/" />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
         </OfflineRedirect>
       </Layout>
     </BrowserRouter>

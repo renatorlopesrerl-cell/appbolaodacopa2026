@@ -23,6 +23,8 @@ ios
 
 # Wrangler
 .wrangler
+_worker.bundle
+_worker.js
 
 # Firebase PWA
 public/firebase-messaging-sw.js
@@ -38,3 +40,38 @@ scratch*.js
 
 # SQL files
 *.sql
+
+# Temp scripts/debug files in root
+find_*.cjs
+fix_*.cjs
+fix*.cjs
+patch_*.cjs
+patch*.cjs
+download_*.cjs
+fetch_*.cjs
+import_*.cjs
+sync_*.cjs
+cleanup_*.cjs
+compiler_*.cjs
+extract_*.cjs
+get_*.cjs
+dl_*.cjs
+slow_*.cjs
+monitor_*.js
+
+# Large binary/json debug files in root
+bad_lines.json
+unique_bad_words.json
+patch_history.txt
+all_patches.json
+best.json
+copa_logos.json
+sportsdb_urls.json
+wiki_urls.json
+
+# APK debug builds
+*.apk
+
+# Secrets
+.env.push_key
+.env.push_secrets_b64
