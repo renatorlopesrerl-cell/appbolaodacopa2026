@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "app.palpiteiro",
+      "sha256_cert_fingerprints": [
+        "B8:A5:5C:AA:C4:02:A9:AF:2C:50:E9:E5:68:5A:3D:06:02:FD:C7:2C:E8:8A:6A:B7:41:3E:94:5B:AC:17:E3:D0",
+        "CB:92:43:FC:B4:DA:E8:10:57:CC:3B:3B:0E:51:A4:20:18:C7:0C:97:31:B5:23:AD:2B:9D:DD:C4:E6:A2:2C:C5"
+      ]
+    }
+  }
+]

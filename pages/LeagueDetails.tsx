@@ -1912,6 +1912,13 @@ export const LeagueDetails: React.FC = () => {
                                             </div>
                                         </div>
                                     )}
+                                    {!showBlurStats && canClick && (
+                                        <div className="mt-3 flex justify-center border-t border-gray-100 dark:border-gray-700/50 pt-2.5">
+                                            <div className="flex items-center justify-center gap-1.5 text-[11px] font-bold text-gray-500 dark:text-gray-400 group-hover:text-brasil-blue dark:group-hover:text-blue-400 transition-colors uppercase tracking-wider">
+                                                <BarChart2 size={14} /> Estatísticas
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })}
@@ -3148,7 +3155,7 @@ export const LeagueDetails: React.FC = () => {
                         } else {
                             navigate('/leagues', { replace: true });
                         }
-                    })} className="flex items-center gap-2 text-sm font-bold text-brasil-blue hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors group"><div className="bg-blue-50 dark:bg-gray-800 p-1.5 rounded-full group-hover:bg-blue-100 dark:group-hover:bg-gray-700"><ArrowLeft size={18} /></div> Voltar para Ligas</button>
+                    })} className="flex items-center gap-2 text-sm font-bold text-brasil-blue hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors group"><div className="bg-blue-50 dark:bg-gray-800 p-1.5 rounded-full group-hover:bg-blue-100 dark:group-hover:bg-gray-700"><ArrowLeft size={18} /></div> Voltar</button>
                     {isAdmin && validPendingRequestsCount > 0 && (<button onClick={() => handleTabChange('admin')} className="flex items-center gap-1.5 bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-full font-bold text-xs shadow-md transition-all animate-pulse hover:animate-none"><Bell size={14} fill="currentColor" /> {validPendingRequestsCount} pendentes</button>)}
                 </div>
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -3196,11 +3203,11 @@ export const LeagueDetails: React.FC = () => {
                 {league.description && (<div className="mt-4 bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300"><h3 className="font-bold text-gray-800 dark:text-white mb-1">Sobre a Liga</h3><p>{league.description}</p></div>)}
             </div>
 
-            <div className="flex gap-1 bg-gray-200 dark:bg-gray-700 p-1 rounded-lg mb-6 overflow-x-auto">
-                <button onClick={() => handleTabChange('palpites')} className={`flex-1 py-2 px-4 rounded-md text-sm font-bold transition-colors whitespace-nowrap ${activeTab === 'palpites' ? 'bg-white dark:bg-gray-600 shadow text-brasil-blue dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Palpites</button>
-                <button onClick={() => handleTabChange('classificacao')} className={`flex-1 py-2 px-4 rounded-md text-sm font-bold transition-colors whitespace-nowrap ${activeTab === 'classificacao' ? 'bg-white dark:bg-gray-600 shadow text-brasil-blue dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Classificação</button>
-                <button onClick={() => handleTabChange('regras')} className={`flex-1 py-2 px-4 rounded-md text-sm font-bold transition-colors whitespace-nowrap ${activeTab === 'regras' ? 'bg-white dark:bg-gray-600 shadow text-brasil-blue dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Regras</button>
-                {isAdmin && <button onClick={() => handleTabChange('admin')} className={`flex-1 py-2 px-4 rounded-md text-sm font-bold transition-colors whitespace-nowrap ${activeTab === 'admin' ? 'bg-white dark:bg-gray-600 shadow text-brasil-blue dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Admin {validPendingRequestsCount > 0 && <span className="ml-2 w-2 h-2 inline-block bg-red-500 rounded-full"></span>}</button>}
+            <div className="flex gap-0.5 bg-gray-200 dark:bg-gray-700 p-0.5 rounded-lg mb-6 overflow-x-auto">
+                <button onClick={() => handleTabChange('palpites')} className={`flex-auto py-2 px-1 min-[380px]:px-2 sm:px-4 rounded-md text-[13px] sm:text-sm font-bold transition-colors whitespace-nowrap ${activeTab === 'palpites' ? 'bg-white dark:bg-gray-600 shadow-sm text-brasil-blue dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Palpites</button>
+                <button onClick={() => handleTabChange('classificacao')} className={`flex-auto py-2 px-1 min-[380px]:px-2 sm:px-4 rounded-md text-[13px] sm:text-sm font-bold transition-colors whitespace-nowrap ${activeTab === 'classificacao' ? 'bg-white dark:bg-gray-600 shadow-sm text-brasil-blue dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Classificação</button>
+                <button onClick={() => handleTabChange('regras')} className={`flex-auto py-2 px-1 min-[380px]:px-2 sm:px-4 rounded-md text-[13px] sm:text-sm font-bold transition-colors whitespace-nowrap ${activeTab === 'regras' ? 'bg-white dark:bg-gray-600 shadow-sm text-brasil-blue dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Regras</button>
+                {isAdmin && <button onClick={() => handleTabChange('admin')} className={`flex-auto py-2 px-1 min-[380px]:px-2 sm:px-4 rounded-md text-[13px] sm:text-sm font-bold transition-colors whitespace-nowrap ${activeTab === 'admin' ? 'bg-white dark:bg-gray-600 shadow-sm text-brasil-blue dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Admin {validPendingRequestsCount > 0 && <span className="ml-1.5 w-1.5 h-1.5 inline-block bg-red-500 rounded-full"></span>}</button>}
             </div>
 
             <div className="min-h-[400px]">

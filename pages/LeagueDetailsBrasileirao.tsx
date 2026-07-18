@@ -1941,14 +1941,8 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
 
                 {/* Match alerts moved below Top 4 card */}
                 <div className="space-y-3">
-                    <div className="bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-200 px-2 sm:px-4 py-3 text-xs md:text-sm font-medium border border-green-100 dark:border-green-800 rounded-xl flex items-center justify-center gap-1.5 sm:gap-2 text-center shadow-sm">
-                        <MousePointerClick size={16} className="shrink-0" /><span>Clique em qualquer partida para ver as estatísticas.</span>
-                    </div>
                     <div className="bg-yellow-50 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 px-2 sm:px-4 py-3 text-xs md:text-sm font-medium border border-yellow-100 dark:border-yellow-800 rounded-xl flex items-center justify-center gap-1.5 sm:gap-2 text-center shadow-sm">
                         <AlertCircle size={16} className="shrink-0" /><span>O palpite é bloqueado 5 min. antes do início do jogo.</span>
-                    </div>
-                    <div className="bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 px-2 sm:px-4 py-3 text-xs md:text-sm font-medium border border-blue-100 dark:border-blue-800 rounded-xl flex items-center justify-center gap-1.5 sm:gap-2 text-center shadow-sm">
-                        <MousePointerClick size={16} className="shrink-0" /><span>Após o bloqueio, clique na partida e confira os palpites.</span>
                     </div>
                 </div>
 
@@ -1998,7 +1992,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                             {hasFilters && (<button onClick={clearFilters} className="text-xs font-bold text-red-500 hover:text-red-700 transition-colors flex items-center gap-1 ml-3"><X size={12} /> Limpar</button>)}
                             <button onClick={() => refreshPredictions()} disabled={isRefreshingPredictions} className={`text-xs font-bold text-brasil-green hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors flex items-center gap-1 ml-3 bg-green-50 dark:bg-green-900/30 px-2 py-1 rounded border border-green-200 dark:border-green-800 ${isRefreshingPredictions ? 'opacity-70 cursor-not-allowed' : ''}`}><Loader2 size={12} className={isRefreshingPredictions ? 'animate-spin' : ''} /> {isRefreshingPredictions ? 'Atualizando...' : 'Atualizar Palpites'}</button>
                         </div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 bg-gray-50 dark:bg-gray-900 px-3 py-1 rounded-full shadow-sm border border-gray-200 dark:border-gray-700"><Clock size={12} /> Horários de Brasília (BRT)</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 bg-gray-50 dark:bg-gray-900 px-3 py-1 rounded-full shadow-sm border border-gray-200 dark:border-gray-700"><Clock size={12} /> Horários de Brasília</div>
                     </div>
                     <div className="flex flex-col gap-3">
                         <div className="grid grid-cols-3 md:flex md:flex-row gap-1 md:gap-1.5 w-full">
@@ -2177,7 +2171,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                             };
 
                             return (
-                                <div key={match.id} onClick={() => handleMatchClick(match, canClick, locked)} className={`bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border transition-all relative overflow-hidden ${isEdited ? 'border-brasil-yellow ring-1 ring-brasil-yellow' : 'border-gray-200 dark:border-gray-700'} ${canClick ? (locked ? 'cursor-pointer hover:border-brasil-blue dark:hover:border-blue-500 hover:shadow-md' : 'cursor-pointer hover:border-green-400 dark:hover:border-green-500 hover:shadow-md') : ''}`}>
+                                <div key={match.id} onClick={() => handleMatchClick(match, canClick, locked)} className={`group bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border transition-all relative overflow-hidden ${isEdited ? 'border-brasil-yellow ring-1 ring-brasil-yellow' : 'border-gray-200 dark:border-gray-700'} ${canClick ? (locked ? 'cursor-pointer hover:border-brasil-blue dark:hover:border-blue-500 hover:shadow-md' : 'cursor-pointer hover:border-green-400 dark:hover:border-green-500 hover:shadow-md') : ''}`}>
                                     <div className="absolute top-0 right-0">
                                         {isManuallyBlocked ? (
                                             <div className="bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400 px-3 py-1 rounded-bl-lg text-[10px] font-bold flex items-center gap-1"><Lock size={10} /> Jogo Adiado / Bloqueado - Não Vale Pontos</div>
@@ -2189,7 +2183,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                     {canClick && locked && <div className="absolute bottom-2 right-2 opacity-50 text-brasil-blue dark:text-blue-400"><Users size={16} /></div>}
                                     {canClick && !locked && <div className="absolute bottom-2 right-2 opacity-40 text-green-500 dark:text-green-400"><BarChart2 size={16} /></div>}
                                     <div className="flex flex-col text-xs text-gray-500 dark:text-gray-400 mb-4 gap-1 pr-20">
-                                        <span className="font-bold text-brasil-blue dark:text-blue-400 uppercase flex items-center gap-1.5 flex-wrap"><Calendar size={12} />{isDateValid ? matchDate.toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' }) : 'Data Inválida'}<span className="text-gray-300 dark:text-gray-600">|</span>{isDateValid ? matchDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '--:--'}<span className="text-gray-400 dark:text-gray-500 font-normal normal-case flex items-center gap-1"><MapPin size={10} /><span className="truncate max-w-[120px]">{match.location}</span></span></span>
+                                        <span className="font-bold text-brasil-blue dark:text-blue-400 uppercase flex items-center gap-1.5 flex-wrap"><Calendar size={12} />{isDateValid ? matchDate.toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' }) : 'Data Inválida'}<span className="text-gray-300 dark:text-gray-600">|</span>{isDateValid ? matchDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '--:--'}<span className="hidden text-gray-400 dark:text-gray-500 font-normal normal-case flex items-center gap-1"><MapPin size={10} /><span className="truncate max-w-[120px]">{match.location}</span></span></span>
                                         <div className="flex items-center gap-1.5">{(() => { const champ = match.championship; if (champ === 'copa_do_brasil') return <span className="text-[9px] bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-800 px-1.5 py-0.5 rounded font-black uppercase tracking-wider shadow-sm">Copa do Brasil</span>; return <span className="text-[9px] bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800 px-1.5 py-0.5 rounded font-black uppercase tracking-wider shadow-sm">Brasileirão</span>; })()}{match.phase && <span className={`text-[9px] font-black border border-black/5 dark:border-white/5 px-1.5 py-0.5 rounded uppercase tracking-wider shadow-sm ${getRoundColorClass(match.phase, match.championship === 'copa_do_brasil')}`}>{translatePhase(match.phase)}</span>}</div>
                                     </div>
                                     <div className="flex items-center justify-between mb-2 gap-2 flex-nowrap">
@@ -2263,6 +2257,13 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                         <div className="mt-3 relative h-10 overflow-hidden rounded-lg bg-gray-50 dark:bg-gray-700/50 flex items-center justify-center cursor-pointer border border-gray-100 dark:border-gray-600 group" onClick={(e) => { e.stopPropagation(); setSelectedMatchForStats(Number(match.id)); }}>
                                             <div className="absolute inset-0 bg-white/40 dark:bg-black/20 backdrop-blur-[2px] flex items-center justify-center transition-all group-hover:backdrop-blur-0">
                                                 <span className="text-[10px] font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest flex items-center gap-1.5 bg-white/80 dark:bg-gray-800/80 px-3 py-1 rounded-full shadow-sm"><Crown size={12} className="text-yellow-500" /> Ver Estatísticas PRO</span>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {!showBlurStats && canClick && (
+                                        <div className="mt-2 flex justify-center border-t border-gray-100 dark:border-gray-700/50 pt-1.5 pb-0">
+                                            <div className={`flex items-center justify-center gap-1.5 text-[11px] font-bold text-gray-500 dark:text-gray-400 transition-colors uppercase tracking-wider ${locked ? 'group-hover:text-brasil-blue dark:group-hover:text-blue-400' : 'group-hover:text-green-600 dark:group-hover:text-green-400'}`}>
+                                                {locked ? <Users size={14} /> : <BarChart2 size={14} />} {locked ? 'Confira os Palpites' : 'Estatísticas'}
                                             </div>
                                         </div>
                                     )}
@@ -3663,7 +3664,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                         } else {
                             navigate('/leagues-brasileirao', { replace: true });
                         }
-                    })} className="flex items-center gap-2 text-sm font-bold text-brasil-blue hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors group"><div className="bg-blue-50 dark:bg-gray-800 p-1.5 rounded-full group-hover:bg-blue-100 dark:group-hover:bg-gray-700"><ArrowLeft size={18} /></div> Voltar para Ligas</button>
+                    })} className="flex items-center gap-2 text-sm font-bold text-brasil-blue hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors group"><div className="bg-blue-50 dark:bg-gray-800 p-1.5 rounded-full group-hover:bg-blue-100 dark:group-hover:bg-gray-700"><ArrowLeft size={18} /></div> Voltar</button>
                     {isAdmin && validPendingRequestsCount > 0 && (<button onClick={() => handleTabChange('admin')} className="flex items-center gap-1.5 bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-full font-bold text-xs shadow-md transition-all animate-pulse hover:animate-none"><Bell size={14} fill="currentColor" /> {validPendingRequestsCount} pendentes</button>)}
                 </div>
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -3717,11 +3718,11 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                 {league.description && (<div className="mt-4 bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-300"><h3 className="font-bold text-gray-800 dark:text-white mb-1">Sobre a Liga</h3><p>{league.description}</p></div>)}
             </div>
 
-            <div className="flex gap-1 bg-gray-200 dark:bg-gray-700 p-1 rounded-lg mb-6 overflow-x-auto">
-                <button onClick={() => handleTabChange('palpites')} className={`flex-1 py-2 px-4 rounded-md text-sm font-bold transition-colors whitespace-nowrap ${activeTab === 'palpites' ? 'bg-white dark:bg-gray-600 shadow text-brasil-blue dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Palpites</button>
-                <button onClick={() => handleTabChange('classificacao')} className={`flex-1 py-2 px-4 rounded-md text-sm font-bold transition-colors whitespace-nowrap ${activeTab === 'classificacao' ? 'bg-white dark:bg-gray-600 shadow text-brasil-blue dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Classificação</button>
-                <button onClick={() => handleTabChange('regras')} className={`flex-1 py-2 px-4 rounded-md text-sm font-bold transition-colors whitespace-nowrap ${activeTab === 'regras' ? 'bg-white dark:bg-gray-600 shadow text-brasil-blue dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Regras</button>
-                {isAdmin && <button onClick={() => handleTabChange('admin')} className={`flex-1 py-2 px-4 rounded-md text-sm font-bold transition-colors whitespace-nowrap ${activeTab === 'admin' ? 'bg-white dark:bg-gray-600 shadow text-brasil-blue dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Admin {validPendingRequestsCount > 0 && <span className="ml-2 w-2 h-2 inline-block bg-red-500 rounded-full"></span>}</button>}
+            <div className="flex gap-0.5 bg-gray-200 dark:bg-gray-700 p-0.5 rounded-lg mb-6 overflow-x-auto">
+                <button onClick={() => handleTabChange('palpites')} className={`flex-auto py-2 px-1 min-[380px]:px-2 sm:px-4 rounded-md text-[13px] sm:text-sm font-bold transition-colors whitespace-nowrap ${activeTab === 'palpites' ? 'bg-white dark:bg-gray-600 shadow-sm text-brasil-blue dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Palpites</button>
+                <button onClick={() => handleTabChange('classificacao')} className={`flex-auto py-2 px-1 min-[380px]:px-2 sm:px-4 rounded-md text-[13px] sm:text-sm font-bold transition-colors whitespace-nowrap ${activeTab === 'classificacao' ? 'bg-white dark:bg-gray-600 shadow-sm text-brasil-blue dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Classificação</button>
+                <button onClick={() => handleTabChange('regras')} className={`flex-auto py-2 px-1 min-[380px]:px-2 sm:px-4 rounded-md text-[13px] sm:text-sm font-bold transition-colors whitespace-nowrap ${activeTab === 'regras' ? 'bg-white dark:bg-gray-600 shadow-sm text-brasil-blue dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Regras</button>
+                {isAdmin && <button onClick={() => handleTabChange('admin')} className={`flex-auto py-2 px-1 min-[380px]:px-2 sm:px-4 rounded-md text-[13px] sm:text-sm font-bold transition-colors whitespace-nowrap ${activeTab === 'admin' ? 'bg-white dark:bg-gray-600 shadow-sm text-brasil-blue dark:text-blue-300' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Admin {validPendingRequestsCount > 0 && <span className="ml-1.5 w-1.5 h-1.5 inline-block bg-red-500 rounded-full"></span>}</button>}
             </div>
 
             <div className="min-h-[400px]">

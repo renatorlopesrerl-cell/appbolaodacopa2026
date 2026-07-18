@@ -1371,9 +1371,9 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       if (currentUserRef.current?.id) {
         const uid = currentUserRef.current.id;
         const [lRes, brRes, brasRes] = await Promise.allSettled([
-          supabase.from('leagues').select('id, name, admin_id, pending_requests, settings, image, description, is_private, participants').eq('admin_id', uid),
-          supabase.from('brazil_leagues').select('id, name, admin_id, pending_requests, settings, image, description, is_private, participants').eq('admin_id', uid),
-          supabase.from('brasileirao_leagues').select('id, name, admin_id, pending_requests, settings, image, description, is_private, participants').eq('admin_id', uid)
+          supabase.from('leagues').select('id, name, admin_id, pending_requests, settings, image, description, is_private, participants, league_code').eq('admin_id', uid),
+          supabase.from('brazil_leagues').select('id, name, admin_id, pending_requests, settings, image, description, is_private, participants, league_code').eq('admin_id', uid),
+          supabase.from('brasileirao_leagues').select('id, name, admin_id, pending_requests, settings, image, description, is_private, participants, league_code').eq('admin_id', uid)
         ]);
 
         if (lRes.status === 'fulfilled' && lRes.value.data) {
