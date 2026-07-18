@@ -1832,15 +1832,14 @@ export const LeagueDetails: React.FC = () => {
                             };
 
                             return (
-                                <div key={match.id} onClick={() => handleMatchClick(match, canClick, locked)} className={`bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border transition-all relative overflow-hidden ${isEdited ? 'border-brasil-yellow ring-1 ring-brasil-yellow' : 'border-gray-200 dark:border-gray-700'} ${canClick ? (locked ? 'cursor-pointer hover:border-brasil-blue dark:hover:border-blue-500 hover:shadow-md' : 'cursor-pointer hover:border-green-400 dark:hover:border-green-500 hover:shadow-md') : ''}`}>
+                                <div key={match.id} onClick={() => handleMatchClick(match, canClick, locked)} className={`group bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border transition-all relative overflow-hidden ${isEdited ? 'border-brasil-yellow ring-1 ring-brasil-yellow' : 'border-gray-200 dark:border-gray-700'} ${canClick ? (locked ? 'cursor-pointer hover:border-brasil-blue dark:hover:border-blue-500 hover:shadow-md' : 'cursor-pointer hover:border-green-400 dark:hover:border-green-500 hover:shadow-md') : ''}`}>
                                     <div className="absolute top-0 right-0">
                                         {locked ? (
                                             match.status === MatchStatus.IN_PROGRESS ? <div className="bg-red-100 text-red-600 px-3 py-1 rounded-bl-lg text-[10px] font-bold flex items-center gap-1 animate-pulse"><Lock size={10} /> Em Andamento</div> : match.status === MatchStatus.FINISHED ? <div className="bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-300 px-3 py-1 rounded-bl-lg text-[10px] font-bold flex items-center gap-1"><Lock size={10} /> Finalizado</div> : <div className="bg-yellow-100 dark:bg-yellow-900 text-orange-600 dark:text-orange-300 px-3 py-1 rounded-bl-lg text-[10px] font-bold flex items-center gap-1"><Lock size={10} /> Palpite Encerrado</div>
                                         ) : userPred ? <div className="bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-300 px-3 py-1 rounded-bl-lg text-[10px] font-bold flex items-center gap-1"><CheckCircle2 size={10} /> Palpite Salvo</div> : <div className="bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 px-3 py-1 rounded-bl-lg text-[10px] font-bold flex items-center gap-1"><Unlock size={10} /> Palpite Aberto</div>}
                                         <LiveCountdown date={match.date} isLocked={locked} />
                                     </div>
-                                    {canClick && locked && <div className="absolute bottom-2 right-2 opacity-50 text-brasil-blue dark:text-blue-400"><Users size={16} /></div>}
-                                    {canClick && !locked && <div className="absolute bottom-2 right-2 opacity-40 text-green-500 dark:text-green-400"><BarChart2 size={16} /></div>}
+
                                     <div className="flex flex-col text-xs text-gray-500 dark:text-gray-400 mb-4 gap-1 pr-20">
                                         <span className="font-bold text-brasil-blue dark:text-blue-400 uppercase flex items-center gap-1.5"><Calendar size={12} />{isDateValid ? matchDate.toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' }) : 'Data Inválida'}<span className="text-gray-300 dark:text-gray-600">|</span>{isDateValid ? matchDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '--:--'}</span>
                                         <span className="flex items-center gap-1 text-gray-400 dark:text-gray-500 truncate"><MapPin size={12} /> {match.location}</span>
@@ -1849,7 +1848,7 @@ export const LeagueDetails: React.FC = () => {
                                     <div className="flex items-center justify-between mb-2 gap-2 flex-nowrap">
                                         <div className="flex flex-col items-center justify-center w-1/3 flex-1 min-w-0 gap-1.5">
                                             <img src={getTeamFlag(match.homeTeamId)} alt={match.homeTeamId} className="w-12 h-9 object-cover rounded shadow-md shrink-0" />
-                                            <span className="text-center font-black text-[10px] min-[360px]:text-xs min-[380px]:text-sm md:text-base text-gray-900 dark:text-gray-100 leading-tight line-clamp-2 break-words w-full px-1" title={match.homeTeamId}>{match.homeTeamId}</span>
+                                            <span className="text-center font-black text-[10px] min-[360px]:text-xs min-[380px]:text-sm md:text-base text-gray-900 dark:text-gray-100 leading-tight truncate w-full px-1" title={match.homeTeamId}>{match.homeTeamId}</span>
                                             {stats && <span className="text-[10px] font-bold text-gray-500 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded shrink-0">{stats.home_win_pct}%</span>}
                                         </div>
 
@@ -1860,7 +1859,7 @@ export const LeagueDetails: React.FC = () => {
                                         </div>
                                         <div className="flex flex-col items-center justify-center w-1/3 flex-1 min-w-0 gap-1.5">
                                             <img src={getTeamFlag(match.awayTeamId)} alt={match.awayTeamId} className="w-12 h-9 object-cover rounded shadow-md shrink-0" />
-                                            <span className="text-center font-black text-[10px] min-[360px]:text-xs min-[380px]:text-sm md:text-base text-gray-900 dark:text-gray-100 leading-tight line-clamp-2 break-words w-full px-1" title={match.awayTeamId}>{match.awayTeamId}</span>
+                                            <span className="text-center font-black text-[10px] min-[360px]:text-xs min-[380px]:text-sm md:text-base text-gray-900 dark:text-gray-100 leading-tight truncate w-full px-1" title={match.awayTeamId}>{match.awayTeamId}</span>
                                             {stats && <span className="text-[10px] font-bold text-gray-500 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded shrink-0">{stats.away_win_pct}%</span>}
                                         </div>
                                     </div>
@@ -1913,9 +1912,9 @@ export const LeagueDetails: React.FC = () => {
                                         </div>
                                     )}
                                     {!showBlurStats && canClick && (
-                                        <div className="mt-3 flex justify-center border-t border-gray-100 dark:border-gray-700/50 pt-2.5">
-                                            <div className="flex items-center justify-center gap-1.5 text-[11px] font-bold text-gray-500 dark:text-gray-400 group-hover:text-brasil-blue dark:group-hover:text-blue-400 transition-colors uppercase tracking-wider">
-                                                <BarChart2 size={14} /> Estatísticas
+                                        <div className="mt-3 flex justify-center border-t border-gray-100 dark:border-gray-700/50 pt-3">
+                                            <div className={`flex items-center justify-center gap-1.5 text-[11px] font-bold text-gray-500 dark:text-gray-400 transition-colors uppercase tracking-wider ${locked ? 'group-hover:text-brasil-blue dark:group-hover:text-blue-400' : 'group-hover:text-green-600 dark:group-hover:text-green-400'}`}>
+                                                {locked ? <Users size={14} /> : <BarChart2 size={14} />} {locked ? 'Confira os Palpites' : 'Estatísticas'}
                                             </div>
                                         </div>
                                     )}

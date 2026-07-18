@@ -320,7 +320,7 @@ export const LeaguesPageBrasileirao: React.FC = () => {
                         <h3 className="font-bold text-lg text-gray-800 dark:text-gray-100 group-hover:text-brasil-blue dark:group-hover:text-blue-400 transition-colors flex items-center gap-2">
                           {l.name}
                         </h3>
-                        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        <div className="flex items-center gap-1 min-[380px]:gap-2 text-[10px] min-[380px]:text-xs text-gray-500 dark:text-gray-400 mt-1">
                           {l.isPrivate ? <Lock size={12} /> : <Globe size={12} />}
                           <span>{l.isPrivate ? 'Privada' : 'Aberta'}</span>
                           <span>•</span>

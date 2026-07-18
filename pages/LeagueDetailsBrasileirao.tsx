@@ -2180,8 +2180,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                         ) : userPred ? <div className="bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-300 px-3 py-1 rounded-bl-lg text-[10px] font-bold flex items-center gap-1"><CheckCircle2 size={10} /> Palpite Salvo</div> : <div className="bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 px-3 py-1 rounded-bl-lg text-[10px] font-bold flex items-center gap-1"><Unlock size={10} /> Palpite Aberto</div>}
                                         {!isManuallyBlocked && <LiveCountdown date={match.date} isLocked={locked} />}
                                     </div>
-                                    {canClick && locked && <div className="absolute bottom-2 right-2 opacity-50 text-brasil-blue dark:text-blue-400"><Users size={16} /></div>}
-                                    {canClick && !locked && <div className="absolute bottom-2 right-2 opacity-40 text-green-500 dark:text-green-400"><BarChart2 size={16} /></div>}
+
                                     <div className="flex flex-col text-xs text-gray-500 dark:text-gray-400 mb-4 gap-1 pr-20">
                                         <span className="font-bold text-brasil-blue dark:text-blue-400 uppercase flex items-center gap-1.5 flex-wrap"><Calendar size={12} />{isDateValid ? matchDate.toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' }) : 'Data Inválida'}<span className="text-gray-300 dark:text-gray-600">|</span>{isDateValid ? matchDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '--:--'}<span className="hidden text-gray-400 dark:text-gray-500 font-normal normal-case flex items-center gap-1"><MapPin size={10} /><span className="truncate max-w-[120px]">{match.location}</span></span></span>
                                         <div className="flex items-center gap-1.5">{(() => { const champ = match.championship; if (champ === 'copa_do_brasil') return <span className="text-[9px] bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-800 px-1.5 py-0.5 rounded font-black uppercase tracking-wider shadow-sm">Copa do Brasil</span>; return <span className="text-[9px] bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800 px-1.5 py-0.5 rounded font-black uppercase tracking-wider shadow-sm">Brasileirão</span>; })()}{match.phase && <span className={`text-[9px] font-black border border-black/5 dark:border-white/5 px-1.5 py-0.5 rounded uppercase tracking-wider shadow-sm ${getRoundColorClass(match.phase, match.championship === 'copa_do_brasil')}`}>{translatePhase(match.phase)}</span>}</div>
@@ -2189,7 +2188,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                     <div className="flex items-center justify-between mb-2 gap-2 flex-nowrap">
                                         <div className="flex flex-col items-center justify-center w-1/3 flex-1 min-w-0 gap-1.5">
                                             <img referrerPolicy='no-referrer' src={getTeamFlag(String(match.home_team_id), teams)} alt={String(match.home_team_id)} onError={(e) => { (e.target as HTMLImageElement).src = LOGO_FALLBACK; }} className="w-10 h-10 object-contain drop-shadow-sm shrink-0" />
-                                            <span className="text-center font-black text-[10px] min-[360px]:text-xs min-[380px]:text-sm md:text-base text-gray-900 dark:text-gray-100 leading-tight line-clamp-2 break-words w-full px-1" title={getTeamNameForDisplay(match.home_team_id)}>{getTeamNameForDisplay(match.home_team_id)}</span>
+                                            <span className="text-center font-black text-[10px] min-[360px]:text-xs min-[380px]:text-sm md:text-base text-gray-900 dark:text-gray-100 leading-tight truncate w-full px-1" title={getTeamNameForDisplay(match.home_team_id)}>{getTeamNameForDisplay(match.home_team_id)}</span>
                                             {stats && <span className="text-[10px] font-bold text-gray-500 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded shrink-0">{stats.home_win_pct}%</span>}
                                         </div>
 
@@ -2199,8 +2198,8 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
 
                                             {/* Dynamic Save Button */}
                                             <div className={`transition-all duration-300 overflow-hidden flex justify-center w-full ${targetMatchForButton === String(match.id) ? 'max-h-20 mt-3 opacity-100' : 'max-h-0 mt-0 opacity-0'}`}>
-                                                <button onClick={(e) => { e.stopPropagation(); handleSaveAll(); }} disabled={isSavingPalpites} className="bg-brasil-green hover:bg-green-700 text-white px-5 py-2.5 rounded-full shadow-md font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-95 border border-green-400 whitespace-nowrap min-w-[140px]">
-                                                    {isSavingPalpites ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                                                <button onClick={(e) => { e.stopPropagation(); handleSaveAll(); }} disabled={isSavingPalpites} className="bg-brasil-green hover:bg-green-700 text-white px-6 py-3 rounded-full shadow-md font-bold text-base flex items-center justify-center gap-2 transition-all active:scale-95 border border-green-400 whitespace-nowrap min-w-[160px]">
+                                                    {isSavingPalpites ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
                                                     <span>{isSavingPalpites ? 'Salvando...' : `Salvar ${Object.values(pendingEdits).filter(val => val.home !== '' && val.away !== '').length} jogo(s)`}</span>
                                                 </button>
                                             </div>
@@ -2208,7 +2207,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                         </div>
                                         <div className="flex flex-col items-center justify-center w-1/3 flex-1 min-w-0 gap-1.5">
                                             <img referrerPolicy='no-referrer' src={getTeamFlag(String(match.away_team_id), teams)} alt={String(match.away_team_id)} onError={(e) => { (e.target as HTMLImageElement).src = LOGO_FALLBACK; }} className="w-10 h-10 object-contain drop-shadow-sm shrink-0" />
-                                            <span className="text-center font-black text-[10px] min-[360px]:text-xs min-[380px]:text-sm md:text-base text-gray-900 dark:text-gray-100 leading-tight line-clamp-2 break-words w-full px-1" title={getTeamNameForDisplay(match.away_team_id)}>{getTeamNameForDisplay(match.away_team_id)}</span>
+                                            <span className="text-center font-black text-[10px] min-[360px]:text-xs min-[380px]:text-sm md:text-base text-gray-900 dark:text-gray-100 leading-tight truncate w-full px-1" title={getTeamNameForDisplay(match.away_team_id)}>{getTeamNameForDisplay(match.away_team_id)}</span>
                                             {stats && <span className="text-[10px] font-bold text-gray-500 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded shrink-0">{stats.away_win_pct}%</span>}
                                         </div>
                                     </div>

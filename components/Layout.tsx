@@ -336,7 +336,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               </>
             ) : isBrasileiraoMode ? (
               <>
-                <Link to="/brasileirao" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/brasileirao')}`}>Início</Link>
+                <Link to="/" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/')}`}>Início</Link>
                 <Link to="/table-brasileirao" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/table-brasileirao')}`}>Tabelas</Link>
                 <Link to="/leagues-brasileirao" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/leagues-brasileirao')}`}>Ligas</Link>
                 <Link to="/como-jogar-brasileirao" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/como-jogar-brasileirao')}`}>Como Funciona</Link>
@@ -348,7 +348,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               </>
             ) : (
               <>
-                <Link to="/copa" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/copa')}`}>Início</Link>
+                <Link to="/" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/')}`}>Início</Link>
                 <Link to="/table" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/table')}`}>Tabela</Link>
                 <Link to="/simulador" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/simulador')}`}>Simulador</Link>
                 <Link to="/leagues" className={`px-3 py-2 rounded-md transition-colors whitespace-nowrap ${isActive('/leagues')}`}>Ligas</Link>
@@ -449,7 +449,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               </>
             ) : isBrasileiraoMode ? (
               <>
-                <Link onClick={() => setIsMenuOpen(false)} to="/brasileirao" className={`block px-3 py-2 rounded-md ${isActive('/brasileirao')}`}>Início</Link>
+                <Link onClick={() => setIsMenuOpen(false)} to="/" className={`block px-3 py-2 rounded-md ${isActive('/')}`}>Início</Link>
                 <Link onClick={() => setIsMenuOpen(false)} to="/table-brasileirao" className={`block px-3 py-2 rounded-md ${isActive('/table-brasileirao')}`}>Tabelas</Link>
                 <Link onClick={() => setIsMenuOpen(false)} to="/leagues-brasileirao" className={`block px-3 py-2 rounded-md ${isActive('/leagues-brasileirao')}`}>Ligas</Link>
                 <Link onClick={() => setIsMenuOpen(false)} to="/como-jogar-brasileirao" className={`block px-3 py-2 rounded-md ${isActive('/como-jogar-brasileirao')}`}>Como Funciona</Link>
@@ -459,7 +459,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               </>
             ) : (
               <>
-                <Link onClick={() => setIsMenuOpen(false)} to="/copa" className={`block px-3 py-2 rounded-md ${isActive('/copa')}`}>Início</Link>
+                <Link onClick={() => setIsMenuOpen(false)} to="/" className={`block px-3 py-2 rounded-md ${isActive('/')}`}>Início</Link>
                 <Link onClick={() => setIsMenuOpen(false)} to="/table" className={`block px-3 py-2 rounded-md ${isActive('/table')}`}>Tabela</Link>
                 <Link onClick={() => setIsMenuOpen(false)} to="/simulador" className={`block px-3 py-2 rounded-md ${isActive('/simulador')}`}>Simulador</Link>
                 <Link onClick={() => setIsMenuOpen(false)} to="/leagues" className={`block px-3 py-2 rounded-md ${isActive('/leagues')}`}>Ligas</Link>
