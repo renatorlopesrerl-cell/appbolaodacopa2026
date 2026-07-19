@@ -104,6 +104,12 @@ export const AdminPageBrasileirao: React.FC = () => {
   const [importCopaLoading, setImportCopaLoading] = useState(false);
   const [importCopaResult, setImportCopaResult] = useState<string | null>(null);
 
+  const [importLibertadoresLoading, setImportLibertadoresLoading] = useState(false);
+  const [importLibertadoresResult, setImportLibertadoresResult] = useState<string | null>(null);
+
+  const [importSulamericanaLoading, setImportSulamericanaLoading] = useState(false);
+  const [importSulamericanaResult, setImportSulamericanaResult] = useState<string | null>(null);
+
   const handleImportCopa = async () => {
     if (!window.confirm('⚠️ Isso vai buscar TODOS os jogos da Copa do Brasil na API e inserir/atualizar no banco. Continuar?')) return;
     setImportCopaLoading(true);
@@ -119,6 +125,42 @@ export const AdminPageBrasileirao: React.FC = () => {
       addNotification('Erro', e.message || 'Erro ao importar jogos.', 'warning');
     } finally {
       setImportCopaLoading(false);
+    }
+  };
+
+  const handleImportLibertadores = async () => {
+    if (!window.confirm('🚨 Isso vai buscar TODOS os jogos da Libertadores na API e inserir/atualizar no banco. Continuar?')) return;
+    setImportLibertadoresLoading(true);
+    setImportLibertadoresResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('import-libertadores');
+      if (error) throw error;
+      const msg = data?.message || 'Importação concluída!';
+      setImportLibertadoresResult(msg);
+      addNotification('Sucesso', msg, 'success');
+    } catch (e: any) {
+      console.error('Import Libertadores error:', e);
+      addNotification('Erro', e.message || 'Erro ao importar jogos.', 'warning');
+    } finally {
+      setImportLibertadoresLoading(false);
+    }
+  };
+
+  const handleImportSulamericana = async () => {
+    if (!window.confirm('⚠️ Isso vai buscar TODOS os jogos da Sul-Americana na API e inserir/atualizar no banco. Continuar?')) return;
+    setImportSulamericanaLoading(true);
+    setImportSulamericanaResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('import-sulamericana');
+      if (error) throw error;
+      const msg = data?.message || 'Importação concluída!';
+      setImportSulamericanaResult(msg);
+      addNotification('Sucesso', msg, 'success');
+    } catch (e: any) {
+      console.error('Import Sul-Americana error:', e);
+      addNotification('Erro', e.message || 'Erro ao importar jogos.', 'warning');
+    } finally {
+      setImportSulamericanaLoading(false);
     }
   };
 
@@ -335,6 +377,84 @@ export const AdminPageBrasileirao: React.FC = () => {
                 className="w-full bg-yellow-500 hover:bg-yellow-600 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors"
               >
                 {importCopaLoading ? (
+                  <>Importando da API...</>
+                ) : (
+                  <>Importar Agora <ArrowLeft size={16} className="rotate-180" /></>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+        )}
+
+        {/* Card: Importar Libertadores */}
+        {currentUser?.isAdmin && (
+        <div className="group relative bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-md border-2 border-transparent hover:border-blue-500 transition-all hover:shadow-xl text-left overflow-hidden">
+          <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 group-hover:scale-110 transition-all duration-500">
+            <Database size={120} className="text-blue-500 dark:text-blue-400" />
+          </div>
+
+          <div className="relative z-10 flex flex-col h-full">
+            <div>
+              <div className="w-16 h-16 bg-blue-50 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-500 transition-colors">
+                <Database size={32} className="text-blue-600 dark:text-blue-400 group-hover:text-white" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">Importar Libertadores</h2>
+              <p className="text-gray-500 dark:text-gray-400 font-medium leading-relaxed mb-4">
+                Busca e insere <strong>novos jogos</strong> da Libertadores direto da API (novas fases como Quartas, Semis e Final). Jogos existentes não são alterados.
+              </p>
+              {importLibertadoresResult && (
+                <p className="text-sm text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 rounded-lg p-3 mb-4 font-medium">
+                  ✅ {importLibertadoresResult}
+                </p>
+              )}
+            </div>
+            <div className="mt-auto space-y-3">
+              <button
+                disabled={importLibertadoresLoading}
+                onClick={handleImportLibertadores}
+                className="w-full bg-blue-500 hover:bg-blue-600 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors"
+              >
+                {importLibertadoresLoading ? (
+                  <>Importando da API...</>
+                ) : (
+                  <>Importar Agora <ArrowLeft size={16} className="rotate-180" /></>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+        )}
+
+        {/* Card: Importar Sul-Americana */}
+        {currentUser?.isAdmin && (
+        <div className="group relative bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-md border-2 border-transparent hover:border-pink-500 transition-all hover:shadow-xl text-left overflow-hidden">
+          <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 group-hover:scale-110 transition-all duration-500">
+            <Database size={120} className="text-pink-500 dark:text-pink-400" />
+          </div>
+
+          <div className="relative z-10 flex flex-col h-full">
+            <div>
+              <div className="w-16 h-16 bg-pink-50 dark:bg-pink-900/30 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-pink-500 transition-colors">
+                <Database size={32} className="text-pink-600 dark:text-pink-400 group-hover:text-white" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">Importar Sul-Americana</h2>
+              <p className="text-gray-500 dark:text-gray-400 font-medium leading-relaxed mb-4">
+                Busca e insere <strong>novos jogos</strong> da Sul-Americana direto da API (novas fases como Quartas, Semis e Final). Jogos existentes não são alterados.
+              </p>
+              {importSulamericanaResult && (
+                <p className="text-sm text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 rounded-lg p-3 mb-4 font-medium">
+                  ✅ {importSulamericanaResult}
+                </p>
+              )}
+            </div>
+            <div className="mt-auto">
+              <button
+                disabled={importSulamericanaLoading}
+                onClick={handleImportSulamericana}
+                className="w-full bg-pink-500 hover:bg-pink-600 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-colors"
+              >
+                {importSulamericanaLoading ? (
                   <>Importando da API...</>
                 ) : (
                   <>Importar Agora <ArrowLeft size={16} className="rotate-180" /></>

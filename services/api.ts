@@ -410,7 +410,12 @@ export const api = {
         update: (data: any) => apiFetch('/admin/brasileirao-matches', { method: 'POST', body: JSON.stringify(data) })
     },
     brasileiraoTeams: {
-        list: () => apiFetch<any[]>('/brasileirao-teams'),
+        list: async () => {
+            const data = await supabaseWithRetry(async () =>
+                await supabase.from('brasileirao_teams').select('*')
+            );
+            return (data as any[]) || [];
+        },
     },
     brazilPlayers: {
         list: async () => {

@@ -36,7 +36,7 @@ export const LeaguesPageBrasileirao: React.FC = () => {
   }>({ exactScore: 10, winnerAndDiff: 5, winnerAndWinnerGoals: 5, winner: 4, draw: 5 });
 
 
-  const [leagueCompetitions, setLeagueCompetitions] = useState<('brasileirao' | 'copa_do_brasil' | 'libertadores' | 'sul_americana')[]>(['brasileirao', 'copa_do_brasil']);
+  const [leagueCompetitions, setLeagueCompetitions] = useState<('brasileirao' | 'copa_do_brasil' | 'libertadores' | 'sul_americana')[]>(['brasileirao']);
 
   // AdMob Banner — exibido para TODOS os usuários na página de listagem (apenas Android/iOS)
   const adMobRef = useRef<any>(null);
@@ -78,7 +78,7 @@ export const LeaguesPageBrasileirao: React.FC = () => {
     setLeaguePlan('FREE');
     setSettings({ exactScore: 10, winnerAndDiff: 5, winnerAndWinnerGoals: 5, winner: 4, draw: 5 });
 
-    setLeagueCompetitions(['brasileirao', 'copa_do_brasil']);
+    setLeagueCompetitions(['brasileirao']);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -100,11 +100,11 @@ export const LeaguesPageBrasileirao: React.FC = () => {
 
     try {
       const finalSettings = {
-        exactScore: Math.min(100, Math.max(1, Number(settings.exactScore) || 1)),
-        winnerAndDiff: Math.min(100, Math.max(1, Number(settings.winnerAndDiff) || 1)),
-        winnerAndWinnerGoals: Math.min(100, Math.max(1, Number(settings.winnerAndWinnerGoals) || 1)),
-        winner: Math.min(100, Math.max(1, Number(settings.winner) || 1)),
-        draw: Math.min(100, Math.max(1, Number(settings.draw) || 1)),
+        exactScore: Math.min(99, Math.max(1, Number(settings.exactScore) || 1)),
+        winnerAndDiff: Math.min(99, Math.max(1, Number(settings.winnerAndDiff) || 1)),
+        winnerAndWinnerGoals: Math.min(99, Math.max(1, Number(settings.winnerAndWinnerGoals) || 1)),
+        winner: Math.min(99, Math.max(1, Number(settings.winner) || 1)),
+        draw: Math.min(99, Math.max(1, Number(settings.draw) || 1)),
 
         competitions: leagueCompetitions
       };
@@ -333,7 +333,7 @@ export const LeaguesPageBrasileirao: React.FC = () => {
                             {((l.settings?.competitions || ['brasileirao', 'copa_do_brasil']) as string[]).includes('brasileirao') && <span className="text-[9px] bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider shadow-sm">Brasileirão</span>}
                             {((l.settings?.competitions || ['brasileirao', 'copa_do_brasil']) as string[]).includes('copa_do_brasil') && <span className="text-[9px] bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-800 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider shadow-sm">Copa do Brasil</span>}
                             {((l.settings?.competitions || ['brasileirao', 'copa_do_brasil']) as string[]).includes('libertadores') && <span className="text-[9px] bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider shadow-sm">Libertadores</span>}
-                            {((l.settings?.competitions || ['brasileirao', 'copa_do_brasil']) as string[]).includes('sul_americana') && <span className="text-[9px] bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 border border-pink-200 dark:border-pink-800 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider shadow-sm">Sul-Americana</span>}
+                            {((l.settings?.competitions || ['brasileirao', 'copa_do_brasil']) as string[]).includes('sul_americana') && <span className="text-[9px] bg-pink-50 dark:bg-pink-900/20 text-pink-500 dark:text-pink-300 border border-pink-200 dark:border-pink-500 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider shadow-sm">Sul-Americana</span>}
                         </div>
                       </div>
                     </div>
@@ -421,7 +421,7 @@ export const LeaguesPageBrasileirao: React.FC = () => {
                           {((l.settings?.competitions || ['brasileirao', 'copa_do_brasil']) as string[]).includes('brasileirao') && <span className="text-[9px] bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider shadow-sm">Brasileirão</span>}
                           {((l.settings?.competitions || ['brasileirao', 'copa_do_brasil']) as string[]).includes('copa_do_brasil') && <span className="text-[9px] bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-800 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider shadow-sm">Copa do Brasil</span>}
                           {((l.settings?.competitions || ['brasileirao', 'copa_do_brasil']) as string[]).includes('libertadores') && <span className="text-[9px] bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider shadow-sm">Libertadores</span>}
-                          {((l.settings?.competitions || ['brasileirao', 'copa_do_brasil']) as string[]).includes('sul_americana') && <span className="text-[9px] bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 border border-pink-200 dark:border-pink-800 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider shadow-sm">Sul-Americana</span>}
+                          {((l.settings?.competitions || ['brasileirao', 'copa_do_brasil']) as string[]).includes('sul_americana') && <span className="text-[9px] bg-pink-50 dark:bg-pink-900/20 text-pink-500 dark:text-pink-300 border border-pink-200 dark:border-pink-500 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider shadow-sm">Sul-Americana</span>}
                       </div>
                     </div>
                   </div>
@@ -506,7 +506,7 @@ export const LeaguesPageBrasileirao: React.FC = () => {
                       }}
                       className="w-4 h-4 text-brasil-blue border-gray-300 rounded focus:ring-brasil-blue focus:ring-2"
                     />
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Brasileirão</span>
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Brasileirão Série A</span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
@@ -519,6 +519,30 @@ export const LeaguesPageBrasileirao: React.FC = () => {
                       className="w-4 h-4 text-brasil-blue border-gray-300 rounded focus:ring-brasil-blue focus:ring-2"
                     />
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Copa do Brasil</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={leagueCompetitions.includes('libertadores')}
+                      onChange={(e) => {
+                        if (e.target.checked) setLeagueCompetitions(prev => [...prev, 'libertadores']);
+                        else setLeagueCompetitions(prev => prev.filter(c => c !== 'libertadores'));
+                      }}
+                      className="w-4 h-4 text-brasil-blue border-gray-300 rounded focus:ring-brasil-blue focus:ring-2"
+                    />
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Libertadores</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={leagueCompetitions.includes('sul_americana')}
+                      onChange={(e) => {
+                        if (e.target.checked) setLeagueCompetitions(prev => [...prev, 'sul_americana']);
+                        else setLeagueCompetitions(prev => prev.filter(c => c !== 'sul_americana'));
+                      }}
+                      className="w-4 h-4 text-brasil-blue border-gray-300 rounded focus:ring-brasil-blue focus:ring-2"
+                    />
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Sul-Americana</span>
                   </label>
                 </div>
                 {leagueCompetitions.length === 0 && <p className="text-red-500 text-xs mt-1">Selecione pelo menos um campeonato.</p>}
@@ -556,12 +580,12 @@ export const LeaguesPageBrasileirao: React.FC = () => {
                 <div className="space-y-3">
                   <div className="flex justify-between items-center bg-white dark:bg-gray-800 px-3 py-2 rounded-lg border border-green-100 dark:border-green-800/50 shadow-sm">
                     <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Placar Exato</span>
-                    <input type="number" min="1" value={settings.exactScore} onChange={e => {
+                    <input type="number" min="1" max="99" value={settings.exactScore} onChange={e => {
                       const val = e.target.value;
                       if (val === '') setSettings({ ...settings, exactScore: '' });
                       else {
                         const n = parseInt(val);
-                        if (n > 0) setSettings({ ...settings, exactScore: n });
+                        if (n > 0 && n <= 99) setSettings({ ...settings, exactScore: n });
                       }
                     }} className="w-16 p-1 text-center border rounded bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white font-bold focus:ring-1 focus:ring-brasil-blue outline-none" />
                   </div>
@@ -570,12 +594,12 @@ export const LeaguesPageBrasileirao: React.FC = () => {
                       <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Vencedor + Saldo</span>
                       <span className="text-[10px] text-gray-400">Acertou time vencedor e saldo de gols</span>
                     </div>
-                    <input type="number" min="1" value={settings.winnerAndDiff} onChange={e => {
+                    <input type="number" min="1" max="99" value={settings.winnerAndDiff} onChange={e => {
                       const val = e.target.value;
                       if (val === '') setSettings({ ...settings, winnerAndDiff: '' });
                       else {
                         const n = parseInt(val);
-                        if (n > 0) setSettings({ ...settings, winnerAndDiff: n });
+                        if (n > 0 && n <= 99) setSettings({ ...settings, winnerAndDiff: n });
                       }
                     }} className="w-16 p-1 text-center border rounded bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white font-bold focus:ring-1 focus:ring-brasil-blue outline-none" />
                   </div>
@@ -584,12 +608,12 @@ export const LeaguesPageBrasileirao: React.FC = () => {
                       <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Vencedor + Gols do Vencedor</span>
                       <span className="text-[10px] text-gray-400">Acertou quem vence e gols do vencedor</span>
                     </div>
-                    <input type="number" min="1" value={settings.winnerAndWinnerGoals} onChange={e => {
+                    <input type="number" min="1" max="99" value={settings.winnerAndWinnerGoals} onChange={e => {
                       const val = e.target.value;
                       if (val === '') setSettings({ ...settings, winnerAndWinnerGoals: '' });
                       else {
                         const n = parseInt(val);
-                        if (n > 0) setSettings({ ...settings, winnerAndWinnerGoals: n });
+                        if (n > 0 && n <= 99) setSettings({ ...settings, winnerAndWinnerGoals: n });
                       }
                     }} className="w-16 p-1 text-center border rounded bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white font-bold focus:ring-1 focus:ring-brasil-blue outline-none" />
                   </div>
@@ -598,23 +622,23 @@ export const LeaguesPageBrasileirao: React.FC = () => {
                       <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Empate (Não Exato)</span>
                       <span className="text-[10px] text-gray-400">Acertou que seria empate (ex: 1x1 e foi 2x2)</span>
                     </div>
-                    <input type="number" min="1" value={settings.draw} onChange={e => {
+                    <input type="number" min="1" max="99" value={settings.draw} onChange={e => {
                       const val = e.target.value;
                       if (val === '') setSettings({ ...settings, draw: '' });
                       else {
                         const n = parseInt(val);
-                        if (n > 0) setSettings({ ...settings, draw: n });
+                        if (n > 0 && n <= 99) setSettings({ ...settings, draw: n });
                       }
                     }} className="w-16 p-1 text-center border rounded bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white font-bold focus:ring-1 focus:ring-brasil-blue outline-none" />
                   </div>
                   <div className="flex justify-between items-center bg-white dark:bg-gray-800 px-3 py-2 rounded-lg border border-green-100 dark:border-green-800/50 shadow-sm">
                     <span className="text-sm text-gray-700 dark:text-gray-300 font-medium">Apenas Vencedor</span>
-                    <input type="number" min="1" value={settings.winner} onChange={e => {
+                    <input type="number" min="1" max="99" value={settings.winner} onChange={e => {
                       const val = e.target.value;
                       if (val === '') setSettings({ ...settings, winner: '' });
                       else {
                         const n = parseInt(val);
-                        if (n > 0) setSettings({ ...settings, winner: n });
+                        if (n > 0 && n <= 99) setSettings({ ...settings, winner: n });
                       }
                     }} className="w-16 p-1 text-center border rounded bg-gray-50 dark:bg-gray-700 text-gray-800 dark:text-white font-bold focus:ring-1 focus:ring-brasil-blue outline-none" />
                   </div>

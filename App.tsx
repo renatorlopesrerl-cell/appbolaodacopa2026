@@ -394,7 +394,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   });
   const [brasileiraoTeams, setBrasileiraoTeams] = useState<BrasileiraoTeam[]>(() => {
     try {
-      const cached = localStorage.getItem('cache_brasileirao_teams');
+      const cached = localStorage.getItem('cache_brasileirao_teams_v2');
       if (cached) {
         const parsed: BrasileiraoTeam[] = JSON.parse(cached);
         if (parsed && parsed.length > 0) return parsed;
@@ -1256,14 +1256,14 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       const matchesData = await api.brasileiraoMatches.listByCompetitions(comps);
       
       let freshTeams = brasileiraoTeams;
-      if (brasileiraoTeams.length === 0) {
+      if (brasileiraoTeams.length < 160) {
         const teamsData = await api.brasileiraoTeams.list();
         if (teamsData) {
           freshTeams = teamsData.map((t: any) => ({
             id: t.id, name: t.name, short_name: t.short_name, logo: t.logo
           }));
           setBrasileiraoTeams(freshTeams);
-          try { localStorage.setItem('cache_brasileirao_teams', JSON.stringify(freshTeams)); } catch (e) {}
+          try { localStorage.setItem('cache_brasileirao_teams_v2', JSON.stringify(freshTeams)); } catch (e) {}
         }
       }
 
@@ -2626,13 +2626,13 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       const [predsRes, profilesRes, topRes, playersRes, goalsRes, matchesRes, teamsRes] = await Promise.all([
         predsPromise,
         participantIds.length > 0 ? api.profiles.getByIds(participantIds) : Promise.resolve([]),
-        !isBrasileirao ? api.topFinisherPredictions.list(leagueId, currentUserId) : Promise.resolve([]),
+        api.topFinisherPredictions.list(leagueId),
         isBrazil ? api.brazilPlayers.list() : Promise.resolve([]),
         isBrazil ? api.brazilMatchGoals.list() : Promise.resolve([]),
         isBrasileirao
           ? api.brasileiraoMatches.listByCompetitions(league?.settings?.competitions || ['brasileirao'])
           : api.matches.list(),
-        isBrasileirao && brasileiraoTeams.length === 0 ? api.brasileiraoTeams.list() : Promise.resolve(null)
+        isBrasileirao && brasileiraoTeams.length < 160 ? api.brasileiraoTeams.list() : Promise.resolve(null)
       ]);
 
       // (Sem cache incremental de matchIds — agora carregamos apenas os próprios palpites)
@@ -2712,7 +2712,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           id: t.id, name: t.name, short_name: t.short_name, logo: t.logo
         }));
         setBrasileiraoTeams(mappedTeams);
-        try { localStorage.setItem('cache_brasileirao_teams', JSON.stringify(mappedTeams)); } catch (e) {}
+        try { localStorage.setItem('cache_brasileirao_teams_v2', JSON.stringify(mappedTeams)); } catch (e) {}
       }
 
       if (matchesRes && matchesRes.length > 0) {

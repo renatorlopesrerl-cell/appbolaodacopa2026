@@ -414,6 +414,10 @@ export const LeagueDetails: React.FC = () => {
             setIsLeagueLoading(true);
             loadLeagueData(league.id, 'standard')
                 .finally(() => setIsLeagueLoading(false));
+            
+            if (league.settings?.topFinishersEnabled) {
+                fetchLeagueTopFinisherPredictions(league.id);
+            }
         }
     }, [league?.id]);
 
@@ -450,10 +454,17 @@ export const LeagueDetails: React.FC = () => {
             if (!state.league || !state.currentUser) return;
             
             const existingPred = state.topFinisherPredictions.find(p => p.userId === state.currentUser!.id && p.leagueId === state.league!.id);
-            const anyFieldFilled = state.tfChampion || state.tfRunnerUp || state.tfThird || state.tfFourth;
+            const tfC = state.tfChampion || '';
+            const tfR = state.tfRunnerUp || '';
+            const tfT = state.tfThird || '';
+            const tfF = state.tfFourth || '';
+            const anyFieldFilled = !!(tfC || tfR || tfT || tfF);
             const differsFromSaved = !existingPred
-                ? !!anyFieldFilled
-                : (existingPred.champion !== state.tfChampion || existingPred.runnerUp !== state.tfRunnerUp || existingPred.third !== state.tfThird || existingPred.fourth !== state.tfFourth);
+                ? anyFieldFilled
+                : ((existingPred.champion || '') !== tfC || 
+                   (existingPred.runnerUp || '') !== tfR || 
+                   (existingPred.third || '') !== tfT || 
+                   (existingPred.fourth || '') !== tfF);
             
             const hasUnsaved = Object.keys(state.pendingEdits).length > 0 || (anyFieldFilled && differsFromSaved);
             
@@ -1019,11 +1030,23 @@ export const LeagueDetails: React.FC = () => {
     };
 
     const checkTopFinisherChanges = () => {
+        const isLockedForTopFinishers = (topFinishersResult !== null && (topFinishersResult.champion !== '' || topFinishersResult.runnerUp !== '')) || isTopFinishersLocked;
+        if (isLockedForTopFinishers) return false;
+
         const existingPred = topFinisherPredictions.find(p => p.userId === currentUser.id && p.leagueId === league.id);
-        const anyFieldFilled = tfChampion || tfRunnerUp || tfThird || tfFourth;
+        const tfC = tfChampion || '';
+        const tfR = tfRunnerUp || '';
+        const tfT = tfThird || '';
+        const tfF = tfFourth || '';
+        const anyFieldFilled = !!(tfC || tfR || tfT || tfF);
+        
         const differsFromSaved = !existingPred
-            ? !!anyFieldFilled
-            : (existingPred.champion !== tfChampion || existingPred.runnerUp !== tfRunnerUp || existingPred.third !== tfThird || existingPred.fourth !== tfFourth);
+            ? anyFieldFilled
+            : ((existingPred.champion || '') !== tfC || 
+               (existingPred.runnerUp || '') !== tfR || 
+               (existingPred.third || '') !== tfT || 
+               (existingPred.fourth || '') !== tfF);
+               
         return anyFieldFilled && differsFromSaved;
     };
 
@@ -1643,12 +1666,17 @@ export const LeagueDetails: React.FC = () => {
                 {league.settings?.topFinishersEnabled && (() => {
                     const isLocked = (topFinishersResult !== null && (topFinishersResult.champion !== '' || topFinishersResult.runnerUp !== '')) || isTopFinishersLocked;
                     const existingPred = topFinisherPredictions.find(p => p.userId === currentUser.id && p.leagueId === league.id);
-                    const anyFieldFilled = tfChampion || tfRunnerUp || tfThird || tfFourth;
+                    const tfC = tfChampion || '';
+                    const tfR = tfRunnerUp || '';
+                    const tfT = tfThird || '';
+                    const tfF = tfFourth || '';
+                    const anyFieldFilled = !!(tfC || tfR || tfT || tfF);
                     const differsFromSaved = !existingPred
-                        || existingPred.champion !== tfChampion
-                        || existingPred.runnerUp !== tfRunnerUp
-                        || existingPred.third !== tfThird
-                        || existingPred.fourth !== tfFourth;
+                        ? anyFieldFilled
+                        : ((existingPred.champion || '') !== tfC || 
+                           (existingPred.runnerUp || '') !== tfR || 
+                           (existingPred.third || '') !== tfT || 
+                           (existingPred.fourth || '') !== tfF);
                     const hasTopFinisherChanges = !isLocked && anyFieldFilled && differsFromSaved;
                     if (!hasTopFinisherChanges || isKeyboardOpen) return null;
                     const shiftUp = Object.keys(pendingEdits).length > 0;
@@ -1690,7 +1718,12 @@ export const LeagueDetails: React.FC = () => {
                         <div className="flex items-center">
                             <div className="text-sm font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2"><Filter size={16} className="text-brasil-blue dark:text-blue-400" /> Filtros</div>
                             {hasFilters && (<button onClick={clearFilters} className="text-xs font-bold text-red-500 hover:text-red-700 transition-colors flex items-center gap-1 ml-3"><X size={12} /> Limpar</button>)}
-                            <button onClick={() => refreshPredictions()} disabled={isRefreshingPredictions} className={`text-xs font-bold text-brasil-green hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors flex items-center gap-1 ml-3 bg-green-50 dark:bg-green-900/30 px-2 py-1 rounded border border-green-200 dark:border-green-800 ${isRefreshingPredictions ? 'opacity-70 cursor-not-allowed' : ''}`}><Loader2 size={12} className={isRefreshingPredictions ? 'animate-spin' : ''} /> {isRefreshingPredictions ? 'Atualizando...' : 'Atualizar Palpites'}</button>
+                            <button onClick={() => {
+                                refreshPredictions();
+                                if (league?.settings?.topFinishersEnabled) {
+                                    fetchLeagueTopFinisherPredictions(league.id);
+                                }
+                            }} disabled={isRefreshingPredictions} className={`text-xs font-bold text-brasil-green hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors flex items-center gap-1 ml-3 bg-green-50 dark:bg-green-900/30 px-2 py-1 rounded border border-green-200 dark:border-green-800 ${isRefreshingPredictions ? 'opacity-70 cursor-not-allowed' : ''}`}><Loader2 size={12} className={isRefreshingPredictions ? 'animate-spin' : ''} /> {isRefreshingPredictions ? 'Atualizando...' : 'Atualizar Palpites'}</button>
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1 bg-gray-50 dark:bg-gray-900 px-3 py-1 rounded-full shadow-sm border border-gray-200 dark:border-gray-700"><Clock size={12} /> Horários de Brasília (BRT)</div>
                     </div>

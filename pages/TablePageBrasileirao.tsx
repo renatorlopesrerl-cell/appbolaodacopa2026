@@ -86,14 +86,7 @@ const LOGO_FALLBACK = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy5
 
 const getSafeLogo = (id: number | string | undefined, logoUrl: string | undefined) => {
   if (!id) return LOGO_FALLBACK;
-  const numId = Number(id);
-  if (BR_LOGOS[numId]) return BR_LOGOS[numId];
-  if (logoUrl) {
-    if (logoUrl.startsWith('http') || logoUrl.startsWith('/')) {
-      return logoUrl;
-    }
-  }
-  return LOGO_FALLBACK;
+  return `/img/teams/brasileirao/${id}.png?v=3`;
 };
 
 const translatePhase = (phase: string) => {

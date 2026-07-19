@@ -114,15 +114,8 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
 
     const getTeamFlag = (id: string | number, teamsArr: any[]) => {
         if (!id) return LOGO_FALLBACK;
-        const numId = Number(id);
-        if (BR_LOGOS[numId]) return BR_LOGOS[numId];
-        const team = teamsArr?.find(t => String(t.id) === String(id));
-        if (team?.logo) {
-            if (team.logo.startsWith('http') || team.logo.startsWith('/')) {
-                return team.logo;
-            }
-        }
-        return LOGO_FALLBACK;
+        // Agora todos os 165 times foram baixados localmente para garantir estabilidade
+        return `/img/teams/brasileirao/${id}.png?v=3`;
     };
 
     const queryClient = useQueryClient();
@@ -140,7 +133,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
     } = useStore();
 
     const league = leagues.find(l => l.id === id);
-    const allowedCompetitions: string[] = league?.settings?.competitions || ['brasileirao', 'copa_do_brasil'];
+    const allowedCompetitions: string[] = league?.settings?.competitions || ['brasileirao', 'copa_do_brasil', 'libertadores'];
 
     // Preload dos escudos dos times para evitar demora na renderização
     useEffect(() => {
@@ -158,13 +151,19 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
     }, [league?.id]);
 
     const matches = useMemo(() => {
-        return allMatches.filter(m => allowedCompetitions.includes(m.championship || 'brasileirao'));
+        return allMatches.filter(m => {
+            if (!allowedCompetitions.includes(m.championship || 'brasileirao')) return false;
+            if ((m.championship === 'libertadores' || m.championship === 'sul_americana') && m.phase) {
+                if (m.phase.includes('Group Stage') || m.phase.includes('Qualification')) return false;
+            }
+            return true;
+        });
     }, [allMatches, allowedCompetitions]);
     const [activeTab, setActiveTab] = useState<'palpites' | 'classificacao' | 'regras' | 'admin'>('palpites');
     const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
     const [leaderboardView, setLeaderboardView] = useState<string>('total');
     // competitionFilter: 'total' = ambas, 'brasileirao' = só Brasileirão, 'copa' = só Copa do Brasil
-    const [competitionFilter, setCompetitionFilter] = useState<'total' | 'brasileirao' | 'copa'>('total');
+    const [competitionFilter, setCompetitionFilter] = useState<'total' | 'brasileirao' | 'copa' | 'libertadores' | 'sul_americana'>('total');
     // subPeriod: para Brasileirão = rodada (ex: '19'), para Copa = fase (ex: 'copa_oitavas')
     const [subPeriod, setSubPeriod] = useState<string>('all');
 
@@ -197,7 +196,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                 if (subPeriod !== 'all') return subPeriod;
                 return 'total';
             }
-            if (allowedCompetitions.includes('copa_do_brasil')) {
+            if (allowedCompetitions.includes('copa_do_brasil') || allowedCompetitions.includes('libertadores') || allowedCompetitions.includes('sul_americana')) {
                 if (subPeriod !== 'all') return subPeriod;
                 return 'total';
             }
@@ -210,6 +209,14 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
         if (competitionFilter === 'copa') {
             if (subPeriod !== 'all') return subPeriod;
             return 'copa_total';
+        }
+        if (competitionFilter === 'libertadores') {
+            if (subPeriod !== 'all') return subPeriod;
+            return 'libertadores_total';
+        }
+        if (competitionFilter === 'sul_americana') {
+            if (subPeriod !== 'all') return subPeriod;
+            return 'sul_americana_total';
         }
         if (competitionFilter === 'total') {
             if (subPeriod !== 'all') return subPeriod;
@@ -406,7 +413,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
 
     // --- PALPITES TAB STATE (HOISTED) ---
     const [pendingEdits, setPendingEdits] = useState<Record<string, { home: string, away: string }>>({});
-    
+
     const validHistoryRef = useRef<string[]>([]);
     const [targetMatchForButton, setTargetMatchForButton] = useState<string | null>(null);
 
@@ -423,10 +430,10 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
             }
         });
 
-        const latest = validHistoryRef.current.length > 0 
-            ? validHistoryRef.current[validHistoryRef.current.length - 1] 
+        const latest = validHistoryRef.current.length > 0
+            ? validHistoryRef.current[validHistoryRef.current.length - 1]
             : null;
-            
+
         setTargetMatchForButton(latest);
     }, [pendingEdits]);
 
@@ -445,7 +452,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
     const [statsPageSaved, setStatsPageSaved] = useState(1);
     const [statsPagePending, setStatsPagePending] = useState(1);
     const [isSavingPalpites, setIsSavingPalpites] = useState(false);
-    const [palpitesCompetition, setPalpitesCompetition] = useState<'all' | 'brasileirao' | 'copa'>('all');
+    const [palpitesCompetition, setPalpitesCompetition] = useState<'all' | 'brasileirao' | 'copa' | 'libertadores' | 'sul_americana'>('all');
     const [palpitesSubPeriod, setPalpitesSubPeriod] = useState<string>('all');
     const [filterStatus, setFilterStatus] = useState<'all' | 'predicted' | 'missing' | 'upcoming' | 'live' | 'finished'>('upcoming');
 
@@ -455,7 +462,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
 
     const [leaderboardSearch, setLeaderboardSearch] = useState('');
     const [leaderboardPage, setLeaderboardPage] = useState(1);
-    const [histCompetition, setHistCompetition] = useState<'all' | 'brasileirao' | 'copa'>('all');
+    const [histCompetition, setHistCompetition] = useState<'all' | 'brasileirao' | 'copa' | 'libertadores' | 'sul_americana'>('all');
     const [histSubPeriod, setHistSubPeriod] = useState<string>('all');
 
     // --- SHARE STATE ---
@@ -656,10 +663,17 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
             if (!state.league || !state.currentUser) return;
 
             const existingPred = state.topFinisherPredictions.find(p => p.userId === state.currentUser!.id && p.leagueId === state.league!.id);
-            const anyFieldFilled = state.tfChampion || state.tfRunnerUp || state.tfThird || state.tfFourth;
+            const tfC = state.tfChampion || '';
+            const tfR = state.tfRunnerUp || '';
+            const tfT = state.tfThird || '';
+            const tfF = state.tfFourth || '';
+            const anyFieldFilled = !!(tfC || tfR || tfT || tfF);
             const differsFromSaved = !existingPred
-                ? !!anyFieldFilled
-                : (existingPred.champion !== state.tfChampion || existingPred.runnerUp !== state.tfRunnerUp || existingPred.third !== state.tfThird || existingPred.fourth !== state.tfFourth);
+                ? anyFieldFilled
+                : ((existingPred.champion || '') !== tfC || 
+                   (existingPred.runnerUp || '') !== tfR || 
+                   (existingPred.third || '') !== tfT || 
+                   (existingPred.fourth || '') !== tfF);
 
             const hasUnsaved = Object.keys(state.pendingEdits).length > 0 || (anyFieldFilled && differsFromSaved);
 
@@ -743,15 +757,15 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
             // Pode ser "Regular Season - 19" (nova api)
             const parts = phaseLower.split('-');
             if (parts.length > 1) {
-                 const num = parseInt(parts[1].trim(), 10);
-                 if (!isNaN(num)) return num;
+                const num = parseInt(parts[1].trim(), 10);
+                if (!isNaN(num)) return num;
             } else {
-                 // Fallback legado Copa do Mundo
-                 const matchStr = String(match.id).split('-')[1];
-                 if (!matchStr) return null;
-                 const matchNumber = parseInt(matchStr.replace(/[^0-9]/g, ''));
-                 if (isNaN(matchNumber)) return null;
-                 return Math.floor((matchNumber - 1) / 2) + 1;
+                // Fallback legado Copa do Mundo
+                const matchStr = String(match.id).split('-')[1];
+                if (!matchStr) return null;
+                const matchNumber = parseInt(matchStr.replace(/[^0-9]/g, ''));
+                if (isNaN(matchNumber)) return null;
+                return Math.floor((matchNumber - 1) / 2) + 1;
             }
         }
 
@@ -835,20 +849,26 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                         if (mRound !== null) periods.push(mRound.toString());
                         // Support legacy Regular Season format if it exists
                         else if (match.phase.toLowerCase().includes('regular season') || match.phase.toLowerCase().includes('rodada')) {
-                           // Added to brasileirao_total above 
+                            // Added to brasileirao_total above 
                         }
                     } else if (match.championship === 'copa_do_brasil') {
                         periods.push('copa_total');
                         const phaseLower = match.phase.toLowerCase();
-                        // Português
-                        if (phaseLower.includes('oitavas')) periods.push('copa_oitavas');
-                        else if (phaseLower.includes('quartas')) periods.push('copa_quartas');
-                        else if (phaseLower.includes('semi')) periods.push('copa_fase_final');
-                        else if (phaseLower.includes('final') && !phaseLower.includes('semi')) periods.push('copa_fase_final');
-                        // Inglês (vindos da API)
-                        else if (phaseLower === 'round of 16' || phaseLower.includes('round of 16')) periods.push('copa_oitavas');
-                        else if (phaseLower === 'round of 32' || phaseLower.includes('round of 32')) periods.push('copa_16_avos');
-                        else if (phaseLower.includes('quarter')) periods.push('copa_quartas');
+                        if (phaseLower.includes('oitavas') || phaseLower === 'round of 16') periods.push('copa_oitavas');
+                        else if (phaseLower.includes('quartas') || phaseLower.includes('quarter')) periods.push('copa_quartas');
+                        else if (phaseLower.includes('semi') || (phaseLower.includes('final') && !phaseLower.includes('semi'))) periods.push('copa_fase_final');
+                    } else if (match.championship === 'libertadores') {
+                        periods.push('libertadores_total');
+                        const phaseLower = match.phase.toLowerCase();
+                        if (phaseLower.includes('oitavas') || phaseLower === 'round of 16') periods.push('libertadores_oitavas');
+                        else if (phaseLower.includes('quartas') || phaseLower.includes('quarter')) periods.push('libertadores_quartas');
+                        else if (phaseLower.includes('semi') || (phaseLower.includes('final') && !phaseLower.includes('semi'))) periods.push('libertadores_fase_final');
+                    } else if (match.championship === 'sul_americana') {
+                        periods.push('sul_americana_total');
+                        const phaseLower = match.phase.toLowerCase();
+                        if (phaseLower.includes('oitavas') || phaseLower === 'round of 16') periods.push('sul_americana_oitavas');
+                        else if (phaseLower.includes('quartas') || phaseLower.includes('quarter')) periods.push('sul_americana_quartas');
+                        else if (phaseLower.includes('semi') || (phaseLower.includes('final') && !phaseLower.includes('semi'))) periods.push('sul_americana_fase_final');
                     }
                     if (periods.includes(leaderboardView)) includeInSum = true;
                 }
@@ -1112,10 +1132,10 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
             'brasileirao': 'Brasileirão',
             'copa_do_brasil': 'Copa do Brasil',
             'libertadores': 'Libertadores',
-            'sul_americana': 'Sul-Americana'
+            'sul_americana': 'Sul-Americana',
         };
-        
-        const allowedCompetitions: string[] = league?.settings?.competitions || ['brasileirao', 'copa_do_brasil'];
+
+        const allowedCompetitions: string[] = league?.settings?.competitions || ['brasileirao', 'copa_do_brasil', 'libertadores'];
         const compsText = allowedCompetitions.map(c => compNames[c] || c).join(' e ');
 
         const text = `Venha participar da minha liga *${league.name}* de palpites do ${compsText}! ⚽🏆\n\nCopie o código:\n*${league.leagueCode}*\n\nE clique no link para acessar:\nhttps://bolaodacopa2026.app/leagues-brasileirao?code=${league.leagueCode}`;
@@ -1155,11 +1175,14 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
         if (champ === 'copa_do_brasil') {
             champLabel = 'Copa do Brasil';
             champColorClass = 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800';
+        } else if (champ === 'libertadores') {
+            champLabel = 'Libertadores';
+            champColorClass = 'bg-sky-100 dark:bg-sky-900/30 text-sky-800 dark:text-sky-300 border-sky-200 dark:border-sky-800';
         } else {
             champLabel = 'Brasileirão';
             champColorClass = 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800';
         }
-        const isCopa = champ === 'copa_do_brasil';
+        const isCopa = champ === 'copa_do_brasil' || champ === 'libertadores';
         const roundColorClass = match.phase ? getRoundColorClass(match.phase, isCopa) : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300';
 
         return (
@@ -1187,13 +1210,13 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                 away: currentPred?.awayScore?.toString() ?? ''
             };
             const updatedMatch = { ...existing, [side]: digitsOnly };
-            
+
             if (updatedMatch.home === '' && updatedMatch.away === '') {
                 const newEdits = { ...prev };
                 delete newEdits[matchId];
                 return newEdits;
             }
-            
+
             return { ...prev, [matchId]: updatedMatch };
         });
     };
@@ -1228,7 +1251,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                 showToast('Sucesso!', `${predsToSave.length} palpite(s) salvo(s).`, 'success');
                 // Invalidate query
                 predsToSave.forEach(pred => {
-                    queryClient.invalidateQueries({ queryKey: ['matchStats', league.id, pred.matchId] });
+                    queryClient.invalidateQueries({ queryKey: ['matchStats', league.id, Number(pred.matchId)] });
                 });
                 return true;
             } else {
@@ -1240,11 +1263,23 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
     };
 
     const checkTopFinisherChanges = () => {
+        const isLockedForTopFinishers = (topFinishersResult !== null && (topFinishersResult.champion !== '' || topFinishersResult.runnerUp !== '')) || isTopFinishersLocked;
+        if (isLockedForTopFinishers) return false;
+
         const existingPred = topFinisherPredictions.find(p => p.userId === currentUser.id && p.leagueId === league.id);
-        const anyFieldFilled = tfChampion || tfRunnerUp || tfThird || tfFourth;
+        const tfC = tfChampion || '';
+        const tfR = tfRunnerUp || '';
+        const tfT = tfThird || '';
+        const tfF = tfFourth || '';
+        const anyFieldFilled = !!(tfC || tfR || tfT || tfF);
+        
         const differsFromSaved = !existingPred
-            ? !!anyFieldFilled
-            : (existingPred.champion !== tfChampion || existingPred.runnerUp !== tfRunnerUp || existingPred.third !== tfThird || existingPred.fourth !== tfFourth);
+            ? anyFieldFilled
+            : ((existingPred.champion || '') !== tfC || 
+               (existingPred.runnerUp || '') !== tfR || 
+               (existingPred.third || '') !== tfT || 
+               (existingPred.fourth || '') !== tfF);
+               
         return anyFieldFilled && differsFromSaved;
     };
 
@@ -1348,11 +1383,11 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
         try {
             const updatedSettings = {
                 ...league.settings,
-                exactScore: Math.min(100, Math.max(1, Number(editExactScore) || 1)),
-                winnerAndDiff: Math.min(100, Math.max(1, Number(editWinnerAndDiff) || 1)),
-                winnerAndWinnerGoals: Math.min(100, Math.max(1, Number(editWinnerAndWinnerGoals) || 1)),
-                draw: Math.min(100, Math.max(1, Number(editDraw) || 1)),
-                winner: Math.min(100, Math.max(1, Number(editWinner) || 1)),
+                exactScore: Math.min(99, Math.max(1, Number(editExactScore) || 1)),
+                winnerAndDiff: Math.min(99, Math.max(1, Number(editWinnerAndDiff) || 1)),
+                winnerAndWinnerGoals: Math.min(99, Math.max(1, Number(editWinnerAndWinnerGoals) || 1)),
+                draw: Math.min(99, Math.max(1, Number(editDraw) || 1)),
+                winner: Math.min(99, Math.max(1, Number(editWinner) || 1)),
                 topFinishersEnabled: editTopFinishersEnabled,
                 topFinishersPoints: {
                     champion: Math.max(1, Number(editTopFinishersPoints.champion) || 20),
@@ -1426,7 +1461,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
         const colors = [
             'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300', // blue
             'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300', // red
-            'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300', // purple
+            'bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300', // sky
         ];
         return colors[roundNum % colors.length];
     };
@@ -1506,9 +1541,19 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
         return { match, totalPreds, mostPredictedScore, homeWinPct, drawPct, awayWinPct };
     };
 
-    const getBrasileiraoHistoryForTeam = (teamId: string, currentMatchDate: string) => {
+    const getBrasileiraoHistoryForTeam = (teamId: string, currentMatchDate: string, currentChampionship: string) => {
         const curDate = new Date(currentMatchDate).getTime();
-        return matches
+        
+        let allowedForHistory = [currentChampionship];
+        if (currentChampionship === 'copa_do_brasil' &&
+            allowedCompetitions.includes('brasileirao') && 
+            allowedCompetitions.includes('copa_do_brasil')) {
+            allowedForHistory = ['brasileirao', 'copa_do_brasil'];
+        }
+
+        return allMatches
+            .filter(m => allowedForHistory.includes(m.championship || 'brasileirao'))
+            .filter(m => allowedCompetitions.includes(m.championship || 'brasileirao'))
             .filter(m => (String(m.home_team_id) === String(teamId) || String(m.away_team_id) === String(teamId)) && m.status === MatchStatus.FINISHED)
             .filter(m => new Date(m.date).getTime() < curDate)
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
@@ -1556,26 +1601,40 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
         });
 
         const filteredMatches = sortedMatches.filter(m => {
-            const isCopa = (m as any).championship === 'copa_do_brasil';
+            const isCopaDoBrasil = (m as any).championship === 'copa_do_brasil';
+            const isLibertadores = (m as any).championship === 'libertadores';
+            const isSulAmericana = (m as any).championship === 'sul_americana';
             const isBrasileirao = (m as any).championship === 'brasileirao';
 
             const activeCompFilter = allowedCompetitions.length === 1
-                ? (allowedCompetitions.includes('brasileirao') ? 'brasileirao' : 'copa')
+                ? (allowedCompetitions.includes('brasileirao') ? 'brasileirao' : allowedCompetitions.includes('libertadores') ? 'libertadores' : allowedCompetitions.includes('sul_americana') ? 'sul_americana' : 'copa')
                 : palpitesCompetition;
 
-            if (activeCompFilter === 'brasileirao' && isCopa) return false;
-            if (activeCompFilter === 'copa' && isBrasileirao) return false;
+            if (activeCompFilter === 'brasileirao' && (isCopaDoBrasil || isLibertadores || isSulAmericana)) return false;
+            if (activeCompFilter === 'copa' && (isBrasileirao || isLibertadores || isSulAmericana)) return false;
+            if (activeCompFilter === 'libertadores' && (isBrasileirao || isCopaDoBrasil || isSulAmericana)) return false;
+            if (activeCompFilter === 'sul_americana' && (isBrasileirao || isCopaDoBrasil || isLibertadores)) return false;
 
             if (palpitesSubPeriod !== 'all') {
                 if (palpitesSubPeriod.startsWith('mes_')) {
                     const month = parseInt(palpitesSubPeriod.split('_')[1], 10);
                     const matchMonth = new Date(m.date).getMonth() + 1;
                     if (matchMonth !== month) return false;
-                } else if (isCopa) {
+                } else if (isCopaDoBrasil) {
                     const p = m.phase?.toLowerCase() || '';
                     if (palpitesSubPeriod === 'copa_oitavas' && !(p.includes('oitavas') || p.includes('round of 16'))) return false;
                     if (palpitesSubPeriod === 'copa_quartas' && !(p.includes('quartas') || p.includes('quarter'))) return false;
                     if (palpitesSubPeriod === 'copa_fase_final' && !(p.includes('semi') || (p.includes('final') && !p.includes('semi')))) return false;
+                } else if (isLibertadores) {
+                    const p = m.phase?.toLowerCase() || '';
+                    if (palpitesSubPeriod === 'libertadores_oitavas' && !(p.includes('oitavas') || p.includes('round of 16'))) return false;
+                    if (palpitesSubPeriod === 'libertadores_quartas' && !(p.includes('quartas') || p.includes('quarter'))) return false;
+                    if (palpitesSubPeriod === 'libertadores_fase_final' && !(p.includes('semi') || (p.includes('final') && !p.includes('semi')))) return false;
+                } else if (isSulAmericana) {
+                    const p = m.phase?.toLowerCase() || '';
+                    if (palpitesSubPeriod === 'sul_americana_oitavas' && !(p.includes('oitavas') || p.includes('round of 16'))) return false;
+                    if (palpitesSubPeriod === 'sul_americana_quartas' && !(p.includes('quartas') || p.includes('quarter'))) return false;
+                    if (palpitesSubPeriod === 'sul_americana_fase_final' && !(p.includes('semi') || (p.includes('final') && !p.includes('semi')))) return false;
                 } else if (isBrasileirao) {
                     const round = getMatchRound(m);
                     if (round?.toString() !== palpitesSubPeriod) return false;
@@ -1950,12 +2009,17 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                 {league.settings?.topFinishersEnabled && (() => {
                     const isLocked = (topFinishersResult !== null && (topFinishersResult.champion !== '' || topFinishersResult.runnerUp !== '')) || isTopFinishersLocked;
                     const existingPred = topFinisherPredictions.find(p => p.userId === currentUser.id && p.leagueId === league.id);
-                    const anyFieldFilled = tfChampion || tfRunnerUp || tfThird || tfFourth;
+                    const tfC = tfChampion || '';
+                    const tfR = tfRunnerUp || '';
+                    const tfT = tfThird || '';
+                    const tfF = tfFourth || '';
+                    const anyFieldFilled = !!(tfC || tfR || tfT || tfF);
                     const differsFromSaved = !existingPred
-                        || existingPred.champion !== tfChampion
-                        || existingPred.runnerUp !== tfRunnerUp
-                        || existingPred.third !== tfThird
-                        || existingPred.fourth !== tfFourth;
+                        ? anyFieldFilled
+                        : ((existingPred.champion || '') !== tfC || 
+                           (existingPred.runnerUp || '') !== tfR || 
+                           (existingPred.third || '') !== tfT || 
+                           (existingPred.fourth || '') !== tfF);
                     const hasTopFinisherChanges = !isLocked && anyFieldFilled && differsFromSaved;
                     if (!hasTopFinisherChanges || isKeyboardOpen) return null;
                     const shiftUp = Object.keys(pendingEdits).length > 0;
@@ -2008,8 +2072,10 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                 <div className={`relative ${palpitesCompetition !== 'all' ? 'flex-1 md:flex-none md:w-auto min-w-[130px]' : 'w-full md:w-auto'}`}>
                                     <select value={palpitesCompetition} onChange={(e) => { setPalpitesCompetition(e.target.value as any); setPalpitesSubPeriod('all'); }} className={`w-full ${palpitesCompetition === 'all' ? 'md:min-w-[160px]' : ''} appearance-none bg-gray-700 text-white border border-gray-600 text-xs font-bold rounded-lg focus:ring-brasil-blue focus:border-brasil-blue block p-2.5 pr-8`}>
                                         <option value="all">Todas Competições</option>
-                                        <option value="brasileirao">Brasileirão</option>
-                                        <option value="copa">Copa do Brasil</option>
+                                        {allowedCompetitions.includes('brasileirao') && <option value="brasileirao">Brasileirão</option>}
+                                        {allowedCompetitions.includes('copa_do_brasil') && <option value="copa">Copa do Brasil</option>}
+                                        {allowedCompetitions.includes('libertadores') && <option value="libertadores">Libertadores</option>}
+                                        {allowedCompetitions.includes('sul_americana') && <option value="sul_americana">Sul-Americana</option>}
                                     </select>
                                     <ChevronDown size={14} className="absolute right-3 top-3 text-gray-300 pointer-events-none" />
                                 </div>
@@ -2017,7 +2083,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
 
                             {(() => {
                                 const activeComp = allowedCompetitions.length === 1
-                                    ? (allowedCompetitions.includes('brasileirao') ? 'brasileirao' : 'copa')
+                                    ? (allowedCompetitions.includes('brasileirao') ? 'brasileirao' : allowedCompetitions.includes('libertadores') ? 'libertadores' : allowedCompetitions.includes('sul_americana') ? 'sul_americana' : 'copa')
                                     : palpitesCompetition;
 
                                 if (activeComp === 'brasileirao') {
@@ -2042,6 +2108,32 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                                 <option value="copa_oitavas">Oitavas de Final</option>
                                                 <option value="copa_quartas">Quartas de Final</option>
                                                 <option value="copa_fase_final">Fase Final (Semi+Final)</option>
+                                            </select>
+                                            <ChevronDown size={14} className="absolute right-3 top-3 text-gray-300 pointer-events-none" />
+                                        </div>
+                                    );
+                                }
+                                if (activeComp === 'libertadores') {
+                                    return (
+                                        <div className={`relative ${allowedCompetitions.length > 1 ? 'flex-1 md:flex-none md:w-auto min-w-[130px]' : 'w-full md:w-auto'}`}>
+                                            <select value={palpitesSubPeriod} onChange={(e) => setPalpitesSubPeriod(e.target.value)} className={`w-full ${allowedCompetitions.length === 1 ? 'md:min-w-[160px]' : ''} appearance-none bg-gray-700 text-white border border-gray-600 text-xs font-bold rounded-lg focus:ring-brasil-blue focus:border-brasil-blue block p-2.5 pr-8`}>
+                                                <option value="all">Todas as Fases</option>
+                                                <option value="libertadores_oitavas">Oitavas de Final</option>
+                                                <option value="libertadores_quartas">Quartas de Final</option>
+                                                <option value="libertadores_fase_final">Fase Final (Semi+Final)</option>
+                                            </select>
+                                            <ChevronDown size={14} className="absolute right-3 top-3 text-gray-300 pointer-events-none" />
+                                        </div>
+                                    );
+                                }
+                                if (activeComp === 'sul_americana') {
+                                    return (
+                                        <div className={`relative ${allowedCompetitions.length > 1 ? 'flex-1 md:flex-none md:w-auto min-w-[130px]' : 'w-full md:w-auto'}`}>
+                                            <select value={palpitesSubPeriod} onChange={(e) => setPalpitesSubPeriod(e.target.value)} className={`w-full ${allowedCompetitions.length === 1 ? 'md:min-w-[160px]' : ''} appearance-none bg-gray-700 text-white border border-gray-600 text-xs font-bold rounded-lg focus:ring-brasil-blue focus:border-brasil-blue block p-2.5 pr-8`}>
+                                                <option value="all">Todas as Fases</option>
+                                                <option value="sul_americana_oitavas">Oitavas de Final</option>
+                                                <option value="sul_americana_quartas">Quartas de Final</option>
+                                                <option value="sul_americana_fase_final">Fase Final (Semi+Final)</option>
                                             </select>
                                             <ChevronDown size={14} className="absolute right-3 top-3 text-gray-300 pointer-events-none" />
                                         </div>
@@ -2183,7 +2275,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
 
                                     <div className="flex flex-col text-xs text-gray-500 dark:text-gray-400 mb-4 gap-1 pr-20">
                                         <span className="font-bold text-brasil-blue dark:text-blue-400 uppercase flex items-center gap-1.5 flex-wrap"><Calendar size={12} />{isDateValid ? matchDate.toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' }) : 'Data Inválida'}<span className="text-gray-300 dark:text-gray-600">|</span>{isDateValid ? matchDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '--:--'}<span className="hidden text-gray-400 dark:text-gray-500 font-normal normal-case flex items-center gap-1"><MapPin size={10} /><span className="truncate max-w-[120px]">{match.location}</span></span></span>
-                                        <div className="flex items-center gap-1.5">{(() => { const champ = match.championship; if (champ === 'copa_do_brasil') return <span className="text-[9px] bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-800 px-1.5 py-0.5 rounded font-black uppercase tracking-wider shadow-sm">Copa do Brasil</span>; return <span className="text-[9px] bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800 px-1.5 py-0.5 rounded font-black uppercase tracking-wider shadow-sm">Brasileirão</span>; })()}{match.phase && <span className={`text-[9px] font-black border border-black/5 dark:border-white/5 px-1.5 py-0.5 rounded uppercase tracking-wider shadow-sm ${getRoundColorClass(match.phase, match.championship === 'copa_do_brasil')}`}>{translatePhase(match.phase)}</span>}</div>
+                                        <div className="flex items-center gap-1.5">{(() => { const champ = match.championship; if (champ === 'copa_do_brasil') return <span className="text-[9px] bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-800 px-1.5 py-0.5 rounded font-black uppercase tracking-wider shadow-sm">Copa do Brasil</span>; if (champ === 'libertadores') return <span className="text-[9px] bg-sky-100 dark:bg-sky-900/30 text-sky-800 dark:text-sky-300 border border-sky-200 dark:border-sky-800 px-1.5 py-0.5 rounded font-black uppercase tracking-wider shadow-sm">Libertadores</span>; if (champ === 'sul_americana') return <span className="text-[9px] bg-pink-100 dark:bg-pink-500/30 text-pink-500 dark:text-pink-200 border border-pink-200 dark:border-pink-500 px-1.5 py-0.5 rounded font-black uppercase tracking-wider shadow-sm">Sul-Americana</span>; return <span className="text-[9px] bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800 px-1.5 py-0.5 rounded font-black uppercase tracking-wider shadow-sm">Brasileirão</span>; })()}{match.phase && <span className={`text-[9px] font-black border border-black/5 dark:border-white/5 px-1.5 py-0.5 rounded uppercase tracking-wider shadow-sm ${getRoundColorClass(match.phase, match.championship === 'copa_do_brasil' || match.championship === 'libertadores' || match.championship === 'sul_americana')}`}>{translatePhase(match.phase)}</span>}</div>
                                     </div>
                                     <div className="flex items-center justify-between mb-2 gap-2 flex-nowrap">
                                         <div className="flex flex-col items-center justify-center w-1/3 flex-1 min-w-0 gap-1.5">
@@ -2712,7 +2804,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                                                         <div className="text-xs font-bold uppercase text-gray-500 dark:text-gray-400 mb-2 mt-2 flex items-center justify-center gap-2">
                                                                             <img referrerPolicy='no-referrer' src={getTeamFlag(sm.home_team_id, teams)} onError={(e) => { (e.target as HTMLImageElement).src = LOGO_FALLBACK; }} className="w-8 h-8 object-contain drop-shadow-sm" /> Últimos jogos: {getTeamNameForDisplay(sm.home_team_id)}
                                                                         </div>
-                                                                        {getBrasileiraoHistoryForTeam(String(sm.home_team_id), sm.date).map(h => (
+                                                                        {getBrasileiraoHistoryForTeam(String(sm.home_team_id), sm.date, sm.championship || 'brasileirao').map(h => (
                                                                             <div key={h.id} className={`p-3 rounded-lg border flex justify-between items-center ${h.result === 'Vitória' ? 'bg-green-50/50 dark:bg-green-900/10 border-green-200 dark:border-green-800 text-green-800 dark:text-green-300' :
                                                                                 h.result === 'Derrota' ? 'bg-red-50/50 dark:bg-red-900/10 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300' :
                                                                                     h.result === 'Empate' ? 'bg-gray-50/50 dark:bg-gray-800/50 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-400' :
@@ -2736,7 +2828,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                                                         <div className="text-xs font-bold uppercase text-gray-500 dark:text-gray-400 mb-2 mt-2 flex items-center justify-center gap-2">
                                                                             <img referrerPolicy='no-referrer' src={getTeamFlag(sm.away_team_id, teams)} onError={(e) => { (e.target as HTMLImageElement).src = LOGO_FALLBACK; }} className="w-8 h-8 object-contain drop-shadow-sm" /> Últimos jogos: {getTeamNameForDisplay(sm.away_team_id)}
                                                                         </div>
-                                                                        {getBrasileiraoHistoryForTeam(String(sm.away_team_id), sm.date).map(h => (
+                                                                        {getBrasileiraoHistoryForTeam(String(sm.away_team_id), sm.date, sm.championship || 'brasileirao').map(h => (
                                                                             <div key={h.id} className={`p-3 rounded-lg border flex justify-between items-center ${h.result === 'Vitória' ? 'bg-green-50/50 dark:bg-green-900/10 border-green-200 dark:border-green-800 text-green-800 dark:text-green-300' :
                                                                                 h.result === 'Derrota' ? 'bg-red-50/50 dark:bg-red-900/10 border-red-200 dark:border-red-800 text-red-800 dark:text-red-300' :
                                                                                     h.result === 'Empate' ? 'bg-gray-50/50 dark:bg-gray-800/50 border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-400' :
@@ -2956,26 +3048,40 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
         const fullHistory = selectedUserId ? getHistory(selectedUserId) : [];
         const filteredHistory = fullHistory.filter(item => {
             const m = item.match as any;
-            const isCopa = m.championship === 'copa_do_brasil';
+            const isCopaDoBrasil = m.championship === 'copa_do_brasil';
+            const isLibertadores = m.championship === 'libertadores';
+            const isSulAmericana = m.championship === 'sul_americana';
             const isBrasileirao = m.championship === 'brasileirao';
 
             const activeCompFilter = allowedCompetitions.length === 1
-                ? (allowedCompetitions.includes('brasileirao') ? 'brasileirao' : 'copa')
+                ? (allowedCompetitions.includes('brasileirao') ? 'brasileirao' : allowedCompetitions.includes('libertadores') ? 'libertadores' : allowedCompetitions.includes('sul_americana') ? 'sul_americana' : 'copa')
                 : histCompetition;
 
-            if (activeCompFilter === 'brasileirao' && isCopa) return false;
-            if (activeCompFilter === 'copa' && isBrasileirao) return false;
+            if (activeCompFilter === 'brasileirao' && (isCopaDoBrasil || isLibertadores || isSulAmericana)) return false;
+            if (activeCompFilter === 'copa' && (isBrasileirao || isLibertadores || isSulAmericana)) return false;
+            if (activeCompFilter === 'libertadores' && (isBrasileirao || isCopaDoBrasil || isSulAmericana)) return false;
+            if (activeCompFilter === 'sul_americana' && (isBrasileirao || isCopaDoBrasil || isLibertadores)) return false;
 
             if (histSubPeriod !== 'all') {
                 if (histSubPeriod.startsWith('mes_')) {
                     const month = parseInt(histSubPeriod.split('_')[1], 10);
                     const matchMonth = new Date(m.date).getMonth() + 1;
                     if (matchMonth !== month) return false;
-                } else if (isCopa) {
+                } else if (isCopaDoBrasil) {
                     const p = m.phase?.toLowerCase() || '';
                     if (histSubPeriod === 'copa_oitavas' && !(p.includes('oitavas') || p.includes('round of 16'))) return false;
                     if (histSubPeriod === 'copa_quartas' && !(p.includes('quartas') || p.includes('quarter'))) return false;
                     if (histSubPeriod === 'copa_fase_final' && !(p.includes('semi') || (p.includes('final') && !p.includes('semi')))) return false;
+                } else if (isLibertadores) {
+                    const p = m.phase?.toLowerCase() || '';
+                    if (histSubPeriod === 'libertadores_oitavas' && !(p.includes('oitavas') || p.includes('round of 16'))) return false;
+                    if (histSubPeriod === 'libertadores_quartas' && !(p.includes('quartas') || p.includes('quarter'))) return false;
+                    if (histSubPeriod === 'libertadores_fase_final' && !(p.includes('semi') || (p.includes('final') && !p.includes('semi')))) return false;
+                } else if (isSulAmericana) {
+                    const p = m.phase?.toLowerCase() || '';
+                    if (histSubPeriod === 'sul_americana_oitavas' && !(p.includes('oitavas') || p.includes('round of 16'))) return false;
+                    if (histSubPeriod === 'sul_americana_quartas' && !(p.includes('quartas') || p.includes('quarter'))) return false;
+                    if (histSubPeriod === 'sul_americana_fase_final' && !(p.includes('semi') || (p.includes('final') && !p.includes('semi')))) return false;
                 } else if (isBrasileirao) {
                     const round = getMatchRound(m);
                     if (round?.toString() !== histSubPeriod) return false;
@@ -3000,15 +3106,22 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                         <div className="space-y-1.5">
                             <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Competição:</span>
                             <div className="flex gap-2">
-                                {[{ key: 'total', label: '🏆 Total' }, { key: 'brasileirao', label: '⚽ Brasileirão' }, { key: 'copa', label: '🥇 Copa do Brasil' }].map(opt => (
+                                {[
+                                    { key: 'total', label: '🏆 Total', show: true },
+                                    { key: 'brasileirao', label: '⚽ Brasileirão', show: allowedCompetitions.includes('brasileirao') },
+                                    { key: 'copa', label: '🥇 Copa', show: allowedCompetitions.includes('copa_do_brasil') },
+                                    { key: 'libertadores', label: '🌎 Libertadores', show: allowedCompetitions.includes('libertadores') },
+                                    { key: 'sul_americana', label: '🏆 Sul-Americana', show: allowedCompetitions.includes('sul_americana') }
+                                ].filter(opt => opt.show).map(opt => (
                                     <button
                                         key={opt.key}
                                         onClick={() => { setCompetitionFilter(opt.key as any); setSubPeriod('all'); }}
                                         className={`flex-1 px-2 py-2 rounded-lg text-xs font-bold transition-all border whitespace-nowrap ${competitionFilter === opt.key
-                                                ? opt.key === 'brasileirao' ? 'bg-green-600 text-white border-green-600 shadow-md'
-                                                    : opt.key === 'copa' ? 'bg-yellow-500 text-yellow-900 border-yellow-500 shadow-md'
+                                            ? opt.key === 'brasileirao' ? 'bg-green-600 text-white border-green-600 shadow-md'
+                                                : opt.key === 'copa' ? 'bg-yellow-500 text-yellow-900 border-yellow-500 shadow-md'
+                                                    : opt.key === 'sul_americana' ? 'bg-pink-500 text-white border-pink-500 shadow-md' : opt.key === 'libertadores' ? 'bg-sky-600 text-white border-sky-600 shadow-md'
                                                         : 'bg-brasil-blue text-white border-brasil-blue shadow-md'
-                                                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                            : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
                                             }`}
                                     >
                                         {opt.label}
@@ -3058,6 +3171,24 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                             </div>
                         </div>
                     )}
+                    {competitionFilter === 'libertadores' && allowedCompetitions.includes('libertadores') && (
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-sky-700 dark:text-sky-400 whitespace-nowrap">Fase:</span>
+                            <div className="relative flex-1">
+                                <select
+                                    value={subPeriod}
+                                    onChange={(e) => setSubPeriod(e.target.value)}
+                                    className="w-full appearance-none bg-sky-600 dark:bg-sky-800 text-white border border-sky-700 dark:border-sky-700 text-sm font-bold rounded-lg focus:ring-2 focus:ring-sky-400 block p-2.5 pr-8 shadow-md cursor-pointer"
+                                >
+                                    <option value="all" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Total da Libertadores</option>
+                                    <option value="libertadores_oitavas" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Oitavas de Final</option>
+                                    <option value="libertadores_quartas" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Quartas de Final</option>
+                                    <option value="libertadores_fase_final" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Fase Final (Semi+Final)</option>
+                                </select>
+                                <ChevronDown size={14} className="absolute right-3 top-3.5 text-sky-200 pointer-events-none" />
+                            </div>
+                        </div>
+                    )}
                     {competitionFilter === 'copa' && allowedCompetitions.includes('copa_do_brasil') && (
                         <div className="flex items-center gap-2">
                             <span className="text-xs font-bold text-yellow-700 dark:text-yellow-400 whitespace-nowrap">Fase:</span>
@@ -3073,6 +3204,24 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                     <option value="copa_fase_final" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Fase Final (Semi+Final)</option>
                                 </select>
                                 <ChevronDown size={14} className="absolute right-3 top-3.5 text-yellow-200 pointer-events-none" />
+                            </div>
+                        </div>
+                    )}
+                    {competitionFilter === 'sul_americana' && allowedCompetitions.includes('sul_americana') && (
+                        <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-pink-500 dark:text-pink-400 whitespace-nowrap">Fase:</span>
+                            <div className="relative flex-1">
+                                <select
+                                    value={subPeriod}
+                                    onChange={(e) => setSubPeriod(e.target.value)}
+                                    className="w-full appearance-none bg-pink-500 dark:bg-pink-500 text-white border border-pink-500 dark:border-pink-500 text-sm font-bold rounded-lg focus:ring-2 focus:ring-pink-400 block p-2.5 pr-8 shadow-md cursor-pointer"
+                                >
+                                    <option value="all" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Total da Sul-Americana</option>
+                                    <option value="sul_americana_oitavas" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Oitavas de Final</option>
+                                    <option value="sul_americana_quartas" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Quartas de Final</option>
+                                    <option value="sul_americana_fase_final" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Fase Final (Semi+Final)</option>
+                                </select>
+                                <ChevronDown size={14} className="absolute right-3 top-3.5 text-pink-200 pointer-events-none" />
                             </div>
                         </div>
                     )}
@@ -3095,6 +3244,24 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                             </div>
                         </div>
                     )}
+                    {allowedCompetitions.length === 1 && allowedCompetitions.includes('libertadores') && (
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-brasil-blue dark:text-blue-400 whitespace-nowrap">Fase:</span>
+                            <div className="relative flex-1">
+                                <select
+                                    value={subPeriod}
+                                    onChange={(e) => setSubPeriod(e.target.value)}
+                                    className="w-full appearance-none bg-brasil-blue dark:bg-blue-900 text-white border border-blue-900 dark:border-blue-800 text-sm font-bold rounded-lg focus:ring-2 focus:ring-brasil-yellow block p-2.5 pr-8 shadow-md cursor-pointer"
+                                >
+                                    <option value="all" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Total da Libertadores</option>
+                                    <option value="libertadores_oitavas" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Oitavas de Final</option>
+                                    <option value="libertadores_quartas" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Quartas de Final</option>
+                                    <option value="libertadores_fase_final" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Fase Final (Semi+Final)</option>
+                                </select>
+                                <ChevronDown size={14} className="absolute right-3 top-3.5 text-blue-200 pointer-events-none" />
+                            </div>
+                        </div>
+                    )}
                     {allowedCompetitions.length === 1 && allowedCompetitions.includes('copa_do_brasil') && (
                         <div className="flex items-center gap-2">
                             <span className="text-sm font-bold text-brasil-blue dark:text-blue-400 whitespace-nowrap">Fase:</span>
@@ -3108,6 +3275,24 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                     <option value="copa_oitavas" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Oitavas de Final</option>
                                     <option value="copa_quartas" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Quartas de Final</option>
                                     <option value="copa_fase_final" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Fase Final (Semi+Final)</option>
+                                </select>
+                                <ChevronDown size={14} className="absolute right-3 top-3.5 text-blue-200 pointer-events-none" />
+                            </div>
+                        </div>
+                    )}
+                    {allowedCompetitions.length === 1 && allowedCompetitions.includes('sul_americana') && (
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-brasil-blue dark:text-blue-400 whitespace-nowrap">Fase:</span>
+                            <div className="relative flex-1">
+                                <select
+                                    value={subPeriod}
+                                    onChange={(e) => setSubPeriod(e.target.value)}
+                                    className="w-full appearance-none bg-brasil-blue dark:bg-blue-900 text-white border border-blue-900 dark:border-blue-800 text-sm font-bold rounded-lg focus:ring-2 focus:ring-brasil-yellow block p-2.5 pr-8 shadow-md cursor-pointer"
+                                >
+                                    <option value="all" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Total da Sul-Americana</option>
+                                    <option value="sul_americana_oitavas" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Oitavas de Final</option>
+                                    <option value="sul_americana_quartas" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Quartas de Final</option>
+                                    <option value="sul_americana_fase_final" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white">Fase Final (Semi+Final)</option>
                                 </select>
                                 <ChevronDown size={14} className="absolute right-3 top-3.5 text-blue-200 pointer-events-none" />
                             </div>
@@ -3196,8 +3381,10 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                         <div className={`relative ${histCompetition !== 'all' ? 'flex-1 md:flex-none md:w-auto min-w-[130px]' : 'w-full md:w-auto'}`}>
                                             <select value={histCompetition} onChange={(e) => { setHistCompetition(e.target.value as any); setHistSubPeriod('all'); }} className={`w-full ${histCompetition === 'all' ? 'md:min-w-[160px]' : ''} text-xs border border-gray-600 bg-gray-700 text-white rounded-lg p-2 outline-none focus:border-brasil-blue focus:ring-1 focus:ring-brasil-blue appearance-none pr-8`}>
                                                 <option value="all">Todas Competições</option>
-                                                <option value="brasileirao">Brasileirão</option>
-                                                <option value="copa">Copa do Brasil</option>
+                                                {allowedCompetitions.includes('brasileirao') && <option value="brasileirao">Brasileirão</option>}
+                                                {allowedCompetitions.includes('copa_do_brasil') && <option value="copa">Copa do Brasil</option>}
+                                                {allowedCompetitions.includes('libertadores') && <option value="libertadores">Libertadores</option>}
+                                                {allowedCompetitions.includes('sul_americana') && <option value="sul_americana">Sul-Americana</option>}
                                             </select>
                                             <ChevronDown size={14} className="absolute right-3 top-2.5 text-gray-300 pointer-events-none" />
                                         </div>
@@ -3205,7 +3392,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
 
                                     {(() => {
                                         const activeComp = allowedCompetitions.length === 1
-                                            ? (allowedCompetitions.includes('brasileirao') ? 'brasileirao' : 'copa')
+                                            ? (allowedCompetitions.includes('brasileirao') ? 'brasileirao' : allowedCompetitions.includes('libertadores') ? 'libertadores' : allowedCompetitions.includes('sul_americana') ? 'sul_americana' : 'copa')
                                             : histCompetition;
 
                                         if (activeComp === 'brasileirao') {
@@ -3230,6 +3417,32 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                                         <option value="copa_oitavas">Oitavas de Final</option>
                                                         <option value="copa_quartas">Quartas de Final</option>
                                                         <option value="copa_fase_final">Fase Final (Semi+Final)</option>
+                                                    </select>
+                                                    <ChevronDown size={14} className="absolute right-3 top-2.5 text-gray-300 pointer-events-none" />
+                                                </div>
+                                            );
+                                        }
+                                        if (activeComp === 'libertadores') {
+                                            return (
+                                                <div className={`relative ${allowedCompetitions.length > 1 ? 'flex-1 md:flex-none md:w-auto min-w-[130px]' : 'w-full md:w-auto'}`}>
+                                                    <select value={histSubPeriod} onChange={(e) => setHistSubPeriod(e.target.value)} className={`w-full ${allowedCompetitions.length === 1 ? 'md:min-w-[160px]' : ''} text-xs border border-gray-600 bg-gray-700 text-white rounded-lg p-2 outline-none focus:border-brasil-blue focus:ring-1 focus:ring-brasil-blue appearance-none pr-8`}>
+                                                        <option value="all">Todas as Fases</option>
+                                                        <option value="libertadores_oitavas">Oitavas de Final</option>
+                                                        <option value="libertadores_quartas">Quartas de Final</option>
+                                                        <option value="libertadores_fase_final">Fase Final (Semi+Final)</option>
+                                                    </select>
+                                                    <ChevronDown size={14} className="absolute right-3 top-2.5 text-gray-300 pointer-events-none" />
+                                                </div>
+                                            );
+                                        }
+                                        if (activeComp === 'sul_americana') {
+                                            return (
+                                                <div className={`relative ${allowedCompetitions.length > 1 ? 'flex-1 md:flex-none md:w-auto min-w-[130px]' : 'w-full md:w-auto'}`}>
+                                                    <select value={histSubPeriod} onChange={(e) => setHistSubPeriod(e.target.value)} className={`w-full ${allowedCompetitions.length === 1 ? 'md:min-w-[160px]' : ''} text-xs border border-gray-600 bg-gray-700 text-white rounded-lg p-2 outline-none focus:border-brasil-blue focus:ring-1 focus:ring-brasil-blue appearance-none pr-8`}>
+                                                        <option value="all">Todas as Fases</option>
+                                                        <option value="sul_americana_oitavas">Oitavas de Final</option>
+                                                        <option value="sul_americana_quartas">Quartas de Final</option>
+                                                        <option value="sul_americana_fase_final">Fase Final (Semi+Final)</option>
                                                     </select>
                                                     <ChevronDown size={14} className="absolute right-3 top-2.5 text-gray-300 pointer-events-none" />
                                                 </div>
@@ -3483,6 +3696,10 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
 
                     <div className="space-y-6">
 
+                        <div className="bg-orange-100 dark:bg-yellow-900/30 border border-orange-300 dark:border-yellow-700 p-3 rounded-xl flex items-start gap-2 text-orange-600 dark:text-orange-400 text-xs leading-relaxed font-bold mb-4">
+                            <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
+                            <p>A configuração da pontuação será bloqueada no Sábado, dia 25/07/2026 às 18 horas.</p>
+                        </div>
                         <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-3 rounded-xl flex items-start gap-2 text-blue-700 dark:text-blue-300 text-xs leading-relaxed">
                             <Info size={16} className="mt-0.5 flex-shrink-0" />
                             <p>Se quiser deixar desativado <strong>Vencedor + Gols do Vencedor</strong>, <strong>Vencedor + Saldo</strong> ou <strong>Empate (Não Exato)</strong> basta deixar a mesma pontuação de <strong>Apenas Vencedor</strong>.</p>
@@ -3493,6 +3710,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                 <input
                                     type="number"
                                     min="1"
+                                    max="99"
                                     disabled={isScoringLocked}
                                     value={editExactScore}
                                     onChange={(e) => {
@@ -3500,7 +3718,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                         if (val === '') setEditExactScore('');
                                         else {
                                             const n = parseInt(val);
-                                            if (n > 0) setEditExactScore(n);
+                                            if (n > 0 && n <= 99) setEditExactScore(n);
                                         }
                                     }}
                                     className={`w-full p-3 rounded-xl border font-bold ${isScoringLocked ? 'bg-gray-100 dark:bg-gray-900 text-gray-400' : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-brasil-blue outline-none'}`}
@@ -3511,6 +3729,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                 <input
                                     type="number"
                                     min="1"
+                                    max="99"
                                     disabled={isScoringLocked}
                                     value={editWinnerAndDiff}
                                     onChange={(e) => {
@@ -3518,7 +3737,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                         if (val === '') setEditWinnerAndDiff('');
                                         else {
                                             const n = parseInt(val);
-                                            if (n > 0) setEditWinnerAndDiff(n);
+                                            if (n > 0 && n <= 99) setEditWinnerAndDiff(n);
                                         }
                                     }}
                                     className={`w-full p-3 rounded-xl border font-bold ${isScoringLocked ? 'bg-gray-100 dark:bg-gray-900 text-gray-400' : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-brasil-blue outline-none'}`}
@@ -3529,6 +3748,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                 <input
                                     type="number"
                                     min="1"
+                                    max="99"
                                     disabled={isScoringLocked}
                                     value={editWinnerAndWinnerGoals}
                                     onChange={(e) => {
@@ -3536,7 +3756,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                         if (val === '') setEditWinnerAndWinnerGoals('');
                                         else {
                                             const n = parseInt(val);
-                                            if (n > 0) setEditWinnerAndWinnerGoals(n);
+                                            if (n > 0 && n <= 99) setEditWinnerAndWinnerGoals(n);
                                         }
                                     }}
                                     className={`w-full p-3 rounded-xl border font-bold ${isScoringLocked ? 'bg-gray-100 dark:bg-gray-900 text-gray-400' : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-brasil-blue outline-none'}`}
@@ -3547,6 +3767,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                 <input
                                     type="number"
                                     min="1"
+                                    max="99"
                                     disabled={isScoringLocked}
                                     value={editDraw}
                                     onChange={(e) => {
@@ -3554,7 +3775,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                         if (val === '') setEditDraw('');
                                         else {
                                             const n = parseInt(val);
-                                            if (n > 0) setEditDraw(n);
+                                            if (n > 0 && n <= 99) setEditDraw(n);
                                         }
                                     }}
                                     className={`w-full p-3 rounded-xl border font-bold ${isScoringLocked ? 'bg-gray-100 dark:bg-gray-900 text-gray-400' : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-brasil-blue outline-none'}`}
@@ -3565,6 +3786,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                 <input
                                     type="number"
                                     min="1"
+                                    max="99"
                                     disabled={isScoringLocked}
                                     value={editWinner}
                                     onChange={(e) => {
@@ -3572,7 +3794,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                         if (val === '') setEditWinner('');
                                         else {
                                             const n = parseInt(val);
-                                            if (n > 0) setEditWinner(n);
+                                            if (n > 0 && n <= 99) setEditWinner(n);
                                         }
                                     }}
                                     className={`w-full p-3 rounded-xl border font-bold ${isScoringLocked ? 'bg-gray-100 dark:bg-gray-900 text-gray-400' : 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-200 dark:border-gray-600 focus:ring-2 focus:ring-brasil-blue outline-none'}`}
@@ -3692,7 +3914,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                 {allowedCompetitions.includes('brasileirao') && <span className="text-[10px] bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider shadow-sm">Brasileirão</span>}
                                 {allowedCompetitions.includes('copa_do_brasil') && <span className="text-[10px] bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border border-yellow-200 dark:border-yellow-800 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider shadow-sm">Copa do Brasil</span>}
                                 {allowedCompetitions.includes('libertadores') && <span className="text-[10px] bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider shadow-sm">Libertadores</span>}
-                                {allowedCompetitions.includes('sul_americana') && <span className="text-[10px] bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 border border-pink-200 dark:border-pink-800 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider shadow-sm">Sul-Americana</span>}
+                                {allowedCompetitions.includes('sul_americana') && <span className="text-[10px] bg-pink-100 dark:bg-pink-500/30 text-pink-500 dark:text-pink-200 border border-pink-200 dark:border-pink-500 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider shadow-sm">Sul-Americana</span>}
                             </div>
                             {league.leagueCode && (<div className="md:hidden mt-3"><div onClick={handleCopyCode} className="inline-flex items-center gap-1 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700 px-2 py-0.5 rounded transition-all select-none border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 group" title="Clique para copiar o código"><span className="font-bold text-gray-700 dark:text-gray-300 text-xs font-mono tracking-wide">Código da Liga: {league.leagueCode}</span>{copiedCode ? <Check size={12} className="text-green-600 dark:text-green-400" /> : <Copy size={12} className="text-gray-400 dark:text-gray-500 group-hover:text-brasil-blue dark:group-hover:text-blue-400" />}</div></div>)}
                         </div>
