@@ -424,7 +424,7 @@ export const HomeBrasileirao: React.FC = () => {
       </div>
 
       {/* Floating Banner */}
-      {showFloatingBanner && !currentUser.isPro && (
+      {false && showFloatingBanner && !currentUser.isPro && (
         <div className="fixed bottom-24 md:bottom-8 left-4 right-4 md:left-1/2 md:-translate-x-1/2 z-50 w-auto md:w-full max-w-4xl lg:max-w-5xl animate-in slide-in-from-bottom-8 fade-in duration-500">
           <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.3)] border-2 border-amber-400 dark:border-amber-600 overflow-hidden flex flex-col md:flex-row items-center">
             {/* Background pattern/gradient */}
