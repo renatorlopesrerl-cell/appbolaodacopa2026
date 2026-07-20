@@ -42,7 +42,7 @@ export const HubHome: React.FC = () => {
 
           <div className="space-y-2">
             <h1 className="text-3xl md:text-5xl lg:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-brasil-green to-brasil-blue dark:from-green-400 dark:to-blue-400 tracking-tighter uppercase break-words">
-              PALPITEIRO
+              PALPITEIRO MESTRE
             </h1>
             <h2 className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 font-medium max-w-lg mx-auto leading-relaxed">
               Crie sua liga grátis e desafie seus amigos.
