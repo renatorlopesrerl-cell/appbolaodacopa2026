@@ -69,8 +69,9 @@ export const TermsPage: React.FC = () => {
                     </div>
 
                     <div>
-                        <strong className="block text-gray-800 dark:text-white mb-1">5. Simulador</strong>
-                        <p>O simulador permite ao usuário prever resultados e classificações de forma hipotética. Os resultados simulados não representam resultados oficiais.</p>
+                        <strong className="block text-gray-800 dark:text-white mb-1">5. Direitos de Imagem e Marcas (Uso Justo)</strong>
+                        <p>O aplicativo não possui qualquer tipo de vínculo oficial, patrocínio ou afiliação com clubes esportivos, federações ou competições.</p>
+                        <p className="mt-1">Os nomes dos clubes, escudos e símbolos esportivos utilizados na plataforma possuem caráter estritamente informativo e recreativo. Seu uso serve exclusivamente para a identificação visual dos times nos jogos e palpites e não indica qualquer associação comercial ou apropriação de marca.</p>
                     </div>
 
                     <div>
