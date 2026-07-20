@@ -378,8 +378,7 @@ export const HomeBrasileirao: React.FC = () => {
           <div className="flex-1">
             <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-2">Informativo Legal</h2>
             <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed text-justify mb-4">
-              Este aplicativo tem finalidade exclusivamente recreativa e não possui vínculo com entidades organizadoras da Copa 2026.
-              Não promovemos apostas financeiras. A gestão de ligas e premiações (se houver) é de total responsabilidade dos criadores e participantes de cada liga.
+              Este aplicativo tem finalidade exclusivamente recreativa e não possui vínculo com entidades organizadoras das seguintes competições: Brasileirão, Copa do Brasil, Libertadores e Sul-Americana. Não promovemos apostas financeiras. A gestão de ligas e premiações (se houver) é de total responsabilidade dos criadores e participantes de cada liga.
             </p>
             <div className="flex gap-4 text-sm font-medium">
               <Link to="/termos" className="text-brasil-blue dark:text-blue-400 hover:underline">Termos de Uso</Link>

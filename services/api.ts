@@ -563,5 +563,19 @@ export const api = {
             teamHistoryCache[cacheKey] = { data: mappedData, timestamp: Date.now() };
             return mappedData;
         }
+    },
+    auth: {
+        checkProvider: async (email: string): Promise<'google' | 'email' | 'not_found'> => {
+            try {
+                // Using standard fetch without auth wrapper since this is pre-login
+                const res = await fetch(`${getApiBase()}/check-provider?email=${encodeURIComponent(email)}`);
+                if (!res.ok) return 'not_found';
+                const data = await res.json();
+                return data.provider || 'not_found';
+            } catch (err) {
+                console.error('Error checking auth provider:', err);
+                return 'not_found';
+            }
+        }
     }
 };

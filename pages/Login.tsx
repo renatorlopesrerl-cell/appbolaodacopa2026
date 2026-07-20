@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useStore } from '../App';
 import { Loader2, Mail, Lock, User as UserIcon, AlertCircle, CheckCircle2, Eye, EyeOff, Phone, ArrowLeft, KeyRound } from 'lucide-react';
 import { supabase } from '../services/supabase';
+import { api } from '../services/api';
 
 export const Login: React.FC = () => {
     const { signInWithEmail, signUpWithEmail, currentUser } = useStore();
@@ -89,7 +90,12 @@ export const Login: React.FC = () => {
                 const success = await signInWithEmail(email, password);
                 if (!success) {
                     if (mountedRef.current) {
-                        setError('Falha ao entrar. Verifique suas credenciais.');
+                        const provider = await api.auth.checkProvider(email);
+                        if (provider === 'google' && mountedRef.current) {
+                            setError('Identificamos que você se cadastrou usando o Google. Por favor, clique no botão "Entrar com o Google".');
+                        } else if (mountedRef.current) {
+                            setError('Falha ao entrar. Verifique suas credenciais.');
+                        }
                         setLoading(false);
                     }
                 } else {
