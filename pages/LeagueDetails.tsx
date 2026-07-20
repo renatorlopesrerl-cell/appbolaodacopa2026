@@ -68,10 +68,10 @@ export const LeagueDetails: React.FC = () => {
     };
 
     useEffect(() => {
-        if (activeTab === 'classificacao' && id) {
+        if (id) {
             loadRankingsForPeriod(leaderboardView);
         }
-    }, [activeTab, id, leaderboardView]);
+    }, [id, leaderboardView]);
 
 
 

@@ -244,8 +244,11 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
     })();
 
     useEffect(() => {
-        if (activeTab === 'classificacao' && id) {
+        if (id) {
             loadRankingsForPeriod(effectivePeriod);
+        }
+        
+        if (activeTab === 'classificacao' && id) {
             // Sync leaderboardView with effectivePeriod for the leaderboard calculation
             setLeaderboardView(effectivePeriod);
         }
