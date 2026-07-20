@@ -13,7 +13,7 @@ export const AdminMatchesPageBrasileirao: React.FC = () => {
   const [editingMatch, setEditingMatch] = useState<BrasileiraoMatch | null>(null);
 
   React.useEffect(() => {
-    fetchBrasileiraoMatchesByComp(['brasileirao', 'copa_do_brasil', 'libertadores', 'sulamericana']).catch(() => {});
+    fetchBrasileiraoMatchesByComp(['brasileirao', 'copa_do_brasil', 'libertadores', 'sulamericana'], true).catch(() => {});
   }, [fetchBrasileiraoMatchesByComp]);
 
   const getTeamNameForDisplay = (id: string | number) => {
@@ -262,7 +262,18 @@ export const AdminMatchesPageBrasileirao: React.FC = () => {
     const isCopa = champStr === 'copa_do_brasil';
     const isBrasileirao = champStr === 'brasileirao' || champStr === 'undefined';
     const isLibertadores = champStr === 'libertadores';
-    const isSulAmericana = champStr === 'sulamericana';
+    const isSulAmericana = champStr === 'sulamericana' || champStr === 'sul_americana';
+
+    // Remove Group Stage, Qualification, Play-offs and Round of 32 (16-avos)
+    if (m.phase) {
+      const p = m.phase.toLowerCase();
+      if ((isLibertadores || isSulAmericana) && (p.includes('group stage') || p.includes('qualification') || p.includes('play-offs'))) {
+        return false;
+      }
+      if ((isSulAmericana || isCopa) && p.includes('round of 32')) {
+        return false;
+      }
+    }
 
     if (adminCompetition === 'brasileirao' && !isBrasileirao) return false;
     if (adminCompetition === 'copa' && !isCopa) return false;

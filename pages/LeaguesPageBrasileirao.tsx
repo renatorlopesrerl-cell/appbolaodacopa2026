@@ -25,6 +25,7 @@ export const LeaguesPageBrasileirao: React.FC = () => {
   const [imageProcessing, setImageProcessing] = useState(false);
   const [searchedPrivateLeague, setSearchedPrivateLeague] = useState<League | null>(null);
   const [isSearching, setIsSearching] = useState(false);
+  const [showPricingModal, setShowPricingModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [settings, setSettings] = useState<{
@@ -492,63 +493,6 @@ export const LeaguesPageBrasileirao: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">
-                  Campeonatos Inclusos
-                </label>
-                <div className="flex gap-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600 flex-wrap">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={leagueCompetitions.includes('brasileirao')}
-                      onChange={(e) => {
-                        if (e.target.checked) setLeagueCompetitions(prev => [...prev, 'brasileirao']);
-                        else setLeagueCompetitions(prev => prev.filter(c => c !== 'brasileirao'));
-                      }}
-                      className="w-4 h-4 text-brasil-blue border-gray-300 rounded focus:ring-brasil-blue focus:ring-2"
-                    />
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Brasileirão Série A</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={leagueCompetitions.includes('copa_do_brasil')}
-                      onChange={(e) => {
-                        if (e.target.checked) setLeagueCompetitions(prev => [...prev, 'copa_do_brasil']);
-                        else setLeagueCompetitions(prev => prev.filter(c => c !== 'copa_do_brasil'));
-                      }}
-                      className="w-4 h-4 text-brasil-blue border-gray-300 rounded focus:ring-brasil-blue focus:ring-2"
-                    />
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Copa do Brasil</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={leagueCompetitions.includes('libertadores')}
-                      onChange={(e) => {
-                        if (e.target.checked) setLeagueCompetitions(prev => [...prev, 'libertadores']);
-                        else setLeagueCompetitions(prev => prev.filter(c => c !== 'libertadores'));
-                      }}
-                      className="w-4 h-4 text-brasil-blue border-gray-300 rounded focus:ring-brasil-blue focus:ring-2"
-                    />
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Libertadores</span>
-                  </label>
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={leagueCompetitions.includes('sul_americana')}
-                      onChange={(e) => {
-                        if (e.target.checked) setLeagueCompetitions(prev => [...prev, 'sul_americana']);
-                        else setLeagueCompetitions(prev => prev.filter(c => c !== 'sul_americana'));
-                      }}
-                      className="w-4 h-4 text-brasil-blue border-gray-300 rounded focus:ring-brasil-blue focus:ring-2"
-                    />
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Sul-Americana</span>
-                  </label>
-                </div>
-                {leagueCompetitions.length === 0 && <p className="text-red-500 text-xs mt-1">Selecione pelo menos um campeonato.</p>}
-              </div>
-
-              <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nome da Liga</label>
                 <input id="league-name" required value={newLeagueName} onChange={e => setNewLeagueName(e.target.value)} className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white rounded-lg p-2 focus:ring-2 focus:ring-brasil-green outline-none" placeholder="Ex: Palpiteiros da Firma" />
               </div>
@@ -561,6 +505,72 @@ export const LeaguesPageBrasileirao: React.FC = () => {
                   className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-white rounded-lg p-2 focus:ring-2 focus:ring-brasil-green outline-none h-20 resize-none text-sm"
                   placeholder="Escreva sobre sua liga..."
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">
+                  Campeonatos:
+                </label>
+                <div className="flex flex-col gap-2 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl border border-gray-200 dark:border-gray-600">
+                  <div className="flex gap-4 flex-wrap">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={leagueCompetitions.includes('brasileirao')}
+                        onChange={(e) => {
+                          if (e.target.checked) setLeagueCompetitions(prev => [...prev, 'brasileirao']);
+                          else setLeagueCompetitions(prev => prev.filter(c => c !== 'brasileirao'));
+                        }}
+                        className="w-4 h-4 text-brasil-blue border-gray-300 rounded focus:ring-brasil-blue focus:ring-2"
+                      />
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Brasileirão Série A</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={leagueCompetitions.includes('copa_do_brasil')}
+                        onChange={(e) => {
+                          if (e.target.checked) setLeagueCompetitions(prev => [...prev, 'copa_do_brasil']);
+                          else setLeagueCompetitions(prev => prev.filter(c => c !== 'copa_do_brasil'));
+                        }}
+                        className="w-4 h-4 text-brasil-blue border-gray-300 rounded focus:ring-brasil-blue focus:ring-2"
+                      />
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Copa do Brasil</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={leagueCompetitions.includes('libertadores')}
+                        onChange={(e) => {
+                          if (e.target.checked) setLeagueCompetitions(prev => [...prev, 'libertadores']);
+                          else setLeagueCompetitions(prev => prev.filter(c => c !== 'libertadores'));
+                        }}
+                        className="w-4 h-4 text-brasil-blue border-gray-300 rounded focus:ring-brasil-blue focus:ring-2"
+                      />
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Libertadores</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={leagueCompetitions.includes('sul_americana')}
+                        onChange={(e) => {
+                          if (e.target.checked) setLeagueCompetitions(prev => [...prev, 'sul_americana']);
+                          else setLeagueCompetitions(prev => prev.filter(c => c !== 'sul_americana'));
+                        }}
+                        className="w-4 h-4 text-brasil-blue border-gray-300 rounded focus:ring-brasil-blue focus:ring-2"
+                      />
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Sul-Americana</span>
+                    </label>
+                  </div>
+                  <div className="text-sm font-bold text-green-800 dark:text-green-400 mt-2 p-3 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-green-100 dark:border-green-800/50 flex items-start gap-2">
+                    <Info size={18} className="mt-0.5 shrink-0 text-brasil-green dark:text-green-500" />
+                    <div>
+                      Crie a liga com 1 ou mais campeonatos e faça o upgrade para o plano Vip na aba Admin.{' '}
+                      <button type="button" onClick={() => setShowPricingModal(true)} className="text-brasil-blue underline font-bold cursor-pointer hover:text-blue-700 dark:hover:text-blue-400">Clique aqui e confira os valores.</button>
+                    </div>
+                  </div>
+                </div>
+                {leagueCompetitions.length === 0 && <p className="text-red-500 text-xs mt-1">Selecione pelo menos um campeonato.</p>}
               </div>
 
               <div className="flex items-center gap-2">
@@ -667,6 +677,83 @@ export const LeaguesPageBrasileirao: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>, document.body
+      )}
+
+      {/* Pricing Modal */}
+      {showPricingModal && createPortal(
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[10000] p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-4xl shadow-2xl overflow-y-auto max-h-[90vh] border border-gray-200 dark:border-gray-700 animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Tabela de Preços dos Planos Vip</h2>
+              <button type="button" onClick={() => setShowPricingModal(false)} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+                        <table className="w-full text-sm text-left text-gray-600 dark:text-gray-300">
+                            <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                            <tr>
+                                <th className="px-4 py-3">Campeonatos</th>
+                                <th className="px-4 py-3 whitespace-nowrap text-center">Grátis<br/><span className="text-[10px] font-normal">(até 15 Participantes)</span></th>
+                                <th className="px-4 py-3 whitespace-nowrap text-center bg-gray-200/50 dark:bg-gray-600/30 text-gray-600 dark:text-gray-300">Vip Básico<br/><span className="text-[10px] font-normal">(até 50 Participantes)</span></th>
+                                <th className="px-4 py-3 whitespace-nowrap text-center bg-blue-100/50 dark:bg-blue-900/30 text-brasil-blue dark:text-blue-400">Vip Top<br/><span className="text-[10px] font-normal">(até 100 Participantes)</span></th>
+                                <th className="px-4 py-3 whitespace-nowrap text-center bg-green-100/50 dark:bg-green-900/30 text-brasil-green dark:text-green-400">Vip Master<br/><span className="text-[10px] font-normal">(até 200 Participantes)</span></th>
+                                <th className="px-4 py-3 whitespace-nowrap text-center bg-yellow-100/50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400">Vip Ilimitado</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750">
+                                <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">Copa (Copa do Brasil, Copa Libertadores e Copa Sul-Americana)</td>
+                                <td className="px-4 py-3 text-center">Grátis</td>
+                                <td className="px-4 py-3 text-center font-bold bg-gray-100/50 dark:bg-gray-700/30 text-gray-600 dark:text-gray-300">R$ 10,00</td>
+                                <td className="px-4 py-3 text-center font-bold bg-blue-50/50 dark:bg-blue-900/20 text-brasil-blue dark:text-blue-400">R$ 15,00</td>
+                                <td className="px-4 py-3 text-center font-bold bg-green-50/50 dark:bg-green-900/20 text-brasil-green dark:text-green-400">R$ 20,00</td>
+                                <td className="px-4 py-3 text-center font-bold bg-yellow-50/50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400">R$ 25,00</td>
+                            </tr>
+                            <tr className="bg-gray-50 border-b dark:bg-gray-800/50 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">Brasileirão Série A</td>
+                                <td className="px-4 py-3 text-center">Grátis</td>
+                                <td className="px-4 py-3 text-center font-bold bg-gray-100/50 dark:bg-gray-700/30 text-gray-600 dark:text-gray-300">R$ 15,00</td>
+                                <td className="px-4 py-3 text-center font-bold bg-blue-50/50 dark:bg-blue-900/20 text-brasil-blue dark:text-blue-400">R$ 20,00</td>
+                                <td className="px-4 py-3 text-center font-bold bg-green-50/50 dark:bg-green-900/20 text-brasil-green dark:text-green-400">R$ 25,00</td>
+                                <td className="px-4 py-3 text-center font-bold bg-yellow-50/50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400">R$ 30,00</td>
+                            </tr>
+                            <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750">
+                                <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">Brasileirão Série A + 1 Copa</td>
+                                <td className="px-4 py-3 text-center">Grátis</td>
+                                <td className="px-4 py-3 text-center font-bold bg-gray-100/50 dark:bg-gray-700/30 text-gray-600 dark:text-gray-300">R$ 20,00</td>
+                                <td className="px-4 py-3 text-center font-bold bg-blue-50/50 dark:bg-blue-900/20 text-brasil-blue dark:text-blue-400">R$ 25,00</td>
+                                <td className="px-4 py-3 text-center font-bold bg-green-50/50 dark:bg-green-900/20 text-brasil-green dark:text-green-400">R$ 30,00</td>
+                                <td className="px-4 py-3 text-center font-bold bg-yellow-50/50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400">R$ 35,00</td>
+                            </tr>
+                            <tr className="bg-gray-50 border-b dark:bg-gray-800/50 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">Brasileirão Série A + 2 Copas</td>
+                                <td className="px-4 py-3 text-center">Grátis</td>
+                                <td className="px-4 py-3 text-center font-bold bg-gray-100/50 dark:bg-gray-700/30 text-gray-600 dark:text-gray-300">R$ 25,00</td>
+                                <td className="px-4 py-3 text-center font-bold bg-blue-50/50 dark:bg-blue-900/20 text-brasil-blue dark:text-blue-400">R$ 30,00</td>
+                                <td className="px-4 py-3 text-center font-bold bg-green-50/50 dark:bg-green-900/20 text-brasil-green dark:text-green-400">R$ 35,00</td>
+                                <td className="px-4 py-3 text-center font-bold bg-yellow-50/50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400">R$ 40,00</td>
+                            </tr>
+                            <tr className="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750">
+                                <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">Brasileirão Série A + 3 Copas</td>
+                                <td className="px-4 py-3 text-center">Grátis</td>
+                                <td className="px-4 py-3 text-center font-bold bg-gray-100/50 dark:bg-gray-700/30 text-gray-600 dark:text-gray-300">R$ 30,00</td>
+                                <td className="px-4 py-3 text-center font-bold bg-blue-50/50 dark:bg-blue-900/20 text-brasil-blue dark:text-blue-400">R$ 35,00</td>
+                                <td className="px-4 py-3 text-center font-bold bg-green-50/50 dark:bg-green-900/20 text-brasil-green dark:text-green-400">R$ 40,00</td>
+                                <td className="px-4 py-3 text-center font-bold bg-yellow-50/50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400">R$ 45,00</td>
+                            </tr>
+                            </tbody>
+                        </table>
+            </div>
+            
+            <div className="mt-4 flex justify-end">
+              <button type="button" onClick={() => setShowPricingModal(false)} className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg font-bold">
+                Fechar
+              </button>
+            </div>
           </div>
         </div>, document.body
       )}

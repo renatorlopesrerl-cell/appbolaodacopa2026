@@ -401,10 +401,26 @@ export const api = {
     },
     brasileiraoMatches: {
         list: () => apiFetch<any[]>('/brasileirao-matches'),
-        listByCompetitions: async (comps: string[]) => {
-            const data = await supabaseWithRetry(async () =>
-                await supabase.from('brasileirao_matches').select('*').in('championship', comps).order('date', { ascending: true })
-            );
+        listByCompetitions: async (comps: string[], fetchAll: boolean = false) => {
+            const data = await supabaseWithRetry(async () => {
+                let query = supabase.from('brasileirao_matches').select('*').in('championship', comps);
+                
+                if (!fetchAll) {
+                    query = query.not('phase', 'ilike', '%group stage%')
+                                 .not('phase', 'ilike', '%qualification%')
+                                 .not('phase', 'ilike', '%play-offs%')
+                                 .not('phase', 'ilike', '%round of 32%');
+
+                    const ignoredRounds = Array.from({ length: 19 }, (_, i) => `Rodada ${i + 1}`);
+                    const ignoredRegularSeason = Array.from({ length: 19 }, (_, i) => `Regular Season - ${i + 1}`);
+                    const allIgnored = [...ignoredRounds, ...ignoredRegularSeason];
+                    const formattedList = `(${allIgnored.map(item => `"${item}"`).join(',')})`;
+                    
+                    query = query.not('phase', 'in', formattedList);
+                }
+
+                return await query.order('date', { ascending: true });
+            });
             return (data as any[]) || [];
         },
         update: (data: any) => apiFetch('/admin/brasileirao-matches', { method: 'POST', body: JSON.stringify(data) })

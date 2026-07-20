@@ -97,6 +97,7 @@ const translatePhase = (phase: string) => {
   if (p.includes('quarter-finals') || p.includes('quarter')) return 'Quartas de final';
   if (p.includes('semi-finals') || p.includes('semi')) return 'Semifinal';
   if (p.includes('final')) return 'Final';
+  if (p.includes('group stage')) return phase.replace(/Group Stage/ig, 'Fase de Grupos');
   return phase;
 };
 
@@ -187,11 +188,198 @@ const MatchRow = ({ match, teams }: { match: any, teams: any[] }) => {
   );
 };
 
+const calculateGroupStandings = (matches: any[], teams: any[]) => {
+  const groupMatches = matches.filter(m => m.phase?.startsWith('Group Stage'));
+  const adj = new Map<number, Set<number>>();
+  const allTeams = new Set<number>();
+  
+  groupMatches.forEach(m => {
+      const h = Number(m.home_team_id);
+      const a = Number(m.away_team_id);
+      allTeams.add(h);
+      allTeams.add(a);
+      if (!adj.has(h)) adj.set(h, new Set());
+      if (!adj.has(a)) adj.set(a, new Set());
+      adj.get(h)!.add(a);
+      adj.get(a)!.add(h);
+  });
+
+  const visited = new Set<number>();
+  const groups: number[][] = [];
+
+  allTeams.forEach(t => {
+      if (!visited.has(t)) {
+          const component: number[] = [];
+          const q = [t];
+          visited.add(t);
+          while(q.length > 0) {
+              const curr = q.shift()!;
+              component.push(curr);
+              adj.get(curr)?.forEach(neighbor => {
+                  if (!visited.has(neighbor)) {
+                      visited.add(neighbor);
+                      q.push(neighbor);
+                  }
+              });
+          }
+          groups.push(component);
+      }
+  });
+
+  groups.forEach(g => g.sort((a, b) => a - b));
+  groups.sort((a, b) => a[0] - b[0]);
+
+  const groupLetters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const groupStandings: Record<string, TeamStanding[]> = {};
+
+  groups.forEach((groupTeams, index) => {
+    const letter = groupLetters[index] || String(index);
+    const table: Record<number, TeamStanding> = {};
+    
+    groupTeams.forEach(tId => {
+      const t = teams.find(team => team.id === tId);
+      table[tId] = {
+        id: tId,
+        name: t?.name || String(tId),
+        logo: t?.logo || '',
+        points: 0, played: 0, won: 0, drawn: 0, lost: 0, gf: 0, ga: 0, gd: 0
+      };
+    });
+
+    const matchesForGroup = groupMatches.filter(m => groupTeams.includes(Number(m.home_team_id)));
+    matchesForGroup.forEach(match => {
+      if (match.status === MatchStatus.FINISHED || match.status === MatchStatus.IN_PROGRESS) {
+        if (match.home_score === null || match.away_score === null) return;
+        const homeId = Number(match.home_team_id);
+        const awayId = Number(match.away_team_id);
+        const homeScore = match.home_score || 0;
+        const awayScore = match.away_score || 0;
+        
+        if (table[homeId]) {
+          table[homeId].played++; table[homeId].gf += homeScore; table[homeId].ga += awayScore;
+          table[homeId].gd = table[homeId].gf - table[homeId].ga;
+          if (homeScore > awayScore) { table[homeId].won++; table[homeId].points += 3; }
+          else if (homeScore === awayScore) { table[homeId].drawn++; table[homeId].points += 1; }
+          else { table[homeId].lost++; }
+        }
+        if (table[awayId]) {
+          table[awayId].played++; table[awayId].gf += awayScore; table[awayId].ga += homeScore;
+          table[awayId].gd = table[awayId].gf - table[awayId].ga;
+          if (awayScore > homeScore) { table[awayId].won++; table[awayId].points += 3; }
+          else if (awayScore === homeScore) { table[awayId].drawn++; table[awayId].points += 1; }
+          else { table[awayId].lost++; }
+        }
+      }
+    });
+
+    const sorted = Object.values(table).sort((a, b) => {
+      if (b.points !== a.points) return b.points - a.points;
+      if (b.won !== a.won) return b.won - a.won;
+      if (b.gd !== a.gd) return b.gd - a.gd;
+      return b.gf - a.gf;
+    });
+
+    groupStandings[letter] = sorted;
+  });
+
+  return groupStandings;
+};
+
+const GroupStageTable = ({ groups }: { groups: Record<string, TeamStanding[]> }) => {
+  return (
+    <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+      {Object.entries(groups).map(([groupName, standings]) => (
+        <div key={groupName} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+          <div className="bg-gray-200 dark:bg-gray-700 px-4 py-2 border-b border-gray-100 dark:border-gray-600 flex justify-between items-center">
+            <h3 className="font-black text-gray-700 dark:text-gray-200">GRUPO {groupName}</h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="text-xs text-gray-400 border-b border-gray-100 dark:border-gray-700">
+                <tr>
+                  <th className="pl-3 py-1 text-left">Time</th>
+                  <th className="py-1 text-center" title="Pontos">Pts</th>
+                  <th className="py-1 text-center" title="Jogos">J</th>
+                  <th className="py-1 text-center" title="Vitórias">V</th>
+                  <th className="py-1 text-center" title="Empates">E</th>
+                  <th className="py-1 text-center" title="Derrotas">D</th>
+                  <th className="py-1 text-center" title="Gols Marcados">GM</th>
+                  <th className="py-1 text-center" title="Gols Sofridos">GS</th>
+                  <th className="py-1 text-center" title="Saldo de Gols">SG</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50 dark:divide-gray-700/50">
+                {standings.map((team, idx) => (
+                  <tr key={team.id} className={`${idx < 2 ? 'bg-blue-50 dark:bg-green-900/40' : ''}`}>
+                    <td className="pl-3 py-1.5 flex items-center gap-2 font-semibold text-gray-800 dark:text-gray-200">
+                      <span className={`text-[10px] w-3 ${idx < 2 ? 'text-blue-800 dark:text-green-300 font-bold' : 'text-gray-400'}`}>{idx + 1}</span>
+                      {getSafeLogo(team.id, team.logo) ? (
+                        <img src={getSafeLogo(team.id, team.logo)} alt={team.name} className="w-5 h-5 object-contain" onError={(e) => { e.currentTarget.src = LOGO_FALLBACK; e.currentTarget.onerror = null; }} referrerPolicy="no-referrer" />
+                      ) : (
+                        <div className="w-5 h-5 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-[10px] font-bold">
+                          {team.name.substring(0, 3).toUpperCase()}
+                        </div>
+                      )}
+                      <span className="truncate max-w-[100px] text-sm md:text-base">{team.name}</span>
+                    </td>
+                    <td className="text-center font-bold px-1">{team.points}</td>
+                    <td className="text-center text-gray-500 px-1">{team.played}</td>
+                    <td className="text-center text-gray-500 px-1">{team.won}</td>
+                    <td className="text-center text-gray-500 px-1">{team.drawn}</td>
+                    <td className="text-center text-gray-500 px-1">{team.lost}</td>
+                    <td className="text-center text-gray-500 px-1">{team.gf}</td>
+                    <td className="text-center text-gray-500 px-1">{team.ga}</td>
+                    <td className="text-center text-gray-500 px-1">{team.gd}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+const MatchesList = ({ matches, teams }: { matches: any[], teams: any[] }) => {
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden p-4">
+      {matches.length === 0 ? (
+        <div className="p-8 text-center text-gray-500">Nenhum jogo disponível.</div>
+      ) : (
+        <div className="space-y-6">
+          {Object.entries(
+            matches.reduce((acc, match) => {
+              const phase = match.phase || 'Outros';
+              if (!acc[phase]) acc[phase] = [];
+              acc[phase].push(match);
+              return acc;
+            }, {} as Record<string, any[]>)
+          )
+          .sort((a, b) => getPhaseOrder(a[0]) - getPhaseOrder(b[0]))
+          .map(([phase, phaseMatches]: [string, any[]]) => (
+            <div key={phase} className="bg-gray-50 dark:bg-gray-900 rounded-lg overflow-hidden border border-gray-100 dark:border-gray-700">
+              <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider bg-gray-100 dark:bg-gray-800 px-4 py-2 border-b border-gray-200 dark:border-gray-700">
+                {translatePhase(phase)}
+              </h3>
+              <div className="divide-y divide-gray-100 dark:divide-gray-700 bg-white dark:bg-gray-800">
+                 {phaseMatches.sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime()).map((match: any) => (
+                   <MatchRow key={match.id} match={match} teams={teams} />
+                 ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export const TablePageBrasileirao: React.FC = () => {
   const navigate = useNavigate();
   const { brasileiraoMatches: matches, brasileiraoTeams: teams, isBrasileiraoLoading, fetchBrasileiraoMatchesByComp } = useStore();
   
-  const [selectedCompetition, setSelectedCompetition] = useState<'none' | 'brasileirao' | 'copa_do_brasil'>('none');
+  const [selectedCompetition, setSelectedCompetition] = useState<'none' | 'brasileirao' | 'copa_do_brasil' | 'libertadores' | 'sul_americana'>('none');
   const [loadingComp, setLoadingComp] = useState(false);
   const [currentRound, setCurrentRound] = useState<number>(1);
   const [activeTab, setActiveTab] = useState<'classificacao' | 'jogos'>('classificacao');
@@ -199,7 +387,7 @@ export const TablePageBrasileirao: React.FC = () => {
   React.useEffect(() => {
     if (selectedCompetition !== 'none') {
       setLoadingComp(true);
-      fetchBrasileiraoMatchesByComp([selectedCompetition])
+      fetchBrasileiraoMatchesByComp([selectedCompetition], true)
         .catch(err => {
           console.error("Failed to load competition matches:", err);
         })
@@ -212,6 +400,11 @@ export const TablePageBrasileirao: React.FC = () => {
 
   const brasileiraoMatches = useMemo(() => matches.filter(m => !m.championship || m.championship === 'brasileirao'), [matches]);
   const copaMatches = useMemo(() => matches.filter(m => m.championship === 'copa_do_brasil'), [matches]);
+  const libertadoresMatches = useMemo(() => matches.filter(m => m.championship === 'libertadores'), [matches]);
+  const sulAmericanaMatches = useMemo(() => matches.filter(m => m.championship === 'sul_americana' && m.phase !== 'Qualification Round 1'), [matches]);
+
+  const libertadoresGroups = useMemo(() => calculateGroupStandings(libertadoresMatches, teams), [libertadoresMatches, teams]);
+  const sulAmericanaGroups = useMemo(() => calculateGroupStandings(sulAmericanaMatches, teams), [sulAmericanaMatches, teams]);
 
   const maxRound = useMemo(() => {
     let max = 1;
@@ -355,6 +548,16 @@ export const TablePageBrasileirao: React.FC = () => {
         <h2 className="text-3xl font-black tracking-tight">Copa do Brasil</h2>
         <p className="text-yellow-800 text-sm font-medium">Ver Jogos do Mata-Mata</p>
       </button>
+      <button onClick={() => setSelectedCompetition('libertadores')} className="bg-gradient-to-br from-blue-600 to-blue-500 text-white p-8 rounded-xl shadow-md hover:shadow-lg hover:scale-[1.01] transition-all flex flex-col items-center justify-center gap-4 border border-blue-400">
+        <Trophy size={56} className="text-white" />
+        <h2 className="text-3xl font-black tracking-tight">Libertadores</h2>
+        <p className="text-blue-100 text-sm font-medium">Ver Fase de Grupos</p>
+      </button>
+      <button onClick={() => setSelectedCompetition('sul_americana')} className="bg-gradient-to-br from-rose-500 to-rose-400 text-white p-8 rounded-xl shadow-md hover:shadow-lg hover:scale-[1.01] transition-all flex flex-col items-center justify-center gap-4 border border-rose-300">
+        <Trophy size={56} className="text-white" />
+        <h2 className="text-3xl font-black tracking-tight">Sul-Americana</h2>
+        <p className="text-rose-100 text-sm font-medium">Ver Fase de Grupos</p>
+      </button>
     </div>
   );
 
@@ -390,7 +593,7 @@ export const TablePageBrasileirao: React.FC = () => {
           </div>
         </div>
 
-        {selectedCompetition === 'brasileirao' && (
+        {['brasileirao', 'libertadores', 'sul_americana'].includes(selectedCompetition) && (
           <div className="flex border-b border-gray-200 dark:border-gray-700 mt-2">
             <button
               className={`px-4 py-2 font-bold text-sm uppercase ${activeTab === 'classificacao' ? 'border-b-2 border-brasil-green text-brasil-green' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
@@ -530,7 +733,7 @@ export const TablePageBrasileirao: React.FC = () => {
                       }, {} as Record<string, typeof matches>)
                     )
                     .sort((a, b) => getPhaseOrder(a[0]) - getPhaseOrder(b[0]))
-                    .map(([phase, phaseMatches]) => (
+                    .map(([phase, phaseMatches]: [string, any[]]) => (
                       <div key={phase} className="bg-gray-50 dark:bg-gray-900 rounded-lg overflow-hidden border border-gray-100 dark:border-gray-700">
                         <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider bg-gray-100 dark:bg-gray-800 px-4 py-2 border-b border-gray-200 dark:border-gray-700">
                           {translatePhase(phase)}
@@ -545,6 +748,36 @@ export const TablePageBrasileirao: React.FC = () => {
                   </div>
                 )}
               </div>
+            </section>
+          )}
+
+          {selectedCompetition === 'libertadores' && activeTab === 'classificacao' && (
+            <section className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+              {Object.keys(libertadoresGroups).length === 0 ? (
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden p-8 text-center text-gray-500">Nenhum jogo disponível.</div>
+              ) : (
+                <GroupStageTable groups={libertadoresGroups} />
+              )}
+            </section>
+          )}
+          {selectedCompetition === 'libertadores' && activeTab === 'jogos' && (
+            <section className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <MatchesList matches={libertadoresMatches} teams={teams} />
+            </section>
+          )}
+
+          {selectedCompetition === 'sul_americana' && activeTab === 'classificacao' && (
+            <section className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+              {Object.keys(sulAmericanaGroups).length === 0 ? (
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden p-8 text-center text-gray-500">Nenhum jogo disponível.</div>
+              ) : (
+                <GroupStageTable groups={sulAmericanaGroups} />
+              )}
+            </section>
+          )}
+          {selectedCompetition === 'sul_americana' && activeTab === 'jogos' && (
+            <section className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+              <MatchesList matches={sulAmericanaMatches} teams={teams} />
             </section>
           )}
         </>

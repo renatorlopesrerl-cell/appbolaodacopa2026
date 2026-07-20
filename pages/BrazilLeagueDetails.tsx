@@ -2383,7 +2383,11 @@ export const BrazilLeagueDetails: React.FC = () => {
                                     <h1 className="text-6xl font-black text-brasil-yellow mb-2 uppercase tracking-widest drop-shadow-md">Top 10</h1>
                                     <h2 className="text-4xl font-bold opacity-95 truncate max-w-[900px] drop-shadow-sm">{league.name}</h2>
                                     <div className="mt-6 inline-block bg-white/15 px-8 py-3 rounded-full border border-white/20 text-2xl font-black uppercase tracking-widest shadow-inner">
-                                        Bolão da Copa 2026
+                                        {(() => {
+                                            if (leaderboardView === 'group_phase') return "Fase de Grupos";
+                                            if (leaderboardView === 'knockout') return "Mata-Mata";
+                                            return "Pontuação Total";
+                                        })()}
                                     </div>
                                 </div>
         
@@ -2419,7 +2423,7 @@ export const BrazilLeagueDetails: React.FC = () => {
                                 <div className="mt-8 text-center relative z-10 pb-4">
                                     <div className="inline-flex items-center justify-center gap-3 bg-black/30 px-8 py-4 rounded-full border border-white/10">
                                         <Globe size={24} className="text-brasil-yellow" />
-                                        <span className="text-2xl font-black tracking-widest text-white/90">BOLAODACOPA2026.APP</span>
+                                        <span className="text-2xl font-black tracking-widest text-white/90">PALPITEIRO MESTRE</span>
                                     </div>
                                 </div>
                             </>

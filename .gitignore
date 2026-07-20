@@ -75,3 +75,7 @@ wiki_urls.json
 # Secrets
 .env.push_key
 .env.push_secrets_b64
+
+# Custom Scripts
+*.py
+*.ps1

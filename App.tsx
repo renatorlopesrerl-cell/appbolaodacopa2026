@@ -149,7 +149,7 @@ interface AppState {
   refreshPredictions: (showToast?: boolean) => Promise<void>;
   fetchCopaData: () => Promise<void>;
   fetchBrasileiraoData: () => Promise<void>;
-  fetchBrasileiraoMatchesByComp: (comps: string[]) => Promise<void>;
+  fetchBrasileiraoMatchesByComp: (comps: string[], fetchAll?: boolean) => Promise<void>;
   syncLiveBrasileiraoMatches: (comps: string[]) => Promise<void>;
   refreshAllData: () => Promise<void>;
   refreshCurrentUser: () => Promise<void>;
@@ -593,7 +593,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const checkAndSyncMatches = async () => {
       // Check if there are any matches currently IN_PROGRESS or starting soon (e.g. within 5 mins)
       const now = new Date().getTime();
-      const needsSync = brasileiraoMatches.some(m => {
+      const liveMatchesIds = brasileiraoMatches.filter(m => {
         if (m.status === MatchStatus.IN_PROGRESS) return true;
         if (m.status === MatchStatus.SCHEDULED) {
           const mTime = new Date(m.date).getTime();
@@ -601,50 +601,46 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           if (mTime - (5 * 60 * 1000) < now) return true;
         }
         return false;
-      });
+      }).map(m => m.id);
 
-      if (needsSync) {
+      if (liveMatchesIds.length > 0) {
         try {
-          const currentChamps = Array.from(new Set(brasileiraoMatches.map(m => m.championship || 'brasileirao')));
-          if (currentChamps.length > 0) {
-            const res = await api.brasileiraoMatches.listByCompetitions(currentChamps);
-            if (res) {
-              const mappedMatches: BrasileiraoMatch[] = res.map((m: any) => ({
-                id: m.id, home_team_id: m.home_team_id, away_team_id: m.away_team_id,
-                date: m.date, location: m.location, phase: m.phase,
-                status: m.status, home_score: m.home_score !== null ? Number(m.home_score) : null,
-                away_score: m.away_score !== null ? Number(m.away_score) : null,
-                championship: m.championship,
-                is_blocked: m.is_blocked
-              }));
-              
-              setBrasileiraoMatches(prev => {
-                let changed = false;
-                const otherChampsMatches = prev.filter(m => !currentChamps.includes(m.championship || 'brasileirao'));
-                const newOrUpdatedMap = new Map(mappedMatches.map(m => [m.id, m]));
-                const prevCompMatches = prev.filter(m => currentChamps.includes(m.championship || 'brasileirao'));
-                
-                if (prevCompMatches.length !== mappedMatches.length) changed = true;
-                else {
-                  for (const p of prevCompMatches) {
-                    const n = newOrUpdatedMap.get(p.id);
-                    if (!n || p.status !== n.status || p.home_score !== n.home_score || p.away_score !== n.away_score) {
-                      changed = true;
-                      break;
-                    }
-                  }
+          const { data, error } = await supabase.from('brasileirao_matches')
+            .select('*')
+            .in('id', liveMatchesIds);
+            
+          if (error || !data) return;
+          
+          const mappedMatches: BrasileiraoMatch[] = data.map((m: any) => ({
+            id: m.id, home_team_id: m.home_team_id, away_team_id: m.away_team_id,
+            date: m.date, location: m.location || '', phase: m.phase, status: m.status,
+            home_score: m.home_score !== null ? Number(m.home_score) : null,
+            away_score: m.away_score !== null ? Number(m.away_score) : null,
+            championship: m.championship, is_blocked: m.is_blocked
+          }));
+          
+          setBrasileiraoMatches(prev => {
+            const nextMatches = [...prev];
+            let changed = false;
+            for (const updated of mappedMatches) {
+              const idx = nextMatches.findIndex(m => m.id === updated.id);
+              if (idx !== -1) {
+                const old = nextMatches[idx];
+                if (old.status !== updated.status || old.home_score !== updated.home_score || old.away_score !== updated.away_score) {
+                  nextMatches[idx] = updated;
+                  changed = true;
                 }
-                
-                if (changed) {
-                  const nextMatches = [...otherChampsMatches, ...mappedMatches];
-                  try { localStorage.setItem('cache_brasileirao_matches_v2', JSON.stringify(nextMatches)); } catch (e) {}
-                  return nextMatches;
-                }
-                return prev;
-              });
+              }
             }
-          }
-        } catch (e) {}
+            if (changed) {
+              try { localStorage.setItem('cache_brasileirao_matches_v2', JSON.stringify(nextMatches)); } catch (e) {}
+              return nextMatches;
+            }
+            return prev;
+          });
+        } catch (e) {
+          console.error('checkAndSyncMatches error', e);
+        }
       }
     };
 
@@ -1228,7 +1224,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     }
   };
 
-  const fetchBrasileiraoMatchesByComp = async (comps: string[]): Promise<void> => {
+  const fetchBrasileiraoMatchesByComp = async (comps: string[], fetchAll: boolean = false): Promise<void> => {
     if (typeof navigator !== 'undefined' && !navigator.onLine) return;
     
     const now = Date.now();
@@ -1236,7 +1232,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     
     let allCompsCached = true;
     for (const comp of comps) {
-      const lastFetched = lastFetchedCompsRef.current[comp] || 0;
+      const cacheKey = fetchAll ? `${comp}_all` : comp;
+      const lastFetched = lastFetchedCompsRef.current[cacheKey] || 0;
       if (now - lastFetched > CACHE_DURATION) {
         allCompsCached = false;
         break;
@@ -1248,15 +1245,19 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     );
 
     if (allCompsCached && !hasLiveMatch) {
-      console.log(`Serving matches for ${comps.join(', ')} from memory cache.`);
+      console.log(`Serving matches for ${comps.join(', ')} (fetchAll: ${fetchAll}) from memory cache.`);
       return;
     }
 
     try {
-      const matchesData = await api.brasileiraoMatches.listByCompetitions(comps);
+      const matchesData = await api.brasileiraoMatches.listByCompetitions(comps, fetchAll);
       
       let freshTeams = brasileiraoTeams;
-      if (brasileiraoTeams.length < 160) {
+      const matchTeamIds = new Set(matchesData?.flatMap((m: any) => [m.home_team_id, m.away_team_id]) || []);
+      const cachedTeamIds = new Set(brasileiraoTeams.map(t => String(t.id)));
+      const hasMissingTeams = Array.from(matchTeamIds).some(id => !cachedTeamIds.has(String(id)));
+
+      if (brasileiraoTeams.length < 20 || hasMissingTeams) {
         const teamsData = await api.brasileiraoTeams.list();
         if (teamsData) {
           freshTeams = teamsData.map((t: any) => ({
@@ -2623,7 +2624,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             : api.predictions.list(leagueId, currentUserId))
         : Promise.resolve([]);
 
-      const [predsRes, profilesRes, topRes, playersRes, goalsRes, matchesRes, teamsRes] = await Promise.all([
+      const [predsRes, profilesRes, topRes, playersRes, goalsRes, matchesRes] = await Promise.all([
         predsPromise,
         participantIds.length > 0 ? api.profiles.getByIds(participantIds) : Promise.resolve([]),
         api.topFinisherPredictions.list(leagueId),
@@ -2631,9 +2632,18 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         isBrazil ? api.brazilMatchGoals.list() : Promise.resolve([]),
         isBrasileirao
           ? api.brasileiraoMatches.listByCompetitions(league?.settings?.competitions || ['brasileirao'])
-          : api.matches.list(),
-        isBrasileirao && brasileiraoTeams.length < 160 ? api.brasileiraoTeams.list() : Promise.resolve(null)
+          : api.matches.list()
       ]);
+
+      let teamsRes = null as any;
+      if (isBrasileirao) {
+          const matchTeamIds = new Set((matchesRes || []).flatMap((m: any) => [m.home_team_id, m.away_team_id]));
+          const cachedTeamIds = new Set(brasileiraoTeams.map(t => String(t.id)));
+          const hasMissingTeams = Array.from(matchTeamIds).some(id => !cachedTeamIds.has(String(id)));
+          if (brasileiraoTeams.length < 20 || hasMissingTeams) {
+              teamsRes = await api.brasileiraoTeams.list();
+          }
+      }
 
       // (Sem cache incremental de matchIds — agora carregamos apenas os próprios palpites)
 

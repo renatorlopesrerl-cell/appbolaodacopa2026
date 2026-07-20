@@ -228,6 +228,7 @@ export const LeagueDetails: React.FC = () => {
     const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+    const [showPricingModal, setShowPricingModal] = useState(false);
     const [copiedCode, setCopiedCode] = useState(false);
 
     // --- PALPITES TAB STATE (HOISTED) ---
@@ -250,7 +251,7 @@ export const LeagueDetails: React.FC = () => {
     const [filterPhase, setFilterPhase] = useState<string>('all');
     const [filterGroup, setFilterGroup] = useState<string>('all');
     const [filterRound, setFilterRound] = useState<string>('all');
-    const [filterStatus, setFilterStatus] = useState<'all' | 'predicted' | 'missing' | 'upcoming' | 'live' | 'finished'>('upcoming');
+    const [filterStatus, setFilterStatus] = useState<'all' | 'predicted' | 'missing' | 'upcoming' | 'live' | 'finished'>('finished');
 
     // --- CLASSIFICACAO TAB STATE (HOISTED) ---
     const [showUnsavedModal, setShowUnsavedModal] = useState<{ action: () => void } | null>(null);
@@ -712,7 +713,7 @@ export const LeagueDetails: React.FC = () => {
 
     // --- MOBILE BACK BUTTON HANDLER FOR MODALS ---
     useEffect(() => {
-        const isModalOpen = !!(selectedMatchForDetails || selectedMatchForStats || selectedUserId || showDeleteConfirm || showLeaveConfirm || showUpgradeModal || showTopFinishersModal || userToRemove);
+        const isModalOpen = !!(selectedMatchForDetails || selectedMatchForStats || selectedUserId || showDeleteConfirm || showLeaveConfirm || showUpgradeModal || showTopFinishersModal || userToRemove || showPricingModal);
 
         if (isModalOpen) {
             if (window.location.hash !== '#modal') {
@@ -732,6 +733,7 @@ export const LeagueDetails: React.FC = () => {
                 setShowDeleteConfirm(false);
                 setShowLeaveConfirm(false);
                 setShowUpgradeModal(false);
+                setShowPricingModal(false);
                 setShowTopFinishersModal(false);
                 setUserToRemove(null);
             }
@@ -739,7 +741,7 @@ export const LeagueDetails: React.FC = () => {
 
         window.addEventListener('hashchange', handleHashChange);
         return () => window.removeEventListener('hashchange', handleHashChange);
-    }, [selectedMatchForDetails, selectedMatchForStats, selectedUserId, showDeleteConfirm, showLeaveConfirm, showUpgradeModal, showTopFinishersModal, userToRemove]);
+    }, [selectedMatchForDetails, selectedMatchForStats, selectedUserId, showDeleteConfirm, showLeaveConfirm, showUpgradeModal, showTopFinishersModal, userToRemove, showPricingModal]);
 
     useEffect(() => {
         if (showTopFinishersModal && league) {
@@ -2794,7 +2796,16 @@ export const LeagueDetails: React.FC = () => {
                                     <h1 className="text-6xl font-black text-brasil-yellow mb-2 uppercase tracking-widest drop-shadow-md">Top 10</h1>
                                     <h2 className="text-4xl font-bold opacity-95 truncate max-w-[900px] drop-shadow-sm">{league.name}</h2>
                                     <div className="mt-6 inline-block bg-white/15 px-8 py-3 rounded-full border border-white/20 text-2xl font-black uppercase tracking-widest shadow-inner">
-                                        Bolão da Copa 2026
+                                        {(() => {
+                                            if (leaderboardView === '1') return "1ª Rodada (Grupos)";
+                                            if (leaderboardView === '2') return "2ª Rodada (Grupos)";
+                                            if (leaderboardView === '3') return "3ª Rodada (Grupos)";
+                                            if (leaderboardView === 'group_phase') return "Fase de Grupos";
+                                            if (leaderboardView === '16_avos') return "Fase 16-avos";
+                                            if (leaderboardView === 'final_phase') return "Fase Final";
+                                            if (leaderboardView === 'knockout') return "Mata-Mata";
+                                            return "Pontuação Total";
+                                        })()}
                                     </div>
                                 </div>
 
@@ -2830,7 +2841,7 @@ export const LeagueDetails: React.FC = () => {
                                 <div className="mt-8 text-center relative z-10 pb-4">
                                     <div className="inline-flex items-center justify-center gap-3 bg-black/30 px-8 py-4 rounded-full border border-white/10">
                                         <Globe size={24} className="text-brasil-yellow" />
-                                        <span className="text-2xl font-black tracking-widest text-white/90">BOLAODACOPA2026.APP</span>
+                                        <span className="text-2xl font-black tracking-widest text-white/90">PALPITEIRO MESTRE</span>
                                     </div>
                                 </div>
                             </>
@@ -3128,7 +3139,7 @@ export const LeagueDetails: React.FC = () => {
                             <div className="p-6 space-y-6">
                                 <div className="text-center space-y-2">
                                     <p className="text-gray-600 dark:text-gray-300">Para aumentar o limite da sua liga, realize o upgrade:</p>
-                                    <p className="text-3xl font-bold text-brasil-green">R$ 25,00</p>
+                                    <button onClick={() => setShowPricingModal(true)} className="text-2xl font-bold text-brasil-green underline hover:text-green-700 transition-colors mt-2 inline-block">Confira os Valores</button>
                                 </div>
                                 <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-xl border border-gray-200 dark:border-gray-600 text-sm text-gray-600 dark:text-gray-300 leading-relaxed text-center">Favor entrar em contato via WhatsApp para enviar o comprovante. O desbloqueio é imediato.</div>
                                 <a href={whatsAppLink} target="_blank" rel="noopener noreferrer" className="block w-full bg-[#25D366] hover:bg-[#128C7E] text-white font-bold py-4 px-6 rounded-xl text-center transition-all shadow-lg hover:shadow-xl active:scale-95 flex items-center justify-center gap-3">
@@ -3137,6 +3148,83 @@ export const LeagueDetails: React.FC = () => {
                                 <button onClick={() => setShowUpgradeModal(false)} className="block w-full text-gray-400 font-medium text-sm hover:text-gray-600 py-2">Fechar</button>
                             </div>
                         </div>
+                    </div>, document.body
+                )}
+
+                {/* Pricing Modal */}
+                {showPricingModal && createPortal(
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[10000] p-4 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-4xl shadow-2xl overflow-y-auto max-h-[90vh] border border-gray-200 dark:border-gray-700 animate-in zoom-in-95 duration-200">
+                        <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Tabela de Preços dos Planos Vip</h2>
+                        <button type="button" onClick={() => setShowPricingModal(false)} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                            <X size={24} />
+                        </button>
+                        </div>
+                        
+                        <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+                        <table className="w-full text-sm text-left text-gray-600 dark:text-gray-300">
+                            <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                            <tr>
+                                <th className="px-4 py-3">Campeonatos</th>
+                                <th className="px-4 py-3 whitespace-nowrap text-center">Grátis<br/><span className="text-[10px] font-normal">(até 15 Participantes)</span></th>
+                                <th className="px-4 py-3 whitespace-nowrap text-center bg-gray-200/50 dark:bg-gray-600/30 text-gray-600 dark:text-gray-300">Vip Básico<br/><span className="text-[10px] font-normal">(até 50 Participantes)</span></th>
+                                <th className="px-4 py-3 whitespace-nowrap text-center bg-blue-100/50 dark:bg-blue-900/30 text-brasil-blue dark:text-blue-400">Vip Top<br/><span className="text-[10px] font-normal">(até 100 Participantes)</span></th>
+                                <th className="px-4 py-3 whitespace-nowrap text-center bg-green-100/50 dark:bg-green-900/30 text-brasil-green dark:text-green-400">Vip Master<br/><span className="text-[10px] font-normal">(até 200 Participantes)</span></th>
+                                <th className="px-4 py-3 whitespace-nowrap text-center bg-yellow-100/50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400">Vip Ilimitado</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750">
+                                <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">Copa (Copa do Brasil, Copa Libertadores e Copa Sul-Americana)</td>
+                                <td className="px-4 py-3 text-center">Grátis</td>
+                                <td className="px-4 py-3 text-center font-bold bg-gray-100/50 dark:bg-gray-700/30 text-gray-600 dark:text-gray-300">R$ 10,00</td>
+                                <td className="px-4 py-3 text-center font-bold bg-blue-50/50 dark:bg-blue-900/20 text-brasil-blue dark:text-blue-400">R$ 15,00</td>
+                                <td className="px-4 py-3 text-center font-bold bg-green-50/50 dark:bg-green-900/20 text-brasil-green dark:text-green-400">R$ 20,00</td>
+                                <td className="px-4 py-3 text-center font-bold bg-yellow-50/50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400">R$ 25,00</td>
+                            </tr>
+                            <tr className="bg-gray-50 border-b dark:bg-gray-800/50 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">Brasileirão Série A</td>
+                                <td className="px-4 py-3 text-center">Grátis</td>
+                                <td className="px-4 py-3 text-center font-bold bg-gray-100/50 dark:bg-gray-700/30 text-gray-600 dark:text-gray-300">R$ 15,00</td>
+                                <td className="px-4 py-3 text-center font-bold bg-blue-50/50 dark:bg-blue-900/20 text-brasil-blue dark:text-blue-400">R$ 20,00</td>
+                                <td className="px-4 py-3 text-center font-bold bg-green-50/50 dark:bg-green-900/20 text-brasil-green dark:text-green-400">R$ 25,00</td>
+                                <td className="px-4 py-3 text-center font-bold bg-yellow-50/50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400">R$ 30,00</td>
+                            </tr>
+                            <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750">
+                                <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">Brasileirão Série A + 1 Copa</td>
+                                <td className="px-4 py-3 text-center">Grátis</td>
+                                <td className="px-4 py-3 text-center font-bold bg-gray-100/50 dark:bg-gray-700/30 text-gray-600 dark:text-gray-300">R$ 20,00</td>
+                                <td className="px-4 py-3 text-center font-bold bg-blue-50/50 dark:bg-blue-900/20 text-brasil-blue dark:text-blue-400">R$ 25,00</td>
+                                <td className="px-4 py-3 text-center font-bold bg-green-50/50 dark:bg-green-900/20 text-brasil-green dark:text-green-400">R$ 30,00</td>
+                                <td className="px-4 py-3 text-center font-bold bg-yellow-50/50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400">R$ 35,00</td>
+                            </tr>
+                            <tr className="bg-gray-50 border-b dark:bg-gray-800/50 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">Brasileirão Série A + 2 Copas</td>
+                                <td className="px-4 py-3 text-center">Grátis</td>
+                                <td className="px-4 py-3 text-center font-bold bg-gray-100/50 dark:bg-gray-700/30 text-gray-600 dark:text-gray-300">R$ 25,00</td>
+                                <td className="px-4 py-3 text-center font-bold bg-blue-50/50 dark:bg-blue-900/20 text-brasil-blue dark:text-blue-400">R$ 30,00</td>
+                                <td className="px-4 py-3 text-center font-bold bg-green-50/50 dark:bg-green-900/20 text-brasil-green dark:text-green-400">R$ 35,00</td>
+                                <td className="px-4 py-3 text-center font-bold bg-yellow-50/50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400">R$ 40,00</td>
+                            </tr>
+                            <tr className="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750">
+                                <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">Brasileirão Série A + 3 Copas</td>
+                                <td className="px-4 py-3 text-center">Grátis</td>
+                                <td className="px-4 py-3 text-center font-bold bg-gray-100/50 dark:bg-gray-700/30 text-gray-600 dark:text-gray-300">R$ 30,00</td>
+                                <td className="px-4 py-3 text-center font-bold bg-blue-50/50 dark:bg-blue-900/20 text-brasil-blue dark:text-blue-400">R$ 35,00</td>
+                                <td className="px-4 py-3 text-center font-bold bg-green-50/50 dark:bg-green-900/20 text-brasil-green dark:text-green-400">R$ 40,00</td>
+                                <td className="px-4 py-3 text-center font-bold bg-yellow-50/50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400">R$ 45,00</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                        </div>
+                        
+                        <div className="mt-4 flex justify-end">
+                        <button type="button" onClick={() => setShowPricingModal(false)} className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-lg font-bold">
+                            Fechar
+                        </button>
+                        </div>
+                    </div>
                     </div>, document.body
                 )}
 

@@ -164,6 +164,7 @@ export const AdminPageBrasileirao: React.FC = () => {
     }
   };
 
+
   const handleSyncSchedule = async () => {
     let msg = '🚨 Deseja sincronizar todos os jogos das 4 competições (Brasileirão, Copa do Brasil, Libertadores e Sul-Americana) agora?';
     if (syncLeague !== 'all') {
