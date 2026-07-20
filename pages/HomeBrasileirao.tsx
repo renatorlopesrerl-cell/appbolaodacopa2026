@@ -206,7 +206,7 @@ export const HomeBrasileirao: React.FC = () => {
               <span className="ml-2 inline-block animate-bounce">⚽</span>
             </h1>
             <p className="text-green-100 text-lg max-w-xl">
-              Quanto mais competições, mais emoção. Não esqueça de conferir os próximos jogos e deixar os seus palpites!
+              Quanto mais competição, mais emoção. Não esqueça de conferir os próximos jogos e deixar os seus palpites!
             </p>
           </div>
           {/* Small Logo for Dashboard */}
