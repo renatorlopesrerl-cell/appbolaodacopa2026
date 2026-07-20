@@ -233,6 +233,18 @@ export const ProPage: React.FC = () => {
                 </button>
             </div>
 
+            {/* AVISO TEMPORÁRIO */}
+            <div className="mb-8 p-5 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-2xl shadow-sm text-center">
+                <h3 className="text-brasil-blue dark:text-blue-400 font-black text-lg mb-2 flex items-center justify-center gap-2">
+                    <span className="text-2xl">🚧</span> Aviso Importante
+                </h3>
+                <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed font-medium">
+                    O Plano Pro original foi desenvolvido exclusivamente para a Copa do Mundo. Devido ao grande sucesso e aos pedidos da comunidade, decidimos dar continuidade ao aplicativo com novos campeonatos! 
+                    <br/><br/>
+                    <strong className="text-gray-900 dark:text-white uppercase tracking-wide">O NOVO PLANO PRO PARA O BRASILEIRÃO + COPAS SERÁ DISPONIBILIZADO EM BREVE!</strong>
+                </p>
+            </div>
+
             <div className="relative rounded-2xl overflow-hidden mb-8 shadow-2xl">
                 <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900" />
                 <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/10 via-amber-500/5 to-orange-500/10" />

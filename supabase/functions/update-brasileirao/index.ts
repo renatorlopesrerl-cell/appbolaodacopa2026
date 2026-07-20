@@ -83,7 +83,8 @@ async function processMatches(supabase: any) {
     .select("id, home_team_id, away_team_id, status, championship")
     .gt("date", minReminderTime)
     .lte("date", maxReminderTime)
-    .eq("status", "SCHEDULED");
+    .eq("status", "SCHEDULED")
+    .not("phase", "in", '("19ª Rodada","16-avos de final","16-avos de Final")');
 
   if (reminderMatches && reminderMatches.length > 0) {
     console.log(`Encontrados ${reminderMatches.length} jogos para lembrete (35 min).`);
@@ -109,7 +110,8 @@ async function processMatches(supabase: any) {
     .select("id, status, home_team_id, away_team_id")
     .lte("date", limiteSuperior)
     .gte("date", limiteInferior)
-    .neq("status", "FINISHED");
+    .neq("status", "FINISHED")
+    .not("phase", "in", '("19ª Rodada","16-avos de final","16-avos de Final")');
 
   if (dbError) {
     console.error("Erro ao buscar jogos no banco:", dbError);
