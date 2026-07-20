@@ -443,11 +443,11 @@ export const HomeBrasileirao: React.FC = () => {
       </div>
 
       {/* Floating Banner */}
-      {showFloatingBanner && (
+      {showFloatingBanner && !currentUser.isPro && (
         <div className="fixed bottom-24 md:bottom-8 left-4 right-4 md:left-1/2 md:-translate-x-1/2 z-50 w-auto md:w-full max-w-4xl lg:max-w-5xl animate-in slide-in-from-bottom-8 fade-in duration-500">
-          <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.3)] border-2 border-brasil-yellow dark:border-yellow-600 overflow-hidden flex flex-col md:flex-row items-center">
+          <div className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.3)] border-2 border-amber-400 dark:border-amber-600 overflow-hidden flex flex-col md:flex-row items-center">
             {/* Background pattern/gradient */}
-            <div className="absolute inset-0 bg-gradient-to-br from-yellow-50 to-green-50 dark:from-yellow-900/20 dark:to-green-900/20 opacity-50"></div>
+            <div className="absolute inset-0 bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 opacity-50"></div>
 
             <button
               onClick={() => {
@@ -461,33 +461,22 @@ export const HomeBrasileirao: React.FC = () => {
 
             <div className="p-5 md:p-6 flex-1 relative z-10 w-full text-center md:text-left">
               <h3 className="font-black text-gray-800 dark:text-white text-lg md:text-xl uppercase flex items-center justify-center md:justify-start gap-2 mb-1">
-                <Trophy size={20} className="text-brasil-yellow" />
-                Dê seu palpite!
+                <Trophy size={20} className="text-amber-500" />
+                Vantagens Exclusivas!
               </h3>
-              <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300 font-medium">Crie ou participe de uma liga agora mesmo:</p>
+              <p className="text-xs md:text-sm text-gray-600 dark:text-gray-300 font-medium">Desbloqueie estatísticas e saia na frente nos seus palpites:</p>
             </div>
 
             <div className="flex flex-col lg:flex-row items-stretch lg:items-center w-full md:w-auto gap-3 p-4 pt-0 md:pt-4 relative z-10 justify-center">
               <Link
-                to="/leagues-brasileirao"
-                className="flex items-center justify-center gap-2 px-4 py-3 bg-brasil-blue hover:bg-blue-800 text-white font-bold rounded-xl text-sm shadow-md transition-transform active:scale-95 border border-blue-400 whitespace-nowrap"
+                to="/seja-pro"
+                className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-yellow-200 to-amber-300 hover:from-yellow-300 hover:to-amber-400 text-gray-900 font-bold rounded-xl shadow-sm transition-transform active:scale-95 border border-yellow-300 whitespace-nowrap"
               >
-                <Globe size={18} />
+                <span className="text-xl leading-none">⭐</span>
                 <div className="flex items-center text-left leading-none">
-                  <span className="uppercase text-sm font-black">Confira as Competições</span>
+                  <span className="uppercase text-base font-black">Seja PRO</span>
                 </div>
               </Link>
-              {!loading && !currentUser.isPro && (
-                <Link
-                  to="/seja-pro"
-                  className="flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-yellow-200 to-amber-300 hover:from-yellow-300 hover:to-amber-400 text-gray-900 font-bold rounded-xl text-sm shadow-sm transition-transform active:scale-95 border border-yellow-300 whitespace-nowrap"
-                >
-                  <span className="text-xl leading-none">⭐</span>
-                  <div className="flex items-center text-left leading-none">
-                    <span className="uppercase text-sm font-black">Seja PRO</span>
-                  </div>
-                </Link>
-              )}
             </div>
           </div>
         </div>

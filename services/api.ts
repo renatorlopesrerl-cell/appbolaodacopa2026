@@ -432,6 +432,17 @@ export const api = {
             );
             return (data as any[]) || [];
         },
+        getStandingsForTeams: async (teamIds: (number | string)[]) => {
+            const { data, error } = await supabase
+                .from('brasileirao_standings_view')
+                .select('team_id, position, points')
+                .in('team_id', teamIds.map(String));
+            if (error) {
+                console.error('Error fetching standings:', error);
+                return [];
+            }
+            return data;
+        },
     },
     brazilPlayers: {
         list: async () => {

@@ -464,6 +464,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
     const [loadingStats, setLoadingStats] = useState(false);
     const [selectedMatchForStats, setSelectedMatchForStats] = useState<string | number | null>(null);
     const [apiMatchStats, setApiMatchStats] = useState<any>(null);
+    const [statsStandings, setStatsStandings] = useState<any[]>([]);
 
 
     const [teamHistoryData, setTeamHistoryData] = useState<any[]>([]);
@@ -1106,7 +1107,12 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
         queryFn: async () => {
             if (!selectedMatchForStats || !league) return null;
             const stats = await api.matches.getStats(String(selectedMatchForStats), String(league.id), 'brasileirao');
-            return { stats, history: [] };
+            let standings: any[] = [];
+            const match = matches.find(m => m.id == selectedMatchForStats);
+            if (match && (match.championship === 'brasileirao' || !match.championship)) {
+                standings = await api.brasileiraoTeams.getStandingsForTeams([match.home_team_id, match.away_team_id]);
+            }
+            return { stats, history: [], standings };
         },
         enabled: !!selectedMatchForStats && !!league,
         staleTime: isLockedStats ? 60 * 60 * 1000 : 30 * 1000,
@@ -1115,9 +1121,15 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
     useEffect(() => {
         if (statsData) {
             setApiMatchStats(statsData.stats);
+            if (statsData.standings) {
+                setStatsStandings(statsData.standings);
+            } else {
+                setStatsStandings([]);
+            }
             setLoadingStats(false);
         } else if (!isLoadingStatsQuery) {
             setApiMatchStats(null);
+            setStatsStandings([]);
             setLoadingStats(false);
         } else {
             setLoadingStats(true);
@@ -2255,7 +2267,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                 const isProUser = !!currentUser?.isPro;
 
                                 if (!mLocked) {
-                                    if (!isProUser && !hasWatchedStatsAd && Capacitor.isNativePlatform()) {
+                                    if (false && !isProUser && !hasWatchedStatsAd && Capacitor.isNativePlatform()) {
                                         setPendingStatsModal(String(m.id));
                                         try {
                                             if (!adMobModuleRef.current) {
@@ -2346,13 +2358,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                             <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}><input id={`home-${String(String(match.id))}`} name={`home-${String(String(match.id))}`} type="text" inputMode="numeric" maxLength={2} autoComplete="off" disabled={locked} value={homeValue} onChange={(e) => handleScoreChange(String(String(match.id)), 'home', e.target.value, userPred)} placeholder="-" className={`w-14 h-12 text-center border rounded-lg font-bold text-xl md:text-2xl focus:border-brasil-blue focus:ring-1 focus:ring-brasil-blue outline-none transition-all ${locked ? 'bg-gray-800 text-gray-500 border-gray-700 cursor-pointer' : 'bg-gray-700 border-gray-600 text-white'}`} /><span className="text-gray-300 dark:text-gray-600 text-sm font-bold">X</span><input id={`away-${String(String(match.id))}`} name={`away-${String(String(match.id))}`} type="text" inputMode="numeric" maxLength={2} autoComplete="off" disabled={locked} value={awayValue} onChange={(e) => handleScoreChange(String(String(match.id)), 'away', e.target.value, userPred)} placeholder="-" className={`w-14 h-12 text-center border rounded-lg font-bold text-xl md:text-2xl focus:border-brasil-blue focus:ring-1 focus:ring-brasil-blue outline-none transition-all ${locked ? 'bg-gray-800 text-gray-500 border-gray-700 cursor-pointer' : 'bg-gray-700 border-gray-600 text-white'}`} /></div>
                                             {stats && <span className="text-[10px] font-bold text-gray-400 mt-3">{stats.draw_pct}% Empate</span>}
 
-                                            {/* Dynamic Save Button */}
-                                            <div className={`transition-all duration-300 overflow-hidden flex justify-center w-full ${targetMatchForButton === String(match.id) ? 'max-h-20 mt-3 opacity-100' : 'max-h-0 mt-0 opacity-0'}`}>
-                                                <button onClick={(e) => { e.stopPropagation(); handleSaveAll(); }} disabled={isSavingPalpites} className="bg-brasil-green hover:bg-green-700 text-white px-6 py-3 rounded-full shadow-md font-bold text-base flex items-center justify-center gap-2 transition-all active:scale-95 border border-green-400 whitespace-nowrap min-w-[160px]">
-                                                    {isSavingPalpites ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-                                                    <span>{isSavingPalpites ? 'Salvando...' : `Salvar ${Object.values(pendingEdits).filter(val => val.home !== '' && val.away !== '').length} jogo(s)`}</span>
-                                                </button>
-                                            </div>
+
 
                                         </div>
                                         <div className="flex flex-col items-center justify-center w-1/3 flex-1 min-w-0 gap-1.5">
@@ -2360,6 +2366,14 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                             <span className="text-center font-black text-[10px] min-[360px]:text-xs min-[380px]:text-sm md:text-base text-gray-900 dark:text-gray-100 leading-tight truncate w-full px-1" title={getTeamNameForDisplay(match.away_team_id)}>{getTeamNameForDisplay(match.away_team_id)}</span>
                                             {stats && <span className="text-[10px] font-bold text-gray-500 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded shrink-0">{stats.away_win_pct}%</span>}
                                         </div>
+                                    </div>
+                                    
+                                    {/* Dynamic Save Button */}
+                                    <div className={`transition-all duration-300 overflow-hidden flex justify-center w-full ${targetMatchForButton === String(match.id) ? 'max-h-20 mb-3 opacity-100' : 'max-h-0 opacity-0'}`}>
+                                        <button onClick={(e) => { e.stopPropagation(); handleSaveAll(); }} disabled={isSavingPalpites} className="bg-brasil-green hover:bg-green-700 text-white px-6 py-3 rounded-full shadow-md font-bold text-base flex items-center justify-center gap-2 transition-all active:scale-95 border border-green-400 whitespace-nowrap min-w-[160px]">
+                                            {isSavingPalpites ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                                            <span>{isSavingPalpites ? 'Salvando...' : `Salvar ${Object.values(pendingEdits).filter(val => val.home !== '' && val.away !== '').length} jogo(s)`}</span>
+                                        </button>
                                     </div>
                                     {
                                         (match.status === MatchStatus.FINISHED || match.status === MatchStatus.IN_PROGRESS) && match.home_score !== null && match.away_score !== null && (
@@ -2805,6 +2819,29 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                                     ) : (
                                                         <>
                                                             <div className="space-y-4">
+                                                                {/* Standings */}
+                                                                {statsStandings && statsStandings.length > 0 && (
+                                                                    <div className="bg-white dark:bg-gray-700/60 rounded-xl p-3 border border-gray-100 dark:border-gray-600 shadow-sm flex items-center justify-between text-center gap-2">
+                                                                        {(() => {
+                                                                            const homeStanding = statsStandings.find(s => String(s.team_id) === String(sm.home_team_id));
+                                                                            const awayStanding = statsStandings.find(s => String(s.team_id) === String(sm.away_team_id));
+                                                                            return (
+                                                                                <>
+                                                                                    <div className="flex flex-col items-center flex-1">
+                                                                                        <span className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500 mb-0.5">{homeStanding ? `${homeStanding.position}º Lugar` : '-'}</span>
+                                                                                        <span className="text-sm font-black text-brasil-green dark:text-green-400">{homeStanding ? `${homeStanding.points} pts` : '-'}</span>
+                                                                                    </div>
+                                                                                    <div className="w-px h-8 bg-gray-200 dark:bg-gray-600"></div>
+                                                                                    <div className="flex flex-col items-center flex-1">
+                                                                                        <span className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500 mb-0.5">{awayStanding ? `${awayStanding.position}º Lugar` : '-'}</span>
+                                                                                        <span className="text-sm font-black text-brasil-green dark:text-green-400">{awayStanding ? `${awayStanding.points} pts` : '-'}</span>
+                                                                                    </div>
+                                                                                </>
+                                                                            );
+                                                                        })()}
+                                                                    </div>
+                                                                )}
+
                                                                 {/* Most Predicted Score */}
                                                                 <div className="bg-white dark:bg-gray-700/60 rounded-xl p-4 border border-gray-100 dark:border-gray-600 shadow-sm flex flex-col items-center justify-center text-center gap-3">
                                                                     <div className="flex flex-col items-center">

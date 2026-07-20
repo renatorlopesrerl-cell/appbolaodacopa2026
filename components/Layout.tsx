@@ -90,9 +90,9 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const isBrasileiraoMode = location.pathname.includes('brasileirao');
   const isHubMode = location.pathname === '/' || location.pathname === '/profile' || location.pathname === '/login';
   
-  let appName = 'Palpiteiro da Copa';
-  if (isHubMode) appName = 'PALPITEIRO';
-  else if (isBrasileiraoMode) appName = 'Palpiteiro do Brasileirão';
+  let appName = 'Palpiteiro Mestre';
+  if (isHubMode) appName = 'Palpiteiro Mestre';
+  else if (isBrasileiraoMode) appName = 'Palpiteiro Mestre';
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -550,13 +550,13 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               </div>
             </div>
             <div className="pt-8 border-t border-gray-100 dark:border-gray-700 text-center">
-              <p className="text-xs text-gray-400">© 2026 Palpiteiro. Todos os direitos reservados.</p>
+              <p className="text-xs text-gray-400">© 2026 Palpiteiro Mestre. Todos os direitos reservados.</p>
             </div>
           </div>
         </footer>
       ) : (
         <footer className="bg-gray-800 dark:bg-black text-gray-400 py-6 text-center text-sm transition-colors duration-300">
-          <p>© 2026 Palpiteiro.</p>
+          <p>© 2026 Palpiteiro Mestre.</p>
         </footer>
       )}
       
