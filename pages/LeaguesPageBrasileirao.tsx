@@ -706,44 +706,58 @@ export const LeaguesPageBrasileirao: React.FC = () => {
                             </thead>
                             <tbody>
                             <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750">
-                                <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">Copa (Copa do Brasil, Copa Libertadores e Copa Sul-Americana)</td>
-                                <td className="px-4 py-3 text-center">Grátis</td>
+                                <td rowSpan={3} className="px-4 py-3 font-medium text-gray-900 dark:text-white align-middle">Copa (Copa do Brasil, Copa Libertadores e Copa Sul-Americana)</td>
+                                <td className="px-4 py-3 text-center">1 Copa - Grátis</td>
                                 <td className="px-4 py-3 text-center font-bold bg-gray-100/50 dark:bg-gray-700/30 text-gray-600 dark:text-gray-300">R$ 10,00</td>
                                 <td className="px-4 py-3 text-center font-bold bg-blue-50/50 dark:bg-blue-900/20 text-brasil-blue dark:text-blue-400">R$ 15,00</td>
                                 <td className="px-4 py-3 text-center font-bold bg-green-50/50 dark:bg-green-900/20 text-brasil-green dark:text-green-400">R$ 20,00</td>
                                 <td className="px-4 py-3 text-center font-bold bg-yellow-50/50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400">R$ 25,00</td>
                             </tr>
-                            <tr className="bg-gray-50 border-b dark:bg-gray-800/50 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">Brasileirão Série A</td>
-                                <td className="px-4 py-3 text-center">Grátis</td>
+                            <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750">
+                                <td className="px-4 py-3 text-center">2 Copas - Grátis</td>
                                 <td className="px-4 py-3 text-center font-bold bg-gray-100/50 dark:bg-gray-700/30 text-gray-600 dark:text-gray-300">R$ 15,00</td>
                                 <td className="px-4 py-3 text-center font-bold bg-blue-50/50 dark:bg-blue-900/20 text-brasil-blue dark:text-blue-400">R$ 20,00</td>
                                 <td className="px-4 py-3 text-center font-bold bg-green-50/50 dark:bg-green-900/20 text-brasil-green dark:text-green-400">R$ 25,00</td>
                                 <td className="px-4 py-3 text-center font-bold bg-yellow-50/50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400">R$ 30,00</td>
                             </tr>
                             <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750">
-                                <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">Brasileirão Série A + 1 Copa</td>
-                                <td className="px-4 py-3 text-center">Grátis</td>
+                                <td className="px-4 py-3 text-center">3 Copas - Grátis</td>
                                 <td className="px-4 py-3 text-center font-bold bg-gray-100/50 dark:bg-gray-700/30 text-gray-600 dark:text-gray-300">R$ 20,00</td>
                                 <td className="px-4 py-3 text-center font-bold bg-blue-50/50 dark:bg-blue-900/20 text-brasil-blue dark:text-blue-400">R$ 25,00</td>
                                 <td className="px-4 py-3 text-center font-bold bg-green-50/50 dark:bg-green-900/20 text-brasil-green dark:text-green-400">R$ 30,00</td>
                                 <td className="px-4 py-3 text-center font-bold bg-yellow-50/50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400">R$ 35,00</td>
                             </tr>
                             <tr className="bg-gray-50 border-b dark:bg-gray-800/50 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">Brasileirão Série A + 2 Copas</td>
+                                <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">Brasileirão Série A</td>
+                                <td className="px-4 py-3 text-center">Grátis</td>
+                                <td className="px-4 py-3 text-center font-bold bg-gray-100/50 dark:bg-gray-700/30 text-gray-600 dark:text-gray-300">R$ 20,00</td>
+                                <td className="px-4 py-3 text-center font-bold bg-blue-50/50 dark:bg-blue-900/20 text-brasil-blue dark:text-blue-400">R$ 25,00</td>
+                                <td className="px-4 py-3 text-center font-bold bg-green-50/50 dark:bg-green-900/20 text-brasil-green dark:text-green-400">R$ 30,00</td>
+                                <td className="px-4 py-3 text-center font-bold bg-yellow-50/50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400">R$ 35,00</td>
+                            </tr>
+                            <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-750">
+                                <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">Brasileirão Série A + 1 Copa</td>
                                 <td className="px-4 py-3 text-center">Grátis</td>
                                 <td className="px-4 py-3 text-center font-bold bg-gray-100/50 dark:bg-gray-700/30 text-gray-600 dark:text-gray-300">R$ 25,00</td>
                                 <td className="px-4 py-3 text-center font-bold bg-blue-50/50 dark:bg-blue-900/20 text-brasil-blue dark:text-blue-400">R$ 30,00</td>
                                 <td className="px-4 py-3 text-center font-bold bg-green-50/50 dark:bg-green-900/20 text-brasil-green dark:text-green-400">R$ 35,00</td>
                                 <td className="px-4 py-3 text-center font-bold bg-yellow-50/50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400">R$ 40,00</td>
                             </tr>
-                            <tr className="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750">
-                                <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">Brasileirão Série A + 3 Copas</td>
+                            <tr className="bg-gray-50 border-b dark:bg-gray-800/50 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">Brasileirão Série A + 2 Copas</td>
                                 <td className="px-4 py-3 text-center">Grátis</td>
                                 <td className="px-4 py-3 text-center font-bold bg-gray-100/50 dark:bg-gray-700/30 text-gray-600 dark:text-gray-300">R$ 30,00</td>
                                 <td className="px-4 py-3 text-center font-bold bg-blue-50/50 dark:bg-blue-900/20 text-brasil-blue dark:text-blue-400">R$ 35,00</td>
                                 <td className="px-4 py-3 text-center font-bold bg-green-50/50 dark:bg-green-900/20 text-brasil-green dark:text-green-400">R$ 40,00</td>
                                 <td className="px-4 py-3 text-center font-bold bg-yellow-50/50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400">R$ 45,00</td>
+                            </tr>
+                            <tr className="bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-750">
+                                <td className="px-4 py-3 font-medium text-gray-900 dark:text-white">Brasileirão Série A + 3 Copas</td>
+                                <td className="px-4 py-3 text-center">Grátis</td>
+                                <td className="px-4 py-3 text-center font-bold bg-gray-100/50 dark:bg-gray-700/30 text-gray-600 dark:text-gray-300">R$ 35,00</td>
+                                <td className="px-4 py-3 text-center font-bold bg-blue-50/50 dark:bg-blue-900/20 text-brasil-blue dark:text-blue-400">R$ 40,00</td>
+                                <td className="px-4 py-3 text-center font-bold bg-green-50/50 dark:bg-green-900/20 text-brasil-green dark:text-green-400">R$ 45,00</td>
+                                <td className="px-4 py-3 text-center font-bold bg-yellow-50/50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400">R$ 50,00</td>
                             </tr>
                             </tbody>
                         </table>
