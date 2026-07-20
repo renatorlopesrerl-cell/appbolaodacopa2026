@@ -303,8 +303,8 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
         const isVipLeague = leaguePlan !== 'FREE';
         const isProUser = !!currentUser?.isPro;
 
-        // Se PRO ou liga VIP, remove o banner (se houver) e sai
-        if (isProUser || isVipLeague) {
+        // Se PRO, remove o banner (se houver) e sai
+        if (isProUser) {
             if (bannerActiveRef.current && adMobModuleRef.current) {
                 bannerActiveRef.current = false;
                 adMobModuleRef.current.AdMob.hideBanner().catch(() => { });

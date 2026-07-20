@@ -13,12 +13,12 @@ export const HomeBrasileirao: React.FC = () => {
     return sessionStorage.getItem('hideHomeBanner') !== 'true';
   });
 
-  // AdMob Banner para a Home - Oculta se não estiver logado ou se for PRO
+  // AdMob Banner para a Home — exibido para TODOS os usuários (apenas Android/iOS)
   const adMobRef = React.useRef<any>(null);
   const bannerShownRef = React.useRef(false);
 
   React.useEffect(() => {
-    if (!currentUser || currentUser.isPro || !Capacitor.isNativePlatform()) return;
+    if (!Capacitor.isNativePlatform()) return;
     let cancelled = false;
     (async () => {
       try {
@@ -44,7 +44,7 @@ export const HomeBrasileirao: React.FC = () => {
         adMobRef.current.removeBanner().catch(() => { });
       }
     };
-  }, [currentUser]);
+  }, []);
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText('https://bolaodacopa2026.app/');
