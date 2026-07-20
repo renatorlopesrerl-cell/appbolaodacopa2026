@@ -75,11 +75,11 @@ export const requestWebPushToken = async (force: boolean = false) => {
         throw new Error('VAPID Key do Firebase não encontrada nas variáveis de ambiente (.env).');
     }
 
-    console.log('--- DEBUG FCM ---');
-    console.log('VAPID Key:', vapidKey);
-    console.log('Sender ID:', firebaseConfig.messagingSenderId);
-    console.log('App ID:', firebaseConfig.appId);
-    
+    if (import.meta.env.DEV) {
+      console.log('--- DEBUG FCM (DEV only) ---');
+      console.log('VAPID Key configured:', !!vapidKey);
+      console.log('Sender ID configured:', !!firebaseConfig.messagingSenderId);
+    }
     // Para o Safari iOS, o registro do Service Worker DEVE ser o mais direto possível.
     let registration;
     if ('serviceWorker' in navigator) {

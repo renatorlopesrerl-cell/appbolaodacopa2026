@@ -282,8 +282,10 @@ export const api = {
             apiFetch('/admin/toggle-pro', { method: 'POST', body: JSON.stringify({ userId, isPro }) }),
         testPush: () => apiFetch<any>('/admin/test-push'),
         broadcastPush: (body: any) => apiFetch<any>('/admin/broadcast-push', { method: 'POST', body: JSON.stringify(body) }),
-        sendMassPush: (body: { title: string, message: string, urlData?: any, targetTopic?: string, championship?: string }) => 
-            apiFetch<any>('/admin/send-mass-push', { method: 'POST', body: JSON.stringify(body) })
+        sendMassPush: (body: { title: string, message: string, urlData?: any, targetTopic?: string, championship?: string }) =>
+            apiFetch<any>('/admin/send-mass-push', { method: 'POST', body: JSON.stringify(body) }),
+        // SECURITY: triggerPushReminder requires a valid JWT — Worker verifies admin role server-side
+        triggerPushReminder: () => apiFetch<any>('/admin/push-reminder', { method: 'POST' })
     },
     // --- BRAZIL GAMES MODE ---
     brazilLeagues: {
@@ -560,11 +562,6 @@ export const api = {
             
             teamHistoryCache[cacheKey] = { data: mappedData, timestamp: Date.now() };
             return mappedData;
-        }
-    },
-    system: {
-        triggerPushReminder: () => {
-            fetch(`${getApiBase()}/push_reminder?secret=bolao2026_secure_webhook_key`).catch(() => {});
         }
     }
 };

@@ -23,6 +23,7 @@ import { LiveCountdown } from '../components/LiveCountdown';
 import { supabase } from '../services/supabase';
 import { getHistoryForTeam } from '../historyUtils';
 import { fetchLeagueRankings } from '../services/rankingService';
+import { useAdMobBanner } from '../hooks/useAdMobBanner';
 
 export const LeagueDetails: React.FC = () => {
     const queryClient = useQueryClient();
@@ -90,63 +91,12 @@ export const LeagueDetails: React.FC = () => {
         return () => window.visualViewport?.removeEventListener('resize', handleResize);
     }, []);
 
-    // AdMob Banner — só aparece se: plataforma nativa AND usuário NÃO é PRO AND liga é FREE
-    const adMobModuleRef = useRef<any>(null);
-    const bannerActiveRef = useRef(false);
-
-    useEffect(() => {
-        if (!Capacitor.isNativePlatform()) return;
-
-        const foundLeague = leagues.find(l => l.id === id);
-        const leaguePlan = foundLeague?.settings?.plan || (foundLeague?.settings?.isUnlimited ? 'VIP_UNLIMITED' : 'FREE');
-        const isVipLeague = leaguePlan !== 'FREE';
-        const isProUser = !!currentUser?.isPro;
-
-        // Se PRO ou liga VIP, remove o banner (se houver) e sai
-        if (isProUser || isVipLeague) {
-            if (bannerActiveRef.current && adMobModuleRef.current) {
-                bannerActiveRef.current = false;
-                adMobModuleRef.current.AdMob.hideBanner().catch(() => {});
-                adMobModuleRef.current.AdMob.removeBanner().catch(() => {});
-            }
-            return;
-        }
-
-        // Se o banner já está ativo, não chama showBanner novamente
-        if (bannerActiveRef.current) return;
-
-        let isMounted = true;
-
-        (async () => {
-            try {
-                // Reutiliza o módulo já carregado para evitar import duplo
-                if (!adMobModuleRef.current) {
-                    adMobModuleRef.current = await import('@capacitor-community/admob');
-                }
-                await adMobModuleRef.current.AdMob.initialize();
-                if (!isMounted) return;
-                const { AdMob, BannerAdSize, BannerAdPosition } = adMobModuleRef.current;
-                await AdMob.showBanner({
-                    adId: 'ca-app-pub-7684468298593275/2185547308',
-                    adSize: BannerAdSize.BANNER,
-                    position: BannerAdPosition.BOTTOM_CENTER,
-                    margin: 0,
-                    isTesting: false
-                });
-                if (isMounted) bannerActiveRef.current = true;
-            } catch (e) { console.error('AdMob show error:', e); }
-        })();
-
-        return () => {
-            isMounted = false;
-            // Usa a ref síncrona — sem novo import assíncrono
-            if (bannerActiveRef.current && adMobModuleRef.current) {
-                bannerActiveRef.current = false;
-                adMobModuleRef.current.AdMob.hideBanner().catch(() => {});
-                adMobModuleRef.current.AdMob.removeBanner().catch(() => {});
-            }
-        };
-    }, [id, currentUser?.isPro]);
+    // AdMob Banner — oculto para usuários PRO ou ligas VIP (centralizado no hook)
+    const foundLeague = leagues.find(l => l.id === id);
+    const leaguePlan = foundLeague?.settings?.plan || (foundLeague?.settings?.isUnlimited ? 'VIP_UNLIMITED' : 'FREE');
+    const isVipLeague = leaguePlan !== 'FREE';
+    const adMobModuleRef = useRef<any>(null); // still used by rewarded interstitial code below
+    useAdMobBanner({ hideForPro: true, isPro: !!(currentUser?.isPro || isVipLeague) });
 
     // --- ADMOB REWARDED INTERSTITIAL ---
     const [pendingMatchModal, setPendingMatchModal] = useState<string | null>(null);
@@ -565,7 +515,10 @@ export const LeagueDetails: React.FC = () => {
         if (currentPeriodRankings && currentPeriodRankings.length > 0) {
             return league.participants.map(userId => {
                 const dbRank = currentPeriodRankings.find(r => r.user_id === userId);
-                const user = mergedUsers.find(u => u.id === userId) || { name: 'Unknown', id: userId, email: '', avatar: '' } as User;
+                // Prefer profile data from API join (always available) over store lookup (may lag)
+                const userFromDb = dbRank?.user;
+                const userFromStore = mergedUsers.find(u => u.id === userId);
+                const user = userFromDb || userFromStore || { name: 'Unknown', id: userId, email: '', avatar: '' } as User;
                 
                 let tfTotal = 0;
                 if (leaderboardView === 'total' && league.settings?.topFinishersEnabled && topFinishersResult) {

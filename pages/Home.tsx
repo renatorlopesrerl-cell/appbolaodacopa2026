@@ -11,38 +11,8 @@ export const Home: React.FC = () => {
   const [copied, setCopied] = useState(false);
 
 
-  // AdMob Banner para a Home - Oculta se não estiver logado ou se for PRO
-  const adMobRef = React.useRef<any>(null);
-  const bannerShownRef = React.useRef(false);
+  // AdMob banner is managed centrally by Layout.tsx via useAdMobBanner hook.
 
-  React.useEffect(() => {
-    if (!currentUser || currentUser.isPro || !Capacitor.isNativePlatform()) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const mod = await import('@capacitor-community/admob');
-        if (cancelled) return;
-        adMobRef.current = mod.AdMob;
-        await mod.AdMob.initialize();
-        await mod.AdMob.showBanner({
-          adId: 'ca-app-pub-7684468298593275/2185547308',
-          adSize: mod.BannerAdSize.BANNER,
-          position: mod.BannerAdPosition.BOTTOM_CENTER,
-          margin: 0,
-          isTesting: false
-        });
-        if (!cancelled) bannerShownRef.current = true;
-      } catch (e) { console.error('AdMob show error:', e); }
-    })();
-    return () => {
-      cancelled = true;
-      if (bannerShownRef.current && adMobRef.current) {
-        bannerShownRef.current = false;
-        adMobRef.current.hideBanner().catch(() => { });
-        adMobRef.current.removeBanner().catch(() => { });
-      }
-    };
-  }, [currentUser]);
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText('https://bolaodacopa2026.app/');

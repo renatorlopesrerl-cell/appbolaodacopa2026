@@ -10,6 +10,7 @@ import { useStore } from '../App';
 import { PullToRefresh } from './PullToRefresh';
 import { IosInstallPrompt } from './IosInstallPrompt';
 import { Capacitor } from '@capacitor/core';
+import { useAdMobBanner } from '../hooks/useAdMobBanner';
 
 interface ToastNote {
   id: number;
@@ -96,6 +97,11 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+
+  // Centralized AdMob banner — shown on all pages EXCEPT league-detail pages,
+  // which manage their own banner with Pro-user exclusion logic.
+  const isLeagueDetailPage = /\/(league|brazil-league|brasileirao-league)\//.test(location.pathname);
+  useAdMobBanner({ hideForPro: false, isPro: false, skip: isLeagueDetailPage });
 
   const isNative = Capacitor.getPlatform() !== 'web';
 

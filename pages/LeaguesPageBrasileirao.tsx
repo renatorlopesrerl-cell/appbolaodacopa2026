@@ -39,37 +39,8 @@ export const LeaguesPageBrasileirao: React.FC = () => {
 
   const [leagueCompetitions, setLeagueCompetitions] = useState<('brasileirao' | 'copa_do_brasil' | 'libertadores' | 'sul_americana')[]>(['brasileirao']);
 
-  // AdMob Banner — exibido para TODOS os usuários na página de listagem (apenas Android/iOS)
-  const adMobRef = useRef<any>(null);
-  const bannerShownRef = useRef(false);
-  useEffect(() => {
-    if (!Capacitor.isNativePlatform()) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const mod = await import('@capacitor-community/admob');
-        if (cancelled) return; // componente já desmontado, não exibe
-        adMobRef.current = mod.AdMob;
-        await mod.AdMob.showBanner({
-          adId: 'ca-app-pub-7684468298593275/2185547308',
-          adSize: mod.BannerAdSize.BANNER,
-          position: mod.BannerAdPosition.BOTTOM_CENTER,
-          margin: 0,
-          isTesting: false
-        });
-        if (!cancelled) bannerShownRef.current = true;
-      } catch (e) { console.error('AdMob show error:', e); }
-    })();
-    return () => {
-      cancelled = true;
-      // Usa o módulo já carregado (sem novo import assíncrono) para evitar crash na navegação
-      if (bannerShownRef.current && adMobRef.current) {
-        bannerShownRef.current = false;
-        adMobRef.current.hideBanner().catch(() => {});
-        adMobRef.current.removeBanner().catch(() => {});
-      }
-    };
-  }, []);
+  // AdMob banner is managed centrally by Layout.tsx via useAdMobBanner hook.
+
 
   const resetForm = () => {
     setNewLeagueName('');

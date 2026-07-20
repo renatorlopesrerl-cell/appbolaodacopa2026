@@ -128,7 +128,8 @@ export const onRequest = async ({ request, env, next, data }) => {
                 !request.url.includes('/admin/matches') && 
                 !request.url.includes('/admin/brazil-match-goals') && 
                 !request.url.includes('/admin/send-mass-push') && 
-                !request.url.includes('/admin/broadcast-push')
+                !request.url.includes('/admin/broadcast-push') &&
+                !request.url.includes('/admin/push-reminder')
             ) {
                  return withCors(new Response(JSON.stringify({ error: 'Forbidden. Matches admin only.' }), { status: 403 }));
             }

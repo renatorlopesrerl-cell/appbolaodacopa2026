@@ -163,8 +163,16 @@ export const setupPushNotifications = async (userId: string, force: boolean = fa
                 console.log('Push action performed:', notification.actionId, notification.notification.data);
                 const data = notification.notification.data;
                 if (data?.url) {
-                    try { localStorage.removeItem('last_sync_time'); } catch (e) {}
-                    window.location.href = data.url;
+                    try {
+                        const parsedUrl = new URL(data.url, window.location.origin);
+                        const allowedOrigins = ['https://bolaodacopa2026.app', window.location.origin];
+                        if (allowedOrigins.includes(parsedUrl.origin)) {
+                            try { localStorage.removeItem('last_sync_time'); } catch (e) {}
+                            window.location.href = data.url;
+                        } else {
+                            console.warn('[Push] Blocked redirect to untrusted origin:', parsedUrl.origin);
+                        }
+                    } catch { /* malformed URL, ignore */ }
                 }
             });
 
@@ -199,8 +207,16 @@ export const setupPushNotifications = async (userId: string, force: boolean = fa
             console.log('Local notification action performed:', notification);
             const data = notification.notification.extra;
             if (data?.url) {
-                try { localStorage.removeItem('last_sync_time'); } catch (e) {}
-                window.location.href = data.url;
+                try {
+                    const parsedUrl = new URL(data.url, window.location.origin);
+                    const allowedOrigins = ['https://bolaodacopa2026.app', window.location.origin];
+                    if (allowedOrigins.includes(parsedUrl.origin)) {
+                        try { localStorage.removeItem('last_sync_time'); } catch (e) {}
+                        window.location.href = data.url;
+                    } else {
+                        console.warn('[LocalNotif] Blocked redirect to untrusted origin:', parsedUrl.origin);
+                    }
+                } catch { /* malformed URL, ignore */ }
             }
         });
 

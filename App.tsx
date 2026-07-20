@@ -545,7 +545,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       if (Capacitor.isNativePlatform()) {
         try {
           await Purchases.setLogLevel({ level: LOG_LEVEL.DEBUG });
-          await Purchases.configure({ apiKey: "goog_bxLqLtWQVchuTbHBNljTJNpYblM" });
+          await Purchases.configure({ apiKey: import.meta.env.VITE_REVENUECAT_API_KEY });
           console.log("RevenueCat configured successfully.");
         } catch (e) {
           console.error("Error configuring RevenueCat:", e);
@@ -663,7 +663,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [brasileiraoMatches]);
+  }, [brasileiraoMatches.length]);
 
   // --- PREDICTION REMINDER SCHEDULER ---
   useEffect(() => {
