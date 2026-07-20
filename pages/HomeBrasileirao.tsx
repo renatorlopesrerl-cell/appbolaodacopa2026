@@ -354,25 +354,6 @@ export const HomeBrasileirao: React.FC = () => {
           </div>
         </Link>
 
-
-
-        {!loading && !currentUser.isPro && (
-          <Link to="/seja-pro" className="group bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 p-6 rounded-2xl shadow-sm hover:shadow-xl transition-all border border-yellow-200 dark:border-yellow-800 relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity transform group-hover:scale-110 duration-500">
-              <Trophy size={80} className="text-amber-500 dark:text-amber-400" />
-            </div>
-            <div className="relative z-10">
-              <div className="p-3 bg-gradient-to-br from-yellow-100 to-amber-100 dark:from-yellow-900/50 dark:to-amber-900/50 rounded-xl w-fit mb-4 group-hover:bg-gradient-to-br group-hover:from-yellow-400 group-hover:to-amber-500 transition-colors">
-                <span className="text-2xl leading-none">⭐</span>
-              </div>
-              <div className="flex items-center gap-2 mb-1">
-                <h2 className="text-xl font-bold text-gray-800 dark:text-white">Seja PRO</h2>
-              </div>
-              <p className="text-amber-700 dark:text-amber-300 text-sm font-medium">Desbloqueie estatísticas exclusivas de cada jogo!</p>
-            </div>
-          </Link>
-        )}
-
       </div>
 
 

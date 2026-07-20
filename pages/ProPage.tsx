@@ -234,16 +234,22 @@ export const ProPage: React.FC = () => {
             </div>
 
             {/* AVISO TEMPORÁRIO */}
-            <div className="mb-8 p-5 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-2xl shadow-sm text-center">
-                <h3 className="text-brasil-blue dark:text-blue-400 font-black text-lg mb-2 flex items-center justify-center gap-2">
-                    <span className="text-2xl">🚧</span> Aviso Importante
+            <div className="mb-8 p-8 md:p-12 bg-blue-50 dark:bg-blue-900/30 border-2 border-blue-200 dark:border-blue-800 rounded-3xl shadow-lg text-center mt-10">
+                <h3 className="text-brasil-blue dark:text-blue-400 font-black text-2xl md:text-3xl mb-6 flex flex-col md:flex-row items-center justify-center gap-3">
+                    <span className="text-4xl">🚧</span> Aviso Importante
                 </h3>
-                <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed font-medium">
+                <p className="text-gray-700 dark:text-gray-300 text-base md:text-lg leading-relaxed font-medium mb-8">
                     O Plano Pro original foi desenvolvido exclusivamente para a Copa do Mundo. Devido ao grande sucesso e aos pedidos da comunidade, decidimos dar continuidade ao aplicativo com novos campeonatos! 
-                    <br/><br/>
-                    <strong className="text-gray-900 dark:text-white uppercase tracking-wide">O NOVO PLANO PRO PARA O BRASILEIRÃO + COPAS SERÁ DISPONIBILIZADO EM BREVE!</strong>
                 </p>
+                <div className="p-6 bg-yellow-100 dark:bg-yellow-900/40 rounded-2xl border-2 border-yellow-300 dark:border-yellow-700 shadow-sm">
+                    <strong className="text-yellow-900 dark:text-yellow-400 uppercase tracking-wide text-lg md:text-xl font-black">
+                        O NOVO PLANO PRO PARA O BRASILEIRÃO + COPAS SERÁ DISPONIBILIZADO EM BREVE!
+                    </strong>
+                </div>
             </div>
+
+            {/* CONTEÚDO OCULTO TEMPORARIAMENTE PARA USO FUTURO */}
+            <div className="hidden">
 
             <div className="relative rounded-2xl overflow-hidden mb-8 shadow-2xl">
                 <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900" />
@@ -448,6 +454,7 @@ export const ProPage: React.FC = () => {
                         </Link>
                     </div>
                 </div>
+            </div>
             </div>
         </div>
     );

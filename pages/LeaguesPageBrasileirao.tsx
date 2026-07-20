@@ -566,7 +566,7 @@ export const LeaguesPageBrasileirao: React.FC = () => {
                     <Info size={18} className="mt-0.5 shrink-0 text-brasil-green dark:text-green-500" />
                     <div>
                       Crie a liga com 1 ou mais campeonatos e faça o upgrade para o plano Vip na aba Admin.{' '}
-                      <button type="button" onClick={() => setShowPricingModal(true)} className="text-brasil-blue underline font-bold cursor-pointer hover:text-blue-700 dark:hover:text-blue-400">Clique aqui e confira os valores.</button>
+                      <button type="button" onClick={() => setShowPricingModal(true)} className="text-brasil-blue dark:text-blue-400 underline font-bold cursor-pointer hover:text-blue-700 dark:hover:text-blue-300">Clique aqui e confira os valores.</button>
                     </div>
                   </div>
                 </div>

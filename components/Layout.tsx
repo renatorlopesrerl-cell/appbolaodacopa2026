@@ -362,7 +362,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               </>
             )}
             
-            {!isHubMode && !currentUser?.isPro && (
+            {isBrasileiraoMode && !currentUser?.isPro && (
               <Link to="/seja-pro" className="px-3 py-1.5 rounded-full bg-gradient-to-r from-yellow-200 to-amber-300 text-gray-900 font-black text-sm whitespace-nowrap hover:from-yellow-300 hover:to-amber-400 transition-all shadow-sm border border-yellow-300 flex items-center gap-1.5 active:scale-95">⭐ Seja PRO</Link>
             )}
 
@@ -471,7 +471,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               </>
             )}
             
-            {!isHubMode && !currentUser?.isPro && (
+            {isBrasileiraoMode && !currentUser?.isPro && (
               <Link onClick={() => setIsMenuOpen(false)} to="/seja-pro" className="flex items-center gap-2 px-3 py-2 rounded-full bg-gradient-to-r from-yellow-200 to-amber-300 text-gray-900 font-black text-sm mt-1 active:scale-95 transition-all shadow-sm border border-yellow-300">⭐ Seja PRO</Link>
             )}
             <div className="mt-4 pt-4 border-t border-white/10">
