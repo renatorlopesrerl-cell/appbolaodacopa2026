@@ -84,7 +84,7 @@ async function processMatches(supabase: any) {
     .gt("date", minReminderTime)
     .lte("date", maxReminderTime)
     .eq("status", "SCHEDULED")
-    .not("phase", "in", '("19ª Rodada","16-avos de final","16-avos de Final","Round of 32")');
+    .not("phase", "in", '("19ª Rodada","Rodada 19","16-avos de final","16-avos de Final","Round of 32")');
 
   if (reminderMatches && reminderMatches.length > 0) {
     console.log(`Encontrados ${reminderMatches.length} jogos para lembrete (35 min).`);
@@ -111,7 +111,7 @@ async function processMatches(supabase: any) {
     .lte("date", limiteSuperior)
     .gte("date", limiteInferior)
     .neq("status", "FINISHED")
-    .not("phase", "in", '("19ª Rodada","16-avos de final","16-avos de Final","Round of 32")');
+    .not("phase", "in", '("19ª Rodada","Rodada 19","16-avos de final","16-avos de Final","Round of 32")');
 
   if (dbError) {
     console.error("Erro ao buscar jogos no banco:", dbError);
