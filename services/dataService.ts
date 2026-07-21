@@ -373,21 +373,18 @@ export const processImageForUpload = (file: File): Promise<string> => {
           return;
         }
 
-        // CORREÇÃO: Preencher fundo branco para evitar transparência preta em JPEGs
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(0, 0, width, height);
-
+        // WebP suporta transparência nativamente, então não precisamos preencher o fundo de branco.
         ctx.drawImage(img, 0, 0, width, height);
 
         // Quality reduction loop
         // Target: ~30KB (approx 40,000 base64 chars)
         const MAX_CHARS = 40000;
         let quality = 0.9;
-        let dataUrl = canvas.toDataURL('image/jpeg', quality);
+        let dataUrl = canvas.toDataURL('image/webp', quality);
 
         while (dataUrl.length > MAX_CHARS && quality > 0.1) {
           quality -= 0.1;
-          dataUrl = canvas.toDataURL('image/jpeg', quality);
+          dataUrl = canvas.toDataURL('image/webp', quality);
         }
 
         resolve(dataUrl);
