@@ -9,7 +9,7 @@ export const BLOG_POSTS = [
         description: 'Chegamos ao fim da primeira metade do Campeonato Brasileiro. Confira os destaques, decepções e favoritos para o título.',
         date: '21 de Julho de 2026',
         category: 'Brasileirão',
-        imageUrl: 'https://images.unsplash.com/photo-1518605368461-1ee7e542867e?q=80&w=800&auto=format&fit=crop'
+        imageUrl: '/img/blog/brasileirao_cover.jpg'
     },
     {
         id: 'resumo-final-copa-do-mundo-2026',
@@ -17,7 +17,7 @@ export const BLOG_POSTS = [
         description: 'A Copa do Mundo chegou ao fim neste domingo com uma final histórica. Reveja os melhores momentos, artilharia e o legado do torneio.',
         date: '20 de Julho de 2026',
         category: 'Copa do Mundo',
-        imageUrl: 'https://images.unsplash.com/photo-1518091043644-c1d4457512c6?q=80&w=800&auto=format&fit=crop'
+        imageUrl: '/img/blog/worldcup_cover.jpg'
     },
     {
         id: 'resumo-fase-de-grupos-libertadores-2026',
@@ -25,7 +25,7 @@ export const BLOG_POSTS = [
         description: 'A fase de grupos terminou definindo os 16 clubes classificados para o mata-mata de agosto. Confira todos os confrontos.',
         date: '21 de Julho de 2026',
         category: 'Libertadores',
-        imageUrl: 'https://images.unsplash.com/photo-1574629810360-7efbb6b0fa73?q=80&w=800&auto=format&fit=crop'
+        imageUrl: '/img/blog/libertadores_cover.png'
     },
     {
         id: 'resumo-fase-de-grupos-sulamericana-2026',
@@ -33,7 +33,7 @@ export const BLOG_POSTS = [
         description: 'Com grande participação brasileira, conheça os líderes e os classificados para a próxima fase da Sul-Americana.',
         date: '21 de Julho de 2026',
         category: 'Sul-Americana',
-        imageUrl: 'https://images.unsplash.com/photo-1431324155629-1a6fb1ce8f4d?q=80&w=800&auto=format&fit=crop'
+        imageUrl: '/img/blog/sulamericana_cover.png'
     }
 ];
 
