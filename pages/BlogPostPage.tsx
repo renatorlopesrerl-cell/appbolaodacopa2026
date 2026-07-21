@@ -61,27 +61,46 @@ export const BlogPostPage: React.FC = () => {
                                         {post.description}
                                     </p>
                                     
-                                    <h2 className="text-2xl font-bold text-gray-800 dark:text-white mt-8 mb-4">A Disputa Acirrada pelo Título</h2>
+                                    <h2 className="text-2xl font-bold text-gray-800 dark:text-white mt-8 mb-4">A Liderança do Verdão</h2>
                                     <p className="mb-6">
-                                        Chegamos ao momento decisivo da primeira metade da competição. O Campeonato Brasileiro de 2026, com o primeiro turno finalizando exatamente nesta semana, provou mais uma vez ser um dos campeonatos mais equilibrados e imprevisíveis do mundo. Equipes que iniciaram a temporada com grande favoritismo enfrentaram tropeços surpreendentes, enquanto "azarões" conquistaram vitórias fundamentais em casa.
+                                        O <strong>Palmeiras</strong> encerrou o 1º turno do Brasileirão 2026 na liderança isolada, somando 41 pontos. A equipe palmeirense manteve um ritmo forte, abrindo uma vantagem de 7 pontos para o vice-líder Flamengo e demonstrando solidez defensiva ao sofrer apenas uma derrota na primeira metade do campeonato.
                                     </p>
 
-                                    <h2 className="text-2xl font-bold text-gray-800 dark:text-white mt-8 mb-4">Quem se destacou?</h2>
+                                    <h2 className="text-2xl font-bold text-gray-800 dark:text-white mt-8 mb-4">Destaques da Primeira Metade do Campeonato</h2>
                                     <p className="mb-6">
-                                        A consistência defensiva e o aproveitamento nas finalizações foram a chave do sucesso para as equipes no topo da tabela. A estratégia de pontuar fora de casa e não desperdiçar chances diante dos seus torcedores separou os postulantes ao título dos que lutam no meio da tabela. O nível tático e físico da competição atingiu o seu pico.
+                                        O primeiro turno foi marcado pelo domínio do G-4 e por algumas surpresas na parte superior da tabela. Veja quem se destacou:
                                     </p>
-
-                                    <h2 className="text-2xl font-bold text-gray-800 dark:text-white mt-8 mb-4">A Importância dos Palpites no 2º Turno</h2>
-                                    <p className="mb-6">
-                                        Com o returno se aproximando, a pressão aumenta e o cenário muda. Times focarão em se recuperar, o mercado de transferências trará novos nomes e a tensão da zona de rebaixamento fará os clubes jogarem a vida em cada partida. Para você, que participa das Ligas do <strong>Palpiteiro Mestre</strong>, a dica de ouro é: observe o desgaste do elenco. Clubes divididos com as copas internacionais tendem a poupar jogadores no Brasileirão. Use isso a seu favor nas suas apostas!
-                                    </p>
-                                    
-                                    <h3 className="text-xl font-bold text-gray-800 dark:text-white mt-8 mb-4">Estatísticas Chave do 1º Turno:</h3>
-                                    <ul className="list-disc pl-6 space-y-2 mb-8">
-                                        <li>Média de gols mantida alta devido à ofensividade dos sistemas táticos atuais.</li>
-                                        <li>Alto número de vitórias dos times mandantes, reforçando o peso das torcidas.</li>
-                                        <li>Equipes poupando jogadores nas rodadas de meio de semana.</li>
+                                    <ul className="list-disc pl-6 space-y-4 mb-8 text-gray-700 dark:text-gray-300">
+                                        <li><strong>Líder (Palmeiras):</strong> Com campanha sólida, o time alviverde disparou na ponta da tabela, consolidando-se como o grande favorito ao título.</li>
+                                        <li><strong>Vice-líder (Flamengo):</strong> Com um desempenho ofensivo eficiente, o Rubro-Negro persegue o topo de perto, buscando diminuir a diferença.</li>
+                                        <li><strong>Destaques Positivos:</strong> O Fluminense fez uma de suas melhores campanhas da década no 1º turno, terminando em 3º lugar, enquanto o Red Bull Bragantino fechou a zona de classificação direta garantindo o 4º lugar.</li>
                                     </ul>
+
+                                    <h2 className="text-2xl font-bold text-gray-800 dark:text-white mt-8 mb-4">A Disputa pela Artilharia</h2>
+                                    <p className="mb-6">
+                                        A corrida para ser o maior goleador do campeonato foi acirrada na primeira metade do torneio:
+                                    </p>
+                                    <div className="bg-gray-50 dark:bg-gray-900/50 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 mb-8">
+                                        <ul className="space-y-3 font-bold text-gray-700 dark:text-gray-300">
+                                            <li className="flex items-center gap-2">⚽ <strong>Viveros (Athletico-PR):</strong> Destacou-se como o principal goleador isolado.</li>
+                                            <li className="flex items-center gap-2">⚽ <strong>Carlos Vinícius (Grêmio) & Pedro (Flamengo):</strong> Figuraram logo atrás na perseguição pela artilharia.</li>
+                                            <li className="flex items-center gap-2">⚽ <strong>John Kennedy (Fluminense) & Breno Lopes (Coritiba):</strong> Também apareceram com grande destaque no topo da lista.</li>
+                                        </ul>
+                                    </div>
+
+                                    <h2 className="text-2xl font-bold text-gray-800 dark:text-white mt-8 mb-4">Parte Inferior da Tabela e Z-4</h2>
+                                    <p className="mb-6">
+                                        Na luta contra o rebaixamento, times tradicionais enfrentaram muitas dificuldades na primeira parte da temporada. O drama se desenhou assim:
+                                    </p>
+                                    <ul className="list-disc pl-6 space-y-4 mb-8 text-gray-700 dark:text-gray-300">
+                                        <li>A <strong>Chapecoense</strong> terminou o turno na lanterna (20ª colocação), com apenas 1 vitória, numa situação complicadíssima.</li>
+                                        <li><strong>Clube do Remo</strong> e <strong>Mirassol</strong> também encerraram o semestre afundados dentro da zona de rebaixamento.</li>
+                                        <li>Grandes clubes, como <strong>Vasco</strong> e <strong>Grêmio</strong>, frequentaram a parte inferior da classificação e agora tentam se distanciar do Z-4 para o returno.</li>
+                                    </ul>
+
+                                    <p className="mb-6 text-sm text-gray-500 italic">
+                                        O segundo turno promete pegar fogo. Prepare seus prognósticos no <strong>Palpiteiro Mestre</strong> e garanta o primeiro lugar na sua liga!
+                                    </p>
                                 </>
                             )}
 
