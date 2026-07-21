@@ -403,7 +403,7 @@ export const LeaguesPageBrasileirao: React.FC = () => {
                     <button
                       id={`join-league-${l.id}`}
                       onClick={() => handleJoinLeague(l.id, l)}
-                      className="text-sm font-bold text-brasil-blue dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-3 py-1.5 rounded hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+                      className="text-sm font-bold text-brasil-blue dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-3 py-1.5 rounded hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors active:scale-95"
                     >
                       {l.isPrivate ? 'Solicitar' : 'Entrar'}
                     </button>

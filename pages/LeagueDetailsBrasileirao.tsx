@@ -4134,7 +4134,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                             </p>
                             <button
                                 onClick={handleJoin}
-                                className="bg-brasil-green hover:bg-green-700 text-white font-bold px-8 py-3 rounded-xl transition-colors shadow-md flex items-center gap-2"
+                                className="bg-brasil-green hover:bg-green-700 text-white font-bold px-8 py-3 rounded-xl transition-colors shadow-md flex items-center gap-2 active:scale-95"
                             >
                                 <UserPlus size={18} />
                                 {league.isPrivate ? 'Solicitar Entrada' : 'Participar da Liga'}

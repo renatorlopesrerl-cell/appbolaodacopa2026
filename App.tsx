@@ -2341,6 +2341,11 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     try {
       await api.leagues.respondInvite(inviteId, accept);
       if (accept) {
+        if (invite.leagueType === 'brasileirao') {
+          await fetchBrasileiraoData();
+        } else {
+          await fetchCopaData();
+        }
         await fetchAllData(false);
         if (!optimisticNotificationShown) {
           addNotification('Sucesso', `Bem-vindo à liga ${invite.league_name || ''}!`, 'success');

@@ -99,7 +99,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const [showNotifications, setShowNotifications] = useState(false);
 
   // Centralized AdMob banner — shown on ALL pages for ALL users.
-  useAdMobBanner();
+  useAdMobBanner({ skip: !currentUser });
 
   const isNative = Capacitor.getPlatform() !== 'web';
 
