@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'app.palpiteiro',
-  appName: 'Palpiteiro',
+  appName: 'Palpiteiro Mestre',
   webDir: 'dist',
   server: {
     androidScheme: 'https',

@@ -134,7 +134,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
     } = useStore();
 
     const league = leagues.find(l => l.id === id);
-    const allowedCompetitions: string[] = league?.settings?.competitions || ['brasileirao', 'copa_do_brasil', 'libertadores'];
+    const allowedCompetitions: string[] = useMemo(() => league?.settings?.competitions || ['brasileirao', 'copa_do_brasil', 'libertadores'], [league?.settings?.competitions]);
 
     // Preload dos escudos dos times para evitar demora na renderização
     useEffect(() => {
@@ -292,11 +292,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
         return () => window.visualViewport?.removeEventListener('resize', handleResize);
     }, []);
 
-    // AdMob Banner — oculto para usuários PRO ou ligas VIP (centralizado no hook)
-    const foundLeagueForBanner = leagues.find(l => l.id === id);
-    const leaguePlanForBanner = foundLeagueForBanner?.settings?.plan || (foundLeagueForBanner?.settings?.isUnlimited ? 'VIP_UNLIMITED' : 'FREE');
-    const adMobModuleRef = useRef<any>(null); // kept for rewarded interstitial use below
-    useAdMobBanner({ hideForPro: true, isPro: !!(currentUser?.isPro || leaguePlanForBanner !== 'FREE') });
+    const adMobModuleRef = useRef<any>(null); // used for rewarded interstitial below
 
     // --- ADMOB REWARDED INTERSTITIAL ---
     const [pendingMatchModal, setPendingMatchModal] = useState<string | null>(null);
@@ -420,7 +416,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
 
     useEffect(() => {
         if (!selectedMatchForStats || !league) {
-            setTeamHistoryData([]);
+            setTeamHistoryData(prev => prev.length === 0 ? prev : []);
             return;
         }
 
@@ -1476,9 +1472,8 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
         if (!match) return 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300';
         const roundNum = parseInt(match[0], 10);
         const colors = [
-            'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300', // blue
             'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300', // red
-            'bg-sky-100 text-sky-800 dark:bg-sky-900/40 dark:text-sky-300', // sky
+            'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300', // purple
         ];
         return colors[roundNum % colors.length];
     };
@@ -2186,9 +2181,16 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                 </div>
 
                 {filteredMatches.length === 0 ? (
-                    <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700">
-                        <p className="text-gray-400 font-medium">Nenhum jogo encontrado.</p>
-                        <button onClick={clearFilters} className="mt-2 text-sm text-brasil-blue dark:text-blue-400 font-bold hover:underline">Limpar filtros</button>
+                    <div className="text-center py-12 px-4 bg-gray-50 dark:bg-gray-800 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700">
+                        {filterStatus === 'upcoming' ? (
+                            <>
+                                <p className="text-green-600 dark:text-green-400 font-black mb-1 text-sm md:text-base">Nenhum jogo aberto no momento.</p>
+                                <p className="text-green-600 dark:text-green-400 font-bold text-xs md:text-sm max-w-sm mx-auto">Os jogos desta fase ou competição estarão disponíveis em breve.</p>
+                            </>
+                        ) : (
+                            <p className="text-gray-400 font-medium">Nenhum jogo encontrado.</p>
+                        )}
+                        <button onClick={clearFilters} className="mt-4 text-sm text-brasil-blue dark:text-blue-400 font-bold hover:underline">Limpar filtros</button>
                     </div>
                 ) : (
                     <div className="space-y-4">
@@ -2780,13 +2782,13 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                                                             return (
                                                                                 <>
                                                                                     <div className="flex flex-col items-center flex-1">
-                                                                                        <span className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500 mb-0.5">{homeStanding ? `${homeStanding.position}º Lugar` : '-'}</span>
-                                                                                        <span className="text-sm font-black text-brasil-green dark:text-green-400">{homeStanding ? `${homeStanding.points} pts` : '-'}</span>
+                                                                                        <span className="text-xs font-bold uppercase text-gray-700 dark:text-gray-300 mb-0.5">{homeStanding ? `${homeStanding.position}º Lugar` : '-'}</span>
+                                                                                        <span className="text-xl font-black text-brasil-green dark:text-green-400">{homeStanding ? `${homeStanding.points} pts` : '-'}</span>
                                                                                     </div>
-                                                                                    <div className="w-px h-8 bg-gray-200 dark:bg-gray-600"></div>
+                                                                                    <div className="w-px h-10 bg-gray-200 dark:bg-gray-600"></div>
                                                                                     <div className="flex flex-col items-center flex-1">
-                                                                                        <span className="text-[10px] font-bold uppercase text-gray-400 dark:text-gray-500 mb-0.5">{awayStanding ? `${awayStanding.position}º Lugar` : '-'}</span>
-                                                                                        <span className="text-sm font-black text-brasil-green dark:text-green-400">{awayStanding ? `${awayStanding.points} pts` : '-'}</span>
+                                                                                        <span className="text-xs font-bold uppercase text-gray-700 dark:text-gray-300 mb-0.5">{awayStanding ? `${awayStanding.position}º Lugar` : '-'}</span>
+                                                                                        <span className="text-xl font-black text-brasil-green dark:text-green-400">{awayStanding ? `${awayStanding.points} pts` : '-'}</span>
                                                                                     </div>
                                                                                 </>
                                                                             );
@@ -4005,6 +4007,15 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
             </div>
         );
     };
+
+    if (!league) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[50vh] pt-20">
+                <div className="w-12 h-12 border-4 border-brasil-blue border-t-transparent rounded-full animate-spin mb-4"></div>
+                <p className="text-gray-500 font-bold dark:text-gray-400">Carregando liga...</p>
+            </div>
+        );
+    }
 
     return (
         <div>

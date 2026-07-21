@@ -7,7 +7,6 @@ import { Capacitor } from '@capacitor/core';
 export const HubHome: React.FC = () => {
   const { currentUser, loginGoogle } = useStore();
   const [copied, setCopied] = useState(false);
-  const [showSoonModal, setShowSoonModal] = useState(false);
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText('https://bolaodacopa2026.app/');
@@ -15,14 +14,7 @@ export const HubHome: React.FC = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleBrasileiraoClick = (e: React.MouseEvent) => {
-    const isWeb = Capacitor.getPlatform() === 'web';
-    const isAdmin = currentUser?.isAdmin === true;
-    if (isWeb && !isAdmin) {
-      e.preventDefault();
-      setShowSoonModal(true);
-    }
-  };
+
 
   if (!currentUser) {
     return (
@@ -188,7 +180,6 @@ export const HubHome: React.FC = () => {
         {/* Brasileirão Card */}
         <Link 
           to="/brasileirao"
-          onClick={handleBrasileiraoClick}
           className="group relative overflow-hidden bg-gradient-to-br from-green-800 to-brasil-green rounded-3xl p-8 text-white shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border-2 border-transparent hover:border-brasil-yellow"
         >
           <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-brasil-yellow rounded-full blur-3xl opacity-20 group-hover:opacity-40 transition-opacity"></div>
@@ -244,35 +235,6 @@ export const HubHome: React.FC = () => {
           </div>
         </Link>
       </div>
-
-      {showSoonModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 max-w-md w-full shadow-2xl border-2 border-brasil-yellow/30 text-center relative overflow-hidden animate-in zoom-in-95 duration-300">
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-12 w-32 h-32 bg-brasil-yellow/20 rounded-full blur-xl"></div>
-            
-            <div className="mx-auto w-16 h-16 bg-yellow-100 dark:bg-yellow-950/50 rounded-2xl flex items-center justify-center text-yellow-600 dark:text-brasil-yellow mb-6 relative">
-              <Trophy size={32} className="animate-bounce" />
-            </div>
-            
-            <h3 className="text-2xl font-black text-gray-800 dark:text-white mb-2 uppercase tracking-tight">
-              Competições em Breve!
-            </h3>
-            
-            <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed mb-6">
-              O Brasileirão, Copa do Brasil, Libertadores e Sul-Americana estarão disponíveis em breve!
-            </p>
-            
-            <div className="flex flex-col gap-3">
-              <button
-                onClick={() => setShowSoonModal(false)}
-                className="w-full bg-brasil-blue hover:bg-blue-900 text-white font-bold py-3.5 px-6 rounded-2xl transition-all active:scale-95 shadow-md hover:shadow-lg"
-              >
-                Fechar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

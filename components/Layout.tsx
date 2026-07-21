@@ -98,10 +98,8 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
 
-  // Centralized AdMob banner — shown on all pages EXCEPT league-detail pages,
-  // which manage their own banner with Pro-user exclusion logic.
-  const isLeagueDetailPage = /\/(league|brazil-league|brasileirao-league)\//.test(location.pathname);
-  useAdMobBanner({ hideForPro: false, isPro: false, skip: isLeagueDetailPage });
+  // Centralized AdMob banner — shown on ALL pages for ALL users.
+  useAdMobBanner();
 
   const isNative = Capacitor.getPlatform() !== 'web';
 

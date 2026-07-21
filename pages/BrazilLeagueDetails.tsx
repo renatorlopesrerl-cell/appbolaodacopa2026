@@ -83,12 +83,7 @@ export const BrazilLeagueDetails: React.FC = () => {
         return () => window.visualViewport?.removeEventListener('resize', handleResize);
     }, []);
 
-    // AdMob Banner — oculto para usuários PRO ou ligas VIP (centralizado no hook)
-    const foundLeague = leagues.find(l => l.id === id);
-    const leaguePlan = (foundLeague?.settings as any)?.plan || (foundLeague?.settings?.isUnlimited ? 'VIP_UNLIMITED' : 'FREE');
-    const isVipLeague = leaguePlan !== 'FREE';
     const adMobModuleRef = useRef<any>(null); // kept for rewarded interstitial use below
-    useAdMobBanner({ hideForPro: true, isPro: !!(currentUser?.isPro || isVipLeague) });
 
     // --- ADMOB REWARDED INTERSTITIAL ---
     const [pendingMatchModal, setPendingMatchModal] = useState<string | null>(null);
@@ -2684,6 +2679,15 @@ export const BrazilLeagueDetails: React.FC = () => {
             </div>
         );
     };
+
+    if (!league) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[50vh] pt-20">
+                <div className="w-12 h-12 border-4 border-brasil-blue border-t-transparent rounded-full animate-spin mb-4"></div>
+                <p className="text-gray-500 font-bold dark:text-gray-400">Carregando liga...</p>
+            </div>
+        );
+    }
 
     return (
         <div>
