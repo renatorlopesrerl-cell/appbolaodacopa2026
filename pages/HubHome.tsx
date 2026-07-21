@@ -140,14 +140,60 @@ export const HubHome: React.FC = () => {
           </div>
         </div>
 
+        {/* SEO AdSense Section (Visible only on WEB) */}
+        {Capacitor.getPlatform() === 'web' && (
+          <div className="w-full max-w-5xl px-4 mt-16 text-left space-y-12">
+            <div className="bg-white dark:bg-gray-800 p-8 md:p-12 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700">
+              <h2 className="text-3xl font-black text-gray-800 dark:text-white mb-6">A Melhor Plataforma de Bolão do Brasil</h2>
+              <div className="prose prose-lg dark:prose-invert max-w-none text-gray-600 dark:text-gray-300">
+                <p>
+                  Bem-vindo ao <strong>Palpiteiro Mestre</strong>, a sua plataforma definitiva para organizar e participar de bolões de futebol. Seja para acompanhar o <strong>Brasileirão Série A</strong>, a <strong>Copa do Brasil</strong>, a <strong>Libertadores</strong> ou até mesmo os grandes eventos globais como a <strong>Copa do Mundo de 2026</strong>, nossa ferramenta oferece tudo o que você precisa para se divertir com seus amigos.
+                </p>
+                <p>
+                  Criar um bolão nunca foi tão fácil. Com um sistema intuitivo, você pode criar uma liga privada, convidar seus amigos via link ou e-mail, e começar a dar os seus palpites. Nosso sistema calcula automaticamente as pontuações com base nos resultados reais das partidas em tempo real. Cada gol marcado nas partidas oficiais altera o ranking instantaneamente, trazendo muito mais emoção para o jogo.
+                </p>
+                <p>
+                  Além das funções básicas de um bolão, o Palpiteiro Mestre oferece estatísticas avançadas, histórico de confrontos (H2H), classificação das ligas, e alertas push para que você não perca nenhum palpite antes do apito inicial. Tudo isso em um ambiente seguro, moderno e totalmente otimizado para o seu celular ou computador.
+                </p>
+              </div>
+            </div>
+
+            <div className="bg-gray-50 dark:bg-gray-900/50 p-8 md:p-12 rounded-3xl border border-gray-200 dark:border-gray-700">
+              <h2 className="text-3xl font-black text-gray-800 dark:text-white mb-8">Perguntas Frequentes (FAQ)</h2>
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2">Como é calculada a pontuação?</h3>
+                  <p className="text-gray-600 dark:text-gray-300">
+                    A pontuação varia de acordo com a precisão do seu palpite. Você ganha a pontuação máxima se acertar o placar exato do jogo. Ganha pontos parciais se acertar o vencedor e o saldo de gols, ou apenas o vencedor da partida.
+                  </p>
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2">É de graça criar uma Liga?</h3>
+                  <p className="text-gray-600 dark:text-gray-300">
+                    Sim! Qualquer usuário pode criar uma liga gratuitamente e convidar participantes até o limite de usuários do plano grátis. Para ligas maiores, oferecemos planos VIP.
+                  </p>
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2">Quais campeonatos estão disponíveis?</h3>
+                  <p className="text-gray-600 dark:text-gray-300">
+                    Atualmente cobrimos a Copa do Mundo 2026, Brasileirão Série A, Copa do Brasil, Libertadores da América e Copa Sul-Americana. Os torneios podem ser mesclados na mesma liga para que os palpites nunca parem!
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Footer Links */}
-        <div className="flex flex-wrap justify-center gap-6 mt-8 text-sm text-gray-500 dark:text-gray-400">
+        <div className="flex flex-wrap justify-center gap-6 mt-16 text-sm font-bold text-gray-500 dark:text-gray-400">
           <Link to="/termos" className="hover:text-brasil-blue dark:hover:text-blue-400 transition-colors">Termos de Uso</Link>
           <Link to="/privacidade" className="hover:text-brasil-blue dark:hover:text-blue-400 transition-colors">Política de Privacidade</Link>
+          <Link to="/contato" className="hover:text-brasil-blue dark:hover:text-blue-400 transition-colors">Contato</Link>
+          <Link to="/blog" className="hover:text-brasil-blue dark:hover:text-blue-400 transition-colors">Blog & Notícias</Link>
         </div>
 
         {/* Decorative Bottom Border */}
-        <div className="w-full max-w-5xl mt-8 h-1.5 bg-gradient-to-r from-brasil-green via-brasil-yellow to-brasil-blue rounded-full opacity-60"></div>
+        <div className="w-full max-w-5xl mt-10 h-1.5 bg-gradient-to-r from-brasil-green via-brasil-yellow to-brasil-blue rounded-full opacity-60"></div>
       </div >
     );
   }

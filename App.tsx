@@ -49,6 +49,9 @@ import { ProPage } from './pages/ProPage';
 import { HubHome } from './pages/HubHome';
 import { LeaguesPageBrasileirao } from './pages/LeaguesPageBrasileirao';
 import { HowToPlayBrasileirao } from './pages/HowToPlayBrasileirao';
+import { ContactPage } from './pages/ContactPage';
+import { BlogPage } from './pages/BlogPage';
+import { BlogPostPage } from './pages/BlogPostPage';
 
 // Heavy pages — loaded lazily for code splitting (reduces initial bundle ~40%)
 const LeagueDetails = lazy(() => import('./pages/LeagueDetails').then(m => ({ default: m.LeagueDetails })));
@@ -2987,6 +2990,9 @@ const AppRoutes: React.FC = () => {
               <Route path="/bolao-sul-americana" element={<SEOLanding variant="sul-americana" />} />
               <Route path="/termos" element={<TermsPage />} />
               <Route path="/privacidade" element={<PrivacyPage />} />
+              <Route path="/contato" element={<ContactPage />} />
+              <Route path="/blog" element={<BlogPage />} />
+              <Route path="/blog/:id" element={<BlogPostPage />} />
               <Route path="/exclusao-conta" element={<AccountDeletionPage />} />
               <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/profile" element={isRecoveryMode ? <Navigate to="/reset-password" /> : (currentUser ? <ProfilePage /> : <Navigate to="/" />)} />
