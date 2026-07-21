@@ -107,11 +107,10 @@ async function processMatches(supabase: any) {
   
   const { data: jogosAtivos, error: dbError } = await supabase
     .from("brasileirao_matches")
-    .select("id, status, home_team_id, away_team_id")
+    .select("id, status, home_team_id, away_team_id, phase, championship")
     .lte("date", limiteSuperior)
     .gte("date", limiteInferior)
-    .neq("status", "FINISHED")
-    .not("phase", "in", '("19ª Rodada","Rodada 19","16-avos de final","16-avos de Final","Round of 32")');
+    .neq("status", "FINISHED");
 
   if (dbError) {
     console.error("Erro ao buscar jogos no banco:", dbError);
@@ -154,19 +153,24 @@ async function processMatches(supabase: any) {
         
         // Se a partida acabou AGORA, disparamos a notificação de fim de jogo.
         if (matchDb && matchDb.status !== "FINISHED" && novoStatus === "FINISHED") {
-           const homeTeam = teamsData?.find(t => t.id === Number(matchDb.home_team_id));
-           const awayTeam = teamsData?.find(t => t.id === Number(matchDb.away_team_id));
-           const homeName = homeTeam?.name || homeTeam?.short_name || jogoAPI.teams.home.name;
-           const awayName = awayTeam?.name || awayTeam?.short_name || jogoAPI.teams.away.name;
-           const homeScore = jogoAPI.goals.home ?? 0;
-           const awayScore = jogoAPI.goals.away ?? 0;
+           const excludedPhases = ["19ª Rodada", "Rodada 19", "16-avos de final", "16-avos de Final", "Round of 32"];
+           const isExcluded = matchDb.phase && excludedPhases.includes(matchDb.phase);
            
-           const title = `🏁 Fim de Jogo!`;
-           const body = `${homeName} (${homeScore}) x (${awayScore}) ${awayName}. Acesse a liga para conferir os pontos!`;
-           
-           const leagueId = jogoAPI.league?.id;
-           const championship = LEAGUE_ID_TO_CHAMPIONSHIP[leagueId] || 'brasileirao';
-           await sendPushToMatchParticipants(supabase, championship, title, body);
+           if (!isExcluded) {
+             const homeTeam = teamsData?.find(t => t.id === Number(matchDb.home_team_id));
+             const awayTeam = teamsData?.find(t => t.id === Number(matchDb.away_team_id));
+             const homeName = homeTeam?.name || homeTeam?.short_name || jogoAPI.teams.home.name;
+             const awayName = awayTeam?.name || awayTeam?.short_name || jogoAPI.teams.away.name;
+             const homeScore = jogoAPI.goals.home ?? 0;
+             const awayScore = jogoAPI.goals.away ?? 0;
+             
+             const title = `🏁 Fim de Jogo!`;
+             const body = `${homeName} (${homeScore}) x (${awayScore}) ${awayName}. Acesse a liga para conferir os pontos!`;
+             
+             const leagueId = jogoAPI.league?.id;
+             const championship = matchDb.championship || LEAGUE_ID_TO_CHAMPIONSHIP[leagueId] || 'brasileirao';
+             await sendPushToMatchParticipants(supabase, championship, title, body);
+           }
            
            // Atualizamos localmente para evitar duplo push no loop
            matchDb.status = "FINISHED";
