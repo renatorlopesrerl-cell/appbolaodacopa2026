@@ -164,7 +164,7 @@ export const HubHome: React.FC = () => {
                 <div>
                   <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2">Como é calculada a pontuação?</h3>
                   <p className="text-gray-600 dark:text-gray-300">
-                    A pontuação varia de acordo com a precisão do seu palpite. Você ganha a pontuação máxima se acertar o placar exato do jogo. Ganha pontos parciais se acertar o vencedor e o saldo de gols, ou apenas o vencedor da partida.
+                    A pontuação varia de acordo com a precisão do seu palpite e é calculada e atualizada em tempo real a cada gol na partida. Você ganha a pontuação máxima se acertar o placar exato do jogo. Ganha pontos parciais se acertar o vencedor e o saldo de gols, ou apenas o vencedor da partida.
                   </p>
                 </div>
                 <div>

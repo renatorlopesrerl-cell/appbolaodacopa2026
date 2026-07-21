@@ -18,6 +18,22 @@ export const BLOG_POSTS = [
         date: '20 de Julho de 2026',
         category: 'Copa do Mundo',
         imageUrl: 'https://images.unsplash.com/photo-1518091043644-c1d4457512c6?q=80&w=800&auto=format&fit=crop'
+    },
+    {
+        id: 'resumo-fase-de-grupos-libertadores-2026',
+        title: 'Libertadores 2026: Resumo da Fase de Grupos e Oitavas de Final',
+        description: 'A fase de grupos terminou definindo os 16 clubes classificados para o mata-mata de agosto. Confira todos os confrontos.',
+        date: '21 de Julho de 2026',
+        category: 'Libertadores',
+        imageUrl: 'https://images.unsplash.com/photo-1574629810360-7efbb6b0fa73?q=80&w=800&auto=format&fit=crop'
+    },
+    {
+        id: 'resumo-fase-de-grupos-sulamericana-2026',
+        title: 'Sul-Americana 2026: Destaques da Fase de Grupos e Classificados',
+        description: 'Com grande participação brasileira, conheça os líderes e os classificados para a próxima fase da Sul-Americana.',
+        date: '21 de Julho de 2026',
+        category: 'Sul-Americana',
+        imageUrl: 'https://images.unsplash.com/photo-1431324155629-1a6fb1ce8f4d?q=80&w=800&auto=format&fit=crop'
     }
 ];
 
