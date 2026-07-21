@@ -381,7 +381,7 @@ export const AdminLeaguesPageBrasileirao: React.FC = () => {
                                                 {['brasileirao', 'copa_do_brasil', 'libertadores', 'sul_americana'].some(c => !(l.settings?.competitions || ['brasileirao']).includes(c as any)) && (
                                                     <button
                                                         onClick={() => setAddingCompetitionsLeagueId(l.id)}
-                                                        className="text-[10px] font-bold text-brasil-blue hover:underline text-left mt-1"
+                                                        className="text-[10px] font-bold text-brasil-blue dark:text-red-400 hover:underline text-left mt-1"
                                                     >
                                                         + Adicionar
                                                     </button>
@@ -504,7 +504,7 @@ export const AdminLeaguesPageBrasileirao: React.FC = () => {
                                 {['brasileirao', 'copa_do_brasil', 'libertadores', 'sul_americana'].some(c => !(l.settings?.competitions || ['brasileirao']).includes(c as any)) && (
                                     <button
                                         onClick={() => setAddingCompetitionsLeagueId(l.id)}
-                                        className="text-[10px] font-bold text-brasil-blue bg-blue-50 dark:bg-blue-900/20 px-2 py-1 rounded hover:bg-blue-100 transition-colors"
+                                        className="text-[10px] font-bold text-brasil-blue dark:text-red-400 bg-blue-50 dark:bg-red-900/20 px-2 py-1 rounded hover:bg-blue-100 dark:hover:bg-red-900/40 transition-colors"
                                     >
                                         + Adicionar
                                     </button>
