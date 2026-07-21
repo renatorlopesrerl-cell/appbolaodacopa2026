@@ -184,12 +184,19 @@ export const ProfilePage: React.FC = () => {
 
             {/* PRO Status Badge next to avatar */}
             {currentUser.isPro && (
-              <div className="mb-2 flex items-center gap-2 bg-gradient-to-r from-yellow-200 to-amber-300 text-gray-900 px-3 py-1.5 rounded-xl shadow-sm border border-yellow-400">
-                <span className="text-base">👑</span>
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest leading-none">Usuário PRO</p>
-                  <p className="text-[9px] font-bold text-gray-700 leading-none mt-0.5">Estatísticas desbloqueadas</p>
+              <div className="mb-2 flex flex-col gap-1">
+                <div className="flex items-center gap-2 bg-gradient-to-r from-yellow-200 to-amber-300 text-gray-900 px-3 py-1.5 rounded-xl shadow-sm border border-yellow-400">
+                  <span className="text-base">👑</span>
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest leading-none">Usuário PRO</p>
+                    <p className="text-[9px] font-bold text-gray-700 leading-none mt-0.5">Estatísticas desbloqueadas</p>
+                  </div>
                 </div>
+                {currentUser.proExpiresAt && (
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium px-1">
+                    Válido até <span className="font-bold text-gray-800 dark:text-gray-200">{new Date(currentUser.proExpiresAt).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</span>
+                  </p>
+                )}
               </div>
             )}
           </div>

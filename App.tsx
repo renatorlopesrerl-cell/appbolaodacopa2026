@@ -468,9 +468,11 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const addNotification = (title: string, message: string, type: 'success' | 'info' | 'warning' = 'info', duration: number = 6000) => {
     const id = Date.now();
     setNotifications(prev => [...prev, { id, title, message, type }]);
-    setTimeout(() => {
-      setNotifications(prev => prev.filter(n => n.id !== id));
-    }, duration);
+    if (duration > 0) {
+      setTimeout(() => {
+        setNotifications(prev => prev.filter(n => n.id !== id));
+      }, duration);
+    }
   };
 
   const removeNotification = (id: number) => {
@@ -952,6 +954,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           notificationSettings: data.notification_settings || fallbackPrefs,
           theme: data.theme,
           isPro: data.is_pro,
+          proExpiresAt: data.pro_expires_at,
           provider
         };
 

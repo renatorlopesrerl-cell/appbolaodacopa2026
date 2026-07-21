@@ -17,6 +17,9 @@ export const AdminPageBrasileirao: React.FC = () => {
   const [reminderLoading, setReminderLoading] = useState(false);
   const [reminderProgress, setReminderProgress] = useState<{ current: number, total: number } | null>(null);
 
+  const [proEmails, setProEmails] = useState('');
+  const [proLoading, setProLoading] = useState(false);
+
   const handleTestPush = async () => {
     setTestPushLoading(true);
     try {
@@ -96,6 +99,46 @@ export const AdminPageBrasileirao: React.FC = () => {
       addNotification('Erro de Conexão', e.message || 'Não foi possível contatar o servidor.', 'warning');
     } finally {
       setReminderLoading(false);
+    }
+  };
+
+  const handleGrantPro = async () => {
+    if (!proEmails.trim()) {
+      addNotification('Aviso', 'Insira pelo menos um e-mail.', 'warning');
+      return;
+    }
+
+    const emailList = proEmails.split(/[\n,]+/).map(e => e.trim().toLowerCase()).filter(e => e.length > 0);
+    
+    if (emailList.length === 0) {
+      return;
+    }
+
+    if (!window.confirm(`Você está prestes a conceder acesso PRO (6 meses) para ${emailList.length} usuário(s). Continuar?`)) {
+      return;
+    }
+
+    setProLoading(true);
+
+    try {
+      const result = await api.admin.grantPro(emailList);
+
+      if (result.success && result.count > 0) {
+        if (result.missingEmails && result.missingEmails.length > 0) {
+          addNotification('Aviso Parcial', `PRO concedido a ${result.count}. Falha (não encontrados): ${result.missingEmails.join(', ')}`, 'warning', 0);
+        } else {
+          addNotification('Sucesso', `Acesso PRO concedido para ${result.count} usuário(s).`, 'success');
+        }
+        setProEmails('');
+      } else {
+        addNotification('Aviso', `Nenhum usuário encontrado com esses e-mails: ${emailList.join(', ')}`, 'warning', 0);
+      }
+
+    } catch (error: any) {
+      console.error("Erro ao conceder PRO:", error);
+      addNotification('Erro', error.message || 'Ocorreu um erro ao atualizar os usuários.', 'warning');
+    } finally {
+      setProLoading(false);
     }
   };
 
@@ -526,6 +569,48 @@ export const AdminPageBrasileirao: React.FC = () => {
               <div className="flex items-center gap-2 uppercase tracking-wide">
                 <Send size={18} />
                 {broadcastLoading ? 'Processando...' : 'Disparar para todos os usuários'}
+              </div>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Seção Conceder PRO Manualmente (Somente Super Admin) */}
+      {currentUser?.isAdmin && (
+        <div className="max-w-4xl mx-auto mt-8 bg-white dark:bg-gray-800 rounded-2xl shadow-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 px-6 py-4 border-b border-yellow-100 dark:border-yellow-900/50 flex items-center gap-3">
+            <div className="bg-yellow-100 dark:bg-yellow-800/50 p-2 rounded-lg">
+              <Shield size={24} className="text-yellow-600 dark:text-yellow-400" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-gray-800 dark:text-white">Conceder Acesso PRO</h2>
+              <p className="text-yellow-700 dark:text-yellow-500 text-sm font-medium">Ativa o plano PRO por 6 meses para usuários específicos.</p>
+            </div>
+          </div>
+          
+          <div className="p-6 space-y-4">
+            <div>
+              <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">E-mails (Separados por vírgula ou linha)</label>
+              <textarea
+                value={proEmails}
+                onChange={e => setProEmails(e.target.value)}
+                placeholder="email1@teste.com&#10;email2@teste.com"
+                rows={4}
+                className="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg p-3 text-sm focus:ring-2 focus:ring-yellow-500 outline-none text-gray-800 dark:text-white resize-none"
+              />
+            </div>
+            <div className="flex items-center gap-2 mb-4 bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-100 dark:border-blue-800/50 text-sm text-blue-700 dark:text-blue-300">
+              <Shield size={16} />
+              <span>A data de expiração será automaticamente configurada para <strong>6 meses</strong> a partir de hoje. Certifique-se que você tenha criado a coluna <code>pro_expires_at</code> do tipo Timestamp no Supabase.</span>
+            </div>
+            <button
+              onClick={handleGrantPro}
+              disabled={proLoading || !proEmails.trim()}
+              className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-4 rounded-xl flex flex-col items-center justify-center transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+            >
+              <div className="flex items-center gap-2 uppercase tracking-wide text-gray-900">
+                <Shield size={18} fill="currentColor" />
+                {proLoading ? 'Processando...' : 'Liberar PRO (6 Meses)'}
               </div>
             </button>
           </div>
