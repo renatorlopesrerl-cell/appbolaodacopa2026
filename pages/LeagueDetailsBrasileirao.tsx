@@ -6,7 +6,8 @@ import { Capacitor } from '@capacitor/core';
 import { Share } from '@capacitor/share';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { useParams, useNavigate, Link, Navigate, useSearchParams } from 'react-router-dom';
-import { useStore, getLeagueLimit } from '../App';
+import { useStore } from '../App';
+import { getLeagueLimit } from '../leagueUtils';
 import { api } from '../services/api';
 import { BrasileiraoMatch as Match, MatchStatus, Phase, User, Prediction, LeaguePlan, BrasileiraoPrediction, BrasileiraoTeam } from '../types';
 import { isPredictionLocked, calculatePoints, getPredictionHitType, GROUPS_CONFIG, processImageForUpload } from '../services/dataService';
@@ -782,7 +783,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                 // Prefer profile data from API join (always available) over store lookup (may lag)
                 const userFromDb = dbRank?.user;
                 const userFromStore = mergedUsers.find(u => u.id === userId);
-                const user = userFromDb || userFromStore || { name: 'Unknown', id: userId, email: '', avatar: '' } as User;
+                const user = userFromDb || userFromStore || { name: 'Usuário', id: userId, email: '', avatar: '' } as User;
 
                 let tfTotal = 0;
                 if (leaderboardView === 'total' && league.settings?.topFinishersEnabled && topFinishersResult) {
@@ -835,7 +836,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
 
         // Fallback: client-side calculations (same as before) for speed before first load/fallback
         let calculatedBoard = league.participants.map(userId => {
-            const user = mergedUsers.find(u => u.id === userId) || { name: 'Unknown', id: userId, email: '', avatar: '' } as User;
+            const user = mergedUsers.find(u => u.id === userId) || { name: 'Usuário', id: userId, email: '', avatar: '' } as User;
 
             const userPreds = predictions.filter(p => p.userId === userId && p.leagueId === league.id);
             let totalPoints = 0, exactScores = 0, winnerAndDiffCount = 0, winnerAndWinnerGoalsCount = 0, drawCount = 0, onlyWinnerCount = 0, knockoutPoints = 0;
@@ -1326,7 +1327,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
         );
 
         const participantPredictions = league.participants.map(userId => {
-            const user = usersMap.get(userId) || { name: 'Unknown', id: userId, avatar: '' } as User;
+            const user = usersMap.get(userId) || { name: 'Usuário', id: userId, avatar: '' } as User;
             const pred = matchPredictionsMap.get(userId);
             let points = 0;
             if (match.is_blocked) {
@@ -1909,7 +1910,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                 {(() => {
                                     const tfPts = league.settings.topFinishersPoints ?? { champion: 20, runnerUp: 15, third: 10, fourth: 5 };
                                     const allPreds = league.participants.map(uid => {
-                                        const user = mergedUsers.find(u => u.id === uid) || { name: 'Unknown', id: uid, avatar: '' } as User;
+                                        const user = mergedUsers.find(u => u.id === uid) || { name: 'Usuário', id: uid, avatar: '' } as User;
                                         const pred = topFinisherPredictions.find(p => p.userId === uid && p.leagueId === league.id);
                                         let pts = 0;
                                         if (pred && topFinishersResult) {
@@ -2688,7 +2689,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                             const predictedParticipants = league.participants
                                 .filter(uid => predictedUserIds.includes(uid))
                                 .map(uid => {
-                                    const u = users.find(u => u.id === uid) || { id: uid, name: 'Participante', avatar: '' } as User;
+                                    const u = mergedUsers.find(u => u.id === uid) || { id: uid, name: 'Usuário', avatar: '' } as User;
                                     const pred = leaguePreds.find(p => p.userId === uid);
                                     const detail = predictedUsersDetails.find((d: any) => d.user_id === uid);
                                     const savedAt = (apiMatchStats?.predictionTimestamps || {})[uid];
@@ -2698,7 +2699,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
 
                             const missingParticipants = league.participants
                                 .filter(uid => !predictedUserIds.includes(uid))
-                                .map(uid => users.find(u => u.id === uid) || { id: uid, name: 'Participante', avatar: '' } as User)
+                                .map(uid => mergedUsers.find(u => u.id === uid) || { id: uid, name: 'Usuário', avatar: '' } as User)
                                 .sort((a, b) => a.name.localeCompare(b.name));
 
                             const filteredPredicted = predictedParticipants.filter(u =>

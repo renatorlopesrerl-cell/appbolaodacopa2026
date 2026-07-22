@@ -10,7 +10,7 @@
     "generate-sw": "node scripts/generate-sw.js",
     "dev": "npm run generate-sw && vite --port 3000 --host 0.0.0.0",
     "dev:worker": "wrangler pages dev --compatibility-date=2024-04-01 --proxy 3000 --ip 0.0.0.0",
-    "dev:all": "npm run generate-sw && concurrently --kill-others -n vite,wrangler -c cyan,yellow \"vite --port 3000 --host 0.0.0.0\" \"wrangler pages dev --compatibility-date=2024-04-01 --proxy 3000 --ip 0.0.0.0\"",
+    "dev:all": "npm run generate-sw && concurrently -n vite,wrangler -c cyan,yellow \"vite --port 3000 --host 0.0.0.0\" \"npm run dev:worker\"",
     "build": "npm run generate-sw && vite build",
     "deploy": "npm run build",
     "preview": "wrangler pages dev dist",

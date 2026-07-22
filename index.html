@@ -46,6 +46,15 @@
       const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
       window.history.replaceState({path:newUrl}, '', newUrl);
     }
+    // Desregistrar SW no localhost para evitar cache persistente (tela branca com título antigo)
+    if ('serviceWorker' in navigator && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+      navigator.serviceWorker.getRegistrations().then(function(registrations) {
+        for (let registration of registrations) {
+          registration.unregister();
+          console.log('ServiceWorker desregistrado no localhost para desenvolvimento.');
+        }
+      });
+    }
   </script>
 </head>
 

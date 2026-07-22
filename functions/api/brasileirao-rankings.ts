@@ -16,10 +16,22 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
 
         const userClient = getUserClient(env, request);
 
-        // Fetch pre-calculated rankings for Brasileirao mode
+        // Fetch pre-calculated rankings for Brasileirao mode with profiles joined in a single query
         const { data, error } = await userClient
             .from('brasileirao_league_rankings')
-            .select('*')
+            .select(`
+                league_id,
+                user_id,
+                period,
+                total_points,
+                exact_scores,
+                winner_and_diff_count,
+                winner_and_winner_goals_count,
+                draw_count,
+                only_winner_count,
+                knockout_points,
+                profiles(id, name, avatar, is_pro)
+            `)
             .eq('league_id', leagueId)
             .eq('period', period)
             .order('total_points', { ascending: false })
@@ -29,31 +41,20 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
             .order('draw_count', { ascending: false })
             .order('only_winner_count', { ascending: false });
 
-        if (error) throw error;
+        if (error) {
+            // Se o join falhar (FK não existe), cair no fallback de 2 queries
+            console.log('brasileirao-rankings: using 2-query fallback due to schema cache/FK issues.');
+            return await fallbackTwoQuery(userClient, leagueId, period);
+        }
         
-        // Fetch profiles separately to avoid missing foreign key relation errors
+        // Map profiles to the expected format
         if (data && data.length > 0) {
-            const userIds = [...new Set(data.map(d => d.user_id))];
-            
-            // Chunk requests to avoid URL too long errors on Supabase GET
-            const chunkSize = 100;
-            const profiles: any[] = [];
-            
-            for (let i = 0; i < userIds.length; i += chunkSize) {
-                const chunk = userIds.slice(i, i + chunkSize);
-                const { data: chunkProfiles } = await userClient
-                    .from('profiles')
-                    .select('id, name, avatar, is_pro')
-                    .in('id', chunk);
-                if (chunkProfiles) profiles.push(...chunkProfiles);
-            }
-                
-            if (profiles && profiles.length > 0) {
-                const profileMap = Object.fromEntries(profiles.map(p => [p.id, p]));
-                data.forEach(d => {
-                    d.profiles = profileMap[d.user_id] || { name: 'Usuário', avatar: null, is_pro: false };
-                });
-            }
+            data.forEach((d: any) => {
+                const profile = d.profiles;
+                d.profiles = profile
+                    ? { name: profile.name, avatar: profile.avatar, is_pro: profile.is_pro }
+                    : { name: 'Usuário', avatar: null, is_pro: false };
+            });
         }
 
         return jsonResponse(data || []);
@@ -61,4 +62,47 @@ export const onRequest = async ({ request, env }: { request: Request, env: any }
     } catch (e: any) {
         return errorResponse(e);
     }
+}
+
+async function fallbackTwoQuery(userClient: any, leagueId: string, period: string) {
+    const { data, error } = await userClient
+        .from('brasileirao_league_rankings')
+        .select('*')
+        .eq('league_id', leagueId)
+        .eq('period', period)
+        .order('total_points', { ascending: false })
+        .order('exact_scores', { ascending: false })
+        .order('winner_and_diff_count', { ascending: false })
+        .order('winner_and_winner_goals_count', { ascending: false })
+        .order('draw_count', { ascending: false })
+        .order('only_winner_count', { ascending: false });
+
+    if (error) throw error;
+    
+    // Fetch profiles separately to avoid missing foreign key relation errors
+    if (data && data.length > 0) {
+        const userIds = [...new Set(data.map((d: any) => d.user_id))];
+        
+        // Chunk requests to avoid URL too long errors on Supabase GET
+        const chunkSize = 100;
+        const profiles: any[] = [];
+        
+        for (let i = 0; i < userIds.length; i += chunkSize) {
+            const chunk = userIds.slice(i, i + chunkSize);
+            const { data: chunkProfiles } = await userClient
+                .from('profiles')
+                .select('id, name, avatar, is_pro')
+                .in('id', chunk);
+            if (chunkProfiles) profiles.push(...chunkProfiles);
+        }
+            
+        if (profiles && profiles.length > 0) {
+            const profileMap = Object.fromEntries(profiles.map((p: any) => [p.id, p]));
+            data.forEach((d: any) => {
+                d.profiles = profileMap[d.user_id] || { name: 'Usuário', avatar: null, is_pro: false };
+            });
+        }
+    }
+
+    return jsonResponse(data || []);
 }

@@ -79,6 +79,7 @@ import { User, Match, League, Prediction, Invitation, MatchStatus, BrazilLeague,
 
 // Constantes
 import { INITIAL_MATCHES } from './services/dataService';
+import { getLeagueLimit } from './leagueUtils';
 
 interface AppNotification {
   id: number;
@@ -191,19 +192,7 @@ export const useStore = () => {
   return context;
 };
 
-// Helper: League Limit
-export const getLeagueLimit = (league: any, isBrasileirao: boolean = false): number => {
-  if (league.settings?.isUnlimited) return Infinity;
-  const plan = (league.settings as any)?.plan || 'FREE';
-  switch (plan) {
-    case 'VIP_UNLIMITED': return Infinity;
-    case 'VIP_MASTER': return 200;
-    case 'VIP': return 100;
-    case 'VIP_BASIC': return 50;
-    case 'FREE':
-    default: return isBrasileirao ? 15 : 10;
-  }
-};
+
 
 // --- ERROR BOUNDARY ---
 class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean, error?: Error }> {
