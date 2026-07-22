@@ -347,8 +347,8 @@ export const processImageForUpload = (file: File): Promise<string> => {
       img.src = event.target?.result as string;
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 200;
-        const MAX_HEIGHT = 200;
+        const MAX_WIDTH = 340;
+        const MAX_HEIGHT = 340;
         let width = img.width;
         let height = img.height;
 
@@ -373,19 +373,11 @@ export const processImageForUpload = (file: File): Promise<string> => {
           return;
         }
 
-        // WebP suporta transparência nativamente, então não precisamos preencher o fundo de branco.
+        // WebP suporta transparência perfeitamente, não precisamos de fundo branco.
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Quality reduction loop
-        // Target: ~30KB (approx 40,000 base64 chars)
-        const MAX_CHARS = 40000;
-        let quality = 0.9;
-        let dataUrl = canvas.toDataURL('image/webp', quality);
-
-        while (dataUrl.length > MAX_CHARS && quality > 0.1) {
-          quality -= 0.1;
-          dataUrl = canvas.toDataURL('image/webp', quality);
-        }
+        // Usamos qualidade de 85% (0.85) que traz o melhor equilíbrio entre nitidez e peso para WebP
+        const dataUrl = canvas.toDataURL('image/webp', 0.85);
 
         resolve(dataUrl);
       };
