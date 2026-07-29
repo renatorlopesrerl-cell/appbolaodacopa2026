@@ -109,7 +109,10 @@ export const AdminMatchesPageBrasileirao: React.FC = () => {
       const success = await updateBrasileiraoMatch(matchToSave as unknown as BrasileiraoMatch);
 
       if (success) {
+        // M8: Atualiza o timestamp global para invalidar o cache diário de todos os usuários
+        api.brasileiraoMatches.setLastUpdated().catch(e => console.warn('[M8] Falha ao atualizar timestamp:', e));
         if (sendPushOnSave) {
+
           if (matchToSave.status === MatchStatus.IN_PROGRESS) {
             await handleMatchStartPush(matchToSave);
           } else if (matchToSave.status === MatchStatus.FINISHED) {

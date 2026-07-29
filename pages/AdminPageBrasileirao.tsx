@@ -162,6 +162,8 @@ export const AdminPageBrasileirao: React.FC = () => {
       if (error) throw error;
       const msg = data?.message || 'Importação concluída!';
       setImportCopaResult(msg);
+      // M8: Invalidar cache diário dos usuários
+      api.brasileiraoMatches.setLastUpdated().catch(() => {});
       addNotification('Sucesso', msg, 'success');
     } catch (e: any) {
       console.error('Import Copa error:', e);
@@ -180,6 +182,8 @@ export const AdminPageBrasileirao: React.FC = () => {
       if (error) throw error;
       const msg = data?.message || 'Importação concluída!';
       setImportLibertadoresResult(msg);
+      // M8: Invalidar cache diário dos usuários
+      api.brasileiraoMatches.setLastUpdated().catch(() => {});
       addNotification('Sucesso', msg, 'success');
     } catch (e: any) {
       console.error('Import Libertadores error:', e);
@@ -198,6 +202,8 @@ export const AdminPageBrasileirao: React.FC = () => {
       if (error) throw error;
       const msg = data?.message || 'Importação concluída!';
       setImportSulamericanaResult(msg);
+      // M8: Invalidar cache diário dos usuários
+      api.brasileiraoMatches.setLastUpdated().catch(() => {});
       addNotification('Sucesso', msg, 'success');
     } catch (e: any) {
       console.error('Import Sul-Americana error:', e);
@@ -206,6 +212,7 @@ export const AdminPageBrasileirao: React.FC = () => {
       setImportSulamericanaLoading(false);
     }
   };
+
 
 
   const handleSyncSchedule = async () => {
@@ -228,7 +235,10 @@ export const AdminPageBrasileirao: React.FC = () => {
       const payload = syncLeague !== 'all' ? { body: { league_id: syncLeague } } : undefined;
       const { data, error } = await supabase.functions.invoke('sync-brasileirao-schedule', payload);
       if (error) throw error;
+      // M8: Invalidar cache diário dos usuários
+      api.brasileiraoMatches.setLastUpdated().catch(() => {});
       addNotification('Sucesso', 'Jogos sincronizados com sucesso!', 'success');
+
     } catch (e: any) {
       console.error("Sync error:", e);
       addNotification('Erro', e.message || 'Erro ao sincronizar jogos.', 'warning');

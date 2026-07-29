@@ -1141,9 +1141,15 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   const fetchBrasileiraoData = async () => {
     if (typeof navigator !== 'undefined' && !navigator.onLine) return;
+    const uid = currentUserRef.current?.id;
+    if (!uid) return; // Usuário não autenticado — nada a buscar
     setIsBrasileiraoLoading(true);
     try {
-      const leaguesData = await api.brasileiraoLeagues.list();
+      // M2: Busca apenas ligas onde o usuário é participante ou admin (não mais TODAS as ligas do sistema)
+      const { data: leaguesData } = await supabase
+        .from('brasileirao_leagues')
+        .select('id, name, admin_id, pending_requests, settings, image, description, is_private, participants, league_code')
+        .or(`admin_id.eq.${uid},participants.cs.{${uid}}`);
 
       if (leaguesData) {
         const mappedLeagues: BrasileiraoLeague[] = leaguesData.map((l: any) => ({
@@ -1159,20 +1165,17 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         setBrasileiraoLeagues(mappedLeagues);
         try { localStorage.setItem('cache_brasileirao_leagues', JSON.stringify(mappedLeagues)); } catch (e) {}
 
-        if (currentUserRef.current?.id) {
-          const uid = currentUserRef.current.id;
-          const userLeagueIds = mappedLeagues.filter((l: any) => (l.participants || []).includes(uid)).map((l: any) => l.id);
-          if (userLeagueIds.length > 0) {
-            const predsData = await api.brasileiraoPredictions.list(userLeagueIds, uid);
-            if (predsData) {
-              const mappedPreds: BrasileiraoPrediction[] = predsData.map((p: any) => ({
-                userId: p.user_id, matchId: p.match_id, leagueId: p.league_id,
-                homeScore: Number(p.home_score), awayScore: Number(p.away_score),
-                points: p.points ? Number(p.points) : 0
-              }));
-              setBrasileiraoPredictions(mappedPreds);
-              try { localStorage.setItem('cache_brasileirao_predictions', JSON.stringify(mappedPreds)); } catch(e){}
-            }
+        const userLeagueIds = mappedLeagues.filter((l: any) => (l.participants || []).includes(uid)).map((l: any) => l.id);
+        if (userLeagueIds.length > 0) {
+          const predsData = await api.brasileiraoPredictions.list(userLeagueIds, uid);
+          if (predsData) {
+            const mappedPreds: BrasileiraoPrediction[] = predsData.map((p: any) => ({
+              userId: p.user_id, matchId: p.match_id, leagueId: p.league_id,
+              homeScore: Number(p.home_score), awayScore: Number(p.away_score),
+              points: p.points ? Number(p.points) : 0
+            }));
+            setBrasileiraoPredictions(mappedPreds);
+            try { localStorage.setItem('cache_brasileirao_predictions', JSON.stringify(mappedPreds)); } catch(e){}
           }
         }
       }
@@ -1189,7 +1192,14 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     if (typeof navigator !== 'undefined' && !navigator.onLine) return;
     
     const now = Date.now();
-    const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+    const today = new Date().toISOString().split('T')[0]; // 'YYYY-MM-DD' — chave de cache diário (M4)
+
+    const hasLiveMatch = brasileiraoMatches.some(m => 
+      comps.includes(m.championship || 'brasileirao') && m.status === MatchStatus.IN_PROGRESS
+    );
+
+    // M7: TTL dinâmico — 5 min se há jogo ao vivo, 30 min para dados quasi-estáticos
+    const CACHE_DURATION = hasLiveMatch ? 5 * 60 * 1000 : 30 * 60 * 1000;
     
     let allCompsCached = true;
     for (const comp of comps) {
@@ -1201,18 +1211,84 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       }
     }
 
-    const hasLiveMatch = brasileiraoMatches.some(m => 
-      comps.includes(m.championship || 'brasileirao') && m.status === MatchStatus.IN_PROGRESS
-    );
-
     if (allCompsCached && !hasLiveMatch) {
       console.log(`Serving matches for ${comps.join(', ')} (fetchAll: ${fetchAll}) from memory cache.`);
       return;
     }
 
+    // M8: verificação de timestamp do servidor — detecta edições manuais de admin
+    const isAdmin = currentUserRef.current?.isAdmin || currentUserRef.current?.isMatchAdmin;
+    if (!hasLiveMatch && !isAdmin && brasileiraoMatches.length > 0) {
+      const allHaveDailyCache = comps.every(comp => {
+        const dailyKey = fetchAll ? `br_daily_${comp}_all_${today}` : `br_daily_${comp}_${today}`;
+        return localStorage.getItem(dailyKey) === 'true';
+      });
+      if (allHaveDailyCache) {
+        // M8: Micro-query (~50 bytes) — verificar se o admin editou algo desde o último fetch
+        const cacheDownloadedAt = localStorage.getItem('br_matches_downloaded_at');
+        try {
+          const serverLastUpdated = await api.brasileiraoMatches.getLastUpdated();
+          if (serverLastUpdated && cacheDownloadedAt && serverLastUpdated <= cacheDownloadedAt) {
+            // Servidor não mudou nada desde nosso cache — servir da memória
+            console.log(`[M8 cache] Timestamp ok. Servindo ${comps.join(',')} da memória.`);
+            return;
+          }
+          // M8 detectou edição do admin — limpar cache longo (finalizados) também
+          console.log(`[M8 cache] Timestamp do servidor mais recente. Invalidando cache longo e refazendo fetch de ${comps.join(',')}.`);
+          comps.forEach(comp => {
+            localStorage.removeItem(`br_finished_${comp}_week`);
+            localStorage.removeItem(`br_finished_${comp}_all_week`);
+          });
+        } catch {
+          // Se a query falhar (sem rede etc.), servir da memória mesmo assim
+          console.log(`[M8 cache] Falha no ping de timestamp. Servindo ${comps.join(',')} da memória.`);
+          return;
+        }
+      }
+    }
+
+
     try {
-      const matchesData = await api.brasileiraoMatches.listByCompetitions(comps, fetchAll);
-      
+      // ─── Cache longo: jogos FINISHED (7 dias) ────────────────────────────────
+      // Chave baseada na semana ISO para renovar automaticamente a cada 7 dias
+      const getWeekKey = () => {
+        const d = new Date();
+        const startOfYear = new Date(d.getFullYear(), 0, 1);
+        const week = Math.ceil(((d.getTime() - startOfYear.getTime()) / 86400000 + startOfYear.getDay() + 1) / 7);
+        return `${d.getFullYear()}_W${week}`;
+      };
+      const weekKey = getWeekKey();
+
+      let finishedMatchesData: any[] = [];
+      const allHaveFinishedCache = comps.every(comp => {
+        const key = fetchAll ? `br_finished_${comp}_all_week` : `br_finished_${comp}_week`;
+        return localStorage.getItem(key) === weekKey;
+      });
+
+      if (allHaveFinishedCache) {
+        // Usar finalizados já presentes no store (já foram baixados esta semana)
+        finishedMatchesData = brasileiraoMatches.filter(m =>
+          comps.includes(m.championship || 'brasileirao') && m.status === MatchStatus.FINISHED
+        );
+        console.log(`[Cache longo] Finalizados servidos da memória (semana ${weekKey}).`);
+      } else {
+        // Baixar apenas os finalizados do banco
+        finishedMatchesData = await api.brasileiraoMatches.listByCompetitionsFinished(comps, fetchAll);
+        console.log(`[Cache longo] ${finishedMatchesData.length} jogos finalizados baixados do banco.`);
+        // Marcar cache semanal
+        comps.forEach(comp => {
+          const key = fetchAll ? `br_finished_${comp}_all_week` : `br_finished_${comp}_week`;
+          localStorage.setItem(key, weekKey);
+        });
+      }
+
+      // ─── Cache curto: jogos NÃO finalizados (1 dia — já controlado pela M4+M8) ─
+      const activeMatchesData = await api.brasileiraoMatches.listByCompetitions(comps, fetchAll, /* excludeFinished */ true);
+      console.log(`[Cache curto] ${activeMatchesData.length} jogos não-finalizados baixados do banco.`);
+
+      // ─── Merge: finalizados + ativos ─────────────────────────────────────────
+      const matchesData = [...finishedMatchesData, ...activeMatchesData];
+
       let freshTeams = brasileiraoTeams;
       const matchTeamIds = new Set(matchesData?.flatMap((m: any) => [m.home_team_id, m.away_team_id]) || []);
       const cachedTeamIds = new Set(brasileiraoTeams.map(t => String(t.id)));
@@ -1247,8 +1323,22 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         });
 
         comps.forEach(comp => {
-          lastFetchedCompsRef.current[comp] = now;
+          const cacheKey = fetchAll ? `${comp}_all` : comp;
+          lastFetchedCompsRef.current[cacheKey] = now;
+          // M4: Marcar cache diário ao finalizar fetch bem-sucedido
+          const dailyKey = fetchAll ? `br_daily_${comp}_all_${today}` : `br_daily_${comp}_${today}`;
+          localStorage.setItem(dailyKey, 'true');
         });
+        // M8: Salvar o momento exato do download para comparar com o timestamp do servidor depois
+        localStorage.setItem('br_matches_downloaded_at', new Date().toISOString());
+
+        // M4: Limpar caches de datas anteriores (mantém apenas o dia atual)
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const key = localStorage.key(i);
+          if (key?.startsWith('br_daily_') && !key.includes(today)) {
+            localStorage.removeItem(key);
+          }
+        }
       }
     } catch (e) {
       console.error('fetchBrasileiraoMatchesByComp error', e);
@@ -1275,8 +1365,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     if (liveMatchesIds.length === 0) return;
 
     try {
-      const res = await api.brasileiraoMatches.listByCompetitions(comps); // Como não tem um endpoint específico para ID, pegamos todos ou podemos usar o supabase direto
-      // Para economizar banda, vamos buscar apenas os IDs específicos via Supabase client:
+      // M3: Removida chamada inútil a api.brasileiraoMatches.listByCompetitions — busca diretamente por IDs específicos
       const { data, error } = await supabase.from('brasileirao_matches')
         .select('*')
         .in('id', liveMatchesIds);
@@ -1330,54 +1419,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       if (currentUserRef.current?.email) {
         fetchInvitations(currentUserRef.current.email);
       }
-      if (currentUserRef.current?.id) {
-        const uid = currentUserRef.current.id;
-        const [lRes, brRes, brasRes] = await Promise.allSettled([
-          supabase.from('leagues').select('id, name, admin_id, pending_requests, settings, image, description, is_private, participants, league_code').eq('admin_id', uid),
-          supabase.from('brazil_leagues').select('id, name, admin_id, pending_requests, settings, image, description, is_private, participants, league_code').eq('admin_id', uid),
-          supabase.from('brasileirao_leagues').select('id, name, admin_id, pending_requests, settings, image, description, is_private, participants, league_code').eq('admin_id', uid)
-        ]);
-
-        if (lRes.status === 'fulfilled' && lRes.value.data) {
-          const mapped: League[] = lRes.value.data.map((l: any) => ({
-            id: l.id, name: l.name, image: l.image, description: l.description,
-            leagueCode: l.league_code, adminId: l.admin_id, isPrivate: l.is_private,
-            participants: l.participants || [], pendingRequests: l.pending_requests || [],
-            settings: l.settings || {}
-          }));
-          setLeagues(prev => {
-            const map = new Map(prev.map(item => [item.id, item]));
-            mapped.forEach(item => map.set(item.id, item));
-            return Array.from(map.values());
-          });
-        }
-        if (brRes.status === 'fulfilled' && brRes.value.data) {
-          const mapped: BrazilLeague[] = brRes.value.data.map((l: any) => ({
-            id: l.id, name: l.name, image: l.image, description: l.description,
-            leagueCode: l.league_code, adminId: l.admin_id, isPrivate: l.is_private,
-            participants: l.participants || [], pendingRequests: l.pending_requests || [],
-            settings: l.settings || {}
-          }));
-          setBrazilLeagues(prev => {
-            const map = new Map(prev.map(item => [item.id, item]));
-            mapped.forEach(item => map.set(item.id, item));
-            return Array.from(map.values());
-          });
-        }
-        if (brasRes.status === 'fulfilled' && brasRes.value.data) {
-          const mapped: BrasileiraoLeague[] = brasRes.value.data.map((l: any) => ({
-            id: l.id, name: l.name, image: l.image, description: l.description,
-            leagueCode: l.league_code, adminId: l.admin_id, isPrivate: l.is_private,
-            participants: l.participants || [], pendingRequests: l.pending_requests || [],
-            settings: l.settings || {}
-          }));
-          setBrasileiraoLeagues(prev => {
-            const map = new Map(prev.map(item => [item.id, item]));
-            mapped.forEach(item => map.set(item.id, item));
-            return Array.from(map.values());
-          });
-        }
-      }
+      // M1: Removidas as 3 queries de ligas de admin ao logar.
+      // Copa e Brasileirão carregam via Layout.tsx apenas quando o usuário navegar para as respectivas seções.
       setConnectionError(false);
       failureCountRef.current = 0;
       const syncDate = new Date();

@@ -407,7 +407,7 @@ export const api = {
     },
     brasileiraoMatches: {
         list: () => apiFetch<any[]>('/brasileirao-matches'),
-        listByCompetitions: async (comps: string[], fetchAll: boolean = false) => {
+        listByCompetitions: async (comps: string[], fetchAll: boolean = false, excludeFinished: boolean = false) => {
             const data = await supabaseWithRetry(async () => {
                 let query = supabase.from('brasileirao_matches').select('*').in('championship', comps);
                 
@@ -425,11 +425,61 @@ export const api = {
                     query = query.not('phase', 'in', formattedList);
                 }
 
+                // Cache longo (7 dias): excluir finalizados do fetch diário
+                if (excludeFinished) {
+                    query = query.neq('status', 'FINISHED');
+                }
+
                 return await query.order('date', { ascending: true });
             });
             return (data as any[]) || [];
         },
-        update: (data: any) => apiFetch('/admin/brasileirao-matches', { method: 'POST', body: JSON.stringify(data) })
+        // Cache longo (7 dias): busca apenas jogos FINISHED (raramente mudam)
+        listByCompetitionsFinished: async (comps: string[], fetchAll: boolean = false) => {
+            const data = await supabaseWithRetry(async () => {
+                let query = supabase
+                    .from('brasileirao_matches')
+                    .select('*')
+                    .in('championship', comps)
+                    .eq('status', 'FINISHED');
+
+                if (!fetchAll) {
+                    query = query.not('phase', 'ilike', '%group stage%')
+                                 .not('phase', 'ilike', '%qualification%')
+                                 .not('phase', 'ilike', '%play-offs%')
+                                 .not('phase', 'ilike', '%round of 32%');
+
+                    const ignoredRounds = Array.from({ length: 19 }, (_, i) => `Rodada ${i + 1}`);
+                    const ignoredRegularSeason = Array.from({ length: 19 }, (_, i) => `Regular Season - ${i + 1}`);
+                    const allIgnored = [...ignoredRounds, ...ignoredRegularSeason];
+                    const formattedList = `(${allIgnored.map(item => `"${item}"`).join(',')})`;
+                    query = query.not('phase', 'in', formattedList);
+                }
+
+                return await query.order('date', { ascending: true });
+            });
+            return (data as any[]) || [];
+        },
+        update: (data: any) => apiFetch('/admin/brasileirao-matches', { method: 'POST', body: JSON.stringify(data) }),
+
+        // M8: Lê o timestamp da última edição de jogo (consome ~50 bytes de Egress)
+        getLastUpdated: async (): Promise<string | null> => {
+            const { data, error } = await supabase
+                .from('app_settings')
+                .select('matches_last_updated')
+                .eq('id', 1)
+                .single();
+            if (error || !data) return null;
+            return data.matches_last_updated as string;
+        },
+
+        // M8: Grava o timestamp atual após o admin salvar uma edição
+        setLastUpdated: async (): Promise<void> => {
+            await supabase
+                .from('app_settings')
+                .upsert({ id: 1, matches_last_updated: new Date().toISOString() }, { onConflict: 'id' });
+        }
+
     },
     brasileiraoTeams: {
         list: async () => {

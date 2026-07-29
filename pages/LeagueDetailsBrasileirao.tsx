@@ -414,10 +414,17 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
 
 
     const [teamHistoryData, setTeamHistoryData] = useState<any[]>([]);
+    const teamHistoryCacheRef = useRef<Record<string | number, any[]>>({}); // M5: cache de sessão por matchId
 
     useEffect(() => {
         if (!selectedMatchForStats || !league) {
             setTeamHistoryData(prev => prev.length === 0 ? prev : []);
+            return;
+        }
+
+        // M5: Verificar cache em memória antes de ir ao banco (dados FINISHED são imutuáveis)
+        if (teamHistoryCacheRef.current[selectedMatchForStats]) {
+            setTeamHistoryData(teamHistoryCacheRef.current[selectedMatchForStats]);
             return;
         }
 
@@ -438,6 +445,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                 .limit(40);
                 
             if (!error && data) {
+                teamHistoryCacheRef.current[selectedMatchForStats] = data as any[]; // M5: salvar no cache
                 setTeamHistoryData(data as any[]);
             }
         };
@@ -572,6 +580,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
 
     const [userHistoryPredictions, setUserHistoryPredictions] = useState<Prediction[]>([]);
     const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+    const userHistoryCacheRef = useRef<Record<string, any[]>>({}); // M6: cache de sessão por userId
 
     useEffect(() => {
         setPalpitesVisibleCount(20);
@@ -583,6 +592,11 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
 
     useEffect(() => {
         if (selectedUserId && league?.id) {
+            // M6: Verificar cache de sessão antes de ir ao banco
+            if (userHistoryCacheRef.current[selectedUserId]) {
+                setUserHistoryPredictions(userHistoryCacheRef.current[selectedUserId]);
+                return;
+            }
             setIsLoadingHistory(true);
             const fetchHistory = async () => {
                 const { data } = await supabase
@@ -592,14 +606,16 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                     .eq('user_id', selectedUserId);
 
                 if (data) {
-                    setUserHistoryPredictions(data.map(p => ({
+                    const mapped = data.map(p => ({
                         userId: p.user_id,
                         matchId: p.match_id,
                         leagueId: p.league_id,
                         homeScore: p.home_score,
                         awayScore: p.away_score,
                         points: p.points
-                    })));
+                    }));
+                    userHistoryCacheRef.current[selectedUserId] = mapped; // M6: salvar no cache
+                    setUserHistoryPredictions(mapped);
                 }
                 setIsLoadingHistory(false);
             };
@@ -2540,7 +2556,41 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                             </div>
                                         ) : (
                                             <>
-                                                {/* Distribution block removed to match Copa mode exactly */}
+                                                {/* Stats bar: Mais palpitado + Distribuição — idêntico ao modo Copa */}
+                                                {totalPreds > 0 && (() => {
+                                                    const getPctColor = (pct: number, otherPct: number) => {
+                                                        if (pct > otherPct) return "text-emerald-600 dark:text-emerald-400";
+                                                        if (pct < otherPct) return "text-amber-700 dark:text-amber-500";
+                                                        return "text-gray-900 dark:text-gray-100";
+                                                    };
+                                                    return (
+                                                        <div className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-2 sm:px-4 py-2 flex items-center justify-between gap-2 text-xs shrink-0 shadow-sm overflow-hidden">
+                                                            {mostPredictedScore && mostPredictedScore !== '-' && (
+                                                                <div className="flex flex-col items-center justify-center shrink-0 w-24">
+                                                                    <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider text-center">Mais palpitado</span>
+                                                                    <span className="text-base font-black text-gray-800 dark:text-gray-200 mt-1 text-center">{mostPredictedScore}</span>
+                                                                </div>
+                                                            )}
+                                                            <div className="flex flex-col items-center flex-1 min-w-0">
+                                                                <span className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1 text-center">Distribuição</span>
+                                                                <div className="w-full flex items-center gap-1 text-[10px] font-bold text-gray-600 dark:text-gray-300">
+                                                                    <div className="flex-1 flex flex-col items-center bg-gray-50 dark:bg-gray-750 py-0.5 px-1 rounded border border-gray-100 dark:border-gray-700 min-w-0" title={getTeamNameForDisplay(detailsData.match.home_team_id)}>
+                                                                        <span className="text-[9px] text-gray-400 dark:text-gray-500 uppercase leading-none truncate w-full text-center">{getTeamNameForDisplay(detailsData.match.home_team_id)}</span>
+                                                                        <span className={`text-xs font-black mt-0.5 ${getPctColor(homeWinPct, awayWinPct)}`}>{homeWinPct}%</span>
+                                                                    </div>
+                                                                    <div className="flex-1 flex flex-col items-center bg-gray-50 dark:bg-gray-750 py-0.5 px-1 rounded border border-gray-100 dark:border-gray-700 min-w-0">
+                                                                        <span className="text-[9px] text-gray-400 dark:text-gray-500 uppercase leading-none truncate w-full text-center">Empate</span>
+                                                                        <span className="text-xs font-black mt-0.5 text-gray-900 dark:text-gray-400">{drawPct}%</span>
+                                                                    </div>
+                                                                    <div className="flex-1 flex flex-col items-center bg-gray-50 dark:bg-gray-750 py-0.5 px-1 rounded border border-gray-100 dark:border-gray-700 min-w-0" title={getTeamNameForDisplay(detailsData.match.away_team_id)}>
+                                                                        <span className="text-[9px] text-gray-400 dark:text-gray-500 uppercase leading-none truncate w-full text-center">{getTeamNameForDisplay(detailsData.match.away_team_id)}</span>
+                                                                        <span className={`text-xs font-black mt-0.5 ${getPctColor(awayWinPct, homeWinPct)}`}>{awayWinPct}%</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })()}
                                                 <div className="px-4 py-2 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600"><div className="relative"><Search className="absolute left-3 top-2.5 text-gray-400" size={16} /><input type="text" placeholder="Buscar participante..." value={matchDetailsSearch} onChange={(e) => { setMatchDetailsSearch(e.target.value); setMatchDetailsPage(1); }} className="w-full bg-gray-700 border border-gray-600 text-white placeholder-gray-400 rounded-lg pl-9 pr-8 py-2 text-sm focus:ring-1 focus:ring-brasil-blue focus:border-brasil-blue outline-none" />{matchDetailsSearch && (<button onClick={() => { setMatchDetailsSearch(''); setMatchDetailsPage(1); }} className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white cursor-pointer"><X size={14} /></button>)}</div></div>
                                                 <div className="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-800 p-0">
                                                     <div className="divide-y divide-gray-100 dark:divide-gray-700">

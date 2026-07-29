@@ -80,3 +80,8 @@ wiki_urls.json
 # Custom Scripts
 *.py
 *.ps1
+
+# Exported Data
+admin_emails*.csv
+scripts/export-admin-emails.js
+scripts/split-csv.js

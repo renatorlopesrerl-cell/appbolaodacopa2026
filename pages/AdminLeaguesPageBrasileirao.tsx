@@ -5,6 +5,7 @@ import { useStore } from '../App';
 import { Shield, Crown, Search, ArrowLeft, Star, StarHalf, Infinity as InfinityIcon, Users, Trash2, AlertCircle, Lock, Unlock, ChevronLeft, ChevronRight } from 'lucide-react';
 import { LeaguePlan, LeagueSettings } from '../types';
 import { api } from '../services/api';
+import { supabase } from '../services/supabase';
 
 const PAGE_SIZE = 100;
 
@@ -21,10 +22,39 @@ export const AdminLeaguesPageBrasileirao: React.FC = () => {
     const [selectedNewCompetitions, setSelectedNewCompetitions] = useState<string[]>([]);
     const [adminNames, setAdminNames] = useState<Record<string, string>>({});
     const [isGrantingPro, setIsGrantingPro] = useState<string | null>(null);
+    const [allAdminLeagues, setAllAdminLeagues] = useState<any[]>([]); // M2b: lista completa para admin geral
+    const [isLoadingAll, setIsLoadingAll] = useState(false);
+
+    // M2b: Admin geral — carrega TODAS as ligas apenas ao montar esta página (não ao entrar no modo Brasileirão)
+    useEffect(() => {
+        if (!currentUser?.isAdmin) return;
+        setIsLoadingAll(true);
+        supabase
+            .from('brasileirao_leagues')
+            .select('id, name, admin_id, pending_requests, settings, image, description, is_private, participants, league_code')
+            .then(({ data }) => {
+                if (data) {
+                    setAllAdminLeagues(data.map((l: any) => ({
+                        id: l.id, name: l.name, image: l.image, description: l.description,
+                        leagueCode: l.league_code, adminId: l.admin_id, isPrivate: l.is_private,
+                        participants: l.participants || [], pendingRequests: l.pending_requests || [],
+                        settings: {
+                            ...l.settings,
+                            isUnlimited: l.settings?.isUnlimited === true,
+                            plan: l.settings?.plan || (l.settings?.isUnlimited ? 'VIP_UNLIMITED' : 'FREE')
+                        }
+                    })));
+                }
+                setIsLoadingAll(false);
+            });
+    }, [currentUser?.isAdmin]);
+
+    // M2b: Para admin usa lista completa carregada diretamente; para usuário comum usa o store
+    const leaguesSource: any[] = currentUser?.isAdmin && allAdminLeagues.length > 0 ? allAdminLeagues : leagues;
 
     useEffect(() => {
         const fetchAdmins = async () => {
-            const adminIds = Array.from(new Set(leagues.map(l => l.adminId).filter(Boolean)));
+            const adminIds = Array.from(new Set(leaguesSource.map(l => l.adminId).filter(Boolean)));
             const missingIds = adminIds.filter(id => !users.find(u => u.id === id) && !adminNames[id]);
             
             if (missingIds.length > 0) {
@@ -43,7 +73,7 @@ export const AdminLeaguesPageBrasileirao: React.FC = () => {
             }
         };
         fetchAdmins();
-    }, [leagues, users]);
+    }, [allAdminLeagues, leagues, users]);
 
     // Reset to page 1 whenever search changes
     useEffect(() => {
@@ -60,7 +90,7 @@ export const AdminLeaguesPageBrasileirao: React.FC = () => {
     };
 
     const cycleLeaguePlan = async (leagueId: string, currentPlan: LeaguePlan) => {
-        const league = leagues.find(l => l.id === leagueId);
+        const league = leaguesSource.find(l => l.id === leagueId);
         if (!league) return;
 
         // Cycle: FREE -> VIP_BASIC -> VIP -> VIP_MASTER -> VIP_UNLIMITED -> FREE
@@ -122,7 +152,7 @@ export const AdminLeaguesPageBrasileirao: React.FC = () => {
         }
     };
 
-    const filteredLeagues = leagues
+    const filteredLeagues = leaguesSource
         .filter(l =>
             l.name.toLowerCase().includes(leagueSearch.toLowerCase()) ||
             (l.leagueCode && l.leagueCode.toLowerCase().includes(leagueSearch.toLowerCase()))
@@ -297,7 +327,7 @@ export const AdminLeaguesPageBrasileirao: React.FC = () => {
                             Gerenciamento de Ligas
                         </h1>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-1">
-                            Total no banco: <span className="font-bold text-gray-700 dark:text-gray-200">{leagues.length}</span> ligas · exibindo {PAGE_SIZE} por página
+                            Total no banco: <span className="font-bold text-gray-700 dark:text-gray-200">{leaguesSource.length}</span> ligas{isLoadingAll && <span className="ml-1 text-gray-400">(carregando...)</span>} · exibindo {PAGE_SIZE} por página
                         </p>
                     </div>
 
@@ -573,7 +603,7 @@ export const AdminLeaguesPageBrasileirao: React.FC = () => {
                             <h3 className="font-bold text-lg text-gray-800 dark:text-white">Excluir Liga</h3>
                         </div>
                         <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
-                            Tem certeza que deseja excluir a liga <strong>{leagues.find(l => l.id === deletingLeagueId)?.name}</strong>?
+                            Tem certeza que deseja excluir a liga <strong>{leaguesSource.find(l => l.id === deletingLeagueId)?.name}</strong>?
                         </p>
                         <p className="text-xs text-red-500 dark:text-red-400 mb-6">
                             Esta ação é irreversível. Todos os dados da liga serão removidos.
@@ -603,7 +633,7 @@ export const AdminLeaguesPageBrasileirao: React.FC = () => {
                     <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-sm shadow-2xl border border-gray-200 dark:border-gray-700 animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
                         <h3 className="font-bold text-lg text-gray-800 dark:text-white mb-4">Adicionar Campeonatos</h3>
                         {(() => {
-                            const league = leagues.find(l => l.id === addingCompetitionsLeagueId);
+                            const league = leaguesSource.find(l => l.id === addingCompetitionsLeagueId);
                             if (!league) return null;
                             const currentComps = league.settings?.competitions || ['brasileirao'];
                             const available = ['brasileirao', 'copa_do_brasil', 'libertadores', 'sul_americana'].filter(c => !currentComps.includes(c as any));
