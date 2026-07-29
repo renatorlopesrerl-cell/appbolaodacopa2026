@@ -454,6 +454,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const fetchingRef = useRef(false);
   const mountedRef = useRef(true);
   const currentUserRef = useRef<User | null>(null);
+  const brasileiraoMatchesRef = useRef<BrasileiraoMatch[]>([]);
   const lastFetchedCompsRef = useRef<Record<string, number>>({});
   const failureCountRef = useRef(0);
 
@@ -474,6 +475,10 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   useEffect(() => {
     currentUserRef.current = currentUser;
   }, [currentUser]);
+
+  useEffect(() => {
+    brasileiraoMatchesRef.current = brasileiraoMatches;
+  }, [brasileiraoMatches]);
 
   useEffect(() => {
     const root = window.document.documentElement;
@@ -551,9 +556,10 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     if (!currentUserRef.current) return;
 
     const checkAndSyncMatches = async () => {
-      // Check if there are any matches currently IN_PROGRESS or starting soon (e.g. within 5 mins)
+      // Usa ref para evitar stale closure — sempre tem a lista mais atual de jogos
+      const currentMatches = brasileiraoMatchesRef.current;
       const now = new Date().getTime();
-      const liveMatchesIds = brasileiraoMatches.filter(m => {
+      const liveMatchesIds = currentMatches.filter(m => {
         if (m.status === MatchStatus.IN_PROGRESS) return true;
         if (m.status === MatchStatus.SCHEDULED) {
           const mTime = new Date(m.date).getTime();
