@@ -132,7 +132,6 @@ const MatchRow = ({ match, teams }: { match: any, teams: any[] }) => {
           <span className="text-gray-300 dark:text-gray-600 mx-1">|</span>
           <span className="text-[10px] bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-1.5 py-0.5 rounded text-gray-600 dark:text-gray-300">{translatePhase(match.phase)}</span>
         </span>
-        <span>{match.location}</span>
       </div>
 
       <div className="flex justify-between items-center">
@@ -152,7 +151,12 @@ const MatchRow = ({ match, teams }: { match: any, teams: any[] }) => {
           )}
         </div>
 
-        <div className="w-[30%] text-center flex justify-center px-1">
+        <div className="w-[30%] text-center flex flex-col items-center justify-center gap-0.5 px-1">
+          {(isFinished || isLive) && isDateValid && (
+            <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium">
+              {matchDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          )}
           {isFinished ? (
             <span className="bg-gray-100 dark:bg-gray-700 px-3 py-1.5 rounded-lg font-black text-gray-800 dark:text-gray-100 shadow-sm whitespace-nowrap">
               {match.home_score} - {match.away_score}

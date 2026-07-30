@@ -458,6 +458,27 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const lastFetchedCompsRef = useRef<Record<string, number>>({});
   const failureCountRef = useRef(0);
 
+  // Migração de cache — roda UMA VEZ quando a versão muda.
+  // Remove chaves de cache antigas que possam ter dados incompletos
+  // (ex: rodadas 1-19 e fases da Copa ausentes do fetch filtrado).
+  React.useMemo(() => {
+    const CACHE_VERSION = '3';
+    if (localStorage.getItem('br_cache_v') !== CACHE_VERSION) {
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('br_daily_') || key.startsWith('br_finished_'))) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(k => localStorage.removeItem(k));
+      // Também remove o cache de partidas para forçar re-download completo
+      localStorage.removeItem('cache_brasileirao_matches_v2');
+      localStorage.setItem('br_cache_v', CACHE_VERSION);
+      console.log(`[Cache Migration v${CACHE_VERSION}] ${keysToRemove.length} chaves antigas removidas. Próximo fetch será completo.`);
+    }
+  }, []);
+
   const addNotification = (title: string, message: string, type: 'success' | 'info' | 'warning' = 'info', duration: number = 6000) => {
     const id = Date.now();
     setNotifications(prev => [...prev, { id, title, message, type }]);
@@ -1242,7 +1263,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           // M8 detectou edição do admin — limpar cache longo (finalizados) também
           console.log(`[M8 cache] Timestamp do servidor mais recente. Invalidando cache longo e refazendo fetch de ${comps.join(',')}.`);
           comps.forEach(comp => {
-            localStorage.removeItem(`br_finished_${comp}_week`);
             localStorage.removeItem(`br_finished_${comp}_all_week`);
           });
         } catch {
@@ -1266,25 +1286,27 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       const weekKey = getWeekKey();
 
       let finishedMatchesData: any[] = [];
-      const allHaveFinishedCache = comps.every(comp => {
-        const key = fetchAll ? `br_finished_${comp}_all_week` : `br_finished_${comp}_week`;
-        return localStorage.getItem(key) === weekKey;
-      });
+      // Chave unificada: finalizados sempre buscados sem filtro de rodada (todas as rodadas)
+      // Isso evita que a página de liga (fetchAll=false) sobrescreva rodadas 1-19 no store
+      const allHaveFinishedCache = comps.every(comp =>
+        localStorage.getItem(`br_finished_${comp}_all_week`) === weekKey
+      );
 
       if (allHaveFinishedCache) {
         // Usar finalizados já presentes no store (já foram baixados esta semana)
-        finishedMatchesData = brasileiraoMatches.filter(m =>
+        // Usa ref para evitar stale closure
+        finishedMatchesData = brasileiraoMatchesRef.current.filter(m =>
           comps.includes(m.championship || 'brasileirao') && m.status === MatchStatus.FINISHED
         );
         console.log(`[Cache longo] Finalizados servidos da memória (semana ${weekKey}).`);
       } else {
-        // Baixar apenas os finalizados do banco
-        finishedMatchesData = await api.brasileiraoMatches.listByCompetitionsFinished(comps, fetchAll);
-        console.log(`[Cache longo] ${finishedMatchesData.length} jogos finalizados baixados do banco.`);
-        // Marcar cache semanal
+        // Baixar TODOS os finalizados do banco (sem filtro de rodada — fetchAll=true)
+        // Garante que rodadas 1-19 estejam sempre presentes no store
+        finishedMatchesData = await api.brasileiraoMatches.listByCompetitionsFinished(comps, true);
+        console.log(`[Cache longo] ${finishedMatchesData.length} jogos finalizados baixados do banco (todas as rodadas).`);
+        // Marcar cache semanal com chave unificada
         comps.forEach(comp => {
-          const key = fetchAll ? `br_finished_${comp}_all_week` : `br_finished_${comp}_week`;
-          localStorage.setItem(key, weekKey);
+          localStorage.setItem(`br_finished_${comp}_all_week`, weekKey);
         });
       }
 
