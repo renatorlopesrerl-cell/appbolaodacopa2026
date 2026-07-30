@@ -574,7 +574,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   useEffect(() => {
     // Only run if we actually have matches
     if (brasileiraoMatches.length === 0) return;
-    if (!currentUserRef.current) return;
 
     const checkAndSyncMatches = async () => {
       // Usa ref para evitar stale closure — sempre tem a lista mais atual de jogos
