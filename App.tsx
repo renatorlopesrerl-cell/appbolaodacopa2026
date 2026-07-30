@@ -1190,20 +1190,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         }));
         setBrasileiraoLeagues(mappedLeagues);
         try { localStorage.setItem('cache_brasileirao_leagues', JSON.stringify(mappedLeagues)); } catch (e) {}
-
-        const userLeagueIds = mappedLeagues.filter((l: any) => (l.participants || []).includes(uid)).map((l: any) => l.id);
-        if (userLeagueIds.length > 0) {
-          const predsData = await api.brasileiraoPredictions.list(userLeagueIds, uid);
-          if (predsData) {
-            const mappedPreds: BrasileiraoPrediction[] = predsData.map((p: any) => ({
-              userId: p.user_id, matchId: p.match_id, leagueId: p.league_id,
-              homeScore: Number(p.home_score), awayScore: Number(p.away_score),
-              points: p.points ? Number(p.points) : 0
-            }));
-            setBrasileiraoPredictions(mappedPreds);
-            try { localStorage.setItem('cache_brasileirao_predictions', JSON.stringify(mappedPreds)); } catch(e){}
-          }
-        }
       }
 
       setIsBrasileiraoLoaded(true);
@@ -1262,7 +1248,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           // M8 detectou edição do admin — limpar cache longo (finalizados) também
           console.log(`[M8 cache] Timestamp do servidor mais recente. Invalidando cache longo e refazendo fetch de ${comps.join(',')}.`);
           comps.forEach(comp => {
-            localStorage.removeItem(`br_finished_${comp}_all_week`);
+            localStorage.removeItem(`br_finished_${comp}_all_week_v2`);
           });
         } catch {
           // Se a query falhar (sem rede etc.), servir da memória mesmo assim
@@ -1287,7 +1273,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       let finishedMatchesData: any[] = [];
       // Chave unificada: finalizados sempre buscados sem filtro de rodada (todas as rodadas)
       const allHaveFinishedCache = comps.every(comp =>
-        localStorage.getItem(`br_finished_${comp}_all_week`) === weekKey
+        localStorage.getItem(`br_finished_${comp}_all_week_v2`) === weekKey
       );
 
       if (allHaveFinishedCache && !hasLiveMatch) {
@@ -1338,7 +1324,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         console.log(`[Cache longo] ${finishedMatchesData.length} jogos finalizados baixados do banco (todas as rodadas).`);
         // Marcar cache semanal com chave unificada
         comps.forEach(comp => {
-          localStorage.setItem(`br_finished_${comp}_all_week`, weekKey);
+          localStorage.setItem(`br_finished_${comp}_all_week_v2`, weekKey);
         });
       }
 
@@ -1347,7 +1333,10 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       console.log(`[Cache curto] ${activeMatchesData.length} jogos não-finalizados baixados do banco.`);
 
       // ─── Merge: finalizados + ativos ─────────────────────────────────────────
-      const matchesData = [...finishedMatchesData, ...activeMatchesData];
+      const rawMatchesData = [...finishedMatchesData, ...activeMatchesData];
+      const deduplicatedMap = new Map();
+      rawMatchesData.forEach(m => deduplicatedMap.set(m.id, m));
+      const matchesData = Array.from(deduplicatedMap.values());
 
       let freshTeams = brasileiraoTeams;
       const matchTeamIds = new Set(matchesData?.flatMap((m: any) => [m.home_team_id, m.away_team_id]) || []);
@@ -1376,8 +1365,19 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         }));
 
         setBrasileiraoMatches(prev => {
-          const filtered = prev.filter(m => !comps.includes(m.championship || 'brasileirao'));
-          const nextMatches = [...filtered, ...mappedMatches];
+          const otherComps = prev.filter(m => !comps.includes(m.championship || 'brasileirao'));
+          
+          let nextMatchesForComps = [];
+          if (fetchAll) {
+            nextMatchesForComps = mappedMatches;
+          } else {
+            const existingComps = prev.filter(m => comps.includes(m.championship || 'brasileirao'));
+            const mergedMap = new Map(existingComps.map(m => [m.id, m]));
+            mappedMatches.forEach(m => mergedMap.set(m.id, m));
+            nextMatchesForComps = Array.from(mergedMap.values());
+          }
+          
+          const nextMatches = [...otherComps, ...nextMatchesForComps];
           try { localStorage.setItem('cache_brasileirao_matches_v2', JSON.stringify(nextMatches)); } catch (e) {}
           return nextMatches;
         });
@@ -2700,18 +2700,13 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         isBrazil ? api.brazilPlayers.list() : Promise.resolve([]),
         isBrazil ? api.brazilMatchGoals.list() : Promise.resolve([]),
         isBrasileirao
-          ? api.brasileiraoMatches.listByCompetitions(league?.settings?.competitions || ['brasileirao'])
+          ? Promise.resolve([]) // Matches and teams are handled by fetchBrasileiraoMatchesByComp
           : api.matches.list()
       ]);
 
-      let teamsRes = null as any;
       if (isBrasileirao) {
-          const matchTeamIds = new Set((matchesRes || []).flatMap((m: any) => [m.home_team_id, m.away_team_id]));
-          const cachedTeamIds = new Set(brasileiraoTeams.map(t => String(t.id)));
-          const hasMissingTeams = Array.from(matchTeamIds).some(id => !cachedTeamIds.has(String(id)));
-          if (brasileiraoTeams.length < 20 || hasMissingTeams) {
-              teamsRes = await api.brasileiraoTeams.list();
-          }
+        // Use the intelligent cache function instead of a direct DB fetch
+        await fetchBrasileiraoMatchesByComp(league?.settings?.competitions || ['brasileirao']);
       }
 
       // (Sem cache incremental de matchIds — agora carregamos apenas os próprios palpites)
@@ -2786,34 +2781,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         }
       }
 
-      if (isBrasileirao && teamsRes && teamsRes.length > 0) {
-        const mappedTeams: BrasileiraoTeam[] = teamsRes.map((t: any) => ({
-          id: t.id, name: t.name, short_name: t.short_name, logo: t.logo
-        }));
-        setBrasileiraoTeams(mappedTeams);
-        try { localStorage.setItem('cache_brasileirao_teams_v2', JSON.stringify(mappedTeams)); } catch (e) {}
-      }
-
       if (matchesRes && matchesRes.length > 0) {
-        if (isBrasileirao) {
-          // For brasileirao, update the brasileirao matches state (not copa matches)
-          const mappedMatches: BrasileiraoMatch[] = matchesRes.map((m: any): BrasileiraoMatch => ({
-            id: m.id, home_team_id: m.home_team_id, away_team_id: m.away_team_id,
-            date: m.date, location: m.location || '', phase: m.phase, status: m.status,
-            home_score: m.home_score !== null ? Number(m.home_score) : null,
-            away_score: m.away_score !== null ? Number(m.away_score) : null,
-            championship: m.championship,
-            is_blocked: m.is_blocked
-          }));
-          
-          setBrasileiraoMatches(prev => {
-            const comps = league?.settings?.competitions || ['brasileirao'];
-            const filtered = prev.filter(m => !comps.includes(m.championship || 'brasileirao'));
-            const nextMatches = [...filtered, ...mappedMatches];
-            try { localStorage.setItem('cache_brasileirao_matches_v2', JSON.stringify(nextMatches)); } catch (e) {}
-            return nextMatches;
-          });
-        } else {
+        if (!isBrasileirao) {
           const mappedMatches: Match[] = matchesRes.map((m: any) => ({
             id: m.id, homeTeamId: m.home_team_id, awayTeamId: m.away_team_id,
             date: m.date, location: m.location, group: m.group, phase: m.phase,
