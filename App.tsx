@@ -1175,7 +1175,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       const { data: leaguesData } = await supabase
         .from('brasileirao_leagues')
         .select('id, name, admin_id, pending_requests, settings, image, description, is_private, participants, league_code')
-        .or(`admin_id.eq.${uid},participants.cs.{${uid}}`);
+        .or(`admin_id.eq.${uid},participants.cs.["${uid}"],pending_requests.cs.["${uid}"]`);
 
       if (leaguesData) {
         const mappedLeagues: BrasileiraoLeague[] = leaguesData.map((l: any) => ({
