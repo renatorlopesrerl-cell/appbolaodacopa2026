@@ -2348,8 +2348,8 @@ export const BrazilLeagueDetails: React.FC = () => {
                                                 <div className={`w-16 h-16 shrink-0 rounded-full flex items-center justify-center text-3xl font-black shadow-md ${rank === 1 ? 'bg-yellow-400 text-yellow-900 ring-4 ring-yellow-400/50' : rank === 2 ? 'bg-gray-300 text-gray-800 ring-4 ring-gray-300/50' : rank === 3 ? 'bg-orange-400 text-orange-900 ring-4 ring-orange-400/50' : 'bg-white/20 text-white border border-white/30'}`}>
                                                     {rank}
                                                 </div>
-                                                <div className="w-20 h-20 rounded-full border-4 border-white/30 overflow-hidden shrink-0 shadow-inner bg-gray-800">
-                                                    {entry.user.avatar ? <img src={entry.user.avatar} className="w-full h-full object-cover" crossOrigin="anonymous" /> : <div className="w-full h-full flex items-center justify-center bg-gray-700 text-white"><Users size={32} /></div>}
+                                                <div className="w-20 h-20 rounded-full border-4 border-white/30 overflow-hidden shrink-0 shadow-inner bg-gray-700 flex items-center justify-center text-white text-4xl font-bold uppercase">
+                                                    {entry.user.name.charAt(0)}
                                                 </div>
                                                 <div className="flex-1 min-w-0 flex flex-col justify-center">
                                                     <h3 className="text-3xl font-bold truncate text-white drop-shadow-sm">{entry.user.name}</h3>
