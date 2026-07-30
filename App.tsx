@@ -1287,21 +1287,54 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
       let finishedMatchesData: any[] = [];
       // Chave unificada: finalizados sempre buscados sem filtro de rodada (todas as rodadas)
-      // Isso evita que a página de liga (fetchAll=false) sobrescreva rodadas 1-19 no store
       const allHaveFinishedCache = comps.every(comp =>
         localStorage.getItem(`br_finished_${comp}_all_week`) === weekKey
       );
 
-      if (allHaveFinishedCache) {
-        // Usar finalizados já presentes no store (já foram baixados esta semana)
-        // Usa ref para evitar stale closure
+      if (allHaveFinishedCache && !hasLiveMatch) {
+        // Caso normal: sem jogo ao vivo → usa cache semanal do store
         finishedMatchesData = brasileiraoMatchesRef.current.filter(m =>
           comps.includes(m.championship || 'brasileirao') && m.status === MatchStatus.FINISHED
         );
         console.log(`[Cache longo] Finalizados servidos da memória (semana ${weekKey}).`);
+      } else if (allHaveFinishedCache && hasLiveMatch) {
+        // Jogo ao vivo no store: pode ter passado para FINISHED enquanto o app estava fechado.
+        // Busca APENAS os jogos que estavam IN_PROGRESS por ID (micro-query mínima).
+        const liveInStore = brasileiraoMatchesRef.current.filter(m =>
+          comps.includes(m.championship || 'brasileirao') && m.status === MatchStatus.IN_PROGRESS
+        );
+        const liveIds = liveInStore.map(m => m.id);
+        const restFinished = brasileiraoMatchesRef.current.filter(m =>
+          comps.includes(m.championship || 'brasileirao') && m.status === MatchStatus.FINISHED
+        );
+        if (liveIds.length > 0) {
+          try {
+            const { data } = await supabase
+              .from('brasileirao_matches')
+              .select('*')
+              .in('id', liveIds);
+            const refreshed = (data || []).map((m: any): BrasileiraoMatch => ({
+              id: m.id, home_team_id: m.home_team_id, away_team_id: m.away_team_id,
+              date: m.date, location: m.location || '', phase: m.phase, status: m.status,
+              home_score: m.home_score !== null ? Number(m.home_score) : null,
+              away_score: m.away_score !== null ? Number(m.away_score) : null,
+              championship: m.championship, is_blocked: m.is_blocked
+            }));
+            // Merge: finalizados existentes + status atualizado dos que estavam ao vivo
+            const refreshedIds = new Set(refreshed.map(m => m.id));
+            finishedMatchesData = [
+              ...restFinished.filter(m => !refreshedIds.has(m.id)),
+              ...refreshed
+            ];
+            console.log(`[Cache longo] ${liveIds.length} jogos ao vivo verificados por ID. Cache semanal mantido.`);
+          } catch {
+            finishedMatchesData = restFinished;
+          }
+        } else {
+          finishedMatchesData = restFinished;
+        }
       } else {
-        // Baixar TODOS os finalizados do banco (sem filtro de rodada — fetchAll=true)
-        // Garante que rodadas 1-19 estejam sempre presentes no store
+        // Sem cache semanal: baixar TODOS os finalizados do banco (sem filtro de rodada)
         finishedMatchesData = await api.brasileiraoMatches.listByCompetitionsFinished(comps, true);
         console.log(`[Cache longo] ${finishedMatchesData.length} jogos finalizados baixados do banco (todas as rodadas).`);
         // Marcar cache semanal com chave unificada
