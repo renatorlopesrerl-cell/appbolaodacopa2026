@@ -2805,6 +2805,9 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       delete activeFetchesRef.current[cacheKey];
     }
   })();
+
+  activeFetchesRef.current[cacheKey] = fetchPromise;
+  return fetchPromise;
   };
 
   // Cache em memória por sessão para evitar re-fetches desnecessários.

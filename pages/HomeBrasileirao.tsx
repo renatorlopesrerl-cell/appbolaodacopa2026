@@ -175,7 +175,7 @@ export const HomeBrasileirao: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] text-brasil-blue">
         <Loader2 size={40} className="animate-spin mb-4" />
-        <p className="font-bold">Carregando Brasileirão...</p>
+        <p className="font-bold">Carregando Dados...</p>
       </div>
     );
   }
