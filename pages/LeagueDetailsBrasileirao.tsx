@@ -3202,34 +3202,38 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                     </button>
 
                     {/* FILTRO PRIMÁRIO: Competição */}
-                    {allowedCompetitions.length > 1 && (
-                        <div className="space-y-1.5">
-                            <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Competição:</span>
-                            <div className="flex flex-wrap gap-1.5">
-                                {[
-                                    { key: 'total', label: '🏆 Total', show: true },
-                                    { key: 'brasileirao', label: 'Brasileirão', show: allowedCompetitions.includes('brasileirao') },
-                                    { key: 'copa', label: 'Copa', show: allowedCompetitions.includes('copa_do_brasil') },
-                                    { key: 'libertadores', label: 'Liberta', show: allowedCompetitions.includes('libertadores') },
-                                    { key: 'sul_americana', label: 'Sula', show: allowedCompetitions.includes('sul_americana') }
-                                ].filter(opt => opt.show).map(opt => (
-                                    <button
-                                        key={opt.key}
-                                        onClick={() => { setCompetitionFilter(opt.key as any); setSubPeriod('all'); }}
-                                        className={`flex-1 px-2 py-2 rounded-lg text-xs font-bold transition-all border whitespace-nowrap ${competitionFilter === opt.key
-                                            ? opt.key === 'brasileirao' ? 'bg-green-600 text-white border-green-600 shadow-md'
-                                                : opt.key === 'copa' ? 'bg-yellow-500 text-yellow-900 border-yellow-500 shadow-md'
-                                                    : opt.key === 'sul_americana' ? 'bg-pink-500 text-white border-pink-500 shadow-md' : opt.key === 'libertadores' ? 'bg-sky-600 text-white border-sky-600 shadow-md'
-                                                        : 'bg-brasil-blue text-white border-brasil-blue shadow-md'
-                                            : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
-                                            }`}
-                                    >
-                                        {opt.label}
-                                    </button>
-                                ))}
+                    {allowedCompetitions.length > 1 && (() => {
+                        const opts = [
+                            { key: 'total', label: '🏆 Total', show: true },
+                            { key: 'brasileirao', label: 'Brasileirão', show: allowedCompetitions.includes('brasileirao') },
+                            { key: 'copa', label: 'Copa', show: allowedCompetitions.includes('copa_do_brasil') },
+                            { key: 'libertadores', label: 'Liberta', show: allowedCompetitions.includes('libertadores') },
+                            { key: 'sul_americana', label: 'Sula', show: allowedCompetitions.includes('sul_americana') }
+                        ].filter(opt => opt.show);
+                        const colsClass = opts.length === 5 ? 'grid-cols-5' : opts.length === 4 ? 'grid-cols-4' : opts.length === 3 ? 'grid-cols-3' : 'grid-cols-2';
+                        return (
+                            <div className="space-y-1.5">
+                                <span className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Competição:</span>
+                                <div className={`grid ${colsClass} gap-1.5`}>
+                                    {opts.map(opt => (
+                                        <button
+                                            key={opt.key}
+                                            onClick={() => { setCompetitionFilter(opt.key as any); setSubPeriod('all'); }}
+                                            className={`w-full px-1 py-2 rounded-lg text-xs font-bold transition-all border whitespace-nowrap text-center ${competitionFilter === opt.key
+                                                ? opt.key === 'brasileirao' ? 'bg-green-600 text-white border-green-600 shadow-md'
+                                                    : opt.key === 'copa' ? 'bg-yellow-500 text-yellow-900 border-yellow-500 shadow-md'
+                                                        : opt.key === 'sul_americana' ? 'bg-pink-500 text-white border-pink-500 shadow-md' : opt.key === 'libertadores' ? 'bg-sky-600 text-white border-sky-600 shadow-md'
+                                                            : 'bg-brasil-blue text-white border-brasil-blue shadow-md'
+                                                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                                }`}
+                                        >
+                                            {opt.label}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
-                    )}
+                        );
+                    })()}
 
                     {/* FILTRO SECUNDÁRIO: Mês (Geral), Rodada (Brasileirão) ou Fase (Copa do Brasil) */}
                     {competitionFilter === 'total' && allowedCompetitions.length > 1 && (

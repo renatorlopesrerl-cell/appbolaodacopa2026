@@ -19,10 +19,19 @@ interface UseAdMobBannerOptions {
  *
  * Safety: Only one banner can be visible at a time. This hook handles
  * show/hide on mount/unmount automatically.
+ *
+ * Padding: Automatically adjusts body padding-bottom so app content is
+ * never hidden behind the banner.
  */
 export const useAdMobBanner = ({ hideForPro = false, isPro = false, skip = false }: UseAdMobBannerOptions = {}) => {
   const adMobModuleRef = useRef<any>(null);
   const bannerActiveRef = useRef(false);
+  const sizeListenerRef = useRef<any>(null);
+
+  const clearBannerPadding = () => {
+    document.documentElement.style.setProperty('--admob-banner-height', '0px');
+    document.body.style.paddingBottom = '';
+  };
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
@@ -33,6 +42,7 @@ export const useAdMobBanner = ({ hideForPro = false, isPro = false, skip = false
         bannerActiveRef.current = false;
         adMobModuleRef.current.AdMob.hideBanner().catch(() => {});
         adMobModuleRef.current.AdMob.removeBanner().catch(() => {});
+        clearBannerPadding();
       }
       return;
     }
@@ -43,6 +53,7 @@ export const useAdMobBanner = ({ hideForPro = false, isPro = false, skip = false
         bannerActiveRef.current = false;
         adMobModuleRef.current.AdMob.hideBanner().catch(() => {});
         adMobModuleRef.current.AdMob.removeBanner().catch(() => {});
+        clearBannerPadding();
       }
       return;
     }
@@ -59,11 +70,22 @@ export const useAdMobBanner = ({ hideForPro = false, isPro = false, skip = false
         }
         if (!isMounted) return;
 
-        const { AdMob, BannerAdSize, BannerAdPosition } = adMobModuleRef.current;
+        const { AdMob, BannerAdSize, BannerAdPosition, BannerAdPluginEvents } = adMobModuleRef.current;
+
+        // Listen for banner size to push content above it
+        sizeListenerRef.current = await AdMob.addListener(
+          BannerAdPluginEvents.SizeChanged,
+          (info: { width: number; height: number }) => {
+            if (!isMounted) return;
+            const heightPx = `${info.height}px`;
+            document.documentElement.style.setProperty('--admob-banner-height', heightPx);
+            document.body.style.paddingBottom = heightPx;
+          }
+        );
 
         await AdMob.showBanner({
           adId: ADMOB_IDS.BANNER,
-          adSize: BannerAdSize.BANNER,
+          adSize: BannerAdSize.ADAPTIVE_BANNER,
           position: BannerAdPosition.BOTTOM_CENTER,
           margin: 0,
           isTesting: false,
@@ -78,10 +100,15 @@ export const useAdMobBanner = ({ hideForPro = false, isPro = false, skip = false
 
     return () => {
       isMounted = false;
+      if (sizeListenerRef.current) {
+        sizeListenerRef.current.remove();
+        sizeListenerRef.current = null;
+      }
       if (bannerActiveRef.current && adMobModuleRef.current) {
         bannerActiveRef.current = false;
         adMobModuleRef.current.AdMob.hideBanner().catch(() => {});
         adMobModuleRef.current.AdMob.removeBanner().catch(() => {});
+        clearBannerPadding();
       }
     };
   }, [hideForPro, isPro, skip]);
