@@ -13,7 +13,7 @@ export const AdminMatchesPageBrasileirao: React.FC = () => {
   const [editingMatch, setEditingMatch] = useState<BrasileiraoMatch | null>(null);
 
   React.useEffect(() => {
-    fetchBrasileiraoMatchesByComp(['brasileirao', 'copa_do_brasil', 'libertadores', 'sulamericana'], true).catch(() => {});
+    fetchBrasileiraoMatchesByComp(['brasileirao', 'copa_do_brasil', 'libertadores', 'sulamericana', 'sul_americana'], true).catch(() => {});
   }, [fetchBrasileiraoMatchesByComp]);
 
   const getTeamNameForDisplay = (id: string | number) => {
