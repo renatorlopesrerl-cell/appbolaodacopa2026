@@ -402,9 +402,14 @@ export const TablePageBrasileirao: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCompetition]);
 
+  const selectedCompRef = React.useRef(selectedCompetition);
+  React.useEffect(() => {
+    selectedCompRef.current = selectedCompetition;
+  }, [selectedCompetition]);
+
   React.useEffect(() => {
     const handleAppBack = (e: any) => {
-      if (selectedCompetition !== 'none') {
+      if (selectedCompRef.current !== 'none') {
         setSelectedCompetition('none');
         e.preventDefault();
       }
@@ -413,7 +418,7 @@ export const TablePageBrasileirao: React.FC = () => {
     return () => {
       window.removeEventListener('appBackButton', handleAppBack);
     };
-  }, [selectedCompetition]);
+  }, []);
 
   const brasileiraoMatches = useMemo(() => matches.filter(m => !m.championship || m.championship === 'brasileirao'), [matches]);
   const copaMatches = useMemo(() => matches.filter(m => m.championship === 'copa_do_brasil'), [matches]);
