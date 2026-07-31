@@ -20,31 +20,7 @@ interface TeamStanding {
 }
 
 const getTeamName = (name: string) => {
-  const map: Record<string, string> = {
-    'Atletico Paranaense': 'Athletico-PR',
-    'Vasco DA Gama': 'Vasco',
-    'Vasco da Gama': 'Vasco',
-    'Sao Paulo': 'São Paulo',
-    'Atletico-MG': 'Atlético-MG',
-    'Atletico Mineiro': 'Atlético-MG',
-    'Gremio': 'Grêmio',
-    'Goianiense': 'Atlético-GO',
-    'Atletico Goianiense': 'Atlético-GO',
-    'Criciuma': 'Criciúma',
-    'Vitoria': 'Vitória',
-    'Bragantino': 'RB Bragantino',
-    'Red Bull Bragantino': 'RB Bragantino',
-    'Cuiaba': 'Cuiabá',
-    'Avai': 'Avaí',
-    'Goias': 'Goiás',
-    'Ceara': 'Ceará',
-    'Botafogo FR': 'Botafogo',
-    'Chapecoense-sc': 'Chapecoense',
-    'Chapecoense-SC': 'Chapecoense',
-    'Fortaleza EC': 'Fortaleza',
-    'Fortaleza Esporte Clube': 'Fortaleza'
-  };
-  return map[name] || name;
+  return name;
 };
 
 const BR_LOGOS: Record<number, string> = {

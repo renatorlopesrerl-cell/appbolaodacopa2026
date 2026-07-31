@@ -62,6 +62,7 @@ const LeagueDetailsBrasileirao = lazy(() => import('./pages/LeagueDetailsBrasile
 const AdminPageBrasileirao = lazy(() => import('./pages/AdminPageBrasileirao').then(m => ({ default: m.AdminPageBrasileirao })));
 const AdminLeaguesPageBrasileirao = lazy(() => import('./pages/AdminLeaguesPageBrasileirao').then(m => ({ default: m.AdminLeaguesPageBrasileirao })));
 const AdminMatchesPageBrasileirao = lazy(() => import('./pages/AdminMatchesPageBrasileirao').then(m => ({ default: m.AdminMatchesPageBrasileirao })));
+const AdminTeamsPageBrasileirao = lazy(() => import('./pages/AdminTeamsPageBrasileirao').then(m => ({ default: m.AdminTeamsPageBrasileirao })));
 
 
 // Services
@@ -1342,15 +1343,19 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       const matchTeamIds = new Set(matchesData?.flatMap((m: any) => [m.home_team_id, m.away_team_id]) || []);
       const cachedTeamIds = new Set(brasileiraoTeams.map(t => String(t.id)));
       const hasMissingTeams = Array.from(matchTeamIds).some(id => !cachedTeamIds.has(String(id)));
+      const hasTeamsDailyCache = localStorage.getItem(`br_daily_teams_${today}`) === 'true';
 
-      if (brasileiraoTeams.length < 20 || hasMissingTeams) {
+      if (brasileiraoTeams.length < 20 || hasMissingTeams || !hasTeamsDailyCache) {
         const teamsData = await api.brasileiraoTeams.list();
         if (teamsData) {
           freshTeams = teamsData.map((t: any) => ({
             id: t.id, name: t.name, short_name: t.short_name, logo: t.logo
           }));
           setBrasileiraoTeams(freshTeams);
-          try { localStorage.setItem('cache_brasileirao_teams_v2', JSON.stringify(freshTeams)); } catch (e) {}
+          try { 
+            localStorage.setItem('cache_brasileirao_teams_v2', JSON.stringify(freshTeams)); 
+            localStorage.setItem(`br_daily_teams_${today}`, 'true');
+          } catch (e) {}
         }
       }
 
@@ -3040,6 +3045,7 @@ const AppRoutes: React.FC = () => {
               <Route path="/admin-brasileirao" element={isRecoveryMode ? <Navigate to="/reset-password" /> : <AdminRoute><AdminPageBrasileirao /></AdminRoute>} />
               <Route path="/admin-brasileirao/leagues" element={<AdminRoute><AdminLeaguesPageBrasileirao /></AdminRoute>} />
               <Route path="/admin-brasileirao/matches" element={<AdminRoute><AdminMatchesPageBrasileirao /></AdminRoute>} />
+              <Route path="/admin-brasileirao/teams" element={<AdminRoute><AdminTeamsPageBrasileirao /></AdminRoute>} />
 
               <Route path="/bolao-copa-2026" element={<SEOLanding variant="bolao" />} />
               <Route path="/simulador-copa-2026" element={<SEOLanding variant="simulador" />} />

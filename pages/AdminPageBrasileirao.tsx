@@ -328,6 +328,30 @@ export const AdminPageBrasileirao: React.FC = () => {
           </div>
         </button>
 
+        {/* Card: Times */}
+        <button
+          id="admin-teams-btn"
+          onClick={() => navigate('/admin-brasileirao/teams')}
+          className="group relative bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-md border-2 border-transparent hover:border-purple-500 transition-all hover:shadow-xl text-left overflow-hidden"
+        >
+          <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 group-hover:scale-110 transition-all duration-500">
+            <Shield size={120} className="text-purple-500" />
+          </div>
+
+          <div className="relative z-10">
+            <div className="w-16 h-16 bg-purple-50 dark:bg-purple-900/30 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-purple-500 transition-colors">
+              <Shield size={32} className="text-purple-600 dark:text-purple-400 group-hover:text-white" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">Gerenciar Times</h2>
+            <p className="text-gray-500 dark:text-gray-400 font-medium leading-relaxed">
+              Edite os nomes dos times exibidos nas tabelas e chaves das competições no modo Brasileirão.
+            </p>
+            <div className="mt-6 flex items-center gap-2 text-purple-600 dark:text-purple-400 font-bold group-hover:underline">
+              Acessar painel <ArrowLeft size={16} className="rotate-180" />
+            </div>
+          </div>
+        </button>
+
         {/* Card: Test Push */}
         {currentUser?.isAdmin && (
         <button

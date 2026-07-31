@@ -86,32 +86,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
         if (!id) return String(id);
         const team = teams?.find(t => String(t.id) === String(id));
         if (!team) return String(id);
-        const name = team.name;
-        const map = {
-            'Atletico Paranaense': 'Athletico-PR',
-            'Vasco DA Gama': 'Vasco',
-            'Vasco da Gama': 'Vasco',
-            'Sao Paulo': 'São Paulo',
-            'Atletico-MG': 'Atlético-MG',
-            'Atletico Mineiro': 'Atlético-MG',
-            'Gremio': 'Grêmio',
-            'Goianiense': 'Atlético-GO',
-            'Atletico Goianiense': 'Atlético-GO',
-            'Criciuma': 'Criciúma',
-            'Vitoria': 'Vitória',
-            'Bragantino': 'RB Bragantino',
-            'Red Bull Bragantino': 'RB Bragantino',
-            'Cuiaba': 'Cuiabá',
-            'Avai': 'Avaí',
-            'Goias': 'Goiás',
-            'Ceara': 'Ceará',
-            'Botafogo FR': 'Botafogo',
-            'Chapecoense-sc': 'Chapecoense',
-            'Chapecoense-SC': 'Chapecoense',
-            'Fortaleza EC': 'Fortaleza',
-            'Fortaleza Esporte Clube': 'Fortaleza'
-        };
-        return map[name] || name;
+        return team.name;
     };
 
     const getTeamFlag = (id: string | number, teamsArr: any[]) => {

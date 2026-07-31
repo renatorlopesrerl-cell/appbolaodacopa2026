@@ -488,6 +488,17 @@ export const api = {
             );
             return (data as any[]) || [];
         },
+        update: async (id: string | number, name: string, short_name?: string) => {
+            const updatePayload: any = { name };
+            if (short_name !== undefined) {
+                updatePayload.short_name = short_name;
+            }
+            const { error } = await supabase
+                .from('brasileirao_teams')
+                .update(updatePayload)
+                .eq('id', id);
+            if (error) throw error;
+        },
         getStandingsForTeams: async (teamIds: (number | string)[]) => {
             const { data, error } = await supabase
                 .from('brasileirao_standings_view')
