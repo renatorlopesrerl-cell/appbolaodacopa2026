@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useStore } from '../App';
 import { MatchStatus } from '../types';
 import { Clock, Trophy, ArrowLeft, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
@@ -383,7 +383,19 @@ export const TablePageBrasileirao: React.FC = () => {
   const navigate = useNavigate();
   const { brasileiraoMatches: matches, brasileiraoTeams: teams, isBrasileiraoLoading, fetchBrasileiraoMatchesByComp } = useStore();
   
-  const [selectedCompetition, setSelectedCompetition] = useState<'none' | 'brasileirao' | 'copa_do_brasil' | 'libertadores' | 'sul_americana'>('none');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedCompetition = (searchParams.get('comp') as any) || 'none';
+  const setSelectedCompetition = (val: string) => {
+    if (val === 'none') {
+      if (selectedCompetition !== 'none') {
+        navigate(-1); // Voltamos no history para não acumular lixo
+      }
+    } else {
+      searchParams.set('comp', val);
+      setSearchParams(searchParams);
+    }
+  };
+
   const [loadingComp, setLoadingComp] = useState(false);
   const [currentRound, setCurrentRound] = useState<number>(1);
   const [activeTab, setActiveTab] = useState<'classificacao' | 'jogos'>('classificacao');
@@ -401,24 +413,6 @@ export const TablePageBrasileirao: React.FC = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCompetition]);
-
-  const selectedCompRef = React.useRef(selectedCompetition);
-  React.useEffect(() => {
-    selectedCompRef.current = selectedCompetition;
-  }, [selectedCompetition]);
-
-  React.useEffect(() => {
-    const handleAppBack = (e: any) => {
-      if (selectedCompRef.current !== 'none') {
-        setSelectedCompetition('none');
-        e.preventDefault();
-      }
-    };
-    window.addEventListener('appBackButton', handleAppBack);
-    return () => {
-      window.removeEventListener('appBackButton', handleAppBack);
-    };
-  }, []);
 
   const brasileiraoMatches = useMemo(() => matches.filter(m => !m.championship || m.championship === 'brasileirao'), [matches]);
   const copaMatches = useMemo(() => matches.filter(m => m.championship === 'copa_do_brasil'), [matches]);
