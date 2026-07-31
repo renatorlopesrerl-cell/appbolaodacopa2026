@@ -402,6 +402,19 @@ export const TablePageBrasileirao: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCompetition]);
 
+  React.useEffect(() => {
+    const handleAppBack = (e: any) => {
+      if (selectedCompetition !== 'none') {
+        setSelectedCompetition('none');
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('appBackButton', handleAppBack);
+    return () => {
+      window.removeEventListener('appBackButton', handleAppBack);
+    };
+  }, [selectedCompetition]);
+
   const brasileiraoMatches = useMemo(() => matches.filter(m => !m.championship || m.championship === 'brasileirao'), [matches]);
   const copaMatches = useMemo(() => matches.filter(m => m.championship === 'copa_do_brasil'), [matches]);
   const libertadoresMatches = useMemo(() => matches.filter(m => m.championship === 'libertadores'), [matches]);

@@ -83,12 +83,16 @@ export const useAdMobBanner = ({ hideForPro = false, isPro = false, skip = false
           }
         );
 
+        // ADAPTIVE_BANNER: maior receita que SMART_BANNER pois o Google prioriza
+        // esse formato para campanhas maiores. O SDK nativo (Android/iOS) calcula
+        // automaticamente a largura ideal — não precisa passar nada no JS.
         await AdMob.showBanner({
           adId: ADMOB_IDS.BANNER,
           adSize: BannerAdSize.ADAPTIVE_BANNER,
           position: BannerAdPosition.BOTTOM_CENTER,
           margin: 0,
           isTesting: false,
+          npa: false, // anúncios personalizados → maior CPM
         });
 
         if (isMounted) bannerActiveRef.current = true;

@@ -145,12 +145,9 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
         });
     }, []);
 
-    // Atualiza os palpites do usuário ao entrar na liga
-    useEffect(() => {
-        if (league) {
-            refreshPredictions(false);
-        }
-    }, [league?.id]);
+    // Os palpites do próprio usuário são baixados dentro do loadLeagueData (linha ~640),
+    // que bloqueia a tela via isLeagueLoading. Não é necessário um refreshPredictions
+    // paralelo aqui — ele causava delay/flash nos palpites após a tela abrir.
 
     const matches = useMemo(() => {
         return allMatches.filter(m => {
