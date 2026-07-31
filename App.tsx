@@ -2709,11 +2709,6 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           : api.matches.list()
       ]);
 
-      if (isBrasileirao) {
-        // Use the intelligent cache function instead of a direct DB fetch
-        await fetchBrasileiraoMatchesByComp(league?.settings?.competitions || ['brasileirao']);
-      }
-
       // (Sem cache incremental de matchIds — agora carregamos apenas os próprios palpites)
 
       if (isBrazil) {
@@ -2797,6 +2792,10 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           setMatches(mappedMatches);
           try { localStorage.setItem('cache_matches', JSON.stringify(mappedMatches)); } catch (e) { console.warn('cache_matches write failed:', e); }
         }
+      }
+      if (isBrasileirao) {
+        // Use the intelligent cache function instead of a direct DB fetch
+        await fetchBrasileiraoMatchesByComp(league?.settings?.competitions || ['brasileirao']);
       }
 
       lastFetchedLeaguesRef.current[cacheKey] = Date.now();
