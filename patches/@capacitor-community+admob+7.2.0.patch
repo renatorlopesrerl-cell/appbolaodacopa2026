@@ -69,7 +69,7 @@ index c629139..bc471d5 100644
                              final BannerAdSizeInfo sizeInfo = new BannerAdSizeInfo(mAdView);
  
                              notifyListeners(BannerAdPluginEvents.SizeChanged.getWebEventName(), sizeInfo);
-@@ -261,8 +280,15 @@ public class BannerExecutor extends Executor {
+@@ -261,8 +280,16 @@ public class BannerExecutor extends Executor {
                          @Override
                          public void onAdFailedToLoad(@NonNull LoadAdError adError) {
 +                            /*
