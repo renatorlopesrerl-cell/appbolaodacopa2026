@@ -69,9 +69,12 @@ index c629139..bc471d5 100644
                              final BannerAdSizeInfo sizeInfo = new BannerAdSizeInfo(mAdView);
  
                              notifyListeners(BannerAdPluginEvents.SizeChanged.getWebEventName(), sizeInfo);
-@@ -261,8 +280,12 @@ public class BannerExecutor extends Executor {
+@@ -261,8 +280,15 @@ public class BannerExecutor extends Executor {
                          @Override
                          public void onAdFailedToLoad(@NonNull LoadAdError adError) {
++                            /*
++                            // We do not destroy the banner on load failure. 
++                            // This allows AdMob's internal auto-refresh (e.g. 30 seconds) to try fetching again.
                              if (mAdView != null) {
 -                                mViewGroup.removeView(mAdViewLayout);
 -                                mAdViewLayout.removeView(mAdView);
@@ -84,6 +87,7 @@ index c629139..bc471d5 100644
                                  mAdView.destroy();
                                  mAdView = null;
                              }
++                            */
 diff --git a/node_modules/@capacitor-community/admob/android/src/main/java/com/getcapacitor/community/admob/helpers/AdViewIdHelper.java b/node_modules/@capacitor-community/admob/android/src/main/java/com/getcapacitor/community/admob/helpers/AdViewIdHelper.java
 index 02531cd..cbd27cc 100644
 --- a/node_modules/@capacitor-community/admob/android/src/main/java/com/getcapacitor/community/admob/helpers/AdViewIdHelper.java
