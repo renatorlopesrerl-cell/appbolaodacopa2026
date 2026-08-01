@@ -151,8 +151,44 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
         });
     }, [allMatches, allowedCompetitions]);
     const [activeTab, setActiveTab] = useState<'palpites' | 'classificacao' | 'regras' | 'admin'>('palpites');
+    const [roundParticipants, setRoundParticipants] = useState<Record<string, string[]> | null>(null);
+
+    useEffect(() => {
+        if ((activeTab === 'classificacao' || activeTab === 'admin') && roundParticipants === null && league?.id) {
+            const fetchRoundParticipants = async () => {
+                try {
+                    const { data } = await supabase
+                        .from('brasileirao_leagues')
+                        .select('round_participants')
+                        .eq('id', league.id)
+                        .single();
+                    
+                    setRoundParticipants(data?.round_participants || {});
+                } catch (e) {
+                    console.error('Error fetching round participants', e);
+                    setRoundParticipants({});
+                }
+            };
+            fetchRoundParticipants();
+        }
+    }, [activeTab, roundParticipants, league?.id]);
     const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
     const [leaderboardView, setLeaderboardView] = useState<string>('total');
+    
+    // Sub-pool admin configuration states
+    const [adminSubpoolComp, setAdminSubpoolComp] = useState('brasileirao');
+    const [adminSubpoolPeriod, setAdminSubpoolPeriod] = useState('');
+    const [adminSubpoolUsers, setAdminSubpoolUsers] = useState<string[]>([]);
+
+    useEffect(() => {
+        if (adminSubpoolPeriod && roundParticipants) {
+            setAdminSubpoolUsers(roundParticipants[adminSubpoolPeriod] || []);
+        }
+    }, [roundParticipants, adminSubpoolPeriod]);
+    const [isSavingSubpool, setIsSavingSubpool] = useState(false);
+    
+    // Leaderboard toggle state
+    const [showOnlyRoundParticipants, setShowOnlyRoundParticipants] = useState(false);
     // competitionFilter: 'total' = ambas, 'brasileirao' = só Brasileirão, 'copa' = só Copa do Brasil
     const [competitionFilter, setCompetitionFilter] = useState<'total' | 'brasileirao' | 'copa' | 'libertadores' | 'sul_americana'>('total');
     // subPeriod: para Brasileirão = rodada (ex: '19'), para Copa = fase (ex: 'copa_oitavas')
@@ -759,7 +795,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
         return null;
     };
 
-    const leaderboard = useMemo(() => {
+    const rawLeaderboard = useMemo(() => {
         if (!league) return [];
 
         const currentPeriodRankings = rankingsByPeriod[leaderboardView];
@@ -907,6 +943,14 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
             return 0;
         });
     }, [league, mergedUsers, predictions, matches, leaderboardView, topFinishersResult, topFinisherPredictions, rankingsByPeriod]);
+
+    const leaderboard = useMemo(() => {
+        if (showOnlyRoundParticipants && roundParticipants?.[leaderboardView] && roundParticipants[leaderboardView].length > 0) {
+            const allowedIds = new Set(roundParticipants[leaderboardView]);
+            return rawLeaderboard.filter(entry => allowedIds.has(entry.user.id));
+        }
+        return rawLeaderboard;
+    }, [rawLeaderboard, showOnlyRoundParticipants, roundParticipants, leaderboardView]);
 
     // Cleanup is now handled securely by the database during account deletion.
 
@@ -3374,8 +3418,17 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                             </div>
                         </div>
                     )}
-                    <div className="flex flex-col-reverse sm:flex-row gap-3 w-full">
+                    <div className="flex flex-col-reverse gap-3 w-full">
                         <div className="relative flex-1 w-full"><Search className="absolute left-3 top-2.5 text-gray-400" size={18} /><input type="text" placeholder="Buscar participante..." value={leaderboardSearch} onChange={(e) => setLeaderboardSearch(e.target.value)} className="w-full pl-10 pr-8 py-2 border border-gray-600 bg-gray-700 text-white placeholder-gray-400 rounded-lg text-sm focus:ring-1 focus:ring-brasil-blue focus:border-brasil-blue outline-none" />{leaderboardSearch && (<button onClick={() => setLeaderboardSearch('')} className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-white cursor-pointer"><X size={14} /></button>)}</div>
+                        {roundParticipants?.[leaderboardView]?.length > 0 && (
+                            <button 
+                                onClick={() => setShowOnlyRoundParticipants(!showOnlyRoundParticipants)}
+                                className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-bold text-sm transition-colors border ${showOnlyRoundParticipants ? 'bg-brasil-blue text-white border-brasil-blue' : 'bg-yellow-200 hover:bg-yellow-300 text-black border-yellow-200 dark:border-yellow-300'}`}
+                            >
+                                <Users size={16} />
+                                {showOnlyRoundParticipants ? 'Ver Todos' : 'Ranking Exclusivo'}
+                            </button>
+                        )}
                     </div>
                 </div>
                 {String(loadingPeriod) == String(leaderboardView) ? (
@@ -3647,7 +3700,11 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                                     {rank}
                                                 </div>
                                                 <div className="w-20 h-20 rounded-full border-4 border-white/30 overflow-hidden shrink-0 shadow-inner bg-gray-700 flex items-center justify-center text-white text-4xl font-bold uppercase">
-                                                    {entry.user.name.charAt(0)}
+                                                    {entry.user.avatar ? (
+                                                        <img src={entry.user.avatar} crossOrigin="anonymous" alt={entry.user.name} className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        entry.user.name.charAt(0)
+                                                    )}
                                                 </div>
                                                 <div className="flex-1 min-w-0 flex flex-col justify-center">
                                                     <h3 className="text-3xl font-bold truncate text-white drop-shadow-sm">{entry.user.name}</h3>
@@ -3760,6 +3817,101 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                             className="w-full h-full object-cover"
                         />
                         <div><p className="font-bold text-gray-800 dark:text-white">{foundUser.name}</p><p className="text-xs text-gray-500 dark:text-gray-400">{foundUser.email}</p></div></div><button onClick={handleConfirmInvite} disabled={isSendingInvite} className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70">{isSendingInvite ? <Loader2 className="animate-spin" size={18} /> : <UserPlus size={18} />} Confirmar Convite</button></div>)}{searchStatus === 'not_found' && (<div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-300 p-4 rounded-xl border border-red-200 dark:border-red-800 flex items-center gap-3 animate-in fade-in slide-in-from-top-2"><AlertCircle size={20} /><span className="font-medium text-sm">Usuário não encontrado. Verifique se o e-mail está correto e se o usuário já possui cadastro na Liga.</span></div>)}</>)}</div>
+                <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
+                    <h3 className="font-bold text-lg mb-4 text-gray-800 dark:text-white flex items-center gap-2"><Users size={20} className="text-brasil-blue dark:text-blue-400" /> Configurar Participantes Específicos</h3>
+                    <p className="text-sm text-gray-500 mb-4">Escolha os participantes que farão parte do ranking exclusivo de uma determinada rodada ou fase.</p>
+                    <div className="space-y-4">
+                        <div className="flex flex-col sm:flex-row gap-4">
+                            <select value={adminSubpoolComp} onChange={(e) => { setAdminSubpoolComp(e.target.value); setAdminSubpoolPeriod(''); setAdminSubpoolUsers([]); }} className="p-3 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm outline-none flex-1">
+                                <option value="brasileirao">Brasileirão</option>
+                                {league.settings?.competitions?.includes('copa_do_brasil') && <option value="copa_do_brasil">Copa do Brasil</option>}
+                                {league.settings?.competitions?.includes('libertadores') && <option value="libertadores">Libertadores</option>}
+                                {league.settings?.competitions?.includes('sul_americana') && <option value="sul_americana">Sul-Americana</option>}
+                            </select>
+                            {adminSubpoolComp === 'brasileirao' ? (
+                                <select value={adminSubpoolPeriod} onChange={(e) => { setAdminSubpoolPeriod(e.target.value); setAdminSubpoolUsers(roundParticipants?.[e.target.value] || []); }} className="p-3 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm outline-none flex-1">
+                                    <option value="">Selecione a Rodada</option>
+                                    {Array.from({ length: 19 }, (_, i) => i + 20).map(r => (
+                                        <option key={r} value={String(r)}>Rodada {r}</option>
+                                    ))}
+                                </select>
+                            ) : (
+                                <select value={adminSubpoolPeriod} onChange={(e) => { setAdminSubpoolPeriod(e.target.value); setAdminSubpoolUsers(roundParticipants?.[e.target.value] || []); }} className="p-3 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm outline-none flex-1">
+                                    <option value="">Selecione a Fase</option>
+                                    {adminSubpoolComp === 'copa_do_brasil' && <>
+                                        <option value="copa_oitavas">Oitavas de Final</option>
+                                        <option value="copa_quartas">Quartas de Final</option>
+                                        <option value="copa_fase_final">Fase Final (Semi+Final)</option>
+                                    </>}
+                                    {adminSubpoolComp === 'libertadores' && <>
+                                        <option value="libertadores_oitavas">Oitavas de Final</option>
+                                        <option value="libertadores_quartas">Quartas de Final</option>
+                                        <option value="libertadores_fase_final">Fase Final (Semi+Final)</option>
+                                    </>}
+                                    {adminSubpoolComp === 'sul_americana' && <>
+                                        <option value="sul_americana_oitavas">Oitavas de Final</option>
+                                        <option value="sul_americana_quartas">Quartas de Final</option>
+                                        <option value="sul_americana_fase_final">Fase Final (Semi+Final)</option>
+                                    </>}
+                                </select>
+                            )}
+                        </div>
+                        
+                        {adminSubpoolPeriod && (
+                            <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden mt-4">
+                                <div className="bg-gray-50 dark:bg-gray-700 p-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                                    <span className="font-bold text-sm text-gray-800 dark:text-white">Selecionar Participantes</span>
+                                    <button onClick={() => {
+                                        if (adminSubpoolUsers.length === league.participants.length) setAdminSubpoolUsers([]);
+                                        else setAdminSubpoolUsers([...league.participants]);
+                                    }} className="text-xs text-brasil-blue dark:text-blue-400 font-bold">
+                                        {adminSubpoolUsers.length === league.participants.length ? 'Desmarcar Todos' : 'Marcar Todos'}
+                                    </button>
+                                </div>
+                                <div className="max-h-60 overflow-y-auto p-2 space-y-1">
+                                    {league.participants.map(uid => {
+                                        const user = mergedUsers.find(u => u.id === uid);
+                                        if (!user) return null;
+                                        const isSelected = adminSubpoolUsers.includes(uid);
+                                        return (
+                                            <div key={uid} onClick={() => {
+                                                if (isSelected) setAdminSubpoolUsers(prev => prev.filter(id => id !== uid));
+                                                else setAdminSubpoolUsers(prev => [...prev, uid]);
+                                            }} className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${isSelected ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
+                                                <div className={`w-5 h-5 rounded flex items-center justify-center border ${isSelected ? 'bg-brasil-blue border-brasil-blue' : 'border-gray-300 dark:border-gray-600'}`}>
+                                                    {isSelected && <Check size={14} className="text-white" />}
+                                                </div>
+                                                <OptimizedImage src={user.avatar} className="w-8 h-8 rounded-full object-cover" />
+                                                <span className="text-sm font-medium text-gray-800 dark:text-white">{user.name}</span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {adminSubpoolPeriod && (
+                            <button onClick={async () => {
+                                setIsSavingSubpool(true);
+                                try {
+                                    const newRoundParticipants = { ...(roundParticipants || {}) };
+                                    newRoundParticipants[adminSubpoolPeriod] = adminSubpoolUsers;
+                                    await updateLeague(league.id, { round_participants: newRoundParticipants } as any);
+                                    setRoundParticipants(newRoundParticipants);
+                                    showToast('Sucesso', 'Participantes da rodada salvos com sucesso!', 'success');
+                                } catch (e) {
+                                    showToast('Erro', 'Erro ao salvar os participantes da rodada.', 'warning');
+                                } finally {
+                                    setIsSavingSubpool(false);
+                                }
+                            }} disabled={isSavingSubpool} className="w-full bg-brasil-green hover:bg-green-700 text-white font-bold py-3 rounded-lg flex items-center justify-center gap-2 transition-colors">
+                                {isSavingSubpool ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+                                Salvar Participantes para esta {adminSubpoolComp === 'brasileirao' ? 'Rodada' : 'Fase'}
+                            </button>
+                        )}
+                    </div>
+                </div>
+
                 <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
                     <h3 className="font-bold text-lg mb-4 text-gray-800 dark:text-white flex items-center gap-2">Configurações da Liga</h3>
                     <div className="space-y-6">

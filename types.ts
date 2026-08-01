@@ -112,6 +112,7 @@ export interface League {
   participants: string[]; // User IDs
   pendingRequests: string[]; // User IDs
   settings: LeagueSettings;
+  round_participants?: Record<string, string[]>;
 }
 
 export interface Invitation {
@@ -243,6 +244,7 @@ export interface BrasileiraoLeague {
   participants: string[];
   pendingRequests: string[];
   settings: LeagueSettings; // Utiliza o mesmo modelo de pontos da Copa
+  round_participants?: Record<string, string[]>;
 }
 
 export interface BrasileiraoPrediction {

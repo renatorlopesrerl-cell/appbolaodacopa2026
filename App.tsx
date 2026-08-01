@@ -1757,6 +1757,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     if (updates.description !== undefined) payload.description = updates.description;
     if (updates.isPrivate !== undefined) payload.is_private = updates.isPrivate;
     if (updates.settings) payload.settings = updates.settings;
+    if (updates.round_participants !== undefined) payload.round_participants = updates.round_participants;
 
     if (updates.image && !updates.image.startsWith('http')) {
       try {
