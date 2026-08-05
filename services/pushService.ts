@@ -12,6 +12,7 @@ export const updateTopicSubscriptions = async (settings: any) => {
         const matchStart = settings?.matchStart ?? true;
         const matchEnd = settings?.matchEnd ?? true;
         const predictionReminder = settings?.predictionReminder ?? true;
+        const matchGoals = settings?.matchGoals ?? true;
 
         if (matchStart) await FCM.subscribeTo({ topic: 'topic_match_start' }).catch(()=>{});
         else await FCM.unsubscribeFrom({ topic: 'topic_match_start' }).catch(()=>{});
@@ -21,6 +22,9 @@ export const updateTopicSubscriptions = async (settings: any) => {
 
         if (predictionReminder) await FCM.subscribeTo({ topic: 'topic_prediction_reminder' }).catch(()=>{});
         else await FCM.unsubscribeFrom({ topic: 'topic_prediction_reminder' }).catch(()=>{});
+
+        if (matchGoals) await FCM.subscribeTo({ topic: 'topic_match_goals' }).catch(()=>{});
+        else await FCM.unsubscribeFrom({ topic: 'topic_match_goals' }).catch(()=>{});
 
     } catch (err) {
         console.error('Error updating FCM topics:', err);

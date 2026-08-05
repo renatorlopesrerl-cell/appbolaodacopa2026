@@ -15,7 +15,13 @@ import {
     Shield,
     Crown,
     RefreshCw,
-    Eye
+    Eye,
+    Users,
+    Activity,
+    PieChart,
+    Bell,
+    Copy,
+    Check
 } from 'lucide-react';
 import { useStore } from '../App';
 import { supabase } from '../services/supabase';
@@ -42,7 +48,7 @@ const FEATURES = [
     {
         icon: Calendar,
         title: 'Histórico dos Times',
-        description: 'Acesse os últimos jogos de cada seleção antes de cada partida. Análise o momento de cada time e faça palpites mais inteligentes.',
+        description: 'Acesse os últimos jogos de cada time antes de cada partida. Análise o momento de cada um e faça palpites mais inteligentes.',
         color: 'from-blue-400 to-indigo-500',
         bg: 'bg-blue-50 dark:bg-blue-900/20',
         border: 'border-blue-200 dark:border-blue-800',
@@ -60,11 +66,47 @@ const FEATURES = [
     {
         icon: Eye,
         title: 'Palpites em Tempo Real',
-        description: 'Em ligas do plano FREE, visualize os palpites de todos os participantes nos jogos em andamento. Ligas com qualquer Plano Vip já tem essa opção disponível sem precisar do Plano Pro.',
+        description: 'Visualize os palpites de todos os participantes nos jogos em andamento.',
         color: 'from-rose-400 to-pink-500',
         bg: 'bg-rose-50 dark:bg-rose-900/20',
         border: 'border-rose-200 dark:border-rose-800',
         iconColor: 'text-rose-600 dark:text-rose-400',
+    },
+    {
+        icon: Users,
+        title: 'Escalação Confirmada',
+        description: 'Receba e visualize a escalação oficial dos times assim que forem publicadas, antes da bola rolar.',
+        color: 'from-cyan-400 to-blue-500',
+        bg: 'bg-cyan-50 dark:bg-cyan-900/20',
+        border: 'border-cyan-200 dark:border-cyan-800',
+        iconColor: 'text-cyan-600 dark:text-cyan-400',
+    },
+    {
+        icon: Activity,
+        title: 'Lances da Partida',
+        description: 'Acompanhe em tempo real todos os detalhes: cartões, substituições, gols e assistências.',
+        color: 'from-orange-400 to-red-500',
+        bg: 'bg-orange-50 dark:bg-orange-900/20',
+        border: 'border-orange-200 dark:border-orange-800',
+        iconColor: 'text-orange-600 dark:text-orange-400',
+    },
+    {
+        icon: PieChart,
+        title: 'Scouts da Partida',
+        description: 'Acesso total a estatísticas ao vivo como posse de bola, total de chutes, defesas e passes.',
+        color: 'from-teal-400 to-emerald-500',
+        bg: 'bg-teal-50 dark:bg-teal-900/20',
+        border: 'border-teal-200 dark:border-teal-800',
+        iconColor: 'text-teal-600 dark:text-teal-400',
+    },
+    {
+        icon: Bell,
+        title: 'Notificações Push Premium',
+        description: 'Receba alertas instantâneos de Início de Jogo e de cada Gol marcado direto no seu celular.',
+        color: 'from-fuchsia-400 to-purple-500',
+        bg: 'bg-fuchsia-50 dark:bg-fuchsia-900/20',
+        border: 'border-fuchsia-200 dark:border-fuchsia-800',
+        iconColor: 'text-fuchsia-600 dark:text-fuchsia-400',
     },
 ];
 
@@ -74,6 +116,7 @@ export const ProPage: React.FC = () => {
 
     const [isPurchasing, setIsPurchasing] = useState(false);
     const [cpfInput, setCpfInput] = useState('');
+    const [copied, setCopied] = useState(false);
 
     const isNative = Capacitor.isNativePlatform();
     const displayPrice = isNative ? '5,99' : '6,99';
@@ -233,23 +276,7 @@ export const ProPage: React.FC = () => {
                 </button>
             </div>
 
-            {/* AVISO TEMPORÁRIO */}
-            <div className="mb-8 p-8 md:p-12 bg-blue-50 dark:bg-blue-900/30 border-2 border-blue-200 dark:border-blue-800 rounded-3xl shadow-lg text-center mt-10">
-                <h3 className="text-brasil-blue dark:text-blue-400 font-black text-2xl md:text-3xl mb-6 flex flex-col md:flex-row items-center justify-center gap-3">
-                    <span className="text-4xl">🚧</span> Aviso Importante
-                </h3>
-                <p className="text-gray-700 dark:text-gray-300 text-base md:text-lg leading-relaxed font-medium mb-8">
-                    O Plano Pro original foi desenvolvido exclusivamente para a Copa do Mundo. Devido ao grande sucesso e aos pedidos da comunidade, decidimos dar continuidade ao aplicativo com novos campeonatos! 
-                </p>
-                <div className="p-6 bg-yellow-100 dark:bg-yellow-900/40 rounded-2xl border-2 border-yellow-300 dark:border-yellow-700 shadow-sm">
-                    <strong className="text-yellow-900 dark:text-yellow-400 uppercase tracking-wide text-lg md:text-xl font-black">
-                        O NOVO PLANO PRO PARA O BRASILEIRÃO + COPAS SERÁ DISPONIBILIZADO EM BREVE!
-                    </strong>
-                </div>
-            </div>
-
-            {/* CONTEÚDO OCULTO TEMPORARIAMENTE PARA USO FUTURO */}
-            <div className="hidden">
+            {/* CONTEÚDO ORIGINAL RESTAURADO */}
 
             <div className="relative rounded-2xl overflow-hidden mb-8 shadow-2xl">
                 <div className="absolute inset-0 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900" />
@@ -321,57 +348,60 @@ export const ProPage: React.FC = () => {
                 </div>
             </div>
 
-            <div className="mb-8">
-                <h2 className="text-lg font-black text-gray-800 dark:text-white mb-3 flex items-center gap-2">
-                    <BarChart2 size={20} className="text-amber-500" />
-                    Prévia das Estatísticas
-                </h2>
-                <div className="relative rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-lg">
-                    <div className="bg-white dark:bg-gray-800 p-5 space-y-4 filter blur-[3px] select-none pointer-events-none">
-                        <div className="bg-gray-50 dark:bg-gray-700/60 rounded-xl p-4 border border-gray-100 dark:border-gray-600 flex flex-col items-center gap-2">
-                            <span className="text-[10px] font-bold uppercase text-gray-400 flex items-center gap-1">
-                                <Trophy size={10} className="text-yellow-500" /> Placar mais apostado
-                            </span>
-                            <div className="flex items-center gap-3 bg-gray-100 dark:bg-gray-800 px-5 py-2 rounded-xl border border-gray-200 dark:border-gray-700">
-                                <span className="text-3xl font-black text-gray-800 dark:text-gray-200">2</span>
-                                <span className="text-sm font-bold text-gray-400">x</span>
-                                <span className="text-3xl font-black text-gray-800 dark:text-gray-200">0</span>
-                            </div>
-                        </div>
-                        <div className="bg-gray-50 dark:bg-gray-700/60 rounded-xl p-3.5 border border-gray-100 dark:border-gray-600">
-                            <p className="text-[10px] font-bold uppercase text-gray-400 mb-3 flex items-center gap-1">
-                                <BarChart2 size={10} /> Distribuição dos palpites
-                            </p>
-                            <div className="flex gap-2">
-                                <div className="flex-1 flex flex-col items-center gap-1 p-2 rounded-lg border bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300">
-                                    <div className="w-8 h-5 bg-gray-300 rounded" />
-                                    <span className="text-[9px] font-bold">Brasil</span>
-                                    <span className="text-lg font-black">68%</span>
-                                </div>
-                                <div className="flex-1 flex flex-col items-center gap-1 p-2 rounded-lg border bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-600 text-gray-500">
-                                    <div className="w-8 h-5 flex items-center justify-center text-base">🤝</div>
-                                    <span className="text-[9px] font-bold">Empate</span>
-                                    <span className="text-lg font-black">18%</span>
-                                </div>
-                                <div className="flex-1 flex flex-col items-center gap-1 p-2 rounded-lg border bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200 dark:border-yellow-800/50 text-yellow-700">
-                                    <div className="w-8 h-5 bg-gray-300 rounded" />
-                                    <span className="text-[9px] font-bold">Argentina</span>
-                                    <span className="text-lg font-black">14%</span>
-                                </div>
-                            </div>
+            {/* NOVO PAGAMENTO TEMPORÁRIO PIX */}
+            <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-2xl p-6 text-center shadow-2xl relative overflow-hidden mb-8">
+                <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/10 to-amber-500/5" />
+                <div className="relative z-10">
+                    <div className="flex justify-center mb-3">
+                        <div className="inline-flex items-center gap-1.5 bg-gradient-to-r from-yellow-400/20 to-amber-500/20 border border-yellow-500/30 text-yellow-400 text-xs font-black px-3 py-1 rounded-full uppercase tracking-widest">
+                            <Zap size={10} fill="currentColor" />
+                            SEJA PRO
                         </div>
                     </div>
 
-                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/70 backdrop-blur-[1px]">
-                        <div className="bg-gradient-to-br from-yellow-400 to-amber-600 p-3 rounded-full shadow-lg mb-3">
-                            <Lock size={24} className="text-white" />
+                    <div className="text-5xl font-black text-white mb-1">
+                        R${' '}
+                        <span className="bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent">
+                            5,00
+                        </span>
+                    </div>
+                    <p className="text-gray-300 text-base font-bold mb-6 tracking-wide">Acesso PRO: Até 31/12/2026</p>
+
+                    <div className="bg-gray-800/80 border border-amber-500/30 rounded-xl p-5 mb-4 text-left">
+                        <p className="text-gray-200 text-sm md:text-base font-medium mb-3 text-center md:text-left leading-relaxed">
+                            Faça o pix na chave <span className="font-bold text-amber-400 select-all">palpiteirodacopa@gmail.com</span> e envie o comprovante com o seu e-mail de cadastro para o Administrador da sua liga.
+                        </p>
+                        <div 
+                            onClick={() => {
+                                navigator.clipboard.writeText('palpiteirodacopa@gmail.com');
+                                setCopied(true);
+                                setTimeout(() => setCopied(false), 2000);
+                            }}
+                            className="bg-gray-900 rounded-lg p-4 border border-gray-700 flex items-center justify-center gap-3 cursor-pointer hover:border-amber-500/50 hover:bg-gray-800 transition-all active:scale-95 group"
+                        >
+                            <span className="text-amber-400 font-black text-lg md:text-xl tracking-wider select-all">palpiteirodacopa@gmail.com</span>
+                            {copied ? <Check className="text-green-500" size={24} /> : <Copy className="text-gray-500 group-hover:text-amber-400 transition-colors" size={20} />}
                         </div>
-                        <p className="text-white font-black text-sm mb-1">Recurso Exclusivo PRO</p>
-                        <p className="text-gray-300 text-xs">Assine para desbloquear</p>
+                    </div>
+
+                    <p className="text-gray-500 text-xs mt-4">
+                        Pagamento via PIX · Liberação Rápida
+                    </p>
+
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 mt-6 text-xs text-gray-500">
+                        <Link to="/termos" className="hover:text-amber-500 transition-colors underline underline-offset-2">
+                            Termos de Uso
+                        </Link>
+                        <span className="hidden sm:inline">•</span>
+                        <Link to="/privacidade" className="hover:text-amber-500 transition-colors underline underline-offset-2">
+                            Política de Privacidade
+                        </Link>
                     </div>
                 </div>
             </div>
 
+            {/* ANTIGO SISTEMA DE PAGAMENTO OCULTO */}
+            <div className="hidden">
             <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 rounded-2xl p-6 text-center shadow-2xl relative overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/10 to-amber-500/5" />
                 <div className="relative z-10">

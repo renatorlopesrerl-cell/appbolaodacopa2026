@@ -513,7 +513,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     setTheme(prev => {
       const newTheme = prev === 'light' ? 'dark' : 'light';
       if (currentUser) {
-        updateUserProfile(currentUser.name, currentUser.avatar, currentUser.whatsapp || '', currentUser.notificationSettings || { matchStart: true, matchEnd: true, predictionReminder: true }, newTheme).catch(() => { });
+        updateUserProfile(currentUser.name, currentUser.avatar, currentUser.whatsapp || '', currentUser.notificationSettings || { matchStart: true, matchEnd: true, predictionReminder: true, matchGoals: true }, newTheme).catch(() => { });
       }
       return newTheme;
     });
@@ -603,7 +603,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             date: m.date, location: m.location || '', phase: m.phase, status: m.status,
             home_score: m.home_score !== null ? Number(m.home_score) : null,
             away_score: m.away_score !== null ? Number(m.away_score) : null,
-            championship: m.championship, is_blocked: m.is_blocked
+            championship: m.championship, is_blocked: m.is_blocked,
+            match_time: m.match_time
           }));
           
           setBrasileiraoMatches(prev => {
@@ -613,7 +614,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               const idx = nextMatches.findIndex(m => m.id === updated.id);
               if (idx !== -1) {
                 const old = nextMatches[idx];
-                if (old.status !== updated.status || old.home_score !== updated.home_score || old.away_score !== updated.away_score) {
+                if (old.status !== updated.status || old.home_score !== updated.home_score || old.away_score !== updated.away_score || old.match_time !== updated.match_time) {
                   nextMatches[idx] = updated;
                   changed = true;
                 }
@@ -725,7 +726,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             isAdmin: metadata.is_admin || false,
             isMatchAdmin: metadata.is_match_admin || false,
             whatsapp: metadata.whatsapp || '',
-            notificationSettings: { matchStart: true, matchEnd: true },
+            notificationSettings: { matchStart: true, matchEnd: true, matchGoals: true },
             isPro: cachedIsPro || metadata.is_pro || false,
             provider
           };
@@ -789,7 +790,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             isAdmin: metadata.is_admin || false,
             isMatchAdmin: metadata.is_match_admin || false,
             whatsapp: metadata.whatsapp || '',
-            notificationSettings: { matchStart: true, matchEnd: true },
+            notificationSettings: { matchStart: true, matchEnd: true, matchGoals: true },
             isPro: metadata.is_pro || false,
             provider
           };
@@ -937,7 +938,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   const fetchUserProfile = async (uid: string, email: string, photoURL: string, fullName: string = '', whatsappMeta: string = '', provider: string = 'email') => {
     const savedPrefs = localStorage.getItem(`notify_${uid}`);
-    const fallbackPrefs = savedPrefs ? JSON.parse(savedPrefs) : { matchStart: true, matchEnd: true, predictionReminder: true };
+    const fallbackPrefs = savedPrefs ? JSON.parse(savedPrefs) : { matchStart: true, matchEnd: true, predictionReminder: true, matchGoals: true };
     const shouldBeAdmin = false;
 
     const fallbackUser: User = {
@@ -1366,7 +1367,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           home_score: m.home_score !== null ? Number(m.home_score) : null,
           away_score: m.away_score !== null ? Number(m.away_score) : null,
           championship: m.championship,
-          is_blocked: m.is_blocked
+          is_blocked: m.is_blocked,
+          match_time: m.match_time
         }));
 
         setBrasileiraoMatches(prev => {
@@ -1443,7 +1445,8 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         home_score: m.home_score !== null ? Number(m.home_score) : null,
         away_score: m.away_score !== null ? Number(m.away_score) : null,
         championship: m.championship,
-        is_blocked: m.is_blocked
+        is_blocked: m.is_blocked,
+        match_time: m.match_time
       }));
 
       setBrasileiraoMatches(prev => {
@@ -1452,7 +1455,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         
         const nextMatches = prev.map(p => {
           const n = newOrUpdatedMap.get(p.id);
-          if (n && (p.home_score !== n.home_score || p.away_score !== n.away_score || p.status !== n.status)) {
+          if (n && (p.home_score !== n.home_score || p.away_score !== n.away_score || p.status !== n.status || p.match_time !== n.match_time)) {
             changed = true;
             return { ...p, ...n };
           }
@@ -1583,7 +1586,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       if (data.user) {
         const newUserDB = {
           id: data.user.id, email, name, avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.user.id}`,
-          is_admin: false, whatsapp: whatsapp || null, notification_settings: { matchStart: true, matchEnd: true, predictionReminder: true }
+          is_admin: false, whatsapp: whatsapp || null, notification_settings: { matchStart: true, matchEnd: true, predictionReminder: true, matchGoals: true }
         };
         try {
           await api.profiles.update(newUserDB);

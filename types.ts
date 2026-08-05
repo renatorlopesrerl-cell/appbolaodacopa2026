@@ -23,6 +23,7 @@ export interface Team {
 
 export interface Match {
   id: string;
+  match_time?: string;
   homeTeamId: string; // "TBD" if not yet decided
   awayTeamId: string; // "TBD" if not yet decided
   homeScore: number | null;
@@ -47,6 +48,7 @@ export interface User {
     matchStart: boolean;
     matchEnd: boolean;
     predictionReminder?: boolean;
+    matchGoals?: boolean;
   };
   isPro?: boolean;
   proExpiresAt?: string; // ISO Date String
@@ -221,6 +223,7 @@ export interface BrasileiraoTeam {
 
 export interface BrasileiraoMatch {
   id: string | number;
+  match_time?: string;
   home_team_id: string | number;
   away_team_id: string | number;
   home_score: number | null;
@@ -231,6 +234,11 @@ export interface BrasileiraoMatch {
   location: string;
   championship?: string;
   is_blocked?: boolean;
+  lineups?: any;
+  events?: any;
+  statistics?: any;
+  lineup_fetched?: boolean;
+  lineup_confirmed?: boolean;
 }
 
 export interface BrasileiraoLeague {

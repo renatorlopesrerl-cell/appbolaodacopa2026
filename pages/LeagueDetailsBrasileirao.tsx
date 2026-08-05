@@ -17,7 +17,7 @@ import {
     UserPlus, LogOut, Trash2, Check, X, MousePointerClick,
     Save, Loader2, Medal, AlertCircle, Share2, Info, Filter, Plus, Clock, MapPin, CheckCircle2, Unlock, Calendar, ChevronDown, Crown, Eye,
     Target, Mail, AlertTriangle, Camera, Upload, MessageCircle, Copy, Bell, Star, StarHalf, Infinity as InfinityIcon, Zap, BarChart2,
-    ChevronLeft, ChevronRight, PlayCircle
+    ChevronLeft, ChevronRight, PlayCircle, Activity
 } from 'lucide-react';
 import { OptimizedImage } from '../components/OptimizedImage';
 import { LiveCountdown } from '../components/LiveCountdown';
@@ -25,6 +25,8 @@ import { supabase } from '../services/supabase';
 import { getHistoryForTeam } from '../historyUtils';
 import { fetchLeagueRankings } from '../services/rankingService';
 import { useAdMobBanner } from '../hooks/useAdMobBanner';
+import { fetchMatchDetails, MatchDetails } from '../services/matchDetailsService';
+import { TabEscalacao, TabLances, TabScouts } from '../components/MatchTabs';
 
 const BR_LOGOS: Record<number, string> = {
     118: '/img/teams/brasileirao/118.png?v=3',
@@ -482,6 +484,43 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
 
     // --- SHARE STATE ---
     const [isSharingImage, setIsSharingImage] = useState(false);
+
+    const [activeDetailsTab, setActiveDetailsTab] = useState<'palpites'|'escalacao'|'lances'|'scouts'>('palpites');
+    const [activeStatsTab, setActiveStatsTab] = useState<'estatisticas'|'escalacao'|'lances'|'scouts'>('estatisticas');
+    const [matchLazyDetails, setMatchLazyDetails] = useState<MatchDetails | null>(null);
+    const [isLoadingLazyDetails, setIsLoadingLazyDetails] = useState(false);
+
+    useEffect(() => {
+        if (selectedMatchForDetails && activeDetailsTab !== 'palpites') {
+            if (!matchLazyDetails) {
+                setIsLoadingLazyDetails(true);
+                fetchMatchDetails(selectedMatchForDetails).then(res => {
+                    setMatchLazyDetails(res);
+                    setIsLoadingLazyDetails(false);
+                });
+            }
+        }
+    }, [selectedMatchForDetails, activeDetailsTab]);
+
+    useEffect(() => {
+        if (selectedMatchForStats && activeStatsTab !== 'estatisticas') {
+            if (!matchLazyDetails) {
+                setIsLoadingLazyDetails(true);
+                fetchMatchDetails(selectedMatchForStats).then(res => {
+                    setMatchLazyDetails(res);
+                    setIsLoadingLazyDetails(false);
+                });
+            }
+        }
+    }, [selectedMatchForStats, activeStatsTab]);
+
+    useEffect(() => {
+        if (!selectedMatchForDetails && !selectedMatchForStats) {
+            setMatchLazyDetails(null);
+            setActiveDetailsTab('palpites');
+            setActiveStatsTab('estatisticas');
+        }
+    }, [selectedMatchForDetails, selectedMatchForStats]);
     const shareRef = useRef<HTMLDivElement>(null);
 
     const handleShareLeaderboard = async () => {
@@ -2369,7 +2408,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                                 <div className={`flex-1 flex flex-col items-center justify-center p-2 rounded-lg border ${match.status === MatchStatus.IN_PROGRESS ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : 'bg-gray-50 dark:bg-gray-700/30 border-gray-100 dark:border-gray-600'}`}>
                                                     <div className={`text-[10px] font-bold uppercase mb-1 flex items-center gap-1 ${match.status === MatchStatus.IN_PROGRESS ? 'text-green-700 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
                                                         {match.status === MatchStatus.IN_PROGRESS ? (
-                                                            <><div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" /> Ao Vivo</>
+                                                            <><div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" /> {match.match_time || 'Ao Vivo'}</>
                                                         ) : (
                                                             <>Placar Final</>
                                                         )}
@@ -2433,7 +2472,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                         {selectedMatchForDetails && detailsData && (() => {
                             const isMatchLockedOrLive = isPredictionLocked(detailsData.match.date, currentTime) || detailsData.match.status === MatchStatus.IN_PROGRESS;
                             const isFinished = detailsData.match.status === MatchStatus.FINISHED;
-                            const shouldBlockPredictions = currentPlan === 'FREE' && !currentUser?.isPro && isMatchLockedOrLive && !isFinished && !hasWatchedPredictionAd;
+                            const shouldBlockPredictions = !currentUser?.isPro && isMatchLockedOrLive && !isFinished && !hasWatchedPredictionAd;
 
                             if (shouldBlockPredictions) {
                                 return createPortal(
@@ -2466,6 +2505,9 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                                         { icon: Eye, text: 'Acompanhe os palpites de todos em tempo real', color: 'text-amber-500' },
                                                         { icon: Target, text: 'Seca ou torce sabendo exatamente o placar do adversário', color: 'text-emerald-500' },
                                                         { icon: BarChart2, text: 'Estatísticas exclusivas e placares mais palpitados', color: 'text-blue-500' },
+                                                        { icon: Users, text: 'Escalação Confirmada', color: 'text-cyan-500' },
+                                                        { icon: Activity, text: 'Lances e Scouts da Partida', color: 'text-teal-500' },
+                                                        { icon: Bell, text: 'Notificações Push Premium', color: 'text-fuchsia-500' },
                                                     ].map(({ icon: Icon, text, color }, i) => (
                                                         <div key={i} className="flex items-center gap-3 text-xs text-gray-700 dark:text-gray-300">
                                                             <div className={`${color} shrink-0`}><Icon size={14} /></div>
@@ -2475,35 +2517,6 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                                 </div>
                                             </div>
                                             <div className="px-5 pb-5">
-                                                {Capacitor.isNativePlatform() && (
-                                                    <button
-                                                        onClick={async () => {
-                                                            setIsPreparingAd(true);
-                                                            try {
-                                                                if (!adMobModuleRef.current) {
-                                                                    adMobModuleRef.current = await import('@capacitor-community/admob');
-                                                                    await adMobModuleRef.current.AdMob.initialize();
-                                                                }
-                                                                try {
-                                                                    await adMobModuleRef.current.AdMob.prepareRewardInterstitialAd({ adId: 'ca-app-pub-7684468298593275/3499840425', isTesting: false });
-                                                                } catch (prepError) {
-                                                                    console.warn('Ad prepare failed or already prepared', prepError);
-                                                                }
-                                                                await adMobModuleRef.current.AdMob.showRewardInterstitialAd();
-                                                            } catch (e) {
-                                                                console.error('Failed to show ad', e);
-                                                                alert('Anúncio não está pronto ainda. Tente novamente em alguns segundos.');
-                                                            } finally {
-                                                                setIsPreparingAd(false);
-                                                            }
-                                                        }}
-                                                        disabled={isPreparingAd}
-                                                        className={`w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white font-black py-3.5 px-6 rounded-xl text-sm uppercase tracking-widest shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2 mb-3 ${isPreparingAd ? 'opacity-70 cursor-not-allowed' : ''}`}
-                                                    >
-                                                        {isPreparingAd ? <Loader2 size={16} className="animate-spin" /> : <PlayCircle size={16} fill="currentColor" />}
-                                                        {isPreparingAd ? 'Carregando...' : 'Assistir Vídeo para Liberar'}
-                                                    </button>
-                                                )}
                                                 <button
                                                     onClick={() => { setSelectedMatchForDetails(null); navigate('/seja-pro'); }}
                                                     className="w-full bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-300 hover:to-amber-400 text-gray-900 font-black py-3.5 px-6 rounded-xl text-sm uppercase tracking-widest shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2"
@@ -2556,7 +2569,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                                 </div>
                                                 <button onClick={() => setSelectedMatchForDetails(null)} className="p-1 hover:bg-white/20 rounded-full transition-colors"><X size={20} /></button>
                                             </div>
-                                            <div className="flex items-center justify-between gap-4"><div className="flex flex-col items-center w-1/3"><img referrerPolicy='no-referrer' src={getTeamFlag(detailsData.match.home_team_id, teams)} onError={(e) => { (e.target as HTMLImageElement).src = LOGO_FALLBACK; }} className="w-9 h-9 object-contain drop-shadow-sm mb-1" /><span className="text-xs font-bold text-center leading-tight">{getTeamNameForDisplay(detailsData.match.home_team_id)}</span></div><div className="flex flex-col items-center"><div className="text-2xl font-black bg-white/10 px-3 py-1 rounded-lg backdrop-blur-sm border border-white/20 whitespace-nowrap">{detailsData.match.home_score ?? '-'} <span className="text-sm mx-1">x</span> {detailsData.match.away_score ?? '-'}</div><span className={`text-[10px] mt-1 font-bold px-2 py-0.5 rounded-full ${detailsData.match.status === MatchStatus.IN_PROGRESS ? 'bg-red-500 text-white animate-pulse' : detailsData.match.status === MatchStatus.FINISHED ? 'bg-black/30 text-white' : 'bg-blue-800 text-blue-200'}`}>{detailsData.match.status === MatchStatus.IN_PROGRESS ? 'AO VIVO' : detailsData.match.status === MatchStatus.FINISHED ? 'ENCERRADO' : 'AGUARDANDO'}</span></div><div className="flex flex-col items-center w-1/3"><img referrerPolicy='no-referrer' src={getTeamFlag(detailsData.match.away_team_id, teams)} onError={(e) => { (e.target as HTMLImageElement).src = LOGO_FALLBACK; }} className="w-9 h-9 object-contain drop-shadow-sm mb-1" /><span className="text-xs font-bold text-center leading-tight">{getTeamNameForDisplay(detailsData.match.away_team_id)}</span></div></div>
+                                            <div className="flex items-center justify-between gap-4"><div className="flex flex-col items-center w-1/3"><img referrerPolicy='no-referrer' src={getTeamFlag(detailsData.match.home_team_id, teams)} onError={(e) => { (e.target as HTMLImageElement).src = LOGO_FALLBACK; }} className="w-9 h-9 object-contain drop-shadow-sm mb-1" /><span className="text-xs font-bold text-center leading-tight">{getTeamNameForDisplay(detailsData.match.home_team_id)}</span></div><div className="flex flex-col items-center"><div className="text-2xl font-black bg-white/10 px-3 py-1 rounded-lg backdrop-blur-sm border border-white/20 whitespace-nowrap">{detailsData.match.home_score ?? '-'} <span className="text-sm mx-1">x</span> {detailsData.match.away_score ?? '-'}</div><span className={`text-[10px] mt-1 font-bold px-2 py-0.5 rounded-full ${detailsData.match.status === MatchStatus.IN_PROGRESS ? 'bg-red-500 text-white animate-pulse' : detailsData.match.status === MatchStatus.FINISHED ? 'bg-black/30 text-white' : 'bg-blue-800 text-blue-200'}`}>{detailsData.match.status === MatchStatus.IN_PROGRESS ? (detailsData.match.match_time || 'AO VIVO') : detailsData.match.status === MatchStatus.FINISHED ? 'ENCERRADO' : 'AGUARDANDO'}</span></div><div className="flex flex-col items-center w-1/3"><img referrerPolicy='no-referrer' src={getTeamFlag(detailsData.match.away_team_id, teams)} onError={(e) => { (e.target as HTMLImageElement).src = LOGO_FALLBACK; }} className="w-9 h-9 object-contain drop-shadow-sm mb-1" /><span className="text-xs font-bold text-center leading-tight">{getTeamNameForDisplay(detailsData.match.away_team_id)}</span></div></div>
                                         </div>
 
                                         {isLoadingDetailedStats ? (
@@ -2572,6 +2585,14 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                             </div>
                                         ) : (
                                             <>
+                                                <div className="flex bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                                                    <button onClick={() => setActiveDetailsTab('palpites')} className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider text-center transition-colors ${activeDetailsTab === 'palpites' ? 'bg-white dark:bg-gray-700 text-brasil-blue dark:text-white border-b-2 border-brasil-blue' : 'text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white'}`}>Palpites</button>
+                                                    <button onClick={() => setActiveDetailsTab('escalacao')} className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider text-center transition-colors ${activeDetailsTab === 'escalacao' ? 'bg-white dark:bg-gray-700 text-brasil-blue dark:text-white border-b-2 border-brasil-blue' : 'text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white'}`}>Escalação</button>
+                                                    <button onClick={() => setActiveDetailsTab('lances')} className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider text-center transition-colors ${activeDetailsTab === 'lances' ? 'bg-white dark:bg-gray-700 text-brasil-blue dark:text-white border-b-2 border-brasil-blue' : 'text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white'}`}>Lances</button>
+                                                    <button onClick={() => setActiveDetailsTab('scouts')} className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider text-center transition-colors ${activeDetailsTab === 'scouts' ? 'bg-white dark:bg-gray-700 text-brasil-blue dark:text-white border-b-2 border-brasil-blue' : 'text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white'}`}>Scouts</button>
+                                                </div>
+                                                {activeDetailsTab === 'palpites' && (
+                                                <>
                                                 {/* Stats bar: Mais palpitado + Distribuição — idêntico ao modo Copa */}
                                                 {totalPreds > 0 && (() => {
                                                     const getPctColor = (pct: number, otherPct: number) => {
@@ -2680,6 +2701,11 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                                         })()}
                                                     </div>
                                                 </div>
+                                                </>
+                                                )}
+                                                {activeDetailsTab === 'escalacao' && <TabEscalacao data={matchLazyDetails} isLoading={isLoadingLazyDetails} getTeamName={getTeamNameForDisplay} getTeamFlag={(id) => getTeamFlag(String(id), teams)} />}
+                                                {activeDetailsTab === 'lances' && <TabLances data={matchLazyDetails} isLoading={isLoadingLazyDetails} getTeamName={getTeamNameForDisplay} getTeamFlag={(id) => getTeamFlag(String(id), teams)} />}
+                                                {activeDetailsTab === 'scouts' && <TabScouts data={matchLazyDetails} isLoading={isLoadingLazyDetails} getTeamName={getTeamNameForDisplay} getTeamFlag={(id) => getTeamFlag(String(id), teams)} />}
                                             </>
                                         )}
                                     </div>
@@ -2720,6 +2746,10 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                                     { icon: Trophy, text: 'Placar mais palpitado pelos participantes', color: 'text-amber-500' },
                                                     { icon: BarChart2, text: 'Distribuição: % Casa, Empate, Visitante', color: 'text-emerald-500' },
                                                     { icon: Calendar, text: 'Histórico recente dos times', color: 'text-blue-500' },
+                                                    { icon: Eye, text: 'Palpites em Tempo Real', color: 'text-rose-500' },
+                                                    { icon: Users, text: 'Escalação Confirmada', color: 'text-cyan-500' },
+                                                    { icon: Activity, text: 'Lances e Scouts da Partida', color: 'text-teal-500' },
+                                                    { icon: Bell, text: 'Notificações Push Premium', color: 'text-fuchsia-500' },
                                                 ].map(({ icon: Icon, text, color }, i) => (
                                                     <div key={i} className="flex items-center gap-3 text-sm text-gray-700 dark:text-gray-300">
                                                         <div className={`${color} shrink-0`}><Icon size={16} /></div>
@@ -2823,7 +2853,13 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                         </div>
 
                                         {/* Content */}
-                                        <div className="p-4 space-y-4 bg-gray-50 dark:bg-gray-800 flex-1 overflow-y-auto animate-in fade-in duration-200">
+                                        <div className="flex bg-gray-100 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+                                            <button onClick={() => setActiveStatsTab('estatisticas')} className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider text-center transition-colors ${activeStatsTab === 'estatisticas' ? 'bg-white dark:bg-gray-700 text-brasil-blue dark:text-white border-b-2 border-brasil-blue' : 'text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white'}`}>Estatísticas</button>
+                                            <button onClick={() => setActiveStatsTab('escalacao')} className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider text-center transition-colors ${activeStatsTab === 'escalacao' ? 'bg-white dark:bg-gray-700 text-brasil-blue dark:text-white border-b-2 border-brasil-blue' : 'text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white'}`}>Escalação</button>
+                                        </div>
+                                        <div className="p-0 flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-800">
+                                        {activeStatsTab === 'estatisticas' && (
+                                        <div className="p-4 space-y-4 animate-in fade-in duration-200">
                                             {true && (
                                                 <>
                                                     {loadingStats ? (
@@ -3110,6 +3146,11 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                                     )}
                                                 </>
                                             )}
+                                            </div>
+                                            )}
+                                            {activeStatsTab === 'escalacao' && <TabEscalacao data={matchLazyDetails} isLoading={isLoadingLazyDetails} getTeamName={getTeamNameForDisplay} getTeamFlag={(id) => getTeamFlag(String(id), teams)} />}
+                                            {activeStatsTab === 'lances' && <TabLances data={matchLazyDetails} isLoading={isLoadingLazyDetails} getTeamName={getTeamNameForDisplay} getTeamFlag={(id) => getTeamFlag(String(id), teams)} />}
+                                            {activeStatsTab === 'scouts' && <TabScouts data={matchLazyDetails} isLoading={isLoadingLazyDetails} getTeamName={getTeamNameForDisplay} getTeamFlag={(id) => getTeamFlag(String(id), teams)} />}
                                         </div>
                                     </div>
                                 </div>, document.body
@@ -3426,7 +3467,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                 className={`flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-bold text-sm transition-colors border ${showOnlyRoundParticipants ? 'bg-brasil-blue text-white border-brasil-blue' : 'bg-yellow-200 hover:bg-yellow-300 text-black border-yellow-200 dark:border-yellow-300'}`}
                             >
                                 <Users size={16} />
-                                {showOnlyRoundParticipants ? 'Ver Todos' : 'Ranking Exclusivo'}
+                                {showOnlyRoundParticipants ? 'Ver Todos' : 'Ranking Tiro Curto'}
                             </button>
                         )}
                     </div>
@@ -3640,7 +3681,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                                         <Loader2 size={32} className="animate-spin mb-4" />
                                         <p className="font-medium text-sm text-gray-500">Buscando palpites...</p>
                                     </div>
-                                ) : filteredHistory.length === 0 ? <div className="flex flex-col items-center justify-center h-48 text-gray-400 dark:text-gray-500 gap-2"><Search size={32} className="opacity-20" /><p className="text-sm italic">Nenhum palpite encontrado.</p></div> : <><div className="divide-y divide-gray-100 dark:divide-gray-700">{filteredHistory.slice(0, histVisibleCount).map(({ match, pred }) => { const isLive = match.status === MatchStatus.IN_PROGRESS; const isFinished = match.status === MatchStatus.FINISHED; const matchDate = new Date(match.date); const isDateValid = !isNaN(matchDate.getTime()); let histPoints = 0; if (match.is_blocked) { histPoints = 0; } else if ((isLive || isFinished) && match.home_score !== null && match.away_score !== null && pred) { histPoints = calculatePoints(Number(pred.homeScore), Number(pred.awayScore), Number(match.home_score), Number(match.away_score), league.settings); } return (<div key={String(String(match.id))} className="p-4 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"><div className="flex justify-between items-center mb-3 gap-2 flex-nowrap"><div className="flex items-center gap-1 min-[360px]:gap-1.5 sm:gap-2 text-[8px] min-[360px]:text-[9px] min-[380px]:text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500 flex-nowrap whitespace-nowrap min-w-0 overflow-hidden"><Calendar size={10} className="shrink-0" /><span>{isDateValid ? matchDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : 'Data Inválida'}</span>{isDateValid && <span className="text-gray-300 dark:text-gray-600 shrink-0">|</span>}{isDateValid && <span>{matchDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>}<span> </span>{renderMatchBadge(match)}</div>{isLive && <span className="bg-red-500 text-white px-2 py-0.5 rounded text-[8px] min-[360px]:text-[9px] min-[380px]:text-[10px] font-bold animate-pulse whitespace-nowrap shrink-0">AO VIVO</span>}</div><div className="flex flex-col items-center mb-4"><div className="flex items-center gap-6 mb-2"><img referrerPolicy='no-referrer' src={getTeamFlag(String(String(match.home_team_id)), teams)} className="w-9 h-9 object-contain drop-shadow-sm" alt={String(String(match.home_team_id))} /><span className="text-gray-300 dark:text-gray-600 text-xs font-bold">X</span><img referrerPolicy='no-referrer' src={getTeamFlag(String(String(match.away_team_id)), teams)} className="w-9 h-9 object-contain drop-shadow-sm" alt={String(String(match.away_team_id))} /></div><div className="text-sm font-black text-gray-900 dark:text-white text-center uppercase tracking-tight">{getTeamNameForDisplay(match.home_team_id)} <span className="text-gray-400 dark:text-gray-500 font-normal mx-1">x</span> {getTeamNameForDisplay(match.away_team_id)}</div></div><div className="flex items-stretch rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden"><div className="flex-1 bg-gray-50 dark:bg-gray-700 p-2 flex flex-col items-center justify-center border-r border-gray-200 dark:border-gray-600"><span className="text-[9px] uppercase font-bold text-gray-400 dark:text-gray-500 mb-1">Placar Oficial</span><div className={`text-xl font-black ${isLive ? 'text-green-600 dark:text-green-400 animate-pulse' : 'text-gray-800 dark:text-white'}`}>{match.home_score ?? '-'} <span className="text-gray-300 dark:text-gray-600 text-sm">x</span> {match.away_score ?? '-'}</div></div><div className="flex-1 bg-white dark:bg-gray-800 p-2 flex flex-col items-center justify-center relative"><span className="text-[9px] uppercase font-bold text-brasil-blue dark:text-blue-400 mb-1">Palpite</span><div className="text-xl font-black text-gray-800 dark:text-white">{pred ? <>{pred.homeScore} <span className="text-gray-300 dark:text-gray-600 text-sm">x</span> {pred.awayScore}</> : <span className="text-gray-300 dark:text-gray-600">-</span>}</div>{(isFinished || isLive) && pred && (<div className={`absolute top-1 right-1 text-[9px] font-bold px-1.5 py-0.5 rounded ${histPoints > 0 ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'}`}>{histPoints > 0 ? `+${histPoints}` : '0'} pts</div>)}</div></div></div>); })}</div>{filteredHistory.length > histVisibleCount && (<div className="p-4 border-t border-gray-100 dark:border-gray-700"><button onClick={() => setHistVisibleCount(prev => prev + 20)} className="w-full bg-brasil-blue hover:bg-blue-600 text-white font-bold py-3 rounded-xl transition-colors shadow-sm text-sm">Carregar mais jogos (Mostrando {histVisibleCount} de {filteredHistory.length})</button></div>)}</>}
+                                ) : filteredHistory.length === 0 ? <div className="flex flex-col items-center justify-center h-48 text-gray-400 dark:text-gray-500 gap-2"><Search size={32} className="opacity-20" /><p className="text-sm italic">Nenhum palpite encontrado.</p></div> : <><div className="divide-y divide-gray-100 dark:divide-gray-700">{filteredHistory.slice(0, histVisibleCount).map(({ match, pred }) => { const isLive = match.status === MatchStatus.IN_PROGRESS; const isFinished = match.status === MatchStatus.FINISHED; const matchDate = new Date(match.date); const isDateValid = !isNaN(matchDate.getTime()); let histPoints = 0; if (match.is_blocked) { histPoints = 0; } else if ((isLive || isFinished) && match.home_score !== null && match.away_score !== null && pred) { histPoints = calculatePoints(Number(pred.homeScore), Number(pred.awayScore), Number(match.home_score), Number(match.away_score), league.settings); } return (<div key={String(String(match.id))} className="p-4 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors border-b border-gray-100 dark:border-gray-700 last:border-0"><div className="flex justify-between items-center mb-3 gap-2 flex-nowrap"><div className="flex items-center gap-1 min-[360px]:gap-1.5 sm:gap-2 text-[8px] min-[360px]:text-[9px] min-[380px]:text-[10px] uppercase font-bold text-gray-400 dark:text-gray-500 flex-nowrap whitespace-nowrap min-w-0 overflow-hidden"><Calendar size={10} className="shrink-0" /><span>{isDateValid ? matchDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : 'Data Inválida'}</span>{isDateValid && <span className="text-gray-300 dark:text-gray-600 shrink-0">|</span>}{isDateValid && <span>{matchDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>}<span> </span>{renderMatchBadge(match)}</div>{isLive && <span className="bg-red-500 text-white px-2 py-0.5 rounded text-[8px] min-[360px]:text-[9px] min-[380px]:text-[10px] font-bold animate-pulse whitespace-nowrap shrink-0">{match.match_time || 'AO VIVO'}</span>}</div><div className="flex flex-col items-center mb-4"><div className="flex items-center gap-6 mb-2"><img referrerPolicy='no-referrer' src={getTeamFlag(String(String(match.home_team_id)), teams)} className="w-9 h-9 object-contain drop-shadow-sm" alt={String(String(match.home_team_id))} /><span className="text-gray-300 dark:text-gray-600 text-xs font-bold">X</span><img referrerPolicy='no-referrer' src={getTeamFlag(String(String(match.away_team_id)), teams)} className="w-9 h-9 object-contain drop-shadow-sm" alt={String(String(match.away_team_id))} /></div><div className="text-sm font-black text-gray-900 dark:text-white text-center uppercase tracking-tight">{getTeamNameForDisplay(match.home_team_id)} <span className="text-gray-400 dark:text-gray-500 font-normal mx-1">x</span> {getTeamNameForDisplay(match.away_team_id)}</div></div><div className="flex items-stretch rounded-lg border border-gray-200 dark:border-gray-600 overflow-hidden"><div className="flex-1 bg-gray-50 dark:bg-gray-700 p-2 flex flex-col items-center justify-center border-r border-gray-200 dark:border-gray-600"><span className="text-[9px] uppercase font-bold text-gray-400 dark:text-gray-500 mb-1">Placar Oficial</span><div className={`text-xl font-black ${isLive ? 'text-green-600 dark:text-green-400 animate-pulse' : 'text-gray-800 dark:text-white'}`}>{match.home_score ?? '-'} <span className="text-gray-300 dark:text-gray-600 text-sm">x</span> {match.away_score ?? '-'}</div></div><div className="flex-1 bg-white dark:bg-gray-800 p-2 flex flex-col items-center justify-center relative"><span className="text-[9px] uppercase font-bold text-brasil-blue dark:text-blue-400 mb-1">Palpite</span><div className="text-xl font-black text-gray-800 dark:text-white">{pred ? <>{pred.homeScore} <span className="text-gray-300 dark:text-gray-600 text-sm">x</span> {pred.awayScore}</> : <span className="text-gray-300 dark:text-gray-600">-</span>}</div>{(isFinished || isLive) && pred && (<div className={`absolute top-1 right-1 text-[9px] font-bold px-1.5 py-0.5 rounded ${histPoints > 0 ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500'}`}>{histPoints > 0 ? `+${histPoints}` : '0'} pts</div>)}</div></div></div>); })}</div>{filteredHistory.length > histVisibleCount && (<div className="p-4 border-t border-gray-100 dark:border-gray-700"><button onClick={() => setHistVisibleCount(prev => prev + 20)} className="w-full bg-brasil-blue hover:bg-blue-600 text-white font-bold py-3 rounded-xl transition-colors shadow-sm text-sm">Carregar mais jogos (Mostrando {histVisibleCount} de {filteredHistory.length})</button></div>)}</>}
                             </div>
                         </div>
                     </div>, document.body
@@ -3818,8 +3859,8 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
                         />
                         <div><p className="font-bold text-gray-800 dark:text-white">{foundUser.name}</p><p className="text-xs text-gray-500 dark:text-gray-400">{foundUser.email}</p></div></div><button onClick={handleConfirmInvite} disabled={isSendingInvite} className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-lg shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-70">{isSendingInvite ? <Loader2 className="animate-spin" size={18} /> : <UserPlus size={18} />} Confirmar Convite</button></div>)}{searchStatus === 'not_found' && (<div className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-300 p-4 rounded-xl border border-red-200 dark:border-red-800 flex items-center gap-3 animate-in fade-in slide-in-from-top-2"><AlertCircle size={20} /><span className="font-medium text-sm">Usuário não encontrado. Verifique se o e-mail está correto e se o usuário já possui cadastro na Liga.</span></div>)}</>)}</div>
                 <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
-                    <h3 className="font-bold text-lg mb-4 text-gray-800 dark:text-white flex items-center gap-2"><Users size={20} className="text-brasil-blue dark:text-blue-400" /> Configurar Participantes Específicos</h3>
-                    <p className="text-sm text-gray-500 mb-4">Escolha os participantes que farão parte do ranking exclusivo de uma determinada rodada ou fase.</p>
+                    <h3 className="font-bold text-lg mb-4 text-gray-800 dark:text-white flex items-center gap-2"><Users size={20} className="text-brasil-blue dark:text-blue-400" /> Configurar Participantes Específicos (Tiro Curto)</h3>
+                    <p className="text-sm text-gray-500 mb-4">Escolha os participantes que farão parte do ranking de tiro curto de uma determinada rodada ou fase.</p>
                     <div className="space-y-4">
                         <div className="flex flex-col sm:flex-row gap-4">
                             <select value={adminSubpoolComp} onChange={(e) => { setAdminSubpoolComp(e.target.value); setAdminSubpoolPeriod(''); setAdminSubpoolUsers([]); }} className="p-3 bg-gray-100 dark:bg-gray-700 rounded-lg text-sm outline-none flex-1">

@@ -28,6 +28,7 @@ export const ProfilePage: React.FC = () => {
   const [notifyStart, setNotifyStart] = useState(true);
   const [notifyEnd, setNotifyEnd] = useState(true);
   const [notifyPrediction, setNotifyPrediction] = useState(true);
+  const [notifyGoals, setNotifyGoals] = useState(true);
 
   // Theme State
   const [selectedTheme, setSelectedTheme] = useState<'light' | 'dark'>('light');
@@ -43,6 +44,7 @@ export const ProfilePage: React.FC = () => {
       setNotifyStart(currentUser.notificationSettings?.matchStart ?? true);
       setNotifyEnd(currentUser.notificationSettings?.matchEnd ?? true);
       setNotifyPrediction(currentUser.notificationSettings?.predictionReminder ?? true);
+      setNotifyGoals(currentUser.notificationSettings?.matchGoals ?? true);
       // Set theme from user preference or fallback to global/current
       setSelectedTheme(currentUser.theme || globalTheme);
     }
@@ -77,12 +79,12 @@ export const ProfilePage: React.FC = () => {
         name,
         avatar,
         whatsapp,
-        { matchStart: notifyStart, matchEnd: notifyEnd, predictionReminder: notifyPrediction },
+        { matchStart: notifyStart, matchEnd: notifyEnd, predictionReminder: notifyPrediction, matchGoals: notifyGoals },
         selectedTheme
       );
       
       if (Capacitor.getPlatform() !== 'web') {
-        await updateTopicSubscriptions({ matchStart: notifyStart, matchEnd: notifyEnd, predictionReminder: notifyPrediction });
+        await updateTopicSubscriptions({ matchStart: notifyStart, matchEnd: notifyEnd, predictionReminder: notifyPrediction, matchGoals: notifyGoals });
       }
 
       setSuccessMessage('Perfil salvo com sucesso!');
@@ -418,23 +420,31 @@ export const ProfilePage: React.FC = () => {
               )}
 
               <div className="space-y-4">
-                {/* Match Start Toggle */}
-                <div className="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-3 rounded-xl border border-gray-100 dark:border-gray-600">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-blue-100 dark:bg-blue-900/50 p-2 rounded-lg text-blue-700 dark:text-blue-300">
+                {/* Match Start Toggle (PRO Only) */}
+                <div className={`flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-3 rounded-xl border border-gray-100 dark:border-gray-600 ${!currentUser.isPro ? 'opacity-50 pointer-events-none' : ''}`}>
+                  <div className="flex items-center gap-3 flex-1 min-w-0 pr-2">
+                    <div className="bg-blue-100 dark:bg-blue-900/50 p-2 rounded-lg text-blue-700 dark:text-blue-300 flex-shrink-0">
                       <PlayCircle size={20} />
                     </div>
-                    <div>
-                      <p className="font-bold text-gray-800 dark:text-gray-200 text-sm">Início de Jogo</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">Receber alerta quando a bola rolar.</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-gray-800 dark:text-gray-200 text-sm truncate flex items-center gap-2">
+                        Início de Jogo
+                        {!currentUser.isPro && (
+                          <span className="text-[9px] bg-gradient-to-r from-yellow-200 to-amber-300 text-gray-900 px-1.5 py-0.5 rounded shadow-sm border border-yellow-300 uppercase tracking-wider">
+                            PRO
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate md:whitespace-normal md:overflow-visible">Receber alerta quando a bola rolar.</p>
                     </div>
                   </div>
                   <button
                     type="button"
                     onClick={() => setNotifyStart(!notifyStart)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brasil-blue ${notifyStart ? 'bg-brasil-green' : 'bg-gray-300 dark:bg-gray-600'}`}
+                    disabled={!currentUser.isPro}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brasil-blue flex-shrink-0 ${notifyStart && currentUser.isPro ? 'bg-brasil-green' : 'bg-gray-300 dark:bg-gray-600'}`}
                   >
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition duration-200 ease-in-out ${notifyStart ? 'translate-x-6' : 'translate-x-1'}`} />
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition duration-200 ease-in-out ${(notifyStart && currentUser.isPro) ? 'translate-x-6' : 'translate-x-1'}`} />
                   </button>
                 </div>
 
@@ -475,6 +485,34 @@ export const ProfilePage: React.FC = () => {
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brasil-blue flex-shrink-0 ${notifyPrediction ? 'bg-brasil-green' : 'bg-gray-300 dark:bg-gray-600'}`}
                   >
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition duration-200 ease-in-out ${notifyPrediction ? 'translate-x-6' : 'translate-x-1'}`} />
+                  </button>
+                </div>
+
+                {/* Match Goals Toggle (PRO Only) */}
+                <div className={`flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-3 rounded-xl border border-gray-100 dark:border-gray-600 ${!currentUser.isPro ? 'opacity-50 pointer-events-none' : ''}`}>
+                  <div className="flex items-center gap-3 flex-1 min-w-0 pr-2">
+                    <div className="bg-red-100 dark:bg-red-900/50 p-2 rounded-lg text-red-700 dark:text-red-300 flex-shrink-0">
+                      ⚽
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-gray-800 dark:text-gray-200 text-sm truncate flex items-center gap-2">
+                        Gols e VAR
+                        {!currentUser.isPro && (
+                          <span className="text-[9px] bg-gradient-to-r from-yellow-200 to-amber-300 text-gray-900 px-1.5 py-0.5 rounded shadow-sm border border-yellow-300 uppercase tracking-wider">
+                            PRO
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate md:whitespace-normal md:overflow-visible">Receber alerta de gols e anulações (VAR).</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setNotifyGoals(!notifyGoals)}
+                    disabled={!currentUser.isPro}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brasil-blue flex-shrink-0 ${notifyGoals && currentUser.isPro ? 'bg-brasil-green' : 'bg-gray-300 dark:bg-gray-600'}`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition duration-200 ease-in-out ${(notifyGoals && currentUser.isPro) ? 'translate-x-6' : 'translate-x-1'}`} />
                   </button>
                 </div>
               </div>
