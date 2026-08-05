@@ -372,9 +372,14 @@ async function processMatches(supabase: any) {
         const newAwayScore = jogoAPI.goals.away ?? 0;
         const scoreChanged = (newHomeScore !== oldHomeScore) || (newAwayScore !== oldAwayScore);
 
+        if (scoreChanged) {
+            console.log(`[match: ${matchId}] Placar mudou (${oldHomeScore}x${oldAwayScore} -> ${newHomeScore}x${newAwayScore}). Aguardando 15s para a API atualizar eventos...`);
+            await new Promise(resolve => setTimeout(resolve, 15000));
+        }
+
         if (iteracao === 1 || scoreChanged) {
           try {
-            // Busca eventos a cada 1 minuto (ou imediatamente se houver gol)
+            // Busca eventos a cada 1 minuto (ou imediatamente após delay se houver gol)
             const eventsRes = await fetch(`https://v3.football.api-sports.io/fixtures/events?fixture=${matchId}`, {
               headers: { "x-apisports-key": API_FOOTBALL_KEY }
             });
@@ -404,29 +409,55 @@ async function processMatches(supabase: any) {
            matchDb.home_score = newHomeScore;
            matchDb.away_score = newAwayScore;
 
-           let eventTitle = "⚽ GOL DO JOGO!";
-           let eventBody = "O placar acabou de mudar!";
+           const homeTeamName = teamsData?.find((t: any) => t.id === Number(matchDb.home_team_id))?.short_name || jogoAPI.teams.home.name;
+           const awayTeamName = teamsData?.find((t: any) => t.id === Number(matchDb.away_team_id))?.short_name || jogoAPI.teams.away.name;
+           const scoreText = `(${newHomeScore} x ${newAwayScore})`;
+
+           // Fallback inteligente inferido pela mudança do placar
+           let eventTitle = "⚽ GOL NA PARTIDA!";
+           let eventBody = `O placar acabou de mudar! ${scoreText}`;
            
+           if (newHomeScore > oldHomeScore) {
+               eventTitle = `⚽ GOL DO ${String(homeTeamName).toUpperCase()}! ${scoreText}`;
+               eventBody = `Abra o app e confira as pontuações!`;
+           } else if (newAwayScore > oldAwayScore) {
+               eventTitle = `⚽ GOL DO ${String(awayTeamName).toUpperCase()}! ${scoreText}`;
+               eventBody = `Abra o app e confira as pontuações!`;
+           }
+
+           let eventFound = false;
            if (currentEvents && Array.isArray(currentEvents)) {
                const relevantEvents = currentEvents.filter((ev: any) => ev.type === 'Goal' || ev.type === 'Var');
                if (relevantEvents.length > 0) {
                    const lastEv = relevantEvents[relevantEvents.length - 1];
                    
-                   const homeTeamName = teamsData?.find((t: any) => t.id === Number(matchDb.home_team_id))?.short_name || jogoAPI.teams.home.name;
-                   const awayTeamName = teamsData?.find((t: any) => t.id === Number(matchDb.away_team_id))?.short_name || jogoAPI.teams.away.name;
-                   const scoreText = `(${newHomeScore} x ${newAwayScore})`;
-                   
                    if (lastEv.type === 'Var' && lastEv.detail === 'Goal cancelled') {
                        eventTitle = `❌ GOL ANULADO! ${scoreText}`;
                        eventBody = `O VAR anulou o último lance.`;
+                       eventFound = true;
                    } else if (lastEv.type === 'Goal' && lastEv.detail !== 'Missed Penalty') {
-                       const scoringTeamName = lastEv.team.id === jogoAPI.teams.home.id ? homeTeamName : awayTeamName;
-                       eventTitle = `⚽ GOL DO ${String(scoringTeamName).toUpperCase()}! ${scoreText}`;
-                       let assistStr = (lastEv.assist && lastEv.assist.name) ? ` (Assistência: ${lastEv.assist.name})` : '';
-                       if (lastEv.detail === 'Own Goal') assistStr = ' (GOL CONTRA)';
-                       eventBody = `${lastEv.player.name} marcou${assistStr}`;
+                       const eventTeamId = lastEv.team.id;
+                       const justScoredHome = newHomeScore > oldHomeScore;
+                       const justScoredAway = newAwayScore > oldAwayScore;
+                       
+                       // Verifica se o evento corresponde ao time que acabou de marcar
+                       if ((justScoredHome && eventTeamId === jogoAPI.teams.home.id) || 
+                           (justScoredAway && eventTeamId === jogoAPI.teams.away.id) ||
+                           (!justScoredHome && !justScoredAway)) 
+                       {
+                           const scoringTeamName = eventTeamId === jogoAPI.teams.home.id ? homeTeamName : awayTeamName;
+                           eventTitle = `⚽ GOL DO ${String(scoringTeamName).toUpperCase()}! ${scoreText}`;
+                           let assistStr = (lastEv.assist && lastEv.assist.name) ? ` (Assistência: ${lastEv.assist.name})` : '';
+                           if (lastEv.detail === 'Own Goal') assistStr = ' (GOL CONTRA)';
+                           eventBody = `${lastEv.player.name} marcou${assistStr}`;
+                           eventFound = true;
+                       }
                    }
                }
+           }
+           
+           if (!eventFound) {
+               console.log(`[match: ${matchId}] Lance detalhado não chegou a tempo da API-Sports. Enviando Push Fallback.`);
            }
            
            const leagueId = jogoAPI.league?.id;
