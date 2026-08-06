@@ -528,6 +528,9 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   // --- REVENUECAT INITIALIZATION ---
   useEffect(() => {
+    // Limpa a flag de reload de chunk quando o app carrega com sucesso
+    try { sessionStorage.removeItem('reloaded_for_chunk_error'); } catch (e) {}
+
     const initRevenueCat = async () => {
       if (Capacitor.isNativePlatform()) {
         try {
