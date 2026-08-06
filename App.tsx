@@ -1238,11 +1238,11 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     // M8: verificação de timestamp do servidor — detecta edições manuais de admin
     const isAdmin = currentUserRef.current?.isAdmin || currentUserRef.current?.isMatchAdmin;
     if (!hasLiveMatch && !isAdmin && brasileiraoMatches.length > 0) {
-      const allHaveDailyCache = comps.every(comp => {
-        const dailyKey = fetchAll ? `br_daily_${comp}_all_${today}` : `br_daily_${comp}_${today}`;
-        return localStorage.getItem(dailyKey) === 'true';
+      const allHaveActiveCache = comps.every(comp => {
+        const activeKey = fetchAll ? `br_active_infinite_v1_${comp}_all` : `br_active_infinite_v1_${comp}`;
+        return localStorage.getItem(activeKey) === 'true';
       });
-      if (allHaveDailyCache) {
+      if (allHaveActiveCache) {
         // M8: Micro-query (~50 bytes) — verificar se o admin editou algo desde o último fetch
         const cacheDownloadedAt = localStorage.getItem('br_matches_downloaded_at');
         try {
@@ -1252,10 +1252,12 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             console.log(`[M8 cache] Timestamp ok. Servindo ${comps.join(',')} da memória.`);
             return;
           }
-          // M8 detectou edição do admin — limpar cache longo (finalizados) também
-          console.log(`[M8 cache] Timestamp do servidor mais recente. Invalidando cache longo e refazendo fetch de ${comps.join(',')}.`);
+          // M8 detectou edição do admin — limpar ambos os caches infinitos
+          console.log(`[M8 cache] Timestamp do servidor mais recente. Invalidando caches infinitos e refazendo fetch de ${comps.join(',')}.`);
           comps.forEach(comp => {
-            localStorage.removeItem(`br_finished_${comp}_all_week_v2`);
+            localStorage.removeItem(`br_finished_infinite_v1_${comp}`);
+            const activeKey = fetchAll ? `br_active_infinite_v1_${comp}_all` : `br_active_infinite_v1_${comp}`;
+            localStorage.removeItem(activeKey);
           });
         } catch {
           // Se a query falhar (sem rede etc.), servir da memória mesmo assim
@@ -1267,28 +1269,23 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 
     try {
-      // ─── Cache longo: jogos FINISHED (7 dias) ────────────────────────────────
-      // Chave baseada na semana ISO para renovar automaticamente a cada 7 dias
-      const getWeekKey = () => {
-        const d = new Date();
-        const startOfYear = new Date(d.getFullYear(), 0, 1);
-        const week = Math.ceil(((d.getTime() - startOfYear.getTime()) / 86400000 + startOfYear.getDay() + 1) / 7);
-        return `${d.getFullYear()}_W${week}`;
-      };
-      const weekKey = getWeekKey();
+      // ─── Cache infinito: jogos FINISHED ──────────────────────────────────────
+      // Sem expiração por TTL — invalidado apenas pelo M8 quando o admin editar
+      // algo no banco (trigger em app_settings.last_updated_at).
+      // Elimina o stampede semanal que ocorria quando weekKey expirava para todos.
+      const FINISHED_CACHE_KEY = 'br_finished_infinite_v1';
 
       let finishedMatchesData: any[] = [];
-      // Chave unificada: finalizados sempre buscados sem filtro de rodada (todas as rodadas)
       const allHaveFinishedCache = comps.every(comp =>
-        localStorage.getItem(`br_finished_${comp}_all_week_v2`) === weekKey
+        localStorage.getItem(`${FINISHED_CACHE_KEY}_${comp}`) === 'true'
       );
 
       if (allHaveFinishedCache && !hasLiveMatch) {
-        // Caso normal: sem jogo ao vivo → usa cache semanal do store
+        // Cache infinito válido: serve direto da memória
         finishedMatchesData = brasileiraoMatchesRef.current.filter(m =>
           comps.includes(m.championship || 'brasileirao') && m.status === MatchStatus.FINISHED
         );
-        console.log(`[Cache longo] Finalizados servidos da memória (semana ${weekKey}).`);
+        console.log(`[Cache infinito] Finalizados servidos da memória.`);
       } else if (allHaveFinishedCache && hasLiveMatch) {
         // Jogo ao vivo no store: pode ter passado para FINISHED enquanto o app estava fechado.
         // Busca APENAS os jogos que estavam IN_PROGRESS por ID (micro-query mínima).
@@ -1318,7 +1315,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               ...restFinished.filter(m => !refreshedIds.has(m.id)),
               ...refreshed
             ];
-            console.log(`[Cache longo] ${liveIds.length} jogos ao vivo verificados por ID. Cache semanal mantido.`);
+            console.log(`[Cache infinito] ${liveIds.length} jogos ao vivo verificados por ID. Cache infinito mantido.`);
           } catch {
             finishedMatchesData = restFinished;
           }
@@ -1326,12 +1323,12 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           finishedMatchesData = restFinished;
         }
       } else {
-        // Sem cache semanal: baixar TODOS os finalizados do banco (sem filtro de rodada)
+        // Sem cache: baixar TODOS os finalizados do banco
         finishedMatchesData = await api.brasileiraoMatches.listByCompetitionsFinished(comps, true);
-        console.log(`[Cache longo] ${finishedMatchesData.length} jogos finalizados baixados do banco (todas as rodadas).`);
-        // Marcar cache semanal com chave unificada
+        console.log(`[Cache infinito] ${finishedMatchesData.length} jogos finalizados baixados do banco.`);
+        // Marcar cache infinito — só será invalidado pelo M8 quando admin editar
         comps.forEach(comp => {
-          localStorage.setItem(`br_finished_${comp}_all_week_v2`, weekKey);
+          localStorage.setItem(`${FINISHED_CACHE_KEY}_${comp}`, 'true');
         });
       }
 
@@ -1397,17 +1394,17 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         comps.forEach(comp => {
           const cacheKey = fetchAll ? `${comp}_all` : comp;
           lastFetchedCompsRef.current[cacheKey] = now;
-          // M4: Marcar cache diário ao finalizar fetch bem-sucedido
-          const dailyKey = fetchAll ? `br_daily_${comp}_all_${today}` : `br_daily_${comp}_${today}`;
-          localStorage.setItem(dailyKey, 'true');
+          // Marcar cache infinito de ativos ao finalizar fetch bem-sucedido
+          const activeKey = fetchAll ? `br_active_infinite_v1_${comp}_all` : `br_active_infinite_v1_${comp}`;
+          localStorage.setItem(activeKey, 'true');
         });
         // M8: Salvar o momento exato do download para comparar com o timestamp do servidor depois
         localStorage.setItem('br_matches_downloaded_at', new Date().toISOString());
 
-        // M4: Limpar caches de datas anteriores (mantém apenas o dia atual)
+        // Migração: limpar chaves legadas br_daily_* que não são mais usadas
         for (let i = localStorage.length - 1; i >= 0; i--) {
           const key = localStorage.key(i);
-          if (key?.startsWith('br_daily_') && !key.includes(today)) {
+          if (key?.startsWith('br_daily_') && !key.startsWith('br_daily_teams_')) {
             localStorage.removeItem(key);
           }
         }
