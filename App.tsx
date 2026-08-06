@@ -646,10 +646,12 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('force_sync_live_matches', checkAndSyncMatches);
 
     return () => {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('force_sync_live_matches', checkAndSyncMatches);
     };
   }, [brasileiraoMatches.length]);
 

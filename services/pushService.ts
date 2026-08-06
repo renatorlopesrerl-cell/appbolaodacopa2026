@@ -150,6 +150,8 @@ export const setupPushNotifications = async (userId: string, force: boolean = fa
 
             await PushNotifications.addListener('pushNotificationReceived', (notification) => {
                 console.log('Push notification received:', notification);
+                // Força a atualização do placar imediatamente na tela
+                window.dispatchEvent(new Event('force_sync_live_matches'));
                 // Show as local notification if app is in foreground
                 LocalNotifications.schedule({
                     notifications: [{

@@ -36,6 +36,12 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
   }
 
   static getDerivedStateFromError(error: Error) {
+    if (error.message.includes('Failed to fetch dynamically imported module') || error.message.includes('Importing a module script failed')) {
+      if (!sessionStorage.getItem('reloaded_for_chunk_error')) {
+        sessionStorage.setItem('reloaded_for_chunk_error', 'true');
+        window.location.reload();
+      }
+    }
     return { hasError: true, error };
   }
 
