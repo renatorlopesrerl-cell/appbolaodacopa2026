@@ -446,7 +446,7 @@ export const LeagueDetailsBrasileirao: React.FC = () => {
             
             const { data, error } = await supabase
                 .from('brasileirao_matches')
-                .select('*')
+                .select('id, home_team_id, away_team_id, date, location, phase, status, home_score, away_score, championship, is_blocked, match_time')
                 .or(`home_team_id.eq.${sm.home_team_id},away_team_id.eq.${sm.home_team_id},home_team_id.eq.${sm.away_team_id},away_team_id.eq.${sm.away_team_id}`)
                 .in('championship', comps)
                 .lt('date', sm.date)

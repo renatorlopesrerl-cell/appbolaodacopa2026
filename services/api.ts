@@ -410,8 +410,9 @@ export const api = {
     brasileiraoMatches: {
         list: () => apiFetch<any[]>('/brasileirao-matches'),
         listByCompetitions: async (comps: string[], fetchAll: boolean = false, excludeFinished: boolean = false) => {
+            const MATCH_COLUMNS = 'id, home_team_id, away_team_id, date, location, phase, status, home_score, away_score, championship, is_blocked, match_time';
             const data = await supabaseWithRetry(async () => {
-                let query = supabase.from('brasileirao_matches').select('*').in('championship', comps);
+                let query = supabase.from('brasileirao_matches').select(MATCH_COLUMNS).in('championship', comps);
                 
                 if (!fetchAll) {
                     query = query.not('phase', 'ilike', '%group stage%')
@@ -438,10 +439,11 @@ export const api = {
         },
         // Cache longo (7 dias): busca apenas jogos FINISHED (raramente mudam)
         listByCompetitionsFinished: async (comps: string[], fetchAll: boolean = false) => {
+            const MATCH_COLUMNS = 'id, home_team_id, away_team_id, date, location, phase, status, home_score, away_score, championship, is_blocked, match_time';
             const data = await supabaseWithRetry(async () => {
                 let query = supabase
                     .from('brasileirao_matches')
-                    .select('*')
+                    .select(MATCH_COLUMNS)
                     .in('championship', comps)
                     .eq('status', 'FINISHED');
 

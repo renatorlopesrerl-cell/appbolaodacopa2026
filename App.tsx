@@ -596,7 +596,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
       if (liveMatchesIds.length > 0) {
         try {
           const { data, error } = await supabase.from('brasileirao_matches')
-            .select('*')
+            .select('id, home_team_id, away_team_id, date, location, phase, status, home_score, away_score, championship, is_blocked, match_time')
             .in('id', liveMatchesIds);
             
           if (error || !data) return;
@@ -1303,7 +1303,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           try {
             const { data } = await supabase
               .from('brasileirao_matches')
-              .select('*')
+              .select('id, home_team_id, away_team_id, date, location, phase, status, home_score, away_score, championship, is_blocked, match_time')
               .in('id', liveIds);
             const refreshed = (data || []).map((m: any): BrasileiraoMatch => ({
               id: m.id, home_team_id: m.home_team_id, away_team_id: m.away_team_id,
@@ -1439,7 +1439,7 @@ const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     try {
       // M3: Removida chamada inútil a api.brasileiraoMatches.listByCompetitions — busca diretamente por IDs específicos
       const { data, error } = await supabase.from('brasileirao_matches')
-        .select('*')
+        .select('id, home_team_id, away_team_id, date, location, phase, status, home_score, away_score, championship, is_blocked, match_time')
         .in('id', liveMatchesIds);
 
       if (error || !data) return;
