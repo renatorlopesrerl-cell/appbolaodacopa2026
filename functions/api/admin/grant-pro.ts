@@ -7,7 +7,7 @@ export const onRequest = async ({ request, env }: { request: Request; env: any }
 
     try {
         const body = await request.json() as any;
-        const { emails, userIds } = body;
+        const { emails, userIds, action = 'grant' } = body;
 
         if ((!emails || !Array.isArray(emails) || emails.length === 0) && (!userIds || !Array.isArray(userIds) || userIds.length === 0)) {
             return errorResponse(new Error('emails or userIds array is required'), 400);
@@ -15,15 +15,23 @@ export const onRequest = async ({ request, env }: { request: Request; env: any }
 
         const adminClient = getSupabaseClient(env);
         
-        // Data fixa solicitada: 31/12/2026 às 23:00 (Fuso de Brasília: -03:00)
         const proExpiresAt = "2026-12-31T23:00:00-03:00";
+
+        let updatePayload: any = {
+            is_pro: true,
+            pro_expires_at: proExpiresAt
+        };
+
+        if (action === 'revoke') {
+            updatePayload = {
+                is_pro: false,
+                pro_expires_at: null
+            };
+        }
 
         let query = adminClient
             .from('profiles')
-            .update({ 
-                is_pro: true,
-                pro_expires_at: proExpiresAt
-            });
+            .update(updatePayload);
 
         if (userIds && userIds.length > 0) {
             query = query.in('id', userIds);

@@ -284,6 +284,8 @@ export const api = {
             apiFetch<{ success: boolean, count: number, missingEmails: string[], data: any }>('/admin/grant-pro', { method: 'POST', body: JSON.stringify({ emails }) }),
         grantProByIds: (userIds: string[]) =>
             apiFetch<{ success: boolean, count: number, data: any }>('/admin/grant-pro', { method: 'POST', body: JSON.stringify({ userIds }) }),
+        revokeProByIds: (userIds: string[]) =>
+            apiFetch<{ success: boolean, count: number, data: any }>('/admin/grant-pro', { method: 'POST', body: JSON.stringify({ userIds, action: 'revoke' }) }),
         testPush: () => apiFetch<any>('/admin/test-push'),
         broadcastPush: (body: any) => apiFetch<any>('/admin/broadcast-push', { method: 'POST', body: JSON.stringify(body) }),
         sendMassPush: (body: { title: string, message: string, urlData?: any, targetTopic?: string, championship?: string }) =>

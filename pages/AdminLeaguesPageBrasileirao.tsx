@@ -152,6 +152,27 @@ export const AdminLeaguesPageBrasileirao: React.FC = () => {
         }
     };
 
+    const handleRevokeProFromLeague = async (leagueId: string, participants: string[], leagueName: string) => {
+        if (!window.confirm(`Deseja TIRAR o acesso PRO de todos os ${participants.length} participantes da liga ${leagueName}?`)) {
+            return;
+        }
+
+        setIsGrantingPro(leagueId + '_revoke');
+        try {
+            const result = await api.admin.revokeProByIds(participants);
+            if (result.success && result.count > 0) {
+                showToast(`PRO removido de ${result.count} usuários da liga!`);
+            } else {
+                showToast(`Nenhum usuário foi atualizado.`);
+            }
+        } catch (e: any) {
+            console.error("Error revoking PRO:", e);
+            showToast("Erro ao remover PRO.");
+        } finally {
+            setIsGrantingPro(null);
+        }
+    };
+
     const filteredLeagues = leaguesSource
         .filter(l =>
             l.name.toLowerCase().includes(leagueSearch.toLowerCase()) ||
@@ -445,11 +466,19 @@ export const AdminLeaguesPageBrasileirao: React.FC = () => {
                                         <td className="px-4 py-3 text-right flex justify-end gap-2">
                                             <button
                                                 onClick={() => handleGrantProToLeague(l.id, l.participants, l.name)}
-                                                disabled={isGrantingPro === l.id}
+                                                disabled={isGrantingPro === l.id || isGrantingPro === l.id + '_revoke'}
                                                 className="px-3 py-1.5 rounded text-xs font-bold transition-colors bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 hover:bg-yellow-200 dark:hover:bg-yellow-900/50 border border-yellow-300 dark:border-yellow-700 disabled:opacity-50 flex items-center gap-1"
                                                 title="Dar PRO para todos os membros desta liga"
                                             >
                                                 {isGrantingPro === l.id ? <div className="w-3 h-3 border-2 border-yellow-600 border-t-transparent rounded-full animate-spin"></div> : <Crown size={14} />} PRO
+                                            </button>
+                                            <button
+                                                onClick={() => handleRevokeProFromLeague(l.id, l.participants, l.name)}
+                                                disabled={isGrantingPro === l.id || isGrantingPro === l.id + '_revoke'}
+                                                className="px-3 py-1.5 rounded text-xs font-bold transition-colors bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 disabled:opacity-50 flex items-center gap-1"
+                                                title="Tirar PRO de todos os membros desta liga"
+                                            >
+                                                {isGrantingPro === l.id + '_revoke' ? <div className="w-3 h-3 border-2 border-gray-500 border-t-transparent rounded-full animate-spin"></div> : null} Tirar PRO
                                             </button>
                                             <button
                                                 onClick={() => cycleLeaguePlan(l.id, plan)}
@@ -541,14 +570,22 @@ export const AdminLeaguesPageBrasileirao: React.FC = () => {
                                 )}
                             </div>
 
-                            <div className="flex gap-2 ml-3 mt-1 mr-3">
+                            <div className="flex flex-wrap gap-2 ml-3 mt-1 mr-3">
                                 <button
                                     onClick={() => handleGrantProToLeague(l.id, l.participants, l.name)}
-                                    disabled={isGrantingPro === l.id}
+                                    disabled={isGrantingPro === l.id || isGrantingPro === l.id + '_revoke'}
                                     className="py-2.5 px-3 rounded-lg font-bold text-xs transition-colors bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 hover:bg-yellow-200 dark:hover:bg-yellow-900/50 border border-yellow-300 dark:border-yellow-700 flex items-center justify-center gap-1 flex-1 uppercase tracking-wide disabled:opacity-50"
                                     title="Dar PRO para a liga"
                                 >
                                     {isGrantingPro === l.id ? <div className="w-3 h-3 border-2 border-yellow-600 border-t-transparent rounded-full animate-spin"></div> : <Crown size={14} />} PRO
+                                </button>
+                                <button
+                                    onClick={() => handleRevokeProFromLeague(l.id, l.participants, l.name)}
+                                    disabled={isGrantingPro === l.id || isGrantingPro === l.id + '_revoke'}
+                                    className="py-2.5 px-3 rounded-lg font-bold text-xs transition-colors bg-gray-100 dark:bg-gray-800 text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-300 dark:border-gray-600 flex items-center justify-center gap-1 flex-1 uppercase tracking-wide disabled:opacity-50"
+                                    title="Tirar PRO para a liga"
+                                >
+                                    {isGrantingPro === l.id + '_revoke' ? <div className="w-3 h-3 border-2 border-gray-500 border-t-transparent rounded-full animate-spin"></div> : null} Tirar PRO
                                 </button>
                                 <button
                                     onClick={() => cycleLeaguePlan(l.id, plan)}
