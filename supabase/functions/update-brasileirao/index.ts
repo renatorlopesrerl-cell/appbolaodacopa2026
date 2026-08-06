@@ -305,13 +305,19 @@ async function processMatches(supabase: any) {
         let matchTimeStr = null;
         if (["1H", "2H", "ET"].includes(statusShort)) {
           const tempo = statusShort === "1H" ? "1º T" : statusShort === "2H" ? "2º T" : "Prorrog.";
-          matchTimeStr = `${tempo} - ${jogoAPI.fixture.status.elapsed}'`;
+          const elapsed = jogoAPI.fixture.status.elapsed;
+          const extra = jogoAPI.fixture.status.extra;
+          const timeText = extra ? `${elapsed}+${extra}` : `${elapsed}`;
+          matchTimeStr = `${tempo} - ${timeText}'`;
         } else if (statusShort === "HT") {
           matchTimeStr = "Intervalo";
         } else if (statusShort === "P") {
           matchTimeStr = "Pênaltis";
         } else if (statusShort === "LIVE") {
-          matchTimeStr = `${jogoAPI.fixture.status.elapsed}'`;
+          const elapsed = jogoAPI.fixture.status.elapsed;
+          const extra = jogoAPI.fixture.status.extra;
+          const timeText = extra ? `${elapsed}+${extra}` : `${elapsed}`;
+          matchTimeStr = `${timeText}'`;
         }
 
         const matchDb = jogosAtivos.find(j => j.id === matchId);
