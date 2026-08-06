@@ -5,7 +5,7 @@ import { useStore } from '../App';
 import { api } from '../services/api';
 import { Match, BrasileiraoMatch, MatchStatus, Phase, BRAZIL_MATCH_IDS } from '../types';
 import { GROUPS_CONFIG, getMatchRound } from '../services/dataService';
-import { Edit2, Save, X, Filter, ChevronDown, ArrowLeft, Database, Trophy, Calendar, Clock, Loader2, Goal, Medal, Trash2, Bell } from 'lucide-react';
+import { Edit2, Save, X, Filter, ChevronDown, ArrowLeft, Database, Trophy, Calendar, Clock, Loader2, Goal, Medal, Trash2, Bell, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export const AdminMatchesPageBrasileirao: React.FC = () => {
   const navigate = useNavigate();
@@ -299,6 +299,87 @@ export const AdminMatchesPageBrasileirao: React.FC = () => {
     return dateA - dateB;
   });
 
+  const PAGE_SIZE = 50;
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageInput, setPageInput] = useState('');
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [adminCompetition, adminSubPeriod]);
+
+  const totalPages = Math.max(1, Math.ceil(sortedMatches.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const pagedMatches = sortedMatches.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
+  const goToPage = (page: number) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+  };
+
+  const Pagination = () => (
+    <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 rounded-b-xl">
+        <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+            <span className="font-bold text-gray-700 dark:text-gray-200">{sortedMatches.length}</span> jogos encontrados
+            {' · '}página <span className="font-bold text-gray-700 dark:text-gray-200">{safePage}</span> de <span className="font-bold text-gray-700 dark:text-gray-200">{totalPages}</span>
+        </div>
+        <div className="flex items-center gap-2">
+            <form
+                className="flex items-center gap-1 hidden md:flex"
+                onSubmit={(e) => {
+                    e.preventDefault();
+                    const n = parseInt(pageInput);
+                    if (!isNaN(n)) goToPage(n);
+                    setPageInput('');
+                }}
+            >
+                <span className="text-xs text-gray-500">Ir para:</span>
+                <input
+                    type="number"
+                    min={1}
+                    max={totalPages}
+                    value={pageInput}
+                    onChange={e => setPageInput(e.target.value)}
+                    placeholder={String(safePage)}
+                    className="w-14 text-center bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-800 dark:text-white rounded px-2 py-1 text-xs outline-none focus:border-brasil-blue"
+                />
+            </form>
+            <button
+                onClick={() => goToPage(safePage - 1)}
+                disabled={safePage <= 1}
+                className="p-1.5 rounded-lg bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                title="Página anterior"
+            >
+                <ChevronLeft size={16} />
+            </button>
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let page: number;
+                if (totalPages <= 5) page = i + 1;
+                else if (safePage <= 3) page = i + 1;
+                else if (safePage >= totalPages - 2) page = totalPages - 4 + i;
+                else page = safePage - 2 + i;
+                return (
+                    <button
+                        key={page}
+                        onClick={() => goToPage(page)}
+                        className={`w-8 h-8 rounded-lg text-xs font-bold transition-colors border ${page === safePage
+                            ? 'bg-brasil-blue text-white border-brasil-blue shadow-sm'
+                            : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600'
+                        }`}
+                    >
+                        {page}
+                    </button>
+                );
+            })}
+            <button
+                onClick={() => goToPage(safePage + 1)}
+                disabled={safePage >= totalPages}
+                className="p-1.5 rounded-lg bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                title="Próxima página"
+            >
+                <ChevronRight size={16} />
+            </button>
+        </div>
+    </div>
+  );
 
   const groupsList = Object.keys(GROUPS_CONFIG);
 
@@ -407,7 +488,7 @@ export const AdminMatchesPageBrasileirao: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                {sortedMatches.map(match => {
+                {pagedMatches.map(match => {
                   
                   const matchDate = new Date(match.date);
                   const isDateValid = !isNaN(matchDate.getTime());
@@ -530,10 +611,12 @@ export const AdminMatchesPageBrasileirao: React.FC = () => {
                 })}
               </tbody>
             </table>
-            {sortedMatches.length === 0 && (
-              <div className="text-center py-8 text-gray-400 italic bg-gray-50 dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700">
+            {sortedMatches.length === 0 ? (
+              <div className="text-center py-8 text-gray-400 italic bg-gray-50 dark:bg-gray-800 border-t border-gray-100 dark:border-gray-700 rounded-b-xl">
                 Nenhum jogo encontrado.
               </div>
+            ) : (
+              <Pagination />
             )}
           </div>
         </div>
