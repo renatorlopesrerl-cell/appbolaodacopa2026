@@ -21,6 +21,7 @@ export const AdminLeaguesPageBrasileirao: React.FC = () => {
     const [addingCompetitionsLeagueId, setAddingCompetitionsLeagueId] = useState<string | null>(null);
     const [selectedNewCompetitions, setSelectedNewCompetitions] = useState<string[]>([]);
     const [adminNames, setAdminNames] = useState<Record<string, string>>({});
+    const [adminEmails, setAdminEmails] = useState<Record<string, string>>({});
     const [isGrantingPro, setIsGrantingPro] = useState<string | null>(null);
     const [allAdminLeagues, setAllAdminLeagues] = useState<any[]>([]); // M2b: lista completa para admin geral
     const [isLoadingAll, setIsLoadingAll] = useState(false);
@@ -62,10 +63,13 @@ export const AdminLeaguesPageBrasileirao: React.FC = () => {
                     const profiles = await api.profiles.getByIds(missingIds);
                     if (profiles) {
                         const newNames: Record<string, string> = {};
+                        const newEmails: Record<string, string> = {};
                         profiles.forEach((p: any) => {
                             newNames[p.id] = p.name || p.email?.split('@')[0] || 'Usuário';
+                            if (p.email) newEmails[p.id] = p.email;
                         });
                         setAdminNames(prev => ({ ...prev, ...newNames }));
+                        setAdminEmails(prev => ({ ...prev, ...newEmails }));
                     }
                 } catch (e) {
                     console.error("Failed to fetch admin names", e);
@@ -439,7 +443,14 @@ export const AdminLeaguesPageBrasileirao: React.FC = () => {
                                                 )}
                                             </div>
                                         </td>
-                                        <td className="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">{adminName || (isSyncing ? 'Carregando...' : l.adminId?.slice(0, 8) + '...')}</td>
+                                        <td className="px-4 py-3 text-xs">
+                                            <div className="font-medium text-gray-700 dark:text-gray-300">
+                                                {adminName || (isSyncing ? 'Carregando...' : l.adminId?.slice(0, 8) + '...')}
+                                            </div>
+                                            <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5 font-mono">
+                                                {users.find(u => u.id === l.adminId)?.email || adminEmails[l.adminId] || ''}
+                                            </div>
+                                        </td>
                                         <td className="px-4 py-3 text-center font-bold text-gray-800 dark:text-gray-100">{l.participants.length}</td>
                                         <td className="px-4 py-3 text-center">
                                             <PlanBadge plan={plan} />
@@ -482,7 +493,7 @@ export const AdminLeaguesPageBrasileirao: React.FC = () => {
                                             </button>
                                             <button
                                                 onClick={() => cycleLeaguePlan(l.id, plan)}
-                                                className="px-3 py-1.5 rounded text-xs font-bold transition-colors bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600"
+                                                className="px-3 py-1.5 rounded text-xs font-bold transition-colors bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800"
                                                 title="Alternar: FREE -> BÁSICO -> TOP -> MASTER -> ILIMITADO -> FREE"
                                             >
                                                 Plano
@@ -533,6 +544,9 @@ export const AdminLeaguesPageBrasileirao: React.FC = () => {
                                     <h3 className="font-bold text-gray-800 dark:text-white text-lg leading-tight">{l.name}</h3>
                                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex items-center gap-1">
                                         <Users size={12} /> Admin: <span className="font-medium text-gray-700 dark:text-gray-300">{adminName || (isSyncing ? 'Carregando...' : l.adminId?.slice(0, 8) + '...')}</span>
+                                    </p>
+                                    <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5 ml-4 font-mono">
+                                        {users.find(u => u.id === l.adminId)?.email || adminEmails[l.adminId] || ''}
                                     </p>
                                 </div>
                                 <div className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-xs font-mono font-bold text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-600">
@@ -589,7 +603,7 @@ export const AdminLeaguesPageBrasileirao: React.FC = () => {
                                 </button>
                                 <button
                                     onClick={() => cycleLeaguePlan(l.id, plan)}
-                                    className="py-2.5 rounded-lg font-bold text-xs transition-colors bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 uppercase tracking-wide flex-1"
+                                    className="py-2.5 rounded-lg font-bold text-xs transition-colors bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-800 uppercase tracking-wide flex-1"
                                 >
                                     Plano
                                 </button>
