@@ -8,7 +8,7 @@ const API_FOOTBALL_KEY = Deno.env.get("API_FOOTBALL_KEY") || "";
 const SECRET = Deno.env.get("CRON_SECRET") || "";
 
 // 71 = Brasileirão, 73 = Copa do Brasil, 13 = Libertadores, 11 = Sul-Americana
-const LIGAS = "71-73-13-11"; 
+const LIGAS = "71-73-13-11";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -19,14 +19,22 @@ const LEAGUE_ID_TO_CHAMPIONSHIP: Record<number, string> = {
   11: 'sul_americana'
 };
 
+/**
+ * Envia push para participantes de ligas do campeonato.
+ * 
+ * notificationType: define qual chave de notification_settings checar.
+ *   - 'matchEnd'            → filtrar quem tem matchEnd !== false
+ *   - 'predictionReminder'  → filtrar quem tem predictionReminder !== false
+ *   - undefined             → envia para todos (sem filtro de preferência)
+ */
 async function sendPushToMatchParticipants(
   supabase: any,
   championship: string,
   title: string,
-  body: string
+  body: string,
+  notificationType?: 'matchEnd' | 'predictionReminder'
 ) {
   try {
-    // 1. Buscar ligas que participam desse campeonato
     const { data: leagues, error: leaguesError } = await supabase
       .from('brasileirao_leagues')
       .select('participants, settings');
@@ -38,37 +46,61 @@ async function sendPushToMatchParticipants(
 
     if (!leagues || leagues.length === 0) return;
 
-    // 2. Filtrar ligas sem restrição OU ligas que têm o campeonato
+    // Filtrar ligas que incluem o campeonato
     const eligibleLeagues = leagues.filter((l: any) => {
       const comps = l.settings?.competitions;
       return !comps || comps.includes(championship);
     });
 
-    // 3. Coletar user_ids únicos dos participants
-    const userIds = [...new Set(
+    const allUserIds = [...new Set(
       eligibleLeagues.flatMap((l: any) => l.participants ?? [])
     )];
 
-    if (userIds.length === 0) {
+    if (allUserIds.length === 0) {
       console.log(`Nenhum participante elegível para o campeonato: ${championship}`);
       return;
     }
 
-    console.log(`Enviando push para ${userIds.length} usuários (Campeonato: ${championship})`);
+    // Filtrar por notification_settings se for notificação com preferência
+    let targetUserIds = allUserIds;
+    if (notificationType) {
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, notification_settings')
+        .in('id', allUserIds);
 
-    // 4. Enviar push por userId (a push-notification já resolve tokens localmente e legacy)
+      if (profilesError || !profiles) {
+        console.error(`Erro ao buscar profiles para filtro de notificação (${notificationType}):`, profilesError);
+        return;
+      }
+
+      targetUserIds = profiles
+        .filter((p: any) => p.notification_settings?.[notificationType] !== false)
+        .map((p: any) => p.id);
+
+      if (targetUserIds.length === 0) {
+        console.log(`Nenhum usuário com notificação '${notificationType}' ativada.`);
+        return;
+      }
+    }
+
+    console.log(`[Push] Enviando '${notificationType || 'all'}' para ${targetUserIds.length} usuários (${championship})`);
+
     const { error } = await supabase.functions.invoke('push-notification', {
-      body: { action: 'send', userIds, title, body, data: { url: '/leagues-brasileirao' } }
+      body: { action: 'send', userIds: targetUserIds, title, body, data: { url: '/leagues-brasileirao' } }
     });
 
     if (error) {
-      console.error(`Erro ao disparar push para participantes:`, error);
+      console.error(`Erro ao disparar push:`, error);
     }
   } catch (err) {
     console.error(`Exceção ao disparar push:`, err);
   }
 }
 
+/**
+ * Envia push de GOL (exclusivo para usuários PRO com matchGoals ativo)
+ */
 async function sendGoalPushToMatchParticipants(
   supabase: any,
   championship: string,
@@ -87,13 +119,13 @@ async function sendGoalPushToMatchParticipants(
       return !comps || comps.includes(championship);
     });
 
-    const userIds = [...new Set(eligibleLeagues.flatMap((l: any) => l.participants ?? []))];
-    if (userIds.length === 0) return;
+    const allUserIds = [...new Set(eligibleLeagues.flatMap((l: any) => l.participants ?? []))];
+    if (allUserIds.length === 0) return;
 
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
       .select('id, is_pro, notification_settings')
-      .in('id', userIds);
+      .in('id', allUserIds);
 
     if (profilesError || !profiles) return;
 
@@ -103,7 +135,7 @@ async function sendGoalPushToMatchParticipants(
 
     if (eligibleUserIds.length === 0) return;
 
-    console.log(`Enviando push de GOL para ${eligibleUserIds.length} usuários PRO (Campeonato: ${championship})`);
+    console.log(`[Push] Enviando GOL para ${eligibleUserIds.length} usuários PRO (${championship})`);
 
     await supabase.functions.invoke('push-notification', {
       body: { action: 'send', userIds: eligibleUserIds, title, body, data: { url: '/leagues-brasileirao' } }
@@ -113,6 +145,9 @@ async function sendGoalPushToMatchParticipants(
   }
 }
 
+/**
+ * Envia push de INÍCIO DE JOGO (exclusivo para usuários PRO com matchStart ativo)
+ */
 async function sendStartPushToMatchParticipants(
   supabase: any,
   championship: string,
@@ -131,13 +166,13 @@ async function sendStartPushToMatchParticipants(
       return !comps || comps.includes(championship);
     });
 
-    const userIds = [...new Set(eligibleLeagues.flatMap((l: any) => l.participants ?? []))];
-    if (userIds.length === 0) return;
+    const allUserIds = [...new Set(eligibleLeagues.flatMap((l: any) => l.participants ?? []))];
+    if (allUserIds.length === 0) return;
 
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
       .select('id, is_pro, notification_settings')
-      .in('id', userIds);
+      .in('id', allUserIds);
 
     if (profilesError || !profiles) return;
 
@@ -147,7 +182,7 @@ async function sendStartPushToMatchParticipants(
 
     if (eligibleUserIds.length === 0) return;
 
-    console.log(`Enviando push de INICIO DE JOGO para ${eligibleUserIds.length} usuários PRO (Campeonato: ${championship})`);
+    console.log(`[Push] Enviando INÍCIO DE JOGO para ${eligibleUserIds.length} usuários PRO (${championship})`);
 
     await supabase.functions.invoke('push-notification', {
       body: { action: 'send', userIds: eligibleUserIds, title, body, data: { url: '/leagues-brasileirao' } }
@@ -159,8 +194,10 @@ async function sendStartPushToMatchParticipants(
 
 async function processMatches(supabase: any) {
   const agora = new Date();
-  
-  // 1A. LEMBRETE PUSH (Stateless time-window 34~35 min)
+
+  // ─────────────────────────────────────────────────────────────
+  // 1A. LEMBRETE DE PALPITE (janela 34~35 min antes do jogo)
+  // ─────────────────────────────────────────────────────────────
   const minReminderTime = new Date(agora.getTime() + 34 * 60000).toISOString();
   const maxReminderTime = new Date(agora.getTime() + 35 * 60000).toISOString();
 
@@ -175,8 +212,8 @@ async function processMatches(supabase: any) {
     .not("phase", "in", '("19ª Rodada","Rodada 19","16-avos de final","16-avos de Final","Round of 32")');
 
   if (reminderMatches && reminderMatches.length > 0) {
-    console.log(`Encontrados ${reminderMatches.length} jogos para lembrete de push (35 min).`);
-    
+    console.log(`Encontrados ${reminderMatches.length} jogos para lembrete de palpite (35 min).`);
+
     for (const m of reminderMatches) {
       const homeTeam = teamsData?.find((t: any) => t.id === Number(m.home_team_id));
       const awayTeam = teamsData?.find((t: any) => t.id === Number(m.away_team_id));
@@ -185,15 +222,17 @@ async function processMatches(supabase: any) {
       const title = `Lembrete de Palpite! ⏰`;
       const body = `Falta pouco para o inicio do jogo entre ${homeName} x ${awayName}! Revise ou faça seu palpite! Confira também as escalações.`;
       const championship = m.championship || 'brasileirao';
-      await sendPushToMatchParticipants(supabase, championship, title, body);
+      // ✅ FIX: filtra por predictionReminder nas notification_settings
+      await sendPushToMatchParticipants(supabase, championship, title, body, 'predictionReminder');
     }
   }
 
-  // 1B. BUSCA DE ESCALAÇÃO (Provisória aos 40 min, Confirmada aos 10 min)
+  // ─────────────────────────────────────────────────────────────
+  // 1B. BUSCA DE ESCALAÇÃO (40 min antes = provisória, 10 min = confirmada)
+  // ─────────────────────────────────────────────────────────────
   const maxLineupTime = new Date(agora.getTime() + 40 * 60000).toISOString();
   const finalLineupTime = new Date(agora.getTime() + 10 * 60000).toISOString();
-  
-  // Buscar jogos para a primeira tentativa (40 min)
+
   const { data: earlyMatches } = await supabase
     .from("brasileirao_matches")
     .select("id")
@@ -201,7 +240,6 @@ async function processMatches(supabase: any) {
     .eq("status", "SCHEDULED")
     .eq("lineup_fetched", false);
 
-  // Buscar jogos para a confirmação final (10 min) - pegar machucados no aquecimento
   const { data: lateMatches } = await supabase
     .from("brasileirao_matches")
     .select("id")
@@ -211,39 +249,31 @@ async function processMatches(supabase: any) {
     .eq("lineup_fetched", true);
 
   const lineupMatchesToFetch = [...(earlyMatches || []), ...(lateMatches || [])];
-  
-  // Remover duplicatas caso aconteça
   const uniqueLineupIds = Array.from(new Set(lineupMatchesToFetch.map(m => m.id)));
 
   if (uniqueLineupIds.length > 0) {
-    console.log(`Buscando escalação para ${uniqueLineupIds.length} jogos (40m ou 10m).`);
-    
+    console.log(`Buscando escalação para ${uniqueLineupIds.length} jogos (40m ou 10m antes).`);
+
     for (const matchId of uniqueLineupIds) {
       try {
         const lineupsRes = await fetch(`https://v3.football.api-sports.io/fixtures/lineups?fixture=${matchId}`, {
           headers: { "x-apisports-key": API_FOOTBALL_KEY },
         });
         if (lineupsRes.ok) {
-           const lineupsData = await lineupsRes.json();
-           const lineups = lineupsData.response;
-           
-           if (lineups && lineups.length > 0) {
-               // Verifica se este jogo já estava no "lateMatches" (precisa confirmar)
-               const isLate = lateMatches?.some(m => m.id === matchId);
-               
-               const updatePayload: any = { lineups, lineup_fetched: true };
-               if (isLate) {
-                 updatePayload.lineup_confirmed = true;
-               }
+          const lineupsData = await lineupsRes.json();
+          const lineups = lineupsData.response;
 
-               await supabase
-                 .from("brasileirao_matches")
-                 .update(updatePayload)
-                 .eq("id", matchId);
-               console.log(`Escalação ${isLate ? 'CONFIRMADA' : 'salva'} para o jogo ${matchId}`);
-           } else {
-               console.log(`Escalação indisponível para o jogo ${matchId}, tentará novamente.`);
-           }
+          if (lineups && lineups.length > 0) {
+            const isLate = lateMatches?.some(m => m.id === matchId);
+            const updatePayload: any = { lineups, lineup_fetched: true };
+            if (isLate) {
+              updatePayload.lineup_confirmed = true;
+            }
+            await supabase.from("brasileirao_matches").update(updatePayload).eq("id", matchId);
+            console.log(`Escalação ${isLate ? 'CONFIRMADA' : 'salva'} para o jogo ${matchId}`);
+          } else {
+            console.log(`Escalação indisponível para o jogo ${matchId}, tentará novamente.`);
+          }
         }
       } catch (e) {
         console.error(`Erro ao buscar lineup para ${matchId}:`, e);
@@ -251,207 +281,294 @@ async function processMatches(supabase: any) {
     }
   }
 
+  // ─────────────────────────────────────────────────────────────
+  // 2. BUSCA DE PLACARES E EVENTOS DA API-FOOTBALL
+  //
+  //    QUERY A: Jogos ainda em andamento (status != FINISHED)
+  //    QUERY B: Jogos finalizados há menos de 10 minutos (finished_at recente)
+  //             → continua buscando events/scouts mas SEM enviar push
+  // ─────────────────────────────────────────────────────────────
+  const limiteSuperior = new Date(agora.getTime() + 2 * 60000).toISOString();   // até 2 min no futuro
+  const limiteInferior = new Date(agora.getTime() - 4 * 60 * 60000).toISOString(); // tolerância de 4h
+  const postGameCutoff = new Date(agora.getTime() - 10 * 60000).toISOString();  // 10 min atrás
 
-  // 2. BUSCA DA API-FOOTBALL (Jogos Ativos)
-  const limiteSuperior = new Date(agora.getTime() + 2 * 60000).toISOString(); // 2 minutos antes
-  const limiteInferior = new Date(agora.getTime() - 4 * 60 * 60000).toISOString(); // 4 horas de tolerância
-  
-  const { data: jogosAtivos, error: dbError } = await supabase
+  // Query A: jogos ativos (não finalizados)
+  const { data: jogosAtivos, error: dbError1 } = await supabase
     .from("brasileirao_matches")
-    .select("id, status, home_team_id, away_team_id, phase, championship, events, statistics, home_score, away_score")
+    .select("id, status, home_team_id, away_team_id, phase, championship, events, statistics, home_score, away_score, last_notified_score")
     .lte("date", limiteSuperior)
     .gte("date", limiteInferior)
     .neq("status", "FINISHED");
 
-  if (dbError) {
-    console.error("Erro ao buscar jogos no banco:", dbError);
+  if (dbError1) {
+    console.error("Erro ao buscar jogos ativos:", dbError1);
     return;
   }
 
-  if (!jogosAtivos || jogosAtivos.length === 0) {
-    console.log("Nenhum jogo ativo no momento.");
+  // Query B: jogos finalizados nos últimos 10 minutos (para garantir lances e scouts finais)
+  const { data: jogosPosFim, error: dbError2 } = await supabase
+    .from("brasileirao_matches")
+    .select("id, status, home_team_id, away_team_id, phase, championship, events, statistics, home_score, away_score, last_notified_score")
+    .lte("date", limiteSuperior)
+    .gte("date", limiteInferior)
+    .eq("status", "FINISHED")
+    .gte("finished_at", postGameCutoff);
+
+  if (dbError2) {
+    console.error("Erro ao buscar jogos pós-fim:", dbError2);
+    // Não interrompe — continua com os jogos ativos
+  }
+
+  // Combina as duas listas sem duplicatas
+  const seenIds = new Set<number>();
+  const todosJogos: any[] = [];
+
+  for (const jogo of [...(jogosAtivos || []), ...(jogosPosFim || [])]) {
+    if (!seenIds.has(jogo.id)) {
+      seenIds.add(jogo.id);
+      // Flag que indica se o jogo já estava finalizado quando esta execução começou
+      jogo._wasAlreadyFinished = jogo.status === "FINISHED";
+      todosJogos.push(jogo);
+    }
+  }
+
+  if (todosJogos.length === 0) {
+    console.log("Nenhum jogo ativo ou finalizado recentemente.");
     return;
   }
 
-  const activeIds = jogosAtivos.map(j => j.id).slice(0, 20); // API-Football aceita no máximo 20 IDs juntos por req
+  const activeIds = todosJogos.map(j => j.id).slice(0, 20); // API-Football: max 20 IDs por requisição
   const idsString = activeIds.join('-');
 
-  console.log(`Encontrados ${jogosAtivos.length} jogos que devem estar rolando. Iniciando busca de 15 em 15s para os IDs: ${idsString}`);
-  
+  const jogosAtivosCount = todosJogos.filter(j => !j._wasAlreadyFinished).length;
+  const jogosPosFimCount = todosJogos.filter(j => j._wasAlreadyFinished).length;
+  console.log(`${jogosAtivosCount} jogo(s) ativo(s) + ${jogosPosFimCount} jogo(s) pós-fim (≤10 min). IDs: ${idsString}`);
+
+  // ─────────────────────────────────────────────────────────────
+  // Loop de 4 iterações de 14s (~56s total por execução do cron)
+  // ─────────────────────────────────────────────────────────────
   for (let iteracao = 1; iteracao <= 4; iteracao++) {
-    console.log(`Buscando placares da API (iteração ${iteracao}/4)...`);
-    
+    console.log(`Iteração ${iteracao}/4 — buscando placares na API-Football...`);
+
     const response = await fetch(`https://v3.football.api-sports.io/fixtures?ids=${idsString}`, {
-      headers: {
-        "x-apisports-key": API_FOOTBALL_KEY,
-      },
+      headers: { "x-apisports-key": API_FOOTBALL_KEY },
     });
 
-    if (response.ok) {
-      const dados = await response.json();
-      const jogosAPI = dados.response || [];
-
-      for (const jogoAPI of jogosAPI) {
-        const matchId = jogoAPI.fixture.id;
-        const statusShort = jogoAPI.fixture.status.short; 
-        
-        let novoStatus = "IN_PROGRESS";
-        if (["FT", "AET", "PEN", "CANC", "PSTP", "ABD", "AWD", "WO"].includes(statusShort)) {
-          novoStatus = "FINISHED";
-        } else if (["NS", "TBD"].includes(statusShort)) {
-          novoStatus = "SCHEDULED";
-        }
-
-        let matchTimeStr = null;
-        if (["1H", "2H", "ET"].includes(statusShort)) {
-          const tempo = statusShort === "1H" ? "1º T" : statusShort === "2H" ? "2º T" : "Prorrog.";
-          const elapsed = jogoAPI.fixture.status.elapsed;
-          const extra = jogoAPI.fixture.status.extra;
-          const timeText = extra ? `${elapsed}+${extra}` : `${elapsed}`;
-          matchTimeStr = `${tempo} - ${timeText}'`;
-        } else if (statusShort === "HT") {
-          matchTimeStr = "Intervalo";
-        } else if (statusShort === "P") {
-          matchTimeStr = "Pênaltis";
-        } else if (statusShort === "LIVE") {
-          const elapsed = jogoAPI.fixture.status.elapsed;
-          const extra = jogoAPI.fixture.status.extra;
-          const timeText = extra ? `${elapsed}+${extra}` : `${elapsed}`;
-          matchTimeStr = `${timeText}'`;
-        }
-
-        const matchDb = jogosAtivos.find(j => j.id === matchId);
-        
-        // Se a partida acabou AGORA, disparamos a notificação de fim de jogo.
-        if (matchDb && matchDb.status !== "FINISHED" && novoStatus === "FINISHED") {
-           const excludedPhases = ["19ª Rodada", "Rodada 19", "16-avos de final", "16-avos de Final", "Round of 32"];
-           const isExcluded = matchDb.phase && excludedPhases.includes(matchDb.phase);
-           
-           if (!isExcluded) {
-             const homeTeam = teamsData?.find(t => t.id === Number(matchDb.home_team_id));
-             const awayTeam = teamsData?.find(t => t.id === Number(matchDb.away_team_id));
-             const homeName = homeTeam?.name || homeTeam?.short_name || jogoAPI.teams.home.name;
-             const awayName = awayTeam?.name || awayTeam?.short_name || jogoAPI.teams.away.name;
-             const homeScore = jogoAPI.goals.home ?? 0;
-             const awayScore = jogoAPI.goals.away ?? 0;
-             
-             const title = `🏁 Fim de Jogo!`;
-             const body = `${homeName} (${homeScore}) x (${awayScore}) ${awayName}. Acesse a liga para conferir os pontos!`;
-             
-             const leagueId = jogoAPI.league?.id;
-             const championship = matchDb.championship || LEAGUE_ID_TO_CHAMPIONSHIP[leagueId] || 'brasileirao';
-             await sendPushToMatchParticipants(supabase, championship, title, body);
-           }
-           
-        // Atualizamos localmente para evitar duplo push no loop
-           matchDb.status = "FINISHED";
-        }
-
-        // Se a partida começou AGORA, disparamos a notificação de INICIO DE JOGO (Exclusivo PRO)
-        if (matchDb && matchDb.status === "SCHEDULED" && novoStatus === "IN_PROGRESS") {
-           const excludedPhases = ["19ª Rodada", "Rodada 19", "16-avos de final", "16-avos de Final", "Round of 32"];
-           const isExcluded = matchDb.phase && excludedPhases.includes(matchDb.phase);
-           
-           if (!isExcluded) {
-             const homeTeam = teamsData?.find((t: any) => t.id === Number(matchDb.home_team_id));
-             const awayTeam = teamsData?.find((t: any) => t.id === Number(matchDb.away_team_id));
-             const homeName = homeTeam?.name || homeTeam?.short_name || jogoAPI.teams.home.name;
-             const awayName = awayTeam?.name || awayTeam?.short_name || jogoAPI.teams.away.name;
-             
-             const title = `▶️ Bola rolando!`;
-             const body = `O jogo entre ${homeName} e ${awayName} acabou de começar. Acompanhe!`;
-             
-             const leagueId = jogoAPI.league?.id;
-             const championship = matchDb.championship || LEAGUE_ID_TO_CHAMPIONSHIP[leagueId] || 'brasileirao';
-             await sendStartPushToMatchParticipants(supabase, championship, title, body);
-           }
-           
-           matchDb.status = "IN_PROGRESS";
-        }
-
-        let currentEvents = matchDb.events;
-        let currentStats = matchDb.statistics;
-
-        const oldHomeScore = matchDb.home_score ?? 0;
-        const oldAwayScore = matchDb.away_score ?? 0;
-        const newHomeScore = jogoAPI.goals.home ?? 0;
-        const newAwayScore = jogoAPI.goals.away ?? 0;
-        const scoreChanged = (newHomeScore !== oldHomeScore) || (newAwayScore !== oldAwayScore);
-
-        if (scoreChanged) {
-            console.log(`[match: ${matchId}] Placar mudou (${oldHomeScore}x${oldAwayScore} -> ${newHomeScore}x${newAwayScore}). Enviando push imediatamente.`);
-        }
-
-        if (iteracao === 1 || scoreChanged) {
-          try {
-            // Busca eventos a cada 1 minuto (ou imediatamente após delay se houver gol)
-            const eventsRes = await fetch(`https://v3.football.api-sports.io/fixtures/events?fixture=${matchId}`, {
-              headers: { "x-apisports-key": API_FOOTBALL_KEY }
-            });
-            if (eventsRes.ok) {
-               const eventsData = await eventsRes.json();
-               currentEvents = eventsData.response;
-               matchDb.events = currentEvents;
-            }
-
-            // Busca estatísticas a cada 2 minutos (minuto par) apenas se iteracao 1
-            if (iteracao === 1 && new Date().getMinutes() % 2 === 0) {
-              const statsRes = await fetch(`https://v3.football.api-sports.io/fixtures/statistics?fixture=${matchId}`, {
-                headers: { "x-apisports-key": API_FOOTBALL_KEY }
-              });
-              if (statsRes.ok) {
-                 const statsData = await statsRes.json();
-                 currentStats = statsData.response;
-                 matchDb.statistics = currentStats;
-              }
-            }
-          } catch (e) {
-            console.error(`Erro ao buscar stats/events para ${matchId}:`, e);
-          }
-        }
-
-        if (scoreChanged) {
-           matchDb.home_score = newHomeScore;
-           matchDb.away_score = newAwayScore;
-
-           const homeTeamName = teamsData?.find((t: any) => t.id === Number(matchDb.home_team_id))?.name || jogoAPI.teams.home.name;
-           const awayTeamName = teamsData?.find((t: any) => t.id === Number(matchDb.away_team_id))?.name || jogoAPI.teams.away.name;
-           const scoreText = `${String(homeTeamName).toUpperCase()} ${newHomeScore} x ${newAwayScore} ${String(awayTeamName).toUpperCase()}`;
-
-           let eventTitle = "⚽ GOL NA PARTIDA!";
-           let eventBody = `${scoreText}\nAbra o app e confira as pontuações!`;
-           
-           if (newHomeScore < oldHomeScore || newAwayScore < oldAwayScore) {
-               eventTitle = `❌ GOL ANULADO!`;
-           } else if (newHomeScore > oldHomeScore) {
-               eventTitle = `⚽ GOL DO ${String(homeTeamName).toUpperCase()}!`;
-           } else if (newAwayScore > oldAwayScore) {
-               eventTitle = `⚽ GOL DO ${String(awayTeamName).toUpperCase()}!`;
-           }
-           
-           const leagueId = jogoAPI.league?.id;
-           const championship = matchDb.championship || LEAGUE_ID_TO_CHAMPIONSHIP[leagueId] || 'brasileirao';
-           await sendGoalPushToMatchParticipants(supabase, championship, eventTitle, eventBody);
-        }
-
-        await supabase
-          .from("brasileirao_matches")
-          .update({
-            home_score: newHomeScore,
-            away_score: newAwayScore,
-            status: novoStatus,
-            match_time: matchTimeStr,
-            events: currentEvents,
-            statistics: currentStats
-          })
-          .eq("id", matchId);
-      }
-    } else {
+    if (!response.ok) {
       console.error("Erro na API-Football:", response.status, await response.text());
+      if (iteracao < 4) await sleep(14000);
+      continue;
+    }
+
+    const dados = await response.json();
+    const jogosAPI = dados.response || [];
+
+    for (const jogoAPI of jogosAPI) {
+      const matchId = jogoAPI.fixture.id;
+      const statusShort = jogoAPI.fixture.status.short;
+
+      const matchDb = todosJogos.find(j => j.id === matchId);
+      if (!matchDb) continue;
+
+      // ── Status ──────────────────────────────────────────────
+      let novoStatus = "IN_PROGRESS";
+      if (["FT", "AET", "PEN", "CANC", "PSTP", "ABD", "AWD", "WO"].includes(statusShort)) {
+        novoStatus = "FINISHED";
+      } else if (["NS", "TBD"].includes(statusShort)) {
+        novoStatus = "SCHEDULED";
+      }
+
+      // ── Tempo de jogo ────────────────────────────────────────
+      let matchTimeStr: string | null = null;
+      if (["1H", "2H", "ET"].includes(statusShort)) {
+        const tempo = statusShort === "1H" ? "1º T" : statusShort === "2H" ? "2º T" : "Prorrog.";
+        const elapsed = jogoAPI.fixture.status.elapsed;
+        const extra = jogoAPI.fixture.status.extra;
+        matchTimeStr = `${tempo} - ${extra ? `${elapsed}+${extra}` : elapsed}'`;
+      } else if (statusShort === "HT") {
+        matchTimeStr = "Intervalo";
+      } else if (statusShort === "P") {
+        matchTimeStr = "Pênaltis";
+      } else if (statusShort === "LIVE") {
+        const elapsed = jogoAPI.fixture.status.elapsed;
+        const extra = jogoAPI.fixture.status.extra;
+        matchTimeStr = extra ? `${elapsed}+${extra}'` : `${elapsed}'`;
+      }
+
+      const wasAlreadyFinished = matchDb._wasAlreadyFinished;
+
+      // ── Notificação: INÍCIO DE JOGO ──────────────────────────
+      // Apenas quando o status transiciona de SCHEDULED → IN_PROGRESS (nunca para pós-fim)
+      if (!wasAlreadyFinished && matchDb.status === "SCHEDULED" && novoStatus === "IN_PROGRESS") {
+        const excludedPhases = ["19ª Rodada", "Rodada 19", "16-avos de final", "16-avos de Final", "Round of 32"];
+        if (!matchDb.phase || !excludedPhases.includes(matchDb.phase)) {
+          const homeTeam = teamsData?.find((t: any) => t.id === Number(matchDb.home_team_id));
+          const awayTeam = teamsData?.find((t: any) => t.id === Number(matchDb.away_team_id));
+          const homeName = homeTeam?.name || homeTeam?.short_name || jogoAPI.teams.home.name;
+          const awayName = awayTeam?.name || awayTeam?.short_name || jogoAPI.teams.away.name;
+          const leagueId = jogoAPI.league?.id;
+          const championship = matchDb.championship || LEAGUE_ID_TO_CHAMPIONSHIP[leagueId] || 'brasileirao';
+          await sendStartPushToMatchParticipants(supabase, championship,
+            `▶️ Bola rolando!`,
+            `O jogo entre ${homeName} e ${awayName} acabou de começar. Acompanhe!`
+          );
+        }
+        matchDb.status = "IN_PROGRESS"; // atualiza local para evitar re-disparo
+      }
+
+      // ── Notificação: FIM DE JOGO ─────────────────────────────
+      // Apenas quando o status transiciona para FINISHED (nunca para pós-fim)
+      if (!wasAlreadyFinished && matchDb.status !== "FINISHED" && novoStatus === "FINISHED") {
+        const excludedPhases = ["19ª Rodada", "Rodada 19", "16-avos de final", "16-avos de Final", "Round of 32"];
+        if (!matchDb.phase || !excludedPhases.includes(matchDb.phase)) {
+          const homeTeam = teamsData?.find(t => t.id === Number(matchDb.home_team_id));
+          const awayTeam = teamsData?.find(t => t.id === Number(matchDb.away_team_id));
+          const homeName = homeTeam?.name || homeTeam?.short_name || jogoAPI.teams.home.name;
+          const awayName = awayTeam?.name || awayTeam?.short_name || jogoAPI.teams.away.name;
+          const homeScore = jogoAPI.goals.home ?? 0;
+          const awayScore = jogoAPI.goals.away ?? 0;
+          const leagueId = jogoAPI.league?.id;
+          const championship = matchDb.championship || LEAGUE_ID_TO_CHAMPIONSHIP[leagueId] || 'brasileirao';
+          // ✅ FIX: filtra por matchEnd nas notification_settings
+          await sendPushToMatchParticipants(supabase, championship,
+            `🏁 Fim de Jogo!`,
+            `${homeName} (${homeScore}) x (${awayScore}) ${awayName}. Acesse a liga para conferir os pontos!`,
+            'matchEnd'
+          );
+        }
+        matchDb.status = "FINISHED"; // atualiza local para evitar re-disparo
+      }
+
+      // ── Placar ───────────────────────────────────────────────
+      const oldHomeScore = matchDb.home_score ?? 0;
+      const oldAwayScore = matchDb.away_score ?? 0;
+      const newHomeScore = jogoAPI.goals.home ?? 0;
+      const newAwayScore = jogoAPI.goals.away ?? 0;
+      const scoreChanged = (newHomeScore !== oldHomeScore) || (newAwayScore !== oldAwayScore);
+
+      // ── Deduplicação de push de GOL ──────────────────────────
+      // currentScoreKey é o placar atual da API.
+      // lastNotifiedScore é o último placar para o qual JÁ enviamos push.
+      // Só envia se o placar mudou E ainda não foi notificado para esse placar
+      // E o jogo não estava já finalizado (evita re-push no período pós-fim).
+      const currentScoreKey = `${newHomeScore}-${newAwayScore}`;
+      const lastNotifiedScore = matchDb.last_notified_score ?? `${oldHomeScore}-${oldAwayScore}`;
+      const shouldSendGoalPush = !wasAlreadyFinished && scoreChanged && (currentScoreKey !== lastNotifiedScore);
+
+      if (shouldSendGoalPush) {
+        console.log(`[match: ${matchId}] GOL detectado (${oldHomeScore}x${oldAwayScore} → ${newHomeScore}x${newAwayScore}). Enviando push.`);
+      }
+
+      // ── Busca de Eventos e Estatísticas ──────────────────────
+      // Para jogos ATIVOS: na iteração 1 ou se o placar mudou
+      // Para jogos PÓS-FIM: sempre na iteração 1 (garante lances e scouts completos)
+      const shouldFetchEvents = iteracao === 1 || (scoreChanged && !wasAlreadyFinished);
+      const shouldFetchStats = (iteracao === 1 && new Date().getMinutes() % 2 === 0) || (iteracao === 1 && wasAlreadyFinished);
+
+      let currentEvents = matchDb.events;
+      let currentStats = matchDb.statistics;
+
+      if (shouldFetchEvents) {
+        try {
+          const eventsRes = await fetch(
+            `https://v3.football.api-sports.io/fixtures/events?fixture=${matchId}`,
+            { headers: { "x-apisports-key": API_FOOTBALL_KEY } }
+          );
+          if (eventsRes.ok) {
+            const eventsData = await eventsRes.json();
+            currentEvents = eventsData.response;
+            matchDb.events = currentEvents;
+            if (wasAlreadyFinished) {
+              console.log(`[match: ${matchId}] Lances pós-fim atualizados (${currentEvents?.length ?? 0} eventos).`);
+            }
+          }
+        } catch (e) {
+          console.error(`Erro ao buscar eventos para ${matchId}:`, e);
+        }
+      }
+
+      if (shouldFetchStats) {
+        try {
+          const statsRes = await fetch(
+            `https://v3.football.api-sports.io/fixtures/statistics?fixture=${matchId}`,
+            { headers: { "x-apisports-key": API_FOOTBALL_KEY } }
+          );
+          if (statsRes.ok) {
+            const statsData = await statsRes.json();
+            currentStats = statsData.response;
+            matchDb.statistics = currentStats;
+            if (wasAlreadyFinished) {
+              console.log(`[match: ${matchId}] Scouts pós-fim atualizados.`);
+            }
+          }
+        } catch (e) {
+          console.error(`Erro ao buscar estatísticas para ${matchId}:`, e);
+        }
+      }
+
+      // ── Notificação de GOL (após buscar eventos para ter o nome do jogador) ──
+      if (shouldSendGoalPush) {
+        matchDb.home_score = newHomeScore;
+        matchDb.away_score = newAwayScore;
+        matchDb.last_notified_score = currentScoreKey;
+
+        const homeTeamName = teamsData?.find((t: any) => t.id === Number(matchDb.home_team_id))?.name || jogoAPI.teams.home.name;
+        const awayTeamName = teamsData?.find((t: any) => t.id === Number(matchDb.away_team_id))?.name || jogoAPI.teams.away.name;
+        const scoreText = `${String(homeTeamName).toUpperCase()} ${newHomeScore} x ${newAwayScore} ${String(awayTeamName).toUpperCase()}`;
+
+        let eventTitle = "⚽ GOL NA PARTIDA!";
+        let eventBody = `${scoreText}\nAbra o app e confira as pontuações!`;
+
+        if (newHomeScore < oldHomeScore || newAwayScore < oldAwayScore) {
+          eventTitle = `❌ GOL ANULADO!`;
+        } else if (newHomeScore > oldHomeScore) {
+          eventTitle = `⚽ GOL DO ${String(homeTeamName).toUpperCase()}!`;
+        } else if (newAwayScore > oldAwayScore) {
+          eventTitle = `⚽ GOL DO ${String(awayTeamName).toUpperCase()}!`;
+        }
+
+        const leagueId = jogoAPI.league?.id;
+        const championship = matchDb.championship || LEAGUE_ID_TO_CHAMPIONSHIP[leagueId] || 'brasileirao';
+        await sendGoalPushToMatchParticipants(supabase, championship, eventTitle, eventBody);
+      } else if (scoreChanged && !wasAlreadyFinished) {
+        // Placar mudou mas push já foi enviado por outro cron simultâneo — só atualiza local
+        matchDb.home_score = newHomeScore;
+        matchDb.away_score = newAwayScore;
+      }
+
+      // ── Gravar no banco ──────────────────────────────────────
+      const updatePayload: any = {
+        home_score: newHomeScore,
+        away_score: newAwayScore,
+        events: currentEvents,
+        statistics: currentStats,
+      };
+
+      // Só atualiza status e match_time para jogos que ainda não estavam finalizados
+      if (!wasAlreadyFinished) {
+        updatePayload.status = novoStatus;
+        updatePayload.match_time = matchTimeStr;
+
+        // Registra o timestamp exato de quando o jogo foi finalizado
+        // Usado para a query pós-fim (10 min de janela)
+        if (novoStatus === "FINISHED" && matchDb.status !== "FINISHED") {
+          updatePayload.finished_at = new Date().toISOString();
+        }
+      }
+
+      // ✅ FIX: Grava o último placar notificado para evitar push duplicado em crons simultâneos
+      if (shouldSendGoalPush) {
+        updatePayload.last_notified_score = currentScoreKey;
+      }
+
+      await supabase
+        .from("brasileirao_matches")
+        .update(updatePayload)
+        .eq("id", matchId);
     }
 
     if (iteracao < 4) {
-      await sleep(14000); 
+      await sleep(14000);
     }
   }
 }
@@ -465,7 +582,6 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Run processing in background to avoid cron job timeout
     const bgPromise = processMatches(supabase).catch(err => {
       console.error("Background processing error:", err);
     });
